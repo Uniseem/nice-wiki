@@ -16,13 +16,13 @@
     },
     {
       "id": "M09-R03",
-      "description": "回答缓存保留自动写入和人工精选；只有已补全且意思完整的问题才查/写cache。精选优先且无TTL，记忆版本改变不使精选失效；撤回/删除/引用hash变化仍失效。",
-      "acceptance": "契约验证行为：回答缓存保留自动写入和人工精选；只有已补全且意思完整的问题才查/写cache。精选优先且无TTL，记忆版本改变不使精选失效；撤回/删除/引用hash变化仍失效。；实现阶段才可执行验证，不在设计阶段宣称通过。"
+      "description": "访客问答由主Agent直接处理，移除共享答案缓存、精选与前置改写；检索查询向量和模型调用幂等结果仍保留。",
+      "acceptance": "纯Agent问答不调用前置或答案缓存路径，管理员可按保留期查看问题和回答。"
     },
     {
       "id": "M09-R04",
-      "description": "缓存canonical基准语言问题跨语言共享；默认AI同义判断（候选cosine≥0.8最多3项），可选严格相似度阈值；不以rerank相关性判断同义。每语言答案单独保存，缺语言由快速档自动翻译后存储。",
-      "acceptance": "契约验证行为：缓存canonical基准语言问题跨语言共享；默认AI同义判断（候选cosine≥0.8最多3项），可选严格相似度阈值；不以rerank相关性判断同义。每语言答案单独保存，缺语言由快速档自动翻译后存储。；实现阶段才可执行验证，不在设计阶段宣称通过。"
+      "description": "访客问答由主Agent直接处理，移除共享答案缓存、精选与前置改写；检索查询向量和模型调用幂等结果仍保留。",
+      "acceptance": "纯Agent问答不调用前置或答案缓存路径，管理员可按保留期查看问题和回答。"
     },
     {
       "id": "M09-R05",
@@ -36,8 +36,8 @@
     },
     {
       "id": "M09-R07",
-      "description": "debug对话与普通对话使用独立命名空间、记录表和缓存访问权限；不参与精选、semantic cache或普通问答统计。",
-      "acceptance": "契约验证行为：debug对话与普通对话使用独立命名空间、记录表和缓存访问权限；不参与精选、semantic cache或普通问答统计。；实现阶段才可执行验证，不在设计阶段宣称通过。"
+      "description": "访客问答由主Agent直接处理，移除共享答案缓存、精选与前置改写；检索查询向量和模型调用幂等结果仍保留。",
+      "acceptance": "纯Agent问答不调用前置或答案缓存路径，管理员可按保留期查看问题和回答。"
     },
     {
       "id": "M09-R901",
@@ -1639,74 +1639,6 @@
           "contract": "reference"
         },
         {
-          "id": "qa.PublicationFingerprint",
-          "name": "PublicationFingerprint",
-          "signature": "func PublicationFingerprint(ctx context.Context,op OperationContext)(string,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "读取content公开树完整发布引用集合，建立无引用答案的权威失效摘要",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.FromContext",
-            "qa.DecodeResponse",
-            "qa.ServiceReadContext",
-            "content:readPublicTree"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
           "id": "qa.ResolveTaskMemory",
           "name": "ResolveTaskMemory",
           "signature": "func ResolveTaskMemory(ctx context.Context,op OperationContext,task,language string)(MemoryContext,error)",
@@ -3285,848 +3217,6 @@
       ]
     },
     {
-      "path": "modules/qa/internal/cache/exact.go",
-      "kind": "handwritten",
-      "purpose": "查询精确精选缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.LookupExactCache",
-          "name": "LookupExactCache",
-          "signature": "func LookupExactCache(ctx context.Context, op OperationContext, input LookupExactCacheInput) (LookupExactCacheResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "LookupExactCacheInput",
-              "description": "封闭业务输入；逐字段见types $defs/LookupExactCacheInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LookupExactCacheResult",
-              "description": "成功结果；逐字段见types $defs/LookupExactCacheResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "查询精确精选缓存",
-          "steps": [
-            "0 cacheEnabled=false直接miss/不写cache，问答记录照常保存。",
-            "1 complete=false绝不查询",
-            "2 第一轮已有standalone exact条目可在前置前命中，追问须PlanQuestion补全后才查",
-            "3 优先curated再未过期普通缓存",
-            "4 精选豁免memory版本但全部来源仍需ValidateCachedAnswer。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "只读，返回前仍需验证来源"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.BeginRead",
-            "qa.ReadPolicy",
-            "qa.ReadCache",
-            "qa.ValidateCachedAnswer",
-            "qa.StorageError",
-            "qa.Transaction.Close"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.ScopeHash",
-          "name": "ScopeHash",
-          "signature": "func ScopeHash(op OperationContext,policy gen.TypesQaPolicy,language string)string",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "固定站点、代次、规范化版本、基准语言与完整空间的缓存作用域摘要，不包含记忆或回答模型",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.ReadCache",
-          "name": "ReadCache",
-          "signature": "func ReadCache(tx *qaruntime.Transaction,op OperationContext,id string)(CacheRecord,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "在固定SQL事务内校验缓存schema及身份/版本/状态投影",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.StorageError",
-            "qa.DecodeResponse"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.SaveCache",
-          "name": "SaveCache",
-          "signature": "func SaveCache(tx *qaruntime.Transaction,op OperationContext,record CacheRecord)error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "在同一事务保存缓存版本状态与独立来源，失效条目移除可命中向量",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.StorageError"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.InsertCache",
-          "name": "InsertCache",
-          "signature": "func InsertCache(tx *qaruntime.Transaction,op OperationContext,record CacheRecord)error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "插入无访客身份的公开缓存记录及来源、费用根和发布摘要",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.StorageError"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.EmitCacheChanged",
-          "name": "EmitCacheChanged",
-          "signature": "func EmitCacheChanged(tx *qaruntime.Transaction,op OperationContext,entry gen.CacheEntry)error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "EmitCacheChanged的本域内部实现助手",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "platform.EnqueueEvent"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/cache/semantic.go",
-      "kind": "handwritten",
-      "purpose": "保守查询语义缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.LookupSemanticCache",
-          "name": "LookupSemanticCache",
-          "signature": "func LookupSemanticCache(ctx context.Context, op OperationContext, input LookupSemanticCacheInput) (LookupSemanticCacheResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "LookupSemanticCacheInput",
-              "description": "封闭业务输入；逐字段见types $defs/LookupSemanticCacheInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "LookupSemanticCacheResult",
-              "description": "成功结果；逐字段见types $defs/LookupSemanticCacheResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "保守查询语义缓存",
-          "steps": [
-            "cacheEnabled=false或可信计划不完整/未解指代/cacheEligible=false直接miss，原embedding始终返回供检索复用",
-            "读取同site/epoch/scope完整space的active未过期向量；核摘要、同版本缓存与有限非零范数，稳定cosine≥0.8最高3项",
-            "threshold模式要求配置阈值并比较共享NormalizeQuestion提取的数字/实体/否定anchors；默认ai_equivalence独立读取qa.cache-match记忆并真实调用fast结构同义判断，不用rerank",
-            "每个候选交付前调用ValidateCachedAnswer，权威未知整次失败；模型未知/失败不转空miss或自动重试"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "可能MG查询embedding费用；不动态新增cache"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.BeginRead",
-            "qa.ReadPolicy",
-            "qa.ReadCache",
-            "qa.cosineSimilarity",
-            "qa.NormalizeQuestion",
-            "qa.ResolveTaskMemory",
-            "qa.InvokeModel",
-            "qa.ModelText",
-            "qa.ValidateCachedAnswer",
-            "qa.DecodeResponse"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.cosineSimilarity",
-          "name": "cosineSimilarity",
-          "signature": "func cosineSimilarity(a,b []float64)(float64,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "同维有限非零向量缩放后计算cosine，避免平方溢出",
-          "steps": [
-            "按调用者持有的可信上下文和事务执行本域职责",
-            "精确规则见data/workflows和源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/cache/validate.go",
-      "kind": "handwritten",
-      "purpose": "验证缓存仍可公开交付所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.ValidateCachedAnswer",
-          "name": "ValidateCachedAnswer",
-          "signature": "func ValidateCachedAnswer(ctx context.Context, op OperationContext, input ValidateCachedAnswerInput) (ValidateCachedAnswerResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ValidateCachedAnswerInput",
-              "description": "封闭业务输入；逐字段见types $defs/ValidateCachedAnswerInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ValidateCachedAnswerResult",
-              "description": "成功结果；逐字段见types $defs/ValidateCachedAnswerResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "验证缓存仍可公开交付",
-          "steps": [
-            "1 active且未过TTL，curated免TTL",
-            "2 content校验current/visible且所有块hash相同",
-            "3 普通cache校验qa.answer memoryVersionHash，curated豁免仅该项",
-            "4 无引用答案在任一发布revision变化即stale，依赖不可用不得返回。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "可能标cache stale；绝不返回撤回答案"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "content:validatePublications",
-            "qa.BeginRead",
-            "qa.ReadPolicy",
-            "qa.ReadCache",
-            "qa.ValidateCitations",
-            "qa.PublicationFingerprint",
-            "qa.Transaction.Close"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/answer/retrieve.go",
       "kind": "handwritten",
       "purpose": "取有源可见证据所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -4298,7 +3388,6 @@
             "knowledge:searchKnowledge",
             "knowledge:readSections",
             "qa.FromContext",
-            "qa.AcquireQueryEmbedding",
             "qa.ServiceReadContext",
             "qa.DecodeResponse",
             "qa.ReadPublishedDocument",
@@ -4306,7 +3395,8 @@
             "knowledge:readDocumentIndex",
             "localization:readTranslation",
             "knowledge:readDocumentChunks",
-            "knowledge:readSiteOverview"
+            "knowledge:readSiteOverview",
+            "qa.AcquireQueryEmbedding"
           ],
           "resources": [],
           "contract": "reference"
@@ -4945,7 +4035,7 @@
             "4 提交后广播",
             "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
             "可信调用链可给sourceStep/sourceSequence，按turnId+sourceStep+sourceSequence唯一；同源同内容返回原序号，异内容INTEGRITY_ERROR；新事件序号仅本事务生成",
-            "本函数仅接受accepted/progress/delta/citation/invalidate；completed/error/cancelled必须由终态用例与Turn状态同事务写入"
+            "本函数仅接受accepted/progress/step/delta/citation/invalidate；completed/failed/error/cancelled必须由终态用例与Turn状态同事务写入"
           ],
           "errors": [
             {
@@ -5826,11 +4916,8 @@
           ],
           "purpose": "保存访客单条反馈",
           "steps": [
-            "1 owner及completed校验",
-            "2 answerRevision准确匹配",
-            "3 每visitor/turn唯一upsert",
-            "4 审计只传评分无问题正文",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+            "校验访客对已完成答案版本的权限",
+            "保存反馈并发布不含正文的事件；不写答案缓存"
           ],
           "errors": [
             {
@@ -5922,9 +5009,6 @@
             "qa.BeginWrite",
             "qa.ReplayReceipt",
             "qa.ReadTurn",
-            "qa.ReadCache",
-            "qa.SaveCache",
-            "qa.EmitCacheInvalidated",
             "qa.SaveReceipt",
             "qa.StorageError",
             "qa.Transaction.Close",
@@ -5937,981 +5021,16 @@
       ]
     },
     {
-      "path": "modules/qa/internal/cache/curation.go",
-      "kind": "handwritten",
-      "purpose": "人工创建精选候选所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.ProposeCacheEntry",
-          "name": "ProposeCacheEntry",
-          "signature": "func ProposeCacheEntry(ctx context.Context, op OperationContext, input ProposeCacheEntryInput) (ProposeCacheEntryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ProposeCacheEntryInput",
-              "description": "封闭业务输入；逐字段见types $defs/ProposeCacheEntryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ProposeCacheEntryResult",
-              "description": "成功结果；逐字段见types $defs/ProposeCacheEntryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "人工创建精选候选",
-          "steps": [
-            "1 qa.manage授权",
-            "2 completed且引用有效",
-            "3 清理访客身份/私密上下文",
-            "4 保存pending不会命中",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-            "publicQuestion/publicAnswer由管理员明确编辑为站点基准语言的公开内容；不自动翻译，不自动复制原始私人对话；memoryHash必须来自已完成轮次持久上下文，缺失不伪造"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写cache候选及审核记录"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "content:validatePublications",
-            "qa.ScopeHash",
-            "qa.InsertCache",
-            "qa.EmitCacheChanged",
-            "qa.RequireAdmin",
-            "qa.BeginWrite",
-            "qa.ReplayReceipt",
-            "qa.ReadTurn",
-            "qa.ReadPolicy",
-            "qa.NormalizeQuestion",
-            "qa.ValidateCitations",
-            "qa.PublicationFingerprint",
-            "qa.SaveReceipt",
-            "qa.StorageError",
-            "qa.Transaction.Close",
-            "qa.Transaction.Commit"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "qa.ApproveCacheEntry",
-          "name": "ApproveCacheEntry",
-          "signature": "func ApproveCacheEntry(ctx context.Context, op OperationContext, input ApproveCacheEntryInput) (ApproveCacheEntryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ApproveCacheEntryInput",
-              "description": "封闭业务输入；逐字段见types $defs/ApproveCacheEntryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ApproveCacheEntryResult",
-              "description": "成功结果；逐字段见types $defs/ApproveCacheEntryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "批准缓存公开内容",
-          "steps": [
-            "1 qa.manage人工编辑后标curated",
-            "2 核对source引用有效",
-            "3 curated免TTL与未来memory变化但仍受引用失效",
-            "4 active后exact优先，语义向量由qa.cache-embedding任务另建。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "启用exact缓存；semantic embedding单独任务"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "content:validatePublications",
-            "memory:resolveContext",
-            "jobs:createJob"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "qa.DisableCacheEntry",
-          "name": "DisableCacheEntry",
-          "signature": "func DisableCacheEntry(ctx context.Context, op OperationContext, input DisableCacheEntryInput) (DisableCacheEntryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "DisableCacheEntryInput",
-              "description": "封闭业务输入；逐字段见types $defs/DisableCacheEntryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "DisableCacheEntryResult",
-              "description": "成功结果；逐字段见types $defs/DisableCacheEntryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "人工停用缓存",
-          "steps": [
-            "1 校验qa.manage",
-            "2 CAS版本",
-            "3 active/pending/stale均可disabled",
-            "4 禁用向量命中",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "expectedVersion/expectedRevision不等于当前版本，旧结果不写入。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写cache状态/审核"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.RequireAdmin",
-            "qa.BeginWrite",
-            "qa.ReplayReceipt",
-            "qa.ReadCache",
-            "qa.SaveCache",
-            "qa.EmitCacheChanged",
-            "qa.SaveReceipt",
-            "qa.Transaction.Close",
-            "qa.Transaction.Commit"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/cache/embedding.go",
       "kind": "handwritten",
       "purpose": "为已批准缓存构建语义向量所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.BuildCacheEmbedding",
-          "name": "BuildCacheEmbedding",
-          "signature": "func BuildCacheEmbedding(ctx context.Context, op OperationContext, input BuildCacheEmbeddingInput) (BuildCacheEmbeddingResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "BuildCacheEmbeddingInput",
-              "description": "封闭业务输入；逐字段见types $defs/BuildCacheEmbeddingInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "BuildCacheEmbeddingResult",
-              "description": "成功结果；逐字段见types $defs/BuildCacheEmbeddingResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "为已批准缓存构建语义向量",
-          "steps": [
-            "1 只active且原version",
-            "2 ctx costClass=background继承批准根",
-            "3 MG生成向量",
-            "4 返回时CAS版本/space/epoch再写",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "MG费用和cache_vector写入；旧结果丢弃"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.InvokeModel"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/cache/invalidate.go",
-      "kind": "handwritten",
-      "purpose": "失效受版本变化影响缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.InvalidateCache",
-          "name": "InvalidateCache",
-          "signature": "func InvalidateCache(ctx context.Context, op OperationContext, input InvalidateCacheInput) (InvalidateCacheResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "InvalidateCacheInput",
-              "description": "封闭业务输入；逐字段见types $defs/InvalidateCacheInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "InvalidateCacheResult",
-              "description": "成功结果；逐字段见types $defs/InvalidateCacheResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "失效受版本变化影响缓存",
-          "steps": [
-            "接收原EventEnvelope，核epoch；按登记的content发布/撤回、index退役、memory变更schema解析真实来源",
-            "发布/撤回失效对应文档引用与无引用公开集合答案；index退役只失效受影响文档；memory事件仅处理qa.answer，按实际cache语言读取当前memory hash",
-            "在同事务ClaimInbox；重复/旧事件不再变更。仅active缓存转stale、版本递增、删除可命中向量、写qa.cache.invalidated outbox",
-            "memory只使curated=false且旧hash不等当前值的缓存失效，curated豁免；保留审核和账单引用；回答模型变化不触发本函数",
-            "事件认领为事务首项写入，统一ClaimInboxBeforeWrite只提交冲突隔离，不把业务错误回滚成未隔离。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "本域权威、状态或持久记录不能满足本函数约束；保留原结果并失败关闭。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "cache stale及cache.invalidated事件"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.FromContext",
-            "qa.DecodeResponse",
-            "qa.BeginRead",
-            "qa.BeginWrite",
-            "qa.ReadCache",
-            "qa.SaveCache",
-            "qa.EmitCacheInvalidated",
-            "qa.ResolveTaskMemory",
-            "platform.ClaimInboxBeforeWrite"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "qa.EmitCacheInvalidated",
-          "name": "EmitCacheInvalidated",
-          "signature": "func EmitCacheInvalidated(tx *qaruntime.Transaction,op OperationContext,entry gen.CacheEntry,reason string)error",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "EmitCacheInvalidated的本域内部实现助手",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "platform.EnqueueEvent"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/admin/cache.go",
-      "kind": "handwritten",
-      "purpose": "管理精选缓存所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.ListCacheEntries",
-          "name": "ListCacheEntries",
-          "signature": "func ListCacheEntries(ctx context.Context, op OperationContext, input ListCacheEntriesInput) (ListCacheEntriesResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ListCacheEntriesInput",
-              "description": "封闭业务输入；逐字段见types $defs/ListCacheEntriesInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ListCacheEntriesResult",
-              "description": "成功结果；逐字段见types $defs/ListCacheEntriesResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "管理精选缓存",
-          "steps": [
-            "1 权限检查",
-            "2 稳定cacheId分页",
-            "3 返回人工审核字段",
-            "4 不关联公开访客身份",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.RequireAdmin",
-            "qa.BeginRead",
-            "qa.ReadCache",
-            "qa.StorageError",
-            "qa.Transaction.Close",
-            "qa.CursorActor"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/qa/internal/cache/translation.go",
       "kind": "handwritten",
       "purpose": "请求精选答案翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.TranslateCacheEntry",
-          "name": "TranslateCacheEntry",
-          "signature": "func TranslateCacheEntry(ctx context.Context, op OperationContext, input TranslateCacheEntryInput) (TranslateCacheEntryResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "TranslateCacheEntryInput",
-              "description": "封闭业务输入；逐字段见types $defs/TranslateCacheEntryInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "TranslateCacheEntryResult",
-              "description": "成功结果；逐字段见types $defs/TranslateCacheEntryResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "请求精选答案翻译",
-          "steps": [
-            "1 命中cache缺目标语言才发localization translateCachedAnswer",
-            "2 快速档task qa.cache-translate且可信qa costClass继承",
-            "3 翻译返回核对基准answerRevision与引用token",
-            "4 自动保存localizedAnswer无新增人工批准流程。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "localization任务；不在QA直接调用翻译模型"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "localization:translateCachedAnswer"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/qa/internal/history/compaction.go",
@@ -7124,7 +5243,8 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "qa.InvokeModel",
-            "qa.CommitCompaction"
+            "qa.CommitCompaction",
+            "qa.ModelText"
           ],
           "resources": [],
           "contract": "binding"
@@ -8927,571 +7047,6 @@
       ]
     },
     {
-      "path": "modules/qa/internal/context/preflight.go",
-      "kind": "handwritten",
-      "purpose": "补全问题、分类、风险与缓存资格所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.PlanQuestion",
-          "name": "PlanQuestion",
-          "signature": "func PlanQuestion(ctx context.Context, op OperationContext, input PlanQuestionInput) (PlanQuestionResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "PlanQuestionInput",
-              "description": "封闭业务输入；逐字段见types $defs/PlanQuestionInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "PlanQuestionResult",
-              "description": "成功结果；逐字段见types $defs/PlanQuestionResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "补全问题、分类、风险与缓存资格",
-          "steps": [
-            "1 单独解析qa.preflight任务记忆，不复用qa.answer；内存/历史/摘要/verifiedPage都来自本轮已固定可信输入",
-            "2 fast档最多500输出token，严格解析PlannerDecision，canonicalQuestion经共享基准语言规范化；仅格式失败追加一次独立attempt",
-            "3 resolvedReferences缺失false；任何缺指代或needs_clarification强制禁cache；私人/动态页依赖也禁cache，不做关键词扫描",
-            "4 仅将原permit scopes、问题hash和normal/suspicious/abuse映射报告guard，不发正文和伪造测量；deny停止付费，challenge返回CHALLENGE_REQUIRED沿既有issueChallenge流程，未知决定失败关闭"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "BUDGET_EXCEEDED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "RATE_LIMITED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CHALLENGE_REQUIRED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "MG费用；保存原问题与canonical问题"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "memory:resolveContext",
-            "traffic-guard:reportModelRisk",
-            "qa.InvokeModel",
-            "qa.FromContext",
-            "qa.ResolveTaskMemory",
-            "qa.ModelText",
-            "qa.DecodeResponse",
-            "qa.NormalizeQuestion",
-            "qa.ServiceReadContext"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/cache/eligibility.go",
-      "kind": "handwritten",
-      "purpose": "严格缓存完整问题门；指代残留未写明，不返回可共享资格。Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.EvaluateCacheEligibility",
-          "name": "EvaluateCacheEligibility",
-          "signature": "func EvaluateCacheEligibility(ctx context.Context, op OperationContext, input EvaluateCacheEligibilityInput) (EvaluateCacheEligibilityResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "EvaluateCacheEligibilityInput",
-              "description": "封闭业务输入；逐字段见types $defs/EvaluateCacheEligibilityInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "EvaluateCacheEligibilityResult",
-              "description": "成功结果；逐字段见types $defs/EvaluateCacheEligibilityResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "严格缓存完整问题门",
-          "steps": [
-            "1 完整性只信任可信qa.preflight Planner输出；complete=false或缺resolvedReferences/为false、canonicalQuestion为空、分类needs_clarification则拒绝共享",
-            "2 privateContextDependent为true拒绝，reason=private；currentPageDependent为true拒绝，reason=ambiguous",
-            "3 out_of_scope拒绝，reason=out_of_scope；cacheEligible=false拒绝，reason=ambiguous",
-            "4 其他条件均满足返回eligible=true、reason=complete；不扫描问题关键词，不因firstTurn、风险或相似度放行；不接受浏览器自报Planner字段"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.ineligible"
-          ],
-          "resources": [],
-          "contract": "reference"
-        },
-        {
-          "id": "qa.ineligible",
-          "name": "ineligible",
-          "signature": "func ineligible(reason string) EvaluateCacheEligibilityResult",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "ineligible的本域内部实现助手",
-          "steps": [
-            "按精确Go签名处理已校验业务输入、可信依赖与事务",
-            "具体分支与固定参数见本域data/workflows与源码注释"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/cache/query-embedding.go",
-      "kind": "handwritten",
-      "purpose": "同查询只生成一次嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.AcquireQueryEmbedding",
-          "name": "AcquireQueryEmbedding",
-          "signature": "func AcquireQueryEmbedding(ctx context.Context, op OperationContext, input AcquireQueryEmbeddingInput) (AcquireQueryEmbeddingResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "AcquireQueryEmbeddingInput",
-              "description": "封闭业务输入；逐字段见types $defs/AcquireQueryEmbeddingInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "AcquireQueryEmbeddingResult",
-              "description": "成功结果；逐字段见types $defs/AcquireQueryEmbeddingResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "同查询只生成一次嵌入",
-          "steps": [
-            "1 本turn根queryHash/space singleflight",
-            "2 knowledge createQueryEmbedding产一次向量",
-            "3 校验queryHash/space/vectorHash/dataEpoch",
-            "4 同结果供semantic cache和searchKnowledge，cache miss不重新发嵌入。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "BUDGET_EXCEEDED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "RATE_LIMITED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CHALLENGE_REQUIRED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "MG费用一次与本轮短期向量记录"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "knowledge:createQueryEmbedding",
-            "qa.FromContext",
-            "qa.DecodeResponse",
-            "qa.ServiceReadContext"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/answer/inspect.go",
       "kind": "handwritten",
       "purpose": "快速检索员有限核查所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -9602,463 +7157,10 @@
       ]
     },
     {
-      "path": "modules/qa/internal/cache/automatic.go",
-      "kind": "handwritten",
-      "purpose": "按old语义自动保存合格答案所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.WriteAutomaticCache",
-          "name": "WriteAutomaticCache",
-          "signature": "func WriteAutomaticCache(ctx context.Context, op OperationContext, input WriteAutomaticCacheInput) (WriteAutomaticCacheResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "WriteAutomaticCacheInput",
-              "description": "封闭业务输入；逐字段见types $defs/WriteAutomaticCacheInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "WriteAutomaticCacheResult",
-              "description": "成功结果；逐字段见types $defs/WriteAutomaticCacheResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "按old语义自动保存合格答案",
-          "steps": [
-            "0 cacheEnabled=false直接miss/不写cache，问答记录照常保存。",
-            "1 complete/cacheEligible且completed",
-            "2 当前反馈unhelpful禁止写且后续负反馈使普通cache失效",
-            "3 固定引用hash/memory/space及7天TTL",
-            "4 canonical问题基准语言键，访客语言答案子记录，curated=false",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "GONE",
-              "httpStatus": 410,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "UNSUPPORTED_SCHEMA",
-              "httpStatus": 422,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "BUDGET_EXCEEDED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "RATE_LIMITED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            },
-            {
-              "code": "CHALLENGE_REQUIRED",
-              "httpStatus": 429,
-              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写普通cache不新增人工审核"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "content:validatePublications",
-            "qa.ScopeHash",
-            "qa.InsertCache",
-            "qa.EmitCacheChanged",
-            "qa.EvaluateCacheEligibility",
-            "qa.BeginRead",
-            "qa.ReadPolicy",
-            "qa.ReadTurn",
-            "qa.ReadConversation",
-            "qa.NormalizeQuestion",
-            "qa.ValidateCitations",
-            "qa.PublicationFingerprint",
-            "qa.BeginWrite",
-            "qa.ReadCache",
-            "qa.StorageError",
-            "qa.Transaction.Close",
-            "qa.Transaction.Commit"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/internal/cache/localized.go",
       "kind": "handwritten",
       "purpose": "保存缓存的多语言回答所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.StoreLocalizedCacheAnswer",
-          "name": "StoreLocalizedCacheAnswer",
-          "signature": "func StoreLocalizedCacheAnswer(ctx context.Context, op OperationContext, input StoreLocalizedCacheAnswerInput) (StoreLocalizedCacheAnswerResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "StoreLocalizedCacheAnswerInput",
-              "description": "封闭业务输入；逐字段见types $defs/StoreLocalizedCacheAnswerInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "StoreLocalizedCacheAnswerResult",
-              "description": "成功结果；逐字段见types $defs/StoreLocalizedCacheAnswerResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "保存缓存的多语言回答",
-          "steps": [
-            "0 cacheEnabled=false直接miss/不写cache，问答记录照常保存。",
-            "1 caller localization持久结果引用验证",
-            "2 CAS sourceAnswerRevision",
-            "3 引用token不变且source仍有效",
-            "4 localized answer自动保存并可下次命中",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写语言答案无新增人工审核"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "localization:readCacheAnswerTranslation",
-            "content:validatePublications",
-            "platform.ClaimInbox"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/qa/internal/admin/calibration.go",
-      "kind": "handwritten",
-      "purpose": "缓存阈值校准所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "qa.ReadCacheCalibration",
-          "name": "ReadCacheCalibration",
-          "signature": "func ReadCacheCalibration(ctx context.Context, op OperationContext, input ReadCacheCalibrationInput) (ReadCacheCalibrationResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ReadCacheCalibrationInput",
-              "description": "封闭业务输入；逐字段见types $defs/ReadCacheCalibrationInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReadCacheCalibrationResult",
-              "description": "成功结果；逐字段见types $defs/ReadCacheCalibrationResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "缓存阈值校准",
-          "steps": [
-            "1 qa.manage",
-            "2 同space分桶，记录只有similarity/feedback非IP",
-            "3 选误命中率≤1%的最小阈值且样本<100保留配置",
-            "4 输出建议供人工选择不自动改设置",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入字段、范围、字节预算或声明配置不合法，业务事务不提交。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "只读聚合"
-          ],
-          "authorization": "权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.RequireAdmin",
-            "qa.BeginRead",
-            "qa.ReadPolicy",
-            "qa.StorageError",
-            "qa.Transaction.Close"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
+      "functions": []
     },
     {
       "path": "modules/qa/internal/runtime/worker.go",
@@ -10175,7 +7277,6 @@
             "jobs:checkLease",
             "qa.ExecuteTurn",
             "qa.RunCompaction",
-            "qa.BuildCacheEmbedding",
             "platform.RunWorkerLoop"
           ],
           "resources": [],
@@ -10665,22 +7766,17 @@
             "qa.CreateConversation",
             "qa.GetConversation",
             "qa.RecordFeedback",
-            "qa.DisableCacheEntry",
             "qa.ReadQaPolicy",
             "qa.ReadPublicCapability",
-            "qa.ListCacheEntries",
-            "qa.ReadCacheCalibration",
             "qa.serveAnswerStream",
             "qa.jsonOperation",
             "qa.operationContext",
             "qa.writeResult",
-            "qa.ProposeCacheEntry",
             "qa.ListTurnRecords",
             "qa.ReadTurnRecord",
             "qa.ReadDebugTurn",
             "qa.CancelTurn",
-            "qa.DeleteConversation",
-            "qa.ReadCacheTranslationSource"
+            "qa.DeleteConversation"
           ],
           "resources": [],
           "contract": "reference"
@@ -11202,8 +8298,6 @@
           "dependencies": [
             "jobs:subscribeEvents",
             "jobs:acknowledgeEvent",
-            "qa.InvalidateCache",
-            "qa.StoreLocalizedCacheAnswer",
             "platform.RunConsumer"
           ],
           "resources": [],
@@ -11488,14 +8582,12 @@
             }
           ],
           "outputs": [],
-          "purpose": "在受管进程任务中执行原轮次的只读文档agent；通过持久终态报告成功、失败和取消。",
+          "purpose": "主Agent直接查阅与回答，投影逐次活动，按需上报滥用信号，不查写答案缓存或调用前置判定模型",
           "steps": [
-            "读取并续租原轮次和准入，固定上下文与任务路线，预读当前页面；保留快速文本模型前置改写、风险上报和缓存资格，不调用专用决策模型。",
-            "有效缓存经当前引用核对后复用；精确未命中时快速文本模型一次比较最多24个同语言独立问题，必须完全同义。未命中时预载当前公开树和匹配内容哈希摘要维护的全站AGENTS.md。",
-            "将原问题、记忆、全站概括、当前页和经当前发布状态复核的原生工具历史交给回答模型；模型自主调用read_guide、search_documents和read_document，只能读取访客可见的当前发布内容。",
-            "平台modelagent循环只在完整工具参数和tool_calls结束证明后执行，完整回传每个调用结果；按真实窗口分页和移出旧工具正文，支持重读、取消、重复调用检测，以及maximumRetrievalRounds/maximumToolCalls收尾。",
-            "主模型依系统提示处理离题、注入和混合请求；逐步推送实际查阅的指南和文章，工具参数和内部推理不作为答案输出。",
-            "保存本轮原生工具消息到独立agent_messages_json，避免解释访客JSON为角色；核对最终引用并完成原轮次，释放准入，合格答案按原规则缓存。"
+            "校验已消费准入与轮次租约，读取策略和对话历史",
+            "预载当前页与全站指南，主Agent自主搜索及分页阅读；资料与历史不构成指令",
+            "逐次投影模型公开说明和工具活动；主Agent可调用report_abuse，上报结果由风控权威决定",
+            "保存完整历史、计数、最终正文与白名单引用，提交终态并释放准入"
           ],
           "errors": [
             {
@@ -11532,25 +8624,18 @@
           "dependencies": [
             "qa.NormalizeQuestion",
             "qa.ResolveTurnContext",
-            "qa.LookupExactCache",
-            "qa.ValidateCachedAnswer",
-            "qa.TranslateCacheEntry",
             "qa.ResolveCurrentPageHint",
-            "qa.PlanQuestion",
-            "qa.EvaluateCacheEligibility",
-            "qa.AcquireQueryEmbedding",
-            "qa.LookupSemanticCache",
             "qa.RetrieveEvidence",
             "qa.InspectEvidence",
             "qa.BuildAnswerPrompt",
             "qa.GenerateAnswer",
             "qa.ValidateCitation",
             "qa.CompleteTurn",
-            "qa.WriteAutomaticCache",
             "qa.CreateCompaction",
             "traffic-guard:renewAdmission",
             "traffic-guard:queueSessionAdmission",
-            "jobs:createJob"
+            "jobs:createJob",
+            "qa.reportAgentAbuse"
           ],
           "resources": [],
           "contract": "binding"
@@ -11814,10 +8899,9 @@
           ],
           "purpose": "查看单条问答记录以设为精选",
           "steps": [
-            "qa.manage",
-            "读取问题、回答与引用；引用经content:validatePublications标注是否仍有效",
-            "可据此调用ProposeCacheEntry设为精选候选",
-            "保留原BlockRef列表并返回逐项citationStatuses；已知撤回/hash变化valid=false，任何权威未知整次失败，不静默丢引用"
+            "校验qa.manage与站点代次后读取未过期的轮次",
+            "返回原问题、原回答和原始引用快照；来源当前状态不影响历史记录查看",
+            "不返回准入许可、原始模型输入和内部上下文"
           ],
           "errors": [
             {
@@ -12348,121 +9432,6 @@
       "kind": "handwritten"
     },
     {
-      "path": "modules/qa/internal/cache/translation-source.go",
-      "kind": "handwritten",
-      "purpose": "本地化缓存译文仅能读取当前真实QA缓存来源",
-      "functions": [
-        {
-          "id": "qa.ReadCacheTranslationSource",
-          "name": "ReadCacheTranslationSource",
-          "signature": "func ReadCacheTranslationSource(ctx context.Context,op OperationContext,input ReadCacheTranslationSourceInput)(ReadCacheTranslationSourceResult,error)",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "缓存翻译只读当前真实基准来源",
-          "steps": [
-            "只接受localization纯服务，同站/代次由本域私有库核；按真实cacheId读持久条目，不信正文宣称active。",
-            "当前active才通过既有ValidateCachedAnswer重核策略、到期、记忆和引用；非当前或未知不返回eligible=true。",
-            "sourceHash=SHA256(canonical schemaVersion1/cacheId/answerRevision/sourceLanguage/question/answer)，返回真实完整基准材料与状态；不调用模型、不签permit、不重建缓存。"
-          ],
-          "errors": [
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "httpStatus": 503,
-              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            },
-            {
-              "code": "VALIDATION",
-              "httpStatus": 400,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "输入、权限、版本或必要依赖与IO条件不满足，不提交部分业务结果",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": {
-            "permission": "service",
-            "rule": "callerService=actor.subjectId=localization、actor.kind=service，同站同代本域权威只读。"
-          },
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "qa.BeginRead",
-            "qa.ReadCache",
-            "qa.ValidateCachedAnswer",
-            "qa.ServiceReadContext"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
       "path": "modules/qa/web/src/index.tsx",
       "kind": "ui",
       "purpose": "问答管理：策略、问答记录与精选、答案缓存、调试台",
@@ -12519,12 +9488,364 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/qa/internal/answer/query-embedding.go",
+      "kind": "handwritten",
+      "purpose": "Agent和站点搜索的查询向量，仅复用单次请求幂等结果，不缓存答案",
+      "functions": [
+        {
+          "id": "qa.AcquireQueryEmbedding",
+          "name": "AcquireQueryEmbedding",
+          "signature": "func AcquireQueryEmbedding(ctx context.Context, op OperationContext, input AcquireQueryEmbeddingInput) (AcquireQueryEmbeddingResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "AcquireQueryEmbeddingInput",
+              "description": "封闭业务输入；逐字段见types $defs/AcquireQueryEmbeddingInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "AcquireQueryEmbeddingResult",
+              "description": "成功结果；逐字段见types $defs/AcquireQueryEmbeddingResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "同查询只生成一次嵌入",
+          "steps": [
+            "1 本turn根queryHash/space singleflight",
+            "2 knowledge createQueryEmbedding产一次向量",
+            "3 校验queryHash/space/vectorHash/dataEpoch",
+            "4 同结果供semantic cache和searchKnowledge，cache miss不重新发嵌入。",
+            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "CHALLENGE_REQUIRED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG费用一次与本轮短期向量记录"
+          ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "knowledge:createQueryEmbedding",
+            "qa.FromContext",
+            "qa.DecodeResponse",
+            "qa.ServiceReadContext"
+          ],
+          "resources": [],
+          "contract": "reference"
+        }
+      ]
+    },
+    {
+      "path": "modules/qa/internal/answer/abuse.go",
+      "kind": "handwritten",
+      "purpose": "Agent结构化滥用报告",
+      "functions": [
+        {
+          "id": "qa.reportAgentAbuse",
+          "name": "reportAgentAbuse",
+          "signature": "func reportAgentAbuse(ctx context.Context, op OperationContext, turnID, verdict string) (AgentToolResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Go取消与截止控制",
+              "constraints": "不可nil；与op.deadline取最早截止。"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "可信执行元数据",
+              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
+            },
+            {
+              "name": "input",
+              "type": "PlanQuestionInput",
+              "description": "封闭业务输入；逐字段见types $defs/PlanQuestionInput",
+              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PlanQuestionResult",
+              "description": "成功结果；逐字段见types $defs/PlanQuestionResult",
+              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
+            },
+            {
+              "name": "err",
+              "type": "error",
+              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
+              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
+            }
+          ],
+          "purpose": "主Agent上报本轮滥用信号；对象固定于许可，封禁由风控决定",
+          "steps": [
+            "1 单独解析qa.preflight任务记忆，不复用qa.answer；内存/历史/摘要/verifiedPage都来自本轮已固定可信输入",
+            "2 fast档最多500输出token，严格解析PlannerDecision，canonicalQuestion经共享基准语言规范化；仅格式失败追加一次独立attempt",
+            "3 resolvedReferences缺失false；任何缺指代或needs_clarification强制禁cache；私人/动态页依赖也禁cache，不做关键词扫描",
+            "4 仅将原permit scopes、问题hash和normal/suspicious/abuse映射报告guard，不发正文和伪造测量；deny停止付费，challenge返回CHALLENGE_REQUIRED沿既有issueChallenge流程，未知决定失败关闭"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
+              "retryable": false
+            },
+            {
+              "code": "UNSUPPORTED_SCHEMA",
+              "httpStatus": 422,
+              "meaning": "输入/快照/模型输出不符合已登记版本或固定字段结构。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
+              "retryable": false
+            },
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "GONE",
+              "httpStatus": 410,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "STALE_RESULT",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "BUDGET_EXCEEDED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "RATE_LIMITED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            },
+            {
+              "code": "CHALLENGE_REQUIRED",
+              "httpStatus": 429,
+              "meaning": "登记的输入、来源、权限、准入或依赖条件失败，不继续付费或写部分结果",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "MG费用；保存原问题与canonical问题"
+          ],
+          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
+          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
+          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
+          "dependencies": [
+            "traffic-guard:reportModelRisk"
+          ],
+          "resources": [],
+          "contract": "reference",
+          "contractLevel": "reference"
+        }
+      ]
     }
   ],
   "jobHandlers": {
     "qa.answer": "qa.ResolveTurnContext",
-    "qa.compact": "qa.RunCompaction",
-    "qa.cache-embedding": "qa.BuildCacheEmbedding"
+    "qa.compact": "qa.RunCompaction"
   },
   "jobTypes": [
     {
@@ -12544,12 +9865,6 @@
       "type": "qa.compact",
       "executor": "qa.RunCompaction",
       "trigger": "CreateCompaction创建",
-      "managementPermission": "qa.manage"
-    },
-    {
-      "type": "qa.cache-embedding",
-      "executor": "qa.BuildCacheEmbedding",
-      "trigger": "ApproveCacheEntry创建",
       "managementPermission": "qa.manage"
     }
   ],

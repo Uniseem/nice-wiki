@@ -38,6 +38,24 @@ const idPattern = '[A-Za-z0-9._:-]+';
 
 export default function ModelsPage() {
   const catalog = useLoad((signal) => api<Catalog>('/v1/admin/catalog', { signal }), []);
+  const [configuring, setConfiguring] = useState(false);
+  if (catalog.error && !catalog.data) return <ErrorBlock error={catalog.error} onRetry={catalog.reload} />;
+  if (!catalog.data) return <LoadingBlock lines={4} />;
+  const provider = catalog.data.providers.find((item) => item.providerId === 'openrouter');
+  const ready = !!provider?.enabled && provider.credentialConfigured;
+  return <div className="flex flex-col gap-6">
+    <PageHeader title={t('模型接入')} description={t('使用 OpenRouter 一键配置问答、翻译和知识索引。')} />
+    <section className="rounded-2xl border border-border bg-surface p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-lg font-semibold">OpenRouter</h2><p className="mt-2 text-sm text-muted">{t('快速、准确和视觉使用 DeepSeek Flash，语义检索使用嵌入模型。')}</p></div><Chip color={ready ? 'success' : 'default'} variant="soft">{ready ? t('已配置') : t('未配置')}</Chip></div>
+      <div className="mt-6 flex flex-wrap items-center gap-3"><Button onPress={() => setConfiguring(true)}><Thunderbolt />{t('OpenRouter 一键配置')}</Button><a className="text-sm text-accent hover:underline" href="https://openrouter.ai/settings/keys" target="_blank" rel="noreferrer">{t('获取 API 密钥')}</a></div>
+    </section>
+    {configuring && <OpenRouterSetupDialog onClose={() => setConfiguring(false)} onDone={() => { catalog.reload(); }} />}
+  </div>;
+}
+
+// 高级接入界面暂不开放；保留既有配置与历史调用所需的数据结构。
+function AdvancedModelsPage() {
+  const catalog = useLoad((signal) => api<Catalog>('/v1/admin/catalog', { signal }), []);
   const [tab, setTab] = useState('providers');
   const [dialog, setDialog] = useState<'quick' | 'provider' | 'models' | 'manual-model' | Profile | 'profile' | null>(null);
   const [modelsProvider, setModelsProvider] = useState<string | undefined>();

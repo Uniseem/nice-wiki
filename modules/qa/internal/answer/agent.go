@@ -19,6 +19,8 @@ type AgentAnswerInput struct {
 	Prompt       BuildAnswerPromptResult
 	Citations    []gen.Citation
 	DisableTools bool
+	OnModelStart func(context.Context, int) error
+	OnModelDone  func(context.Context, int, platform.ModelOutput) error
 	OnToolRound  func(context.Context, platform.ModelOutput) error
 	OnToolStart  func(context.Context, platform.GatewayToolCall) error
 	OnToolDone   func(context.Context, platform.GatewayToolCall, modelagent.ToolResult) error
@@ -61,11 +63,17 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 		}
 	}
 	addCitations(input.Citations)
+	riskReported := false
 	result, err := modelagent.Run(ctx, modelagent.Config{
 		Messages: input.Prompt.Messages, Tools: AgentTools(), MaximumRounds: input.Policy.MaximumRetrievalRounds, MaximumToolCalls: input.Policy.MaximumToolCalls,
 		MaximumInputTokens: budget, MaximumToolResultBytes: min(56000, max(4096, budget/3)), DisableTools: input.DisableTools,
 		CompactToolResult: compactAgentToolResult,
 		Invoke: func(ctx context.Context, round int, messages []platform.GatewayMessage, choice string) (platform.ModelOutput, error) {
+			if input.OnModelStart != nil {
+				if err := input.OnModelStart(ctx, round+1); err != nil {
+					return platform.ModelOutput{}, err
+				}
+			}
 			// 工具正文同样可能夹带指令；每次查阅后重申固定边界，不把提醒写进会话历史。
 			if round > 0 {
 				messages = append(append([]platform.GatewayMessage{}, messages...), agentRoundReminder(messages))
@@ -77,15 +85,29 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 			if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil {
 				return platform.ModelOutput{}, platform.NewError(platform.CodeDependencyUnavailable, false, "agent原模型调用尚无完整持久结果")
 			}
-			return *outcome.CurrentSnapshot.Output, nil
+			output := *outcome.CurrentSnapshot.Output
+			if input.OnModelDone != nil {
+				if err := input.OnModelDone(ctx, round+1, output); err != nil {
+					return platform.ModelOutput{}, err
+				}
+			}
+			return output, nil
 		},
 		Execute: func(ctx context.Context, call platform.GatewayToolCall, maximum int) (modelagent.ToolResult, error) {
+			if call.Name == "report_abuse" {
+				if riskReported {
+					return modelagent.ToolResult{Content: `{"reported":false,"message":"本轮已经上报，不重复计数。"}`, Title: "上报滥用信号"}, nil
+				}
+			}
 			tool, err := ExecuteAgentTool(ctx, op, call, AgentToolInput{TurnID: input.TurnID, Language: input.Language, Policy: input.Policy, MaximumBytes: maximum})
 			if err != nil {
 				if ctx.Err() != nil {
 					return modelagent.ToolResult{}, ctx.Err()
 				}
 				tool = AgentToolError(err)
+			}
+			if err == nil && call.Name == "report_abuse" {
+				riskReported = true
 			}
 			addCitations(tool.Citations)
 			return modelagent.ToolResult{Content: tool.Content, Title: tool.Title, IsError: err != nil}, nil

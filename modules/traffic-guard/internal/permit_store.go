@@ -111,6 +111,11 @@ func AcquireConcurrency(ctx context.Context, op OperationContext, in AcquireConc
 	if err != nil {
 		return AcquireConcurrencyResult{}, loginDBError()
 	}
+	if in.Action == "qa.ask" {
+		if _, err = t.tx.ExecContext(t.ctx, `UPDATE guard_subjects SET questions_since_challenge=questions_since_challenge+1 WHERE site_id=? AND data_epoch=? AND subject_key=?`, t.site, op.DataEpoch, in.SubjectKey); err != nil {
+			return AcquireConcurrencyResult{}, loginDBError()
+		}
+	}
 	_, err = t.tx.ExecContext(t.ctx, `INSERT INTO guard_permit_networks(admission_id,network_key)
   SELECT ?,network_key FROM guard_network_aliases WHERE site_id=? AND data_epoch=? AND subject_key=?`, admissionID, t.site, op.DataEpoch, in.SubjectKey)
 	if err != nil {

@@ -25,7 +25,7 @@ func PurgeAnonymousSignals(ctx context.Context, op OperationContext, in PurgeAno
 	}{
 		{`DELETE FROM guard_challenges WHERE rowid IN (SELECT rowid FROM guard_challenges WHERE site_id=? AND data_epoch=? AND expires_at_ns<=? ORDER BY expires_at_ns LIMIT ?)`, now.UnixNano()},
 		{`DELETE FROM guard_question_signals WHERE rowid IN (SELECT rowid FROM guard_question_signals WHERE site_id=? AND data_epoch=? AND occurred_at_ns<=? ORDER BY occurred_at_ns LIMIT ?)`, now.Add(-10 * time.Minute).UnixNano()},
-		{`DELETE FROM guard_risk_events WHERE rowid IN (SELECT rowid FROM guard_risk_events WHERE site_id=? AND data_epoch=? AND occurred_at_ns<=? ORDER BY occurred_at_ns LIMIT ?)`, now.Add(-10 * time.Minute).UnixNano()},
+		{`DELETE FROM guard_risk_events WHERE rowid IN (SELECT rowid FROM guard_risk_events WHERE site_id=? AND data_epoch=? AND occurred_at_ns<=? ORDER BY occurred_at_ns LIMIT ?)`, now.Add(-30 * 24 * time.Hour).UnixNano()},
 		{`DELETE FROM guard_buckets WHERE rowid IN (SELECT rowid FROM guard_buckets WHERE site_id=? AND data_epoch=? AND updated_at_ms<=? ORDER BY updated_at_ms LIMIT ?)`, now.Add(-24 * time.Hour).UnixMilli()},
 		{`DELETE FROM guard_bans WHERE rowid IN (SELECT rowid FROM guard_bans WHERE site_id=? AND data_epoch=? AND state<>'active' AND expires_at_ns<=? ORDER BY expires_at_ns LIMIT ?)`, now.Add(-30 * 24 * time.Hour).UnixNano()},
 	}

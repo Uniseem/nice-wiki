@@ -114,24 +114,13 @@
 </div>
 {{template "foot" .}}{{end}}
 
-{{/* 首页固定一屏，问答在卡片内滚动；入口只指向第一篇已发布文档。 */}}
+{{/* 首页以完整AI对话为主，公开目录提供无模型调用的开场引导。 */}}
 {{define "home"}}{{template "head" .}}
-<main class="flex min-h-0 flex-1 flex-col" id="nw-main">
-  <section class="nw-home-hero{{if .HeroCustomColor}} {{if .HeroDark}}text-[#172033]{{else}}text-white{{end}}{{else}} nw-home-hero--landscape{{end}}"{{if .HeroCustomColor}} style="background: {{.HeroBackground}}"{{end}}>
-    {{if not .HeroCustomColor}}<div class="nw-landscape" aria-hidden="true"><div class="nw-landscape-mountains"></div><div class="nw-landscape-clouds"></div></div>{{end}}
-    {{if .HeroCustomColor}}<div class="absolute inset-0" style="background: {{.HeroOverlay}}"></div>{{end}}
-    <div class="nw-hero-content relative mx-auto w-full">
-      <div class="nw-home-intro">
-        {{if .HeroBackgroundText}}<p class="nw-home-eyebrow">{{.HeroBackgroundText}}</p>{{end}}
-        <h1 class="nw-home-title">{{.HeroTitle}}</h1>
-        {{if .HeroSubtitle}}<p class="nw-home-subtitle">{{.HeroSubtitle}}</p>{{end}}
-      </div>
-      <div class="nw-home-actions mx-auto w-full">
-        {{if .AIEnabled}}<div id="nw-home-ask"><noscript><p>{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div>
-        {{else}}<div class="nw-home-unavailable"><div class="nw-home-composer"><textarea aria-label="{{.T "问问这个站点的文档…"}}" placeholder="{{.T "公开问答暂未开放。"}}" rows="2" disabled></textarea><button class="button button--primary button--icon-only" type="button" disabled aria-label="{{.T "发送"}}">{{template "icon-arrow-up"}}</button></div><p class="mt-3 text-center text-xs text-muted">{{.T "向这个站点的文档提问，回答会附上来源。"}}</p></div>{{end}}
-      </div>
-      <div class="nw-home-entry">{{if .WikiURL}}<a class="button button--primary" href="{{.WikiURL}}">{{.T "进入 wiki"}}<span aria-hidden="true">→</span></a>{{else}}<button class="button button--primary" type="button" disabled>{{.T "进入 wiki"}}</button>{{end}}</div>
-    </div>
+<main class="nw-home-agent-main" id="nw-main">
+  <section class="nw-home-conversation" aria-label="{{.T "AI 问答"}}">
+    <header class="nw-home-conversation-header"><div class="flex min-w-0 items-center gap-2.5"><span class="nw-home-assistant-mark" aria-hidden="true">{{template "icon-comment"}}</span><span class="truncate text-sm font-semibold">{{.SiteName}} · {{.T "AI 问答"}}</span></div>{{if .WikiURL}}<a class="button button--secondary button--sm" href="{{.WikiURL}}">{{.T "进入文档"}}<span aria-hidden="true">↗</span></a>{{end}}</header>
+    {{if .AIEnabled}}<div id="nw-home-ask" class="flex min-h-0 flex-1 flex-col"><div class="nw-home-welcome-fallback"><p class="mb-3 text-xs text-muted">{{.T "你可以这样问"}}</p><h1>{{.T "从一个问题开始"}}</h1>{{if .Welcome.Description}}<p>{{.Welcome.Description}}</p>{{end}}<p>{{.T "直接告诉我你想了解什么，我会查阅文档、整理答案并附上来源。"}}</p><div class="nw-home-topic-grid">{{range .Welcome.Topics}}<div><strong>{{.Title}}</strong>{{if .Description}}<p>{{.Description}}</p>{{end}}</div>{{end}}</div><noscript><p>{{.T "需要启用 JavaScript 才能使用 AI 问答。"}}</p></noscript></div></div>
+    {{else}}<div class="nw-home-welcome-fallback"><h1>{{.T "从一个问题开始"}}</h1>{{if .Welcome.Description}}<p>{{.Welcome.Description}}</p>{{end}}<div class="nw-home-topic-grid">{{range .Welcome.Topics}}<div><strong>{{.Title}}</strong><p>{{.Description}}</p></div>{{end}}</div><p>{{.T "公开问答暂未开放。"}}</p></div>{{end}}
   </section>
 </main>
 {{template "foot" .}}{{end}}

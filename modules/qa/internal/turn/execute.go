@@ -16,12 +16,11 @@ import (
 	"nice-wiki/modules/qa/internal/answer"
 	"nice-wiki/modules/qa/internal/gen"
 	"nice-wiki/modules/qa/internal/history"
-	"nice-wiki/modules/qa/internal/normalize"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/stream"
 )
 
-// ExecuteTurn 在本进程里跑完一轮回答：预读当前页、理解与准入、缓存复用、自主只读查阅、流式回答及引用终态；
+// ExecuteTurn 在本进程里跑完一轮回答：预读当前页、自主查阅、风险上报、流式回答及引用终态；
 // 任何失败都落 failed 终态并释放准入。currentDocument 是访客提问时所在页面（可为空）。
 func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocument string) {
 	work, cancel := context.WithDeadline(ctx, mustDeadline(op))
@@ -108,6 +107,8 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 		return nil
 	}
 	ctx = qaruntime.WithRuntime(ctx, runtime)
+	progress := &turnProgress{op: op, turnID: turnID, lease: lease, started: map[string]time.Time{}}
+	progress.emit(ctx, "prepare", gen.AnswerStep{Key: gen.Understand, Status: gen.AnswerStepStatusRunning, Title: "准备回答"})
 
 	resolved, err := ResolveTurnContext(ctx, op, ResolveTurnContextInput{TurnID: turnID, Language: record.Language, LeaseID: lease})
 	if err != nil {
@@ -117,8 +118,9 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	if err != nil {
 		return err
 	}
+	progress.emit(ctx, "prepare", gen.AnswerStep{Key: gen.Understand, Status: gen.AnswerStepStatusDone, Title: "准备回答"})
 	step := func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
-		emitStep(ctx, op, turnID, lease, key, status, title, detail, items)
+		progress.stage(ctx, key, status, title, detail, items)
 	}
 	task, profile := "qa.answer", string(resolved.Policy.ProfileId)
 	if routed, err := qaruntime.ResolveTaskProfile(ctx, op, "qa.answer"); err == nil {
@@ -127,59 +129,21 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	budget := materialBudget(ctx, op, resolved.Policy, task)
 	// 当前页先按窗口预读，模型可按nextOffset续读；标题给前置改写，把“这里”写明成具体文档。
 	page := answer.RetrieveEvidenceResult{Citations: []gen.Citation{}, EvidenceText: "[]"}
-	pageTitle := ""
 	if currentDocument != "" {
-		step(gen.Page, gen.Running, "阅读当前页面", "", nil)
+		step(gen.Page, gen.AnswerStepStatusRunning, "阅读当前页面", "", nil)
 		read, title, err := answer.ReadCurrentPage(ctx, op, answer.ReadDocumentsInput{TurnID: turnID, DocumentIDs: []string{currentDocument}, Language: record.Language, MaximumTokens: budget})
 		if err == nil {
-			page, pageTitle = read, title
-			step(gen.Page, gen.Done, "阅读当前页面", "", []string{title})
+			page = read
+			step(gen.Page, gen.AnswerStepStatusDone, "阅读当前页面", "", []string{title})
 		} else {
-			step(gen.Page, gen.Skipped, "阅读当前页面", "", nil)
+			step(gen.Page, gen.AnswerStepStatusSkipped, "阅读当前页面", "", nil)
 		}
 	}
-	// 理解问题：前置改写结合整段对话和当前页标题把追问补成独立问题（检索和缓存都用它，也展示给访客），同时分类并上报风险；前置不可用时退回访客原话。
-	step(gen.Understand, gen.Running, "理解问题", "", nil)
-	planned, ctx, err := planQuestion(ctx, op, turnID, record, resolved, conversation.Summary, conversation.Messages, pageTitle)
-	if err != nil {
-		return err
-	}
-	var query string
-	if planned != nil {
-		query = planned.plan.CanonicalQuestion
-	} else {
-		canonical, err := normalize.NormalizeQuestion(ctx, op, normalize.NormalizeQuestionInput{Question: record.Question, Language: record.Language})
-		if err != nil {
-			return err
-		}
-		query = canonical.Normalized
-	}
-	step(gen.Understand, gen.Done, "理解问题", query, nil)
-	// 全站概括供主模型识别本站主题；范围与注入要求由同一回答提示处理。
+	// 主Agent直接结合对话和当前页处理原问题，不再经过前置改写或共享答案缓存。
 	overview, _ := qaruntime.ReadSiteOverview(ctx, op)
-	// 判断与复用：可共享的问题（完整、不依赖访客私人上下文，“这页”已写明成具体文档）先按完整问题精确匹配缓存；
-	// 没命中时由快速文本模型一次比较同语言的完整问题，不再调用专用决策模型。
-	cacheable := planned != nil && planned.cacheable && resolved.Policy.CacheEnabled
-	var reused *gen.CacheEntry
-	reuseKind := "exact"
-	if cacheable {
-		step(gen.Cache, gen.Running, "查找已有回答", "", nil)
-		reused = exactCached(ctx, op, record, resolved, planned, conversation.Summary == "" && len(conversation.Messages) == 0)
-	}
-	if cacheable && reused == nil {
-		reused = equivalentCached(ctx, op, record, resolved, planned)
-		reuseKind = "semantic"
-	}
-	if cacheable {
-		if reused != nil {
-			step(gen.Cache, gen.Done, "命中缓存", "", []string{clip(reused.Question, 200)})
-			return serveCached(ctx, op, turnID, lease, reused, reuseKind)
-		}
-		step(gen.Cache, gen.Skipped, "查找已有回答", "", nil)
-	}
 	// 全站导航预载一次；模型随后自行选择搜索、分区指南和正文读取。
 	guide := ""
-	step(gen.Search, gen.Running, "阅读全站指南", "", nil)
+	step(gen.Search, gen.AnswerStepStatusRunning, "阅读全站指南", "", nil)
 	guideBytes := 16000
 	if window, windowErr := qaruntime.ResolveTaskWindow(ctx, op, task); windowErr == nil && window > 0 {
 		guideBytes = min(guideBytes, max(4096, window/5))
@@ -187,14 +151,13 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	read, guideErr := answer.ReadAgentGuide(ctx, op, "", 0, guideBytes)
 	if guideErr == nil {
 		guide = read.Content
-		step(gen.Search, gen.Done, "阅读全站指南", "", []string{read.Title})
+		step(gen.Search, gen.AnswerStepStatusDone, "阅读全站指南", "", []string{read.Title})
 	} else {
-		step(gen.Search, gen.Skipped, "阅读全站指南", "", nil)
+		step(gen.Search, gen.AnswerStepStatusSkipped, "阅读全站指南", "", nil)
 	}
 	if _, err := takeState(ctx, op, turnID, lease, "generating"); err != nil {
 		return err
 	}
-	step(gen.Answer, gen.Running, "生成回答", "", nil)
 	prompt, err := answerPrompt(ctx, op, record, resolved, answer.Materials{Overview: overview.Text, Page: page.EvidenceText, Evidence: "[]", Agent: true, Guide: guide}, conversation, task)
 	if err != nil {
 		return err
@@ -203,10 +166,17 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	if err := saveModelText(ctx, op, turnID, prompt.Messages[len(prompt.Messages)-1].Content); err != nil {
 		return err
 	}
-	readTitles := []string{}
 	generated, err := answer.GenerateAgentAnswer(ctx, op, answer.AgentAnswerInput{
 		TurnID: turnID, TaskID: task, ProfileID: profile, Language: record.Language, Policy: resolved.Policy, Prompt: prompt,
 		Citations: append(page.Citations, conversation.AgentCitations()...),
+		OnModelStart: func(ctx context.Context, round int) error {
+			progress.model(ctx, round, nil)
+			return nil
+		},
+		OnModelDone: func(ctx context.Context, round int, output platform.ModelOutput) error {
+			progress.model(ctx, round, &output)
+			return nil
+		},
 		OnToolRound: func(ctx context.Context, output platform.ModelOutput) error {
 			if output.Text != nil && *output.Text != "" {
 				_, err := stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: "invalidate"}})
@@ -215,21 +185,18 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 			return nil
 		},
 		OnToolStart: func(ctx context.Context, call platform.GatewayToolCall) error {
-			step(gen.Search, gen.Running, "查阅文档", "", readTitles)
+			progress.tool(ctx, call, nil)
 			return nil
 		},
 		OnToolDone: func(ctx context.Context, call platform.GatewayToolCall, result modelagent.ToolResult) error {
-			title := clip(result.Title, 200)
-			if !slices.Contains(readTitles, title) {
-				readTitles = append(readTitles, title)
-			}
-			step(gen.Search, gen.Done, "查阅文档", "", readTitles)
+			progress.tool(ctx, call, &result)
 			return nil
 		},
 	})
 	if err != nil {
 		return err
 	}
+	step(gen.Answer, gen.AnswerStepStatusRunning, "整理引用", "", nil)
 	text, citations := answer.FinalizeCitations(generated.Text, generated.Citations)
 	if err := history.SaveAgentTurn(ctx, op, turnID, history.AgentTurn{Messages: generated.Messages, Citations: generated.Citations}); err != nil {
 		return err
@@ -243,16 +210,13 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 			return err
 		}
 	}
-	step(gen.Answer, gen.Done, "生成回答", "", nil)
+	step(gen.Answer, gen.AnswerStepStatusDone, "整理引用", "", nil)
 	kind := "answered"
 	if len(citations) == 0 {
 		kind = "no_evidence"
 	}
 	if _, err = CompleteTurn(ctx, op, CompleteTurnInput{TurnID: turnID, Answer: text, Citations: citations, LeaseID: lease, AnswerKind: kind, TokenCount: len(text)/4 + 1}); err != nil {
 		return err
-	}
-	if cacheable && kind == "answered" {
-		writeCache(ctx, op, turnID, planned, text, resolved.Memory.VersionHash)
 	}
 	return nil
 }
@@ -443,22 +407,6 @@ func saveModelText(ctx context.Context, op OperationContext, turnID, text string
 	return tx.Commit()
 }
 
-// stepFunc 推送回答过程的一步（思考过程展示）。
-type stepFunc func(key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string)
-
-// emitStep 把回答过程的一步推给访客界面（思考过程展示）；推送失败不影响回答。
-func emitStep(ctx context.Context, op OperationContext, turnID, lease string, key gen.AnswerStepKey, status gen.AnswerStepStatus, title, detail string, items []string) {
-	value := gen.AnswerStep{Key: key, Status: status, Title: title}
-	if detail != "" {
-		detail = clip(detail, 2000)
-		value.Detail = &detail
-	}
-	if len(items) > 0 {
-		value.Items = &items
-	}
-	_, _ = stream.AppendAnswerEvent(ctx, op, stream.AppendAnswerEventInput{TurnID: turnID, LeaseID: lease, Event: gen.AnswerEvent{Event: gen.AnswerEventEvent("step"), Step: &value}})
-}
-
 // citedTitles 是命中片段所在文档的标题（去重、保持顺序，最多 8 个），给访客看检索到了什么。
 func citedTitles(citations []gen.Citation) []string {
 	seen := map[string]bool{}
@@ -541,6 +489,7 @@ func failTurn(ctx context.Context, op OperationContext, turnID string, cause err
 		return
 	}
 	record.Turn.State, record.State = gen.TurnState("failed"), "failed"
+	record.AnswerKind = "failed"
 	record.TerminalNS = time.Now().UnixNano()
 	if err := stream.SaveEvent(tx, &record, gen.AnswerEvent{Event: gen.AnswerEventEvent("failed"), Turn: &record.Turn, Code: &code}, "", nil); err != nil {
 		return

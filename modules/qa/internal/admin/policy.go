@@ -52,7 +52,7 @@ func ReadPublicCapability(ctx context.Context, op OperationContext, input ReadPu
 	if runtime.Models == nil {
 		return ReadPublicCapabilityResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "模型配置权威未装配")
 	}
-	tasks := []string{"qa.preflight", "qa.inspect", "qa.answer"}
+	tasks := []string{"qa.answer"}
 	raw, err := runtime.Models.ReadTaskAvailability(qaruntime.ServiceReadContext(ctx, op), struct {
 		Tasks []string `json:"taskIds"`
 	}{tasks})

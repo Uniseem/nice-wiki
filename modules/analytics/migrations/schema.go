@@ -32,3 +32,8 @@ var ExportJournal string
 //
 //go:embed 0006_usage_statistics_v2.sql
 var UsageStatisticsV2 string
+
+// Visitors 保存站内唯一访客的有限期活动。
+//
+//go:embed 0007_visitors.sql
+var Visitors string

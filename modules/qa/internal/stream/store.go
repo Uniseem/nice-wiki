@@ -100,5 +100,26 @@ func SaveEvent(tx *qaruntime.Transaction, record *qaruntime.TurnRecord, event ge
 		return qaruntime.StorageError(err)
 	}
 	record.Turn.LastSequence = event.Sequence
+	switch string(event.Event) {
+	case "delta":
+		if event.Delta != nil {
+			record.Answer += *event.Delta
+		}
+	case "invalidate":
+		record.Answer = ""
+	case "citation":
+		if event.Citation != nil {
+			found := false
+			for _, citation := range record.Citations {
+				if citation.CitationId == event.Citation.CitationId {
+					found = true
+					break
+				}
+			}
+			if !found {
+				record.Citations = append(record.Citations, *event.Citation)
+			}
+		}
+	}
 	return qaruntime.SaveTurn(tx, *record)
 }

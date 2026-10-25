@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/netip"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -12,8 +13,8 @@ import (
 )
 
 type CreateBanInput struct {
-	SubjectRef string `json:"subjectRef"`
-	Scope      string `json:"scope"`
+	IP         string `json:"ip"`
+	Scope      string `json:"-"`
 	TTLSeconds int64  `json:"ttlSeconds"`
 	ReasonCode string `json:"reasonCode"`
 	DataEpoch  string `json:"-"`
@@ -37,6 +38,7 @@ type ListBansInput struct {
 	DataEpoch string
 }
 type BanRecord struct {
+	IP         string `json:"ip"`
 	BanID      string `json:"banId"`
 	SubjectRef string `json:"subjectRef"`
 	Scope      string `json:"scope"`
@@ -52,11 +54,16 @@ type ListBansResult struct {
 	NextCursor string      `json:"nextCursor"`
 }
 
-// CreateBan 只封匿名网络的AI功能，不接收原IP，也不触碰费用账本。
+// CreateBan 按单个IP和时长限制AI问答，不影响公开阅读和管理员登录。
 func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (CreateBanResult, error) {
 	if err := authorizeGuardManagement(ctx, op, "createBan"); err != nil {
 		return CreateBanResult{}, err
 	}
+	peer, err := netip.ParseAddr(in.IP)
+	if err != nil || peer.Zone() != "" {
+		return CreateBanResult{}, platform.NewError(platform.CodeValidation, false, "请输入单个IPv4或IPv6地址")
+	}
+	in.IP = peer.Unmap().String()
 	t, err := beginGuardTransaction(ctx, op, true)
 	if err != nil {
 		return CreateBanResult{}, err
@@ -68,22 +75,14 @@ func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (Cre
 	} else if found {
 		return result, nil
 	}
-	var known int
-	err = t.tx.QueryRowContext(t.ctx, `SELECT COUNT(*) FROM guard_network_aliases WHERE site_id=? AND data_epoch=? AND network_key=?`, t.site, op.DataEpoch, in.SubjectRef).Scan(&known)
-	if err != nil {
-		return CreateBanResult{}, loginDBError()
-	}
-	if known == 0 {
-		return CreateBanResult{}, platform.NewError(platform.CodeNotFound, false, "匿名网络引用不存在")
-	}
 	ttl := in.TTLSeconds
 	if ttl == 0 {
 		ttl = 600
 	}
-	if in.Scope != "ai" || ttl < 1 || ttl > 2592000 || (in.ReasonCode != "manual" && in.ReasonCode != "abuse") {
+	if ttl < 1 || ttl > 2592000 || (in.ReasonCode != "manual" && in.ReasonCode != "abuse") {
 		return CreateBanResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_BAN")
 	}
-	result, err = createNetworkBan(t, in.SubjectRef, ttl, in.ReasonCode)
+	result, err = createIPBan(t, in.IP, ttl, in.ReasonCode)
 	if err != nil {
 		return CreateBanResult{}, err
 	}
@@ -91,25 +90,6 @@ func CreateBan(ctx context.Context, op OperationContext, in CreateBanInput) (Cre
 		return CreateBanResult{}, err
 	}
 	if err = t.commit(); err != nil {
-		return CreateBanResult{}, err
-	}
-	return result, nil
-}
-
-// createNetworkBan 与租约撤销及outbox共享调用方事务，模型已发生费用不倒退。
-func createNetworkBan(t *guardTransaction, network string, ttl int64, reason string) (CreateBanResult, error) {
-	result := CreateBanResult{BanID: platform.NewIdentifier(), Revision: 1}
-	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO guard_bans(ban_id,site_id,data_epoch,network_key,scope,reason_code,starts_at_ns,expires_at_ns,state,revision)
-  VALUES(?,?,?,?,'ai',?,?,?,'active',1)`, result.BanID, t.site, t.op.DataEpoch, network, reason, t.now.UnixNano(), t.now.Add(time.Duration(ttl)*time.Second).UnixNano())
-	if err != nil {
-		return CreateBanResult{}, loginDBError()
-	}
-	_, err = t.tx.ExecContext(t.ctx, `UPDATE guard_permits SET state='revoked',revision=revision+1 WHERE site_id=? AND data_epoch=? AND state='active'
-  AND admission_id IN (SELECT admission_id FROM guard_permit_networks WHERE network_key=?)`, t.site, t.op.DataEpoch, network)
-	if err != nil {
-		return CreateBanResult{}, loginDBError()
-	}
-	if err = enqueueGuardEvent(t, "traffic-guard.ban-changed.v1", result.BanID, 1, map[string]any{"banId": result.BanID, "banRevision": int64(1), "state": "active"}); err != nil {
 		return CreateBanResult{}, err
 	}
 	return result, nil
@@ -186,7 +166,7 @@ func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListB
 			return ListBansResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_CURSOR")
 		}
 	}
-	rows, err := t.tx.QueryContext(t.ctx, `SELECT ban_id,network_key,scope,reason_code,starts_at_ns,expires_at_ns,state,revision FROM guard_bans
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT ban_id,network_key,scope,reason_code,starts_at_ns,expires_at_ns,state,revision,ip FROM guard_bans
   WHERE site_id=? AND data_epoch=? AND ban_id>? ORDER BY ban_id LIMIT ?`, t.site, op.DataEpoch, after, limit+1)
 	if err != nil {
 		return ListBansResult{}, loginDBError()
@@ -196,7 +176,7 @@ func ListBans(ctx context.Context, op OperationContext, in ListBansInput) (ListB
 	for rows.Next() {
 		var item BanRecord
 		var starts, expires int64
-		if rows.Scan(&item.BanID, &item.SubjectRef, &item.Scope, &item.ReasonCode, &starts, &expires, &item.State, &item.Revision) != nil {
+		if rows.Scan(&item.BanID, &item.SubjectRef, &item.Scope, &item.ReasonCode, &starts, &expires, &item.State, &item.Revision, &item.IP) != nil {
 			return ListBansResult{}, loginDBError()
 		}
 		item.StartsAt = time.Unix(0, starts).UTC().Format(time.RFC3339Nano)

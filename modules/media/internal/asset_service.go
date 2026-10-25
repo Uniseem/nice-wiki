@@ -55,6 +55,8 @@ func ReadAsset(ctx context.Context, op OperationContext, input ReadAssetInput) (
 	if asset.State != gen.AssetStateReady || (input.Version != nil && *input.Version != asset.Ref.Version) {
 		return ReadAssetResult{}, platform.NewError(platform.CodeNotFound, false, "指定ready资源版本不存在")
 	}
+	name := s.libraryFileName(asset.SiteId, asset.Ref.Sha256)
+	asset.FileName = &name
 	return ReadAssetResult{Asset: asset}, nil
 }
 
@@ -64,8 +66,9 @@ type AssetPageRequest struct {
 	Cursor string `json:"cursor"`
 }
 type ListAssetsInput struct {
-	Page AssetPageRequest `json:"page"`
-	Kind *gen.AssetKind   `json:"kind"`
+	GroupID *string          `json:"groupId,omitempty"`
+	Page    AssetPageRequest `json:"page"`
+	Kind    *gen.AssetKind   `json:"kind"`
 }
 type ListAssetsResult = gen.ListAssetsResult
 
@@ -104,9 +107,15 @@ func InstallAssetListingKey(key platform.SigningKey) error {
 }
 
 func assetListingStore(op OperationContext) (*localBlobStore, error) {
-	s, err := cleanupStore(op, true)
-	if err != nil {
-		return nil, err
+	if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || (!hasGrant(op.Actor.Grants, "media.read") && !hasGrant(op.Actor.Grants, "media.manage") && !hasGrant(op.Actor.Grants, "media.upload") && !hasGrant(op.Actor.Grants, "superadmin")) {
+		return nil, platform.NewError(platform.CodeForbidden, false, "没有读取资源库的权限")
+	}
+	s, ok := currentBlobStore().(*localBlobStore)
+	if !ok {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "媒体存储未装配")
+	}
+	if op.DataEpoch != s.openedEpoch {
+		return nil, platform.NewError(platform.CodeVersionMismatch, false, "资源读取代次不匹配")
 	}
 	if s.listingKey == nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源列表签名密钥未装配")
@@ -120,8 +129,9 @@ func (s *localBlobStore) readAssetListingCursor(op OperationContext, input ListA
 		SessionRevision, PermissionRevision            int64
 		Limit                                          int
 		Kind                                           *gen.AssetKind
+		GroupID                                        *string
 		Unused                                         bool
-	}{op.CallerService, op.Actor.Kind, op.Actor.SubjectID, op.Actor.SiteID, op.DataEpoch, op.Actor.SessionID, op.Actor.SessionRevision, op.Actor.PermissionRevision, input.Page.Limit, input.Kind, unused})
+	}{op.CallerService, op.Actor.Kind, op.Actor.SubjectID, op.Actor.SiteID, op.DataEpoch, op.Actor.SessionID, op.Actor.SessionRevision, op.Actor.PermissionRevision, input.Page.Limit, input.Kind, input.GroupID, unused})
 	if err != nil {
 		return assetListingCursor{}, "", err
 	}
@@ -174,7 +184,11 @@ func (s *localBlobStore) readAssetListingPage(ctx context.Context, op OperationC
 	if input.Kind != nil {
 		kind = string(*input.Kind)
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT a.asset_id,a.site_id,a.sha256,a.byte_size,a.media_type,a.state,CASE WHEN length(CAST(a.asset_json AS BLOB))<=16777216 THEN a.asset_json ELSE NULL END,r.deletion_fence,r.reference_generation,json_extract(a.asset_json,'$.createdAt') FROM assets a LEFT JOIN reference_objects r ON r.asset_id=a.asset_id WHERE a.site_id=? AND (?='' OR json_extract(a.asset_json,'$.kind')=?) AND (?=0 OR a.state='ready') AND (?='' OR (json_extract(a.asset_json,'$.createdAt'),a.asset_id)<(?,?)) ORDER BY json_extract(a.asset_json,'$.createdAt') DESC,a.asset_id DESC LIMIT ?`, op.Actor.SiteID, kind, kind, unused, position.AfterAssetId, position.AfterCreatedAt, position.AfterAssetId, input.Page.Limit+1)
+	group := ""
+	if input.GroupID != nil {
+		group = *input.GroupID
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT a.asset_id,a.site_id,a.sha256,a.byte_size,a.media_type,a.state,CASE WHEN length(CAST(a.asset_json AS BLOB))<=16777216 THEN a.asset_json ELSE NULL END,r.deletion_fence,r.reference_generation,json_extract(a.asset_json,'$.createdAt') FROM assets a LEFT JOIN reference_objects r ON r.asset_id=a.asset_id WHERE a.site_id=? AND (?=0 OR COALESCE(json_extract(a.asset_json,'$.groupId'),'')=?) AND (?='' OR json_extract(a.asset_json,'$.kind')=?) AND (?=0 OR a.state='ready') AND (?='' OR (json_extract(a.asset_json,'$.createdAt'),a.asset_id)<(?,?)) ORDER BY json_extract(a.asset_json,'$.createdAt') DESC,a.asset_id DESC LIMIT ?`, op.Actor.SiteID, input.GroupID != nil, group, kind, kind, unused, position.AfterAssetId, position.AfterCreatedAt, position.AfterAssetId, input.Page.Limit+1)
 	if err != nil {
 		return assetListingPage{}, mapMediaDBError(err, "读取资源列表候选失败")
 	}
@@ -194,6 +208,8 @@ func (s *localBlobStore) readAssetListingPage(ctx context.Context, op OperationC
 			rows.Close()
 			return page, platform.NewError(platform.CodeIntegrityError, false, "资源列表元数据、索引或对象水位不一致")
 		}
+		name := s.libraryFileName(asset.SiteId, asset.Ref.Sha256)
+		asset.FileName = &name
 		listed.Fence, listed.Generation = int(fence.Int64), int(generation.Int64)
 		page.Assets = append(page.Assets, listed)
 	}

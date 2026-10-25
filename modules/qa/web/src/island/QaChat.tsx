@@ -1,10 +1,12 @@
-import { ArrowDown, ArrowUp, ChevronDown, FileText, Plus, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
+import { ArrowDown, ArrowUp, FileText, Plus, Stop, ThumbsDown, ThumbsUp } from '@gravity-ui/icons';
 import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type Step, type TurnInfo } from './client';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type StreamEvent, type TurnInfo } from './client';
+import { Activity, finishSteps, mergeStep, type StepView } from './Activity';
 import { Markdown } from './markdown';
 
 export type Translate = (key: string) => string;
+export type HomeWelcome = { name: string; description: string; topics: { title: string; description: string }[]; documentCount: number };
 
 type Message = {
   id: string;
@@ -15,7 +17,11 @@ type Message = {
   steps?: StepView[];
   turn?: TurnInfo;
   feedback?: 'helpful' | 'unhelpful';
-  live?: boolean; // 本次打开后新提问得到的回答：逐字写出（命中缓存时整段答案一次到达，也照样逐字写）
+  live?: boolean; // 本次打开后新提问得到的回答：逐字写出
+  streamPath?: string;
+  sequence?: number;
+  reconnecting?: boolean;
+  error?: string;
 };
 
 // 触屏设备（手机、平板）上从不主动聚焦输入框：聚焦会直接弹出软键盘、挡住大半屏，等访客自己点输入框。
@@ -28,7 +34,10 @@ const logKey = (locale: string) => `nw-qa-log:${locale}`;
 function loadLog(locale: string): Message[] {
   try {
     const saved = JSON.parse(sessionStorage.getItem(logKey(locale)) ?? '[]') as Message[];
-    return saved.map((message) => ({ ...message, live: false, status: message.status === 'streaming' ? 'cancelled' : message.status }));
+    return saved.map((message) => {
+      const interrupted = message.status === 'streaming' && !(message.turn && message.streamPath);
+      return { ...message, live: false, status: interrupted ? 'cancelled' : message.status, steps: interrupted ? finishSteps(message.steps, 'cancelled') : message.steps };
+    });
   } catch { return []; }
 }
 
@@ -51,10 +60,11 @@ function failure(t: Translate, problem: unknown): string {
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
 // compact（首页的“问问 AI”）：还没有对话时只显示一个输入框；开始提问后和面板一样显示对话区，由外层给出高度。
-export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact, suggestions }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean; suggestions?: string[] }) {
+export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, compact, suggestions, welcome }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; compact?: boolean; suggestions?: string[]; welcome?: HomeWelcome }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
+  const activeRun = useRef<typeof running>(null);
   // pinned 是本次打开后最新提问的那一轮：它至少占满对话区可视高度，问题才能滚到顶部、回答在下方展开。
   const [pinned, setPinned] = useState('');
   const [view, setView] = useState(0);
@@ -82,12 +92,12 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
   useLayoutEffect(() => {
     const box = scroller.current;
     if (!box) return;
-    box.scrollTop = box.scrollHeight;
+    box.scrollTop = messages.length ? box.scrollHeight : 0;
     const observer = new ResizeObserver(() => { setView(box.clientHeight); check(); });
     observer.observe(box);
     if (list.current) observer.observe(list.current);
     return () => observer.disconnect();
-  }, [idle]);
+  }, [idle, !messages.length]);
 
   // 提问后把这一轮平滑滚到对话区顶部。
   useLayoutEffect(() => {
@@ -102,6 +112,42 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
 
   const patch = (id: string, update: (message: Message) => Message) => setMessages((current) => current.map((message) => message.id === id ? update(message) : message));
 
+  function trackRun(value: typeof running) { activeRun.current = value; setRunning(value); }
+  function endRun(controller: AbortController) { if (activeRun.current?.controller === controller) trackRun(null); }
+
+  function receive(id: string, event: StreamEvent, allowChallenge = false): boolean {
+    if (event.kind === 'step') patch(id, (message) => ({ ...message, steps: mergeStep(message.steps ?? [], event.step) }));
+    else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
+    else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
+    else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
+    else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', steps: finishSteps(message.steps, 'done'), reconnecting: false, turn: event.turn?.turnId ? event.turn : message.turn }));
+    else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled', steps: finishSteps(message.steps, 'cancelled'), reconnecting: false }));
+    else if (event.kind === 'failed') {
+      if (event.code === 'CHALLENGE_REQUIRED' && allowChallenge) return true;
+      patch(id, (message) => ({ ...message, status: 'error', steps: finishSteps(message.steps, 'error'), reconnecting: false, error: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : event.code === 'CHALLENGE_REQUIRED' ? t('人机验证没有完成') : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
+    }
+    return false;
+  }
+
+  const cursor = (id: string, afterSequence = 0) => ({
+    afterSequence,
+    onSequence: (sequence: number) => patch(id, (message) => ({ ...message, sequence })),
+    onConnection: (reconnecting: boolean) => patch(id, (message) => ({ ...message, reconnecting })),
+  });
+
+  // 刷新或在文档之间跳转后续读同一轮持久事件，不重新提问或重复调用模型。
+  useEffect(() => {
+    const pending = messages.find((message) => message.role === 'assistant' && message.status === 'streaming' && message.turn && message.streamPath);
+    if (pending?.turn && pending.streamPath) {
+      const controller = new AbortController();
+      trackRun({ controller, turnId: pending.turn.turnId });
+      void followTurn({ turn: pending.turn, streamPath: pending.streamPath }, (event) => { receive(pending.id, event); }, controller.signal, cursor(pending.id, pending.sequence)).catch((problem) => {
+        if (!controller.signal.aborted) patch(pending.id, (message) => ({ ...message, status: 'error', error: failure(t, problem), steps: finishSteps(message.steps, 'error'), reconnecting: false }));
+      }).finally(() => endRun(controller));
+    }
+    return () => activeRun.current?.controller.abort();
+  }, [locale]);
+
   function latest() {
     const box = scroller.current;
     const mark = end.current;
@@ -115,7 +161,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     const controller = new AbortController();
     setQuestion('');
     if (touch) input.current?.blur();
-    setRunning({ controller });
+    trackRun({ controller });
     setPinned(id);
     setMessages((current) => [...current, { id: `${id}-q`, role: 'user', text, status: 'done', citations: [] }, { id, role: 'assistant', text: '', status: 'streaming', citations: [], live: true }]);
     try {
@@ -123,27 +169,24 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
       for (let attempt = 0; attempt < 2; attempt++) {
         let challenged = false;
         const started = await startTurn(text, locale, documentId);
-        setRunning({ controller, turnId: started.turn.turnId });
-        patch(id, (message) => ({ ...message, turn: started.turn }));
+        if (controller.signal.aborted) {
+          await cancelTurn(started.turn.turnId).catch(() => {});
+          throw new DOMException('Aborted', 'AbortError');
+        }
+        trackRun({ controller, turnId: started.turn.turnId });
+        patch(id, (message) => ({ ...message, turn: started.turn, streamPath: started.streamPath, sequence: 0 }));
         await followTurn(started, (event) => {
-          if (event.kind === 'step') patch(id, (message) => ({ ...message, steps: mergeStep(message.steps ?? [], event.step) }));
-          else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
-          else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
-          else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
-          else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', turn: event.turn?.turnId ? event.turn : message.turn }));
-          else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled' }));
-          else if (event.code === 'CHALLENGE_REQUIRED' && attempt === 0) challenged = true;
-          else patch(id, (message) => ({ ...message, status: 'error', text: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : event.code === 'CHALLENGE_REQUIRED' ? t('人机验证没有完成') : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
-        }, controller.signal);
+          if (receive(id, event, attempt === 0)) challenged = true;
+        }, controller.signal, cursor(id));
         if (!challenged) break;
         patch(id, (message) => ({ ...message, text: '', steps: [], citations: [] }));
         await verifyHuman();
       }
     } catch (problem) {
-      if (!controller.signal.aborted) patch(id, (message) => ({ ...message, status: 'error', text: failure(t, problem) }));
-      else patch(id, (message) => ({ ...message, status: 'cancelled' }));
+      if (!controller.signal.aborted) patch(id, (message) => ({ ...message, status: 'error', error: failure(t, problem), steps: finishSteps(message.steps, 'error'), reconnecting: false }));
+      else patch(id, (message) => ({ ...message, status: 'cancelled', steps: finishSteps(message.steps, 'cancelled'), reconnecting: false }));
     } finally {
-      setRunning(null);
+      endRun(controller);
       focus();
     }
   }
@@ -151,11 +194,14 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
   async function stop() {
     if (!running) return;
     running.controller.abort();
+    setMessages((current) => current.map((message) => message.status === 'streaming' ? { ...message, status: 'cancelled', steps: finishSteps(message.steps, 'cancelled'), reconnecting: false } : message));
     if (running.turnId) await cancelTurn(running.turnId).catch(() => {});
   }
 
   function restart() {
     running?.controller.abort();
+    if (running?.turnId) void cancelTurn(running.turnId).catch(() => {});
+    trackRun(null);
     resetConversation(locale);
     setMessages([]);
     setPinned('');
@@ -170,13 +216,15 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
 
   const rounds = group(messages);
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
+    <div className={cn('flex min-h-0 flex-1 flex-col', className)} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
       {!idle && <div className="relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
-            <div className="flex h-full items-center justify-center py-10 text-center">
-              <p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p>
-            </div>
+            welcome ? <div className="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 px-2 py-6 sm:px-6 sm:py-10">
+              <div><span className="mb-4 inline-flex items-center gap-2 rounded-full bg-default px-3 py-1 text-xs text-muted"><span className="size-1.5 rounded-full bg-success" />{t('AI 问答')} · {welcome.documentCount} {t('篇文档')}</span><h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">{t('从一个问题开始')}</h1>{welcome.description && <p className="mt-4 text-sm leading-7 text-foreground/80">{welcome.description}</p>}<p className="mt-3 text-sm leading-7 text-muted">{t('直接告诉我你想了解什么，我会查阅文档、整理答案并附上来源。')}</p></div>
+              {!!welcome.topics.length && <div className="grid gap-2 sm:grid-cols-2">{welcome.topics.map((topic) => <button type="button" key={topic.title} className="group min-w-0 rounded-xl border border-border bg-surface px-4 py-3 text-start transition-colors hover:border-foreground/30 hover:bg-default/40 focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setQuestion(t('介绍一下《{0}》').replace('{0}', topic.title)); input.current?.focus({ preventScroll: true }); }}><span className="flex items-center justify-between gap-2 text-sm font-medium"><span className="truncate">{topic.title}</span><ArrowUp className="size-3 -rotate-45 text-muted group-hover:text-foreground rtl:rotate-45" /></span>{topic.description && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-muted">{topic.description}</p>}</button>)}</div>}
+              <div className="flex flex-wrap gap-2">{suggestions?.map((text) => <button type="button" className="rounded-full bg-default/70 px-3 py-2 text-xs text-muted hover:text-foreground" key={text} onClick={() => { setQuestion(text); input.current?.focus({ preventScroll: true }); }}>{text}</button>)}</div>
+            </div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
           )}
           <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
             {rounds.map((round, index) => (
@@ -193,7 +241,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
           </Button>
         )}
       </div>}
-      <form className={idle ? '' : 'border-t border-separator p-3'} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
+      <form className={idle ? '' : welcome ? 'p-3 sm:px-6 sm:pb-5' : 'border-t border-separator p-3'} onSubmit={(event) => { event.preventDefault(); void ask(); }}>
         <div className="mx-auto w-full max-w-3xl">
           {documentId && pageTitle && (
             <div className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted">
@@ -210,7 +258,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               className={cn('max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0', idle && 'text-[15px]')}
               maxLength={500}
               placeholder={t('问问这个站点的文档…')}
-              rows={idle ? 2 : 1}
+              rows={idle || welcome ? 2 : 1}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
@@ -250,13 +298,15 @@ function group(messages: Message[]): { id: string; question?: Message; answer?: 
 function Answer({ message, last, end, t, onRate }: { message: Message; last: boolean; end: RefObject<HTMLDivElement | null>; t: Translate; onRate: (message: Message, value: 'helpful' | 'unhelpful') => void }) {
   return (
     <div className="me-6 flex flex-col gap-2">
-      {!!message.steps?.length && <Steps active={message.status === 'streaming'} steps={message.steps} t={t} />}
+      {!!message.steps?.length && <Activity active={message.status === 'streaming'} reconnecting={message.reconnecting} steps={message.steps} t={t} />}
       {/* 回答不放进气泡，直接是正文（Grok 的做法）；出错时才用浅红底。 */}
-      <div className={cn('text-sm', message.status === 'error' ? 'rounded-2xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'px-1 text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
+      <div className={cn('text-sm', message.status === 'error' && !message.error ? 'rounded-2xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'px-1 text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
         {message.status === 'streaming' && !message.text ? (
           <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
-        ) : message.status === 'error' ? message.text : <Typed message={message} />}
+        ) : message.status === 'error' && !message.error ? message.text : <Typed message={message} />}
       </div>
+      {message.error && <p role="alert" className="rounded-2xl bg-danger-soft px-3.5 py-2.5 text-sm text-danger-soft-foreground">{message.error}</p>}
+      {message.status === 'cancelled' && <p className="px-1 text-xs text-muted">{t('已停止')}</p>}
       {message.citations.length > 0 && (
         <div className="flex flex-wrap gap-1.5 ps-1">
           {unique(message.citations).map((citation) => (
@@ -312,64 +362,4 @@ function unique(citations: Citation[]): Citation[] {
     seen.add(key);
     return true;
   });
-}
-
-// StepView 在服务端步骤上加本地计时：第一次收到时记下开始时间，完成或跳过时算出耗时（毫秒）。
-type StepView = Step & { startedAt?: number; ms?: number; order?: number };
-
-// mergeStep 按步骤类型更新：同一步从“进行中”变成“完成/跳过”，新步骤接在后面。
-function mergeStep(steps: StepView[], step: Step): StepView[] {
-  const now = Date.now();
-  const order = Math.max(0, ...steps.map((item) => item.order ?? 0)) + 1;
-  const index = steps.findIndex((item) => item.key === step.key);
-  if (index < 0) return [...steps, { ...step, startedAt: now, ms: step.status === 'running' ? undefined : 0, order }];
-  const next = [...steps];
-  const previous = steps[index];
-  const startedAt = step.status === 'running' && previous.status !== 'running' ? now : previous.startedAt;
-  const ms = step.status !== 'running' && previous.status === 'running' && startedAt ? (previous.ms ?? 0) + now - startedAt : previous.ms;
-  next[index] = { ...previous, ...step, startedAt, ms, order };
-  return next;
-}
-
-// 耗时太短（例如刷新后重放历史事件）不显示。
-function seconds(ms?: number): string {
-  return ms && ms >= 100 ? `${(ms / 1000).toFixed(1)}s` : '';
-}
-
-// Steps 默认展开思考过程，回答结束后保留；只在访客点击时折叠。
-function Steps({ steps, active, t }: { steps: StepView[]; active: boolean; t: Translate }) {
-  const [open, setOpen] = useState(true);
-  const labels: Record<Step['key'], string> = { understand: t('理解问题'), page: t('阅读当前页面'), cache: t('查找已有回答'), search: t('检索相关文档'), answer: t('整理回答') };
-  // 复用已有回答这一步命中时改叫“命中缓存”，答案直接来自之前的回答。
-  const label = (step: StepView) => (step.key === 'cache' && step.status === 'done' ? t('命中缓存') : labels[step.key]);
-  const current = steps.reduce((latest, step) => ((step.order ?? 0) > (latest.order ?? 0) ? step : latest), steps[0]);
-  return (
-    <div className="nw-qa-steps rounded-xl border border-border/70 bg-surface px-3 py-2 text-xs">
-      <button aria-expanded={open} className="flex w-full items-center gap-2 text-start text-muted" type="button" onClick={() => setOpen(!open)}>
-        {active && <Spinner color="current" size="sm" />}
-        <span className="flex-1 font-medium">{active ? label(current) : t('思考过程')}</span>
-        {!active && <span className="tabular-nums text-muted">{seconds(steps.reduce((total, step) => total + (step.ms ?? 0), 0))}</span>}
-        <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
-      </button>
-      {open && (
-        <ol className="mt-2 flex flex-col gap-2 border-s border-border ps-3">
-          {steps.map((step) => (
-            <li key={step.key} className="nw-qa-step relative flex flex-col gap-1">
-              <span className={cn('absolute -start-[17px] top-1 size-2 rounded-full ring-2 ring-surface', step.status === 'running' ? 'animate-pulse bg-foreground' : step.status === 'done' ? 'bg-foreground/40' : 'bg-default')} />
-              <span className="flex items-baseline gap-2">
-                <span className={cn('flex-1 font-medium', step.status === 'skipped' ? 'text-muted line-through' : 'text-foreground')}>{label(step)}</span>
-                <span className="tabular-nums text-muted">{seconds(step.ms)}</span>
-              </span>
-              {step.detail && step.key !== 'answer' && <span className="line-clamp-2 break-words text-muted">{step.detail}</span>}
-              {!!step.items?.length && (
-                <span className="flex flex-wrap gap-1">
-                  {step.items.map((item) => <span key={item} className="max-w-full truncate rounded-md bg-default px-1.5 py-0.5 text-[11px] text-foreground/80">{item}</span>)}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
 }

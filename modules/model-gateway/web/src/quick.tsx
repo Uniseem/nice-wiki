@@ -5,11 +5,10 @@ import { api, ApiError, newKey, notify, TextInput, useAction, t } from '@ui';
 import { guardDefaults } from '@modules/traffic-guard/web/src';
 import { useState } from 'react';
 
-// 任务目录与 contracts/ai-tasks.json 一致（23 项）；新增任务时这里要同步。
+// 任务目录与 contracts/ai-tasks.json 一致；新增任务时这里要同步。
 export const tasks: [string, string, string][] = [
-  ['qa.preflight', 'fast', t('前置分类、改写、完整性与风险')], ['qa.inspect', 'fast', t('检索核查')], ['qa.answer', 'accurate', t('最终回答')],
-  ['qa.answer-fast', 'fast', t('简单问题的快速回答')],
-  ['qa.cache-match', 'fast', t('缓存同义复用判断')], ['qa.cache-translate', 'fast', t('缓存回答翻译')], ['qa.compact', 'fast', t('对话增量压缩')],
+  ['qa.inspect', 'fast', t('检索核查')], ['qa.answer', 'accurate', t('最终回答')],
+  ['qa.compact', 'fast', t('对话增量压缩')],
   ['knowledge.context', 'fast', t('检索单元背景上下文')], ['knowledge.summary', 'fast', t('文档卡片（摘要、主题、能回答的问题）')], ['knowledge.describe', 'fast', t('文字附件/视频公开元信息描述')],
   ['knowledge.describe-visual', 'vision', t('图片、画板、视频封面视觉描述')], ['knowledge.extract-attachment', 'vision', t('非文本附件内容提取')],
   ['knowledge.embed', 'embedding', t('生成向量')], ['knowledge.rerank', 'rerank', t('召回重排')],

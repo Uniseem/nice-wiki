@@ -68,6 +68,7 @@ type HashDayTokenResult struct {
 }
 
 type IngestBeaconInput struct {
+	VisitorID      string              `json:"visitorId"`
 	BeaconID       string              `json:"beaconId"`
 	DocumentID     string              `json:"documentId"`
 	Locale         string              `json:"locale"`

@@ -82,6 +82,7 @@ func CreateJob(ctx context.Context, op OperationContext, in CreateJobInput) (Cre
 5. 插入queued及outbox
 6. 持久保存可信op.rootOperationId，供以后领取/回收复用；不得以新的领取操作替换根
 7. notBefore省略时原输入摘要字节不变且首次not_before=当前时刻；显式时将UTC RFC3339Nano时刻纳入摘要并持久入队，过去时刻立即具备领取资格；同键不同显式时刻CONFLICT，不用op.deadline作为延迟任务期限
+8. 持久保存触发事件和目标语言等安全元数据，供管理任务队列分类与说明来源；不读取业务正文
 
 **错误**
 
@@ -5443,6 +5444,7 @@ func ListJobs(ctx context.Context, op OperationContext, input ListJobsInput) (Li
 2. 按持久owner/type匹配生成目录具体管理权限，锁外逐条identity核权，仅FORBIDDEN过滤；失效会话或未知权威整体失败
 3. 持续批读至limit+1个有权条目或穷尽，仅有权条目决定hasMore与最后返回ID，不泄露无权位置/数量；返回安全进度和公共错误码
 4. 平台SignCursor/VerifyCursor作用域摘要绑定查询类型、actor/site/session及修订、caller/epoch、owner/state/limit；每页重新核权，签名不替代权限
+5. 按入队时间与jobId倒序显示；失败筛选包含等待重试、死信与无主任务，签名游标仍绑定当前权限和筛选
 
 **错误**
 

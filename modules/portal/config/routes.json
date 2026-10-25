@@ -403,56 +403,6 @@
     },
     {
       "method": "GET",
-      "path": "/v1/admin/cache",
-      "owner": "qa",
-      "operationId": "listCacheEntries",
-      "permission": "qa.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/admin/cache",
-      "owner": "qa",
-      "operationId": "proposeCacheEntry",
-      "permission": "qa.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/admin/cache-calibration",
-      "owner": "qa",
-      "operationId": "readCacheCalibration",
-      "permission": "qa.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/admin/cache/{cacheId}/approve",
-      "owner": "qa",
-      "operationId": "approveCacheEntry",
-      "permission": "qa.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/admin/cache/{cacheId}/disable",
-      "owner": "qa",
-      "operationId": "disableCacheEntry",
-      "permission": "qa.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
-      "method": "GET",
       "path": "/v1/admin/catalog",
       "owner": "model-gateway",
       "operationId": "readAdminCatalog",
@@ -623,10 +573,40 @@
     },
     {
       "method": "GET",
+      "path": "/v1/asset-groups",
+      "owner": "media",
+      "operationId": "listAssetGroups",
+      "permission": "media.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/asset-groups",
+      "owner": "media",
+      "operationId": "createAssetGroup",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/asset-groups/{groupId}",
+      "owner": "media",
+      "operationId": "deleteAssetGroup",
+      "permission": "media.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/assets",
       "owner": "media",
       "operationId": "listAssets",
-      "permission": "media.manage",
+      "permission": "media.read",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -667,6 +647,16 @@
       "owner": "media",
       "operationId": "headAssetBytes",
       "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/assets/{assetId}/group",
+      "owner": "media",
+      "operationId": "setAssetGroup",
+      "permission": "media.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -2286,6 +2276,16 @@
       "path": "/v1/statistics/usage",
       "owner": "analytics",
       "operationId": "queryUsageStatistics",
+      "permission": "stats.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/statistics/visitors",
+      "owner": "analytics",
+      "operationId": "listVisitors",
       "permission": "stats.read",
       "admission": null,
       "timeoutMs": null,

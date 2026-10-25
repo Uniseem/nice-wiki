@@ -10,19 +10,6 @@
   "singleSource": true,
   "tasks": [
     {
-      "id": "qa.preflight",
-      "name": "前置分类、改写、完整性与风险",
-      "owner": "qa",
-      "defaultTier": "fast",
-      "defaultMemoryRoles": [
-        "project-overview"
-      ],
-      "defaultMaxOutputTokens": 500,
-      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
-      "targetLanguageRole": "translation-target按目标语言选择",
-      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
-    },
-    {
       "id": "qa.inspect",
       "name": "检索核查",
       "owner": "knowledge",
@@ -44,49 +31,6 @@
         "project-overview",
         "brand-tone",
         "qa-policy"
-      ],
-      "defaultMaxOutputTokens": 1500,
-      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
-      "targetLanguageRole": "translation-target按目标语言选择",
-      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
-    },
-    {
-      "id": "qa.answer-fast",
-      "name": "简单问题的快速回答",
-      "owner": "qa",
-      "defaultTier": "fast",
-      "defaultMemoryRoles": [
-        "project-overview",
-        "brand-tone",
-        "qa-policy"
-      ],
-      "defaultMaxOutputTokens": 1500,
-      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
-      "targetLanguageRole": "translation-target按目标语言选择",
-      "source": "2026-10-21 每轮决策判定为简单的问题改用快速档回答，记忆沿用 qa.answer"
-    },
-    {
-      "id": "qa.cache-match",
-      "name": "缓存同义复用判断",
-      "owner": "qa",
-      "defaultTier": "fast",
-      "defaultMemoryRoles": [
-        "project-overview"
-      ],
-      "defaultMaxOutputTokens": 500,
-      "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",
-      "targetLanguageRole": "translation-target按目标语言选择",
-      "source": "old产品ai-models/memory与D44/D46/D48/D50；未给数值的附属任务以同类输出界限作为新工程默认，界面可调整"
-    },
-    {
-      "id": "qa.cache-translate",
-      "name": "缓存回答翻译",
-      "owner": "localization",
-      "defaultTier": "fast",
-      "defaultMemoryRoles": [
-        "brand-tone",
-        "translation-common",
-        "translation-target"
       ],
       "defaultMaxOutputTokens": 1500,
       "outputLimitMeaning": "0仅表示非聊天操作，无文本输出额度；不表示无限输出",

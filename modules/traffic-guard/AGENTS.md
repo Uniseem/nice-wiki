@@ -8,7 +8,7 @@
 
 不使用 User-Agent 作为可靠身份
 
-不持久化原始 IP、问题正文、captcha secret 或凭证 token
+封禁与可信会话允许保存规范化 IP 和到期时间，只供后台管理与准入判断；IP 不写日志或事件。问题正文、captcha secret 和凭证 token 不持久化。
 
 恢复控制journal与barrier在control区，不随业务快照替换。备份恢复控制操作只接受data-protection服务身份与superadmin委托；active目录只在进程重启时换入或换回（ADR0003）。
 

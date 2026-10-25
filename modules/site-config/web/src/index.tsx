@@ -1,3 +1,4 @@
+import { AssetPicker } from '@modules/media/web/src/LibraryBrowser';
 import { Picture, Plus, TrashBin } from '@gravity-ui/icons';
 import { Button, Card, Chip, Form, Tabs } from '@heroui/react';
 import {
@@ -96,6 +97,8 @@ function BasicTab({ config, onSaved }: TabProps) {
 }
 
 function BrandTab({ config, onSaved }: TabProps) {
+  const [picker,setPicker] = useState<'logo' | 'favicon' | 'defaultShareImage' | null>(null);
+  const select = (ref: AssetRef) => run(async()=>{ if (!picker) return; await api('/v1/branding',{method:'PUT',body:{name:config.name,logo:config.logo,favicon:config.favicon,themeColor:config.themeColor,defaultShareImage:config.defaultShareImage,expectedRevision:config.revision,[picker]:ref}});setPicker(null);onSaved();},t('已更新'));
   const { busy, run } = useAction();
   const update = (field: 'logo' | 'favicon' | 'defaultShareImage', label: string, file: File | null) => run(async () => {
     const ref = file ? await uploadImage(file) : null;
@@ -108,6 +111,8 @@ function BrandTab({ config, onSaved }: TabProps) {
     { field: 'defaultShareImage', label: t('默认分享图'), hint: t('分享到社交平台时的预览图（Open Graph）。建议 1200×630。'), shape: 'h-16 w-32' },
   ];
   return (
+    <>
+    {picker && <AssetPicker onClose={()=>setPicker(null)} onSelect={(ref)=>void select(ref)} />}
     <div className="grid gap-6 md:grid-cols-3">
       {items.map((item) => {
         const ref = config[item.field];
@@ -120,7 +125,8 @@ function BrandTab({ config, onSaved }: TabProps) {
             <div className={`flex items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-surface-secondary ${item.shape}`}>
               {ref ? <img alt={item.label} className="max-h-full max-w-full object-contain" src={assetURL(ref)} /> : <Picture className="size-6 text-muted" />}
             </div>
-            <Card.Footer className="flex gap-2">
+            <Card.Footer className="flex flex-wrap gap-2">
+              <Button isDisabled={busy} size="sm" variant="secondary" onPress={()=>setPicker(item.field)}>{t('从图片库选择')}</Button>
               <FileButton accept="image/png,image/jpeg,image/webp" isPending={busy} size="sm" onFile={(file) => void update(item.field, item.label, file)}>{ref ? t('更换') : t('上传')}</FileButton>
               {ref && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => update(item.field, item.label, null)}>{t('清除')}</Button>}
             </Card.Footer>
@@ -128,6 +134,7 @@ function BrandTab({ config, onSaved }: TabProps) {
         );
       })}
     </div>
+    </>
   );
 }
 

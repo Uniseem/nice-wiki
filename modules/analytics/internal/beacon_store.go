@@ -46,6 +46,13 @@ func FlushBeacons(ctx context.Context, op OperationContext, in FlushBeaconsInput
 				err = e
 				break
 			}
+			if added != 0 {
+				_, e = tx.ExecContext(work, `INSERT INTO visitor_activities VALUES(?,?,?,?,?,?,?,?,?,?,?)`, b.ID, b.VisitorID, b.DocumentID, b.Locale, b.EventType, b.IP, b.UserAgent, b.Country, b.Source, b.At, b.Epoch)
+				if e != nil {
+					err = e
+					break
+				}
+			}
 			persisted += added
 			if added != 0 {
 				at, _ := time.Parse(analyticsTimeLayout, b.At)

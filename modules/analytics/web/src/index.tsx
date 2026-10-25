@@ -3,6 +3,7 @@ import { Button, Chip, Drawer, Form, Table, Tabs, ToggleButton, ToggleButtonGrou
 import type { Key } from '@heroui/react';
 import { api, apiClient, Details, EmptyBlock, ErrorBlock, fmtDateTime, fmtNumber, LoadingBlock, MiniStat, Mono, notify, PageHeader, Panel, SelectInput, TextInput, useHasGrant, t } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
+import Visitors from './Visitors';
 import { createAnalyticsClient, problemText, type AuditResult, type ExportKind, type LoadStatisticsResult } from './client';
 
 const client = createAnalyticsClient(apiClient);
@@ -69,7 +70,7 @@ const presets: Record<string, [string, number]> = { day: [t('近 24 小时'), 24
 export default function AnalyticsPage() {
   const canStats = useHasGrant('stats.read');
   const canAudit = useHasGrant('audit.read');
-  const [tab, setTab] = useState(canStats ? 'stats' : 'audit');
+  const [tab, setTab] = useState(canStats ? 'visitors' : 'audit');
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('访问统计')} description={t('公开页面的访问统计和后台的管理审计。')} />
@@ -77,10 +78,12 @@ export default function AnalyticsPage() {
         <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
           <Tabs.ListContainer className="mb-4">
             <Tabs.List aria-label={t('统计')}>
+              {canStats ? <Tabs.Tab id="visitors">{t('访客')}<Tabs.Indicator /></Tabs.Tab> : null}
               {canStats ? <Tabs.Tab id="stats">{t('访问')}<Tabs.Indicator /></Tabs.Tab> : null}
               {canAudit ? <Tabs.Tab id="audit">{t('管理审计')}<Tabs.Indicator /></Tabs.Tab> : null}
             </Tabs.List>
           </Tabs.ListContainer>
+          {canStats ? <Tabs.Panel id="visitors"><Visitors /></Tabs.Panel> : null}
           {canStats ? <Tabs.Panel id="stats"><StatsTab /></Tabs.Panel> : null}
           {canAudit ? <Tabs.Panel id="audit"><AuditTab /></Tabs.Panel> : null}
         </Tabs>

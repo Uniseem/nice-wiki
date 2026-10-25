@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"slices"
-	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -523,41 +522,6 @@ func resolveDocumentLink(ctx context.Context, op OperationContext, document gen.
 		return resolvedLink{}, platform.NewError(platform.CodeStaleResult, false, "引用的公开语言路径或发布修订已变化")
 	}
 	return resolvedLink{*resolved.Href, resolved.Title}, nil
-}
-
-func PublicationFingerprint(ctx context.Context, op OperationContext) (string, error) {
-	runtime, err := FromContext(ctx)
-	if err != nil {
-		return "", err
-	}
-	if runtime.Content == nil {
-		return "", platform.NewError(platform.CodeDependencyUnavailable, false, "发布集合权威未装配")
-	}
-	raw, err := runtime.Content.ReadPublicTree(ServiceReadContext(ctx, op))
-	if err != nil {
-		return "", err
-	}
-	var result struct {
-		Nodes []struct {
-			DocumentID string                   `json:"documentId"`
-			Reference  gen.PublishedRevisionRef `json:"reference"`
-		} `json:"nodes"`
-	}
-	if err := DecodeResponse(runtime, "ContentReadPublicTreeResult", raw, &result); err != nil {
-		return "", err
-	}
-	refs := make([]gen.PublishedRevisionRef, 0, len(result.Nodes))
-	seen := make(map[string]bool)
-	for _, node := range result.Nodes {
-		if seen[node.DocumentID] || node.Reference.DocumentId != node.DocumentID || node.Reference.DataEpoch != op.DataEpoch {
-			return "", platform.NewError(platform.CodeIntegrityError, false, "发布集合身份不一致")
-		}
-		seen[node.DocumentID] = true
-		refs = append(refs, node.Reference)
-	}
-	sort.Slice(refs, func(i, j int) bool { return refs[i].DocumentId < refs[j].DocumentId })
-	encoded, _ := platform.CanonicalJSON(refs)
-	return platform.HashBytes(encoded), nil
 }
 
 // EnglishBlocks 读一篇已发布文档当前的英文译文，按块 ID 返回还原后的纯文本（含子块文本）；给决策模型筛选材料用。

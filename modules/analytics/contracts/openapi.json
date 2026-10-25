@@ -1851,6 +1851,107 @@
           }
         }
       }
+    },
+    "/v1/statistics/visitors": {
+      "get": {
+        "operationId": "listVisitors",
+        "summary": "按唯一访客查看活动和设备信息",
+        "description": "站内随机cookie作为访客标识；IP与设备仅供受权限保护的后台查看，明细保留30天，不写日志或公开导出。",
+        "x-handler": "analytics.ListVisitors",
+        "x-permission": "stats.read",
+        "x-data-epoch-required": true,
+        "responses": {
+          "200": {
+            "description": "按UTC小时或站点时区日聚合访问",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListVisitorsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "公共错误；FORBIDDEN",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公共错误；VALIDATION",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "区间起点"
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "区间终点"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "下一页签名游标"
+          },
+          {
+            "in": "query",
+            "name": "visitorId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "访客标识；提供时读取其活动"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "每页数量"
+          }
+        ],
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ]
+      }
     }
   },
   "components": {

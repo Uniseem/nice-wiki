@@ -782,7 +782,7 @@
         "summary": "资源库按类别列安全元数据，引用详情独立读取",
         "description": "仅当前本站media.manage管理员读取；默认limit=20，最多100，签名游标绑定权限与查询。列表不是人工清理批准或删除许可。一致本地水位按kind/createdAt/assetId升序分页，引用详情另调readAssetReferences。",
         "x-handler": "media.ListAssets",
-        "x-permission": "media.manage",
+        "x-permission": "media.read",
         "security": [
           {
             "serviceAssertion": [],
@@ -829,6 +829,16 @@
               ],
               "description": "省略为全部资源类别"
             }
+          },
+          {
+            "in": "query",
+            "name": "groupId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "按分组筛选；空字符串表示未分组，省略表示全部"
           }
         ],
         "responses": {
@@ -2609,6 +2619,384 @@
                 "schema": {
                   "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/asset-groups": {
+      "get": {
+        "operationId": "listAssetGroups",
+        "summary": "读取资源分组",
+        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 既定注册引用/检索服务可用纯服务身份读取精确安全元数据；不返回路径/秘密，调用域核返回siteId与自己的来源站点。",
+        "x-handler": "media.ListAssetGroups",
+        "x-permission": "media.read",
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "读取资源/variants安全元数据的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/ListAssetGroupsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：资源不存在或在当前主体作用域中不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：资源持久元数据损坏或与索引不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：读取不属于已打开active代次",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-service-actor-callers": [
+          "content",
+          "site-config",
+          "public-site",
+          "localization",
+          "knowledge"
+        ]
+      },
+      "post": {
+        "operationId": "createAssetGroup",
+        "summary": "新建资源分组",
+        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 既定注册引用/检索服务可用纯服务身份读取精确安全元数据；不返回路径/秘密，调用域核返回siteId与自己的来源站点。",
+        "x-handler": "media.CreateAssetGroup",
+        "x-permission": "media.manage",
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "读取资源/variants安全元数据的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/CreateAssetGroupResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：资源不存在或在当前主体作用域中不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：资源持久元数据损坏或与索引不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：读取不属于已打开active代次",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-service-actor-callers": [
+          "content",
+          "site-config",
+          "public-site",
+          "localization",
+          "knowledge"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/CreateAssetGroupInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/asset-groups/{groupId}": {
+      "delete": {
+        "operationId": "deleteAssetGroup",
+        "summary": "删除分组并保留资源",
+        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 既定注册引用/检索服务可用纯服务身份读取精确安全元数据；不返回路径/秘密，调用域核返回siteId与自己的来源站点。",
+        "x-handler": "media.DeleteAssetGroup",
+        "x-permission": "media.manage",
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "对象标识"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "读取资源/variants安全元数据的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/DeleteAssetGroupResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：资源不存在或在当前主体作用域中不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：资源持久元数据损坏或与索引不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：读取不属于已打开active代次",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-service-actor-callers": [
+          "content",
+          "site-config",
+          "public-site",
+          "localization",
+          "knowledge"
+        ]
+      }
+    },
+    "/v1/assets/{assetId}/group": {
+      "put": {
+        "operationId": "setAssetGroup",
+        "summary": "移动资源到分组",
+        "description": "调用函数 media.ReadAsset；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。 既定注册引用/检索服务可用纯服务身份读取精确安全元数据；不返回路径/秘密，调用域核返回siteId与自己的来源站点。",
+        "x-handler": "media.SetAssetGroup",
+        "x-permission": "media.manage",
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            },
+            "description": "对象标识"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "读取资源/variants安全元数据的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./types.json#/$defs/SetAssetGroupResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：资源不存在或在当前主体作用域中不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTEGRITY_ERROR：资源持久元数据损坏或与索引不符",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_MISMATCH：读取不属于已打开active代次",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-service-actor-callers": [
+          "content",
+          "site-config",
+          "public-site",
+          "localization",
+          "knowledge"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./types.json#/$defs/SetAssetGroupInput"
               }
             }
           }

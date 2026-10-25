@@ -421,3 +421,29 @@ body[data-page="home"] .nw-site-header { border-color: transparent; }
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* 工具过程只在自身滚动，阅读进度在明暗主题中沿用正文颜色。 */
+.nw-qa-activity-list { scrollbar-width: thin; }
+.nw-qa-read-progress { appearance: none; overflow: hidden; border: 0; border-radius: 999px; background: var(--color-default); color: var(--color-foreground); }
+.nw-qa-read-progress::-webkit-progress-bar { background: var(--color-default); border-radius: inherit; }
+.nw-qa-read-progress::-webkit-progress-value { background: currentColor; border-radius: inherit; }
+.nw-qa-read-progress::-moz-progress-bar { background: currentColor; border-radius: inherit; }
+
+/* 运行中的文字轻扫光；图标保持静态，减少长回答的持续动画开销。 */
+.nw-qa-working { color: var(--muted); background: linear-gradient(100deg, var(--muted) 25%, var(--foreground) 50%, var(--muted) 75%); background-size: 220% 100%; background-clip: text; -webkit-text-fill-color: transparent; animation: nw-qa-working 2.8s linear infinite; }
+@keyframes nw-qa-working { from { background-position: 180% 0; } to { background-position: -40% 0; } }
+@media (prefers-reduced-motion: reduce) { .nw-qa-working { animation: none; background: none; -webkit-text-fill-color: currentColor; } }
+
+/* 大对话首页：外层固定一屏，开场与回答都在同一个聊天区内滚动。 */
+.nw-home-agent-main { display:flex; flex:1; min-height:0; padding:clamp(.5rem,2vw,1.5rem); padding-top:.25rem; }
+.nw-home-conversation { display:flex; flex:1; min-height:0; flex-direction:column; width:100%; max-width:82rem; margin-inline:auto; overflow:hidden; border:1px solid var(--border); border-radius:1.5rem; background:var(--surface); box-shadow:0 8px 40px -24px color-mix(in srgb,var(--foreground) 20%,transparent); }
+.nw-home-conversation-header { display:flex; flex-shrink:0; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 1.25rem; border-bottom:1px solid var(--separator); }
+.nw-home-assistant-mark { display:flex; align-items:center; justify-content:center; width:1.75rem; height:1.75rem; border-radius:.6rem; color:var(--background); background:var(--foreground); }
+.nw-home-assistant-mark svg { width:1rem; height:1rem; }
+.nw-home-welcome-fallback { flex:1; min-height:0; overflow:auto; width:100%; max-width:50rem; margin:auto; padding:clamp(1.5rem,5vw,3.5rem); }
+.nw-home-welcome-fallback h1 { font-size:clamp(1.5rem,4vw,2.5rem); font-weight:600; line-height:1.3; }
+.nw-home-welcome-fallback p { margin-top:1rem; font-size:.875rem; line-height:1.75; color:var(--muted); }
+.nw-home-topic-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin-top:1.5rem; }
+.nw-home-topic-grid > div { padding:1rem; border:1px solid var(--border); border-radius:.75rem; }
+.nw-home-topic-grid p { margin-top:.5rem; font-size:.75rem; }
+@media(max-width:639px) { .nw-home-agent-main { padding:.25rem .5rem .5rem; } .nw-home-conversation { border-radius:1rem; } .nw-home-conversation-header { padding:.625rem .75rem; } .nw-home-topic-grid { grid-template-columns:1fr; } }

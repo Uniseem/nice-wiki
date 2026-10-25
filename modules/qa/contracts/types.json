@@ -207,6 +207,7 @@
             "citation",
             "invalidate",
             "completed",
+            "failed",
             "error",
             "cancelled"
           ],
@@ -572,39 +573,12 @@
           "description": "本轮材料的词元上限，默认16000：文档路由选中的文章整篇交给回答模型时按它截断；没选中文档、改走片段检索时最多取4096",
           "default": 16000
         },
-        "semanticThreshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "阈值模式可调默认0.94"
-        },
         "maximumQuestionCharacters": {
           "type": "integer",
           "minimum": 1,
           "maximum": 10000,
           "description": "默认500",
           "default": 500
-        },
-        "preflightOutputTokens": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8192,
-          "description": "默认500",
-          "default": 500
-        },
-        "inspectionOutputTokens": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8192,
-          "description": "默认800",
-          "default": 800
-        },
-        "maximumSubqueries": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 4,
-          "description": "默认4",
-          "default": 4
         },
         "maximumRetrievalRounds": {
           "type": "integer",
@@ -620,27 +594,12 @@
           "description": "agent本轮最多工具调用，默认48；循环空转或达到上限后仅用已取得材料收尾。",
           "default": 48
         },
-        "semanticMode": {
-          "type": "string",
-          "enum": [
-            "ai_equivalence",
-            "threshold"
-          ],
-          "description": "默认ai_equivalence"
-        },
-        "cacheTtlDays": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 365,
-          "description": "普通缓存默认7天",
-          "default": 7
-        },
         "recordRetentionDays": {
           "type": "integer",
           "minimum": 1,
           "maximum": 3650,
-          "description": "问答记录默认30天可调",
-          "default": 30
+          "description": "问答正文与工具历史默认保留15天，到期清除；管理员可调整",
+          "default": 15
         },
         "compactionEnabled": {
           "type": "boolean",
@@ -659,11 +618,6 @@
           "maximum": 50,
           "description": "默认10",
           "default": 10
-        },
-        "cacheEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "独立缓存总开关；关闭仍存问答记录，不查/写exact/semantic/多语言缓存"
         }
       },
       "required": [
@@ -674,20 +628,13 @@
         "maximumOutputTokens",
         "maximumHistoryTokens",
         "maximumContextTokens",
-        "semanticThreshold",
         "maximumQuestionCharacters",
-        "preflightOutputTokens",
-        "inspectionOutputTokens",
-        "maximumSubqueries",
         "maximumRetrievalRounds",
         "maximumToolCalls",
-        "semanticMode",
-        "cacheTtlDays",
         "recordRetentionDays",
         "compactionEnabled",
         "retainedRecentTokens",
-        "contextReservePercent",
-        "cacheEnabled"
+        "contextReservePercent"
       ],
       "description": "封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。"
     },
@@ -4024,8 +3971,7 @@
             "all",
             "no_evidence",
             "unhelpful",
-            "failed",
-            "cached"
+            "failed"
           ],
           "description": "筛选条件"
         },
@@ -4122,7 +4068,7 @@
         },
         "question": {
           "type": "string",
-          "maxLength": 4000,
+          "maxLength": 10000,
           "description": "问题正文"
         },
         "answer": {
@@ -4163,6 +4109,14 @@
               "valid"
             ]
           }
+        },
+        "sources": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "description": "回答当时的完整引用快照；不因来源后来变化而阻断管理员查看记录"
         }
       },
       "required": [
@@ -4420,7 +4374,7 @@
     "AnswerStep": {
       "type": "object",
       "additionalProperties": false,
-      "description": "回答过程中的一步",
+      "description": "一次实际处理阶段或只读工具调用；相同id是状态更新，不同调用不能按key覆盖。仅含公开进度与过程说明，不包含原始内部上下文。",
       "properties": {
         "key": {
           "type": "string",
@@ -4431,14 +4385,16 @@
             "search",
             "answer"
           ],
-          "description": "步骤"
+          "description": "活动类别；同一类别可出现多次，使用id区分每一次实际调用"
         },
         "status": {
           "type": "string",
           "enum": [
             "running",
             "done",
-            "skipped"
+            "skipped",
+            "failed",
+            "cancelled"
           ],
           "description": "状态"
         },
@@ -4451,7 +4407,7 @@
         "detail": {
           "type": "string",
           "maxLength": 2000,
-          "description": "补充说明（如改写后的检索问题）"
+          "description": "公开过程说明或工具结果摘要；不作为最终答案，不包含原始提示、记忆或工具正文"
         },
         "items": {
           "type": "array",
@@ -4462,6 +4418,60 @@
             "maxLength": 300
           },
           "description": "相关条目（如命中的文档标题）"
+        },
+        "id": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+          "description": "本轮内稳定活动标识，用于配对开始和结束；旧事件可缺失"
+        },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "read_guide",
+            "search_documents",
+            "read_document",
+            "report_abuse"
+          ],
+          "description": "实际只读工具名称"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "description": "回答模型调用轮次"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "本次工具使用的公开检索词"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "description": "本次正文读取的字符起点"
+        },
+        "nextOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "description": "下一页字符起点；缺失且有totalCharacters表示已经读到末尾"
+        },
+        "totalCharacters": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000,
+          "description": "当前公开正文的总字符数"
+        },
+        "startedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
+          "description": "服务端记录的活动开始时间"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "服务端记录的活动耗时；重放事件保留原耗时"
         }
       },
       "required": [

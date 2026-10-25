@@ -7135,6 +7135,84 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/analytics/internal/visitors.go",
+      "kind": "handwritten",
+      "purpose": "唯一访客与活动查询",
+      "functions": [
+        {
+          "id": "analytics.ListVisitors",
+          "name": "ListVisitors",
+          "signature": "func ListVisitors(ctx context.Context, op OperationContext, in ListVisitorsInput) (ListVisitorsResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "调用取消与deadline；不得携带正文到日志",
+              "constraints": "Go标准库context；用户取消/超时即停止新副作用"
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权",
+              "constraints": "公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游"
+            },
+            {
+              "name": "in",
+              "type": "QueryPageStatisticsInput",
+              "description": "访问汇总查询；字段见本域types.json对应$defs",
+              "constraints": "严格schema，拒未知字段；字段约束与默认参数见types/requirements"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "QueryPageStatisticsResult",
+              "description": "访问汇总查询成功结果；字段见types.json",
+              "constraints": "成功时满足全部required字段；失败返回零值且不泄漏半结果"
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "Go error转公共Problem；TypeScript拒绝Promise携带Problem",
+              "constraints": "成功nil；失败仅登记公共code，detail不含IP/提问/密钥"
+            }
+          ],
+          "purpose": "按唯一访客聚合并读取活动明细",
+          "steps": [
+            "校验当前stats.read、站点、代次和30天内查询范围",
+            "以站内随机访客ID去重，在同一只读快照统计区间独立访客与浏览量",
+            "按签名游标返回访客或其活动，IP和设备仅返回管理员；不记录日志或公开导出"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "condition": "FORBIDDEN：在步骤中的对应校验或依赖失败",
+              "httpStatus": 403,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            },
+            {
+              "code": "VALIDATION",
+              "condition": "INVALID_RANGE：在步骤中的对应校验或依赖失败",
+              "httpStatus": 400,
+              "retryable": false,
+              "rollback": "未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策"
+            }
+          ],
+          "sideEffects": [],
+          "authorization": {
+            "permission": "stats.read",
+            "rule": "stats.read"
+          },
+          "concurrency": "SQLite快照读，最多1000聚合行分页",
+          "idempotency": "GET幂等",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
     }
   ],
   "jobTypes": [

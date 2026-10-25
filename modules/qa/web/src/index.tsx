@@ -1,7 +1,7 @@
-import { Comments, PaperPlane, Star } from '@gravity-ui/icons';
+import { Comments, PaperPlane } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Spinner, Table, Tabs } from '@heroui/react';
 import {
-  adminLanguage, api, ApiError, confirmAction, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextAreaInput, TextInput,
+  adminLanguage, api, ApiError, EmptyBlock, ErrorBlock, errorText, fmtDateTime, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextAreaInput, TextInput,
   navigate, useAction, useHasGrant, useLoad, t,
 } from '@ui';
 import { useEffect, useState } from 'react';
@@ -9,52 +9,41 @@ import { Markdown } from './island/markdown';
 
 type Policy = Record<string, unknown>;
 type Turn = { turnId: string; createdAt: string; questionPreview: string; answerKind?: string; feedback?: string };
-type CacheEntry = { cacheId: string; version: number; question: string; answer?: string; language: string; curated?: boolean; expiresAt?: string | null; state: string };
 type Citation = { citationId?: string; title?: string; href?: string };
 
 const switches: Record<string, [string, string]> = {
   enabled: [t('公开问答'), t('打开后访客可以在文档页右下角和独立问答页提问。')],
-  cacheEnabled: [t('答案缓存'), t('完整、可共享的问题会先查缓存，命中就不再调用回答模型。')],
   compactionEnabled: [t('长对话压缩'), t('对话快占满回答模型的上下文窗口时，把早期内容压缩成摘要；关闭则只带得下的最近消息。')],
 };
-// 表单按这里的先后排列：回答额度、对话压缩、缓存与保留期。
+// 表单按这里的先后排列：回答额度、对话压缩与保留期。
 const numbers: Record<string, string> = {
   maximumContextTokens: t('上下文最大词元'), maximumOutputTokens: t('回答最大输出词元'), maximumQuestionCharacters: t('问题最大字符数'),
   contextReservePercent: t('上下文预留比例（%）'), retainedRecentTokens: t('压缩时保留的近期词元'), maximumHistoryTokens: t('历史最大词元'),
-  semanticThreshold: t('语义相似阈值（0–1）'), cacheTtlDays: t('缓存保留天数'), recordRetentionDays: t('问答记录保留天数'),
+  maximumRetrievalRounds: t('最大模型轮数'), maximumToolCalls: t('最大工具调用数'), recordRetentionDays: t('问答记录保留天数'),
 };
 const numberHints: Record<string, string> = {
   maximumContextTokens: t('交给回答模型的文章原文上限；实际还不超过回答模型窗口的三分之一。'),
 };
-const texts: Record<string, string> = { semanticMode: t('语义判定方式') };
-const semanticModes = [{ value: 'ai_equivalence', label: t('由 AI 判断是否同一问题') }, { value: 'threshold', label: t('按语义相似阈值') }];
-// 历史预算跟随回答模型的上下文窗口，不再单独设上限；预检、核查、子问题、多轮检索和工具调用这几项当前回答流程不用；
-// 回答档位以“模型接入”里的任务分配为准（服务端按任务路线解析），不在这里选。
-const hidden = new Set([
-  'version', 'retrievalSpace', 'maximumHistoryTokens', 'profileId',
-  'preflightOutputTokens', 'inspectionOutputTokens', 'maximumSubqueries', 'maximumRetrievalRounds', 'maximumToolCalls',
-]);
-const answerKinds: Record<string, string> = { answered: t('已回答'), refused: t('拒答'), cached: t('缓存命中'), no_evidence: t('无依据'), out_of_scope: t('离题/闲聊'), clarification: t('需澄清'), failed: t('失败'), cancelled: t('已取消') };
+const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens', 'profileId']);
+const answerKinds: Record<string, string> = { answered: t('已回答'), refused: t('拒答'), no_evidence: t('无依据'), out_of_scope: t('离题/闲聊'), clarification: t('需澄清'), failed: t('失败'), cancelled: t('已取消') };
 
 export default function QaPage() {
   const canManage = useHasGrant('qa.manage');
   const canDebug = useHasGrant('qa.debug');
-  const [tab, setTab] = useState(canManage ? 'policy' : 'debug');
+  const [tab, setTab] = useState(canManage ? 'turns' : 'debug');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('问答')} description={t('访客问答的开关、额度与缓存。每次回答都会调用模型；开启前请先配好“模型接入”“知识索引”和“防滥用”。')} />
+      <PageHeader title={t('问答记录')} description={t('查看访客的问题和 AI 回答。记录默认保留 15 天，到期自动清除。')} />
       <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
         <Tabs.ListContainer className="mb-4 overflow-x-auto">
           <Tabs.List aria-label={t('问答管理')}>
             {canManage ? <Tabs.Tab id="policy">{t('策略')}<Tabs.Indicator /></Tabs.Tab> : null}
             {canManage ? <Tabs.Tab id="turns">{t('问答记录')}<Tabs.Indicator /></Tabs.Tab> : null}
-            {canManage ? <Tabs.Tab id="cache">{t('答案缓存')}<Tabs.Indicator /></Tabs.Tab> : null}
             {canDebug ? <Tabs.Tab id="debug">{t('调试台')}<Tabs.Indicator /></Tabs.Tab> : null}
           </Tabs.List>
         </Tabs.ListContainer>
         {canManage ? <Tabs.Panel id="policy"><PolicyTab /></Tabs.Panel> : null}
         {canManage ? <Tabs.Panel id="turns"><TurnsTab /></Tabs.Panel> : null}
-        {canManage ? <Tabs.Panel id="cache"><CacheTab /></Tabs.Panel> : null}
         {canDebug ? <Tabs.Panel id="debug"><DebugTab /></Tabs.Panel> : null}
       </Tabs>
     </div>
@@ -73,7 +62,7 @@ function PolicyTab() {
   if (current.error && !current.data) return <ErrorBlock error={current.error} onRetry={current.reload} />;
   if (!policy || !current.data) return <LoadingBlock lines={6} />;
   const set = (key: string, value: unknown) => setPolicy({ ...policy, [key]: value });
-  const order = [...Object.keys(switches), ...Object.keys(texts), ...Object.keys(numbers)];
+  const order = [...Object.keys(switches), ...Object.keys(numbers)];
   const rank = (key: string) => (order.includes(key) ? order.indexOf(key) : order.length);
   const keys = Object.keys(policy).filter((key) => !hidden.has(key)).sort((a, b) => rank(a) - rank(b));
   const staleSpace = indexSpace.data != null && JSON.stringify(indexSpace.data) !== JSON.stringify(policy.retrievalSpace);
@@ -103,11 +92,8 @@ function PolicyTab() {
       </Panel>
       <Panel title={t('模型与额度')} description={t('回答用“模型接入”里为访客问答分配的档位。数值越大回答越充分，但每次调用的词元也越多。')}>
         <FormGrid columns={3}>
-          {keys.filter((key) => typeof policy[key] === 'string').map((key) => key === 'semanticMode'
-            ? <SelectInput key={key} label={texts[key]} options={semanticModes} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />
-            : <TextInput key={key} label={texts[key] ?? key} value={String(policy[key] ?? '')} onChange={(value) => set(key, value)} />)}
           {keys.filter((key) => typeof policy[key] === 'number').map((key) => (
-            <NumberInput key={key} description={numberHints[key]} formatOptions={key === 'semanticThreshold' ? { maximumFractionDigits: 3 } : undefined} label={numbers[key] ?? key} minValue={0} step={key === 'semanticThreshold' ? 0.01 : 1} value={policy[key] as number} onChange={(value) => set(key, value)} />
+            <NumberInput key={key} description={numberHints[key]} label={numbers[key] ?? key} minValue={0} step={1} value={policy[key] as number} onChange={(value) => set(key, value)} />
           ))}
         </FormGrid>
       </Panel>
@@ -117,138 +103,42 @@ function PolicyTab() {
 }
 
 function TurnsTab() {
-  const turns = useLoad((signal) => api<{ items?: Turn[] }>('/v1/admin/turns?limit=30', { signal }).then((result) => result.items ?? []), []);
-  const [curate, setCurate] = useState<{ turnId: string; question: string; answer: string } | null>(null);
+  const [cursor, setCursor] = useState('');
+  const [filter, setFilter] = useState('all');
+  const turns = useLoad((signal) => api<{ items: Turn[]; pageInfo: { hasMore: boolean; nextCursor?: string } }>(`/v1/admin/turns?limit=30&filter=${filter}&cursor=${encodeURIComponent(cursor)}`, { signal }), [cursor, filter]);
+  const [selected, setSelected] = useState<{ question: string; answer: string; sources?: Citation[] } | null>(null);
   const { busy, run } = useAction();
-  const open = (turn: Turn) => run(async () => {
-    const record = await api<{ question: string; answer: string }>(`/v1/admin/turns/${turn.turnId}`);
-    setCurate({ turnId: turn.turnId, question: record.question, answer: record.answer });
-  });
-  const submit = async () => {
-    if (!curate) return;
-    const done = await run(async () => {
-      const idempotencyKey = newKey();
-      await api('/v1/admin/cache', { method: 'POST', idempotencyKey, body: { turnId: curate.turnId, publicQuestion: curate.question, publicAnswer: curate.answer, idempotencyKey } });
-      return true;
-    }, t('已提交为待批准的精选，请到“答案缓存”里批准'));
-    if (done) setCurate(null);
-  };
+  const open = (turn: Turn) => run(async () => setSelected(await api(`/v1/admin/turns/${turn.turnId}`)));
   if (turns.error && !turns.data) return <ErrorBlock error={turns.error} onRetry={turns.reload} />;
   if (!turns.data) return <LoadingBlock lines={5} />;
-  return (
-    <>
-      {!turns.data.length ? <EmptyBlock icon={<Comments />} title={t('还没有问答记录')} description={t('开启公开问答后，访客的提问会出现在这里。')} /> : (
-        <Table>
-          <Table.ScrollContainer>
-            <Table.Content aria-label={t('问答记录')} className="min-w-[640px]">
-              <Table.Header>
-                <Table.Column isRowHeader>{t('问题')}</Table.Column>
-                <Table.Column>{t('结果')}</Table.Column>
-                <Table.Column>{t('时间')}</Table.Column>
-                <Table.Column className="text-end">{t('操作')}</Table.Column>
-              </Table.Header>
-              <Table.Body>
-                {turns.data.map((turn) => (
-                  <Table.Row key={turn.turnId} id={turn.turnId}>
-                    <Table.Cell><span className="line-clamp-2">{turn.questionPreview}</span></Table.Cell>
-                    <Table.Cell>
-                      <span className="flex flex-wrap gap-1">
-                        <Chip color={turn.answerKind === 'answered' ? 'success' : turn.answerKind === 'failed' ? 'danger' : 'default'} size="sm" variant="soft">{(turn.answerKind && answerKinds[turn.answerKind]) || turn.answerKind || t('未完成')}</Chip>
-                        {turn.feedback && <Chip color={turn.feedback === 'helpful' ? 'success' : 'warning'} size="sm" variant="soft">{turn.feedback === 'helpful' ? t('有帮助') : t('没帮助')}</Chip>}
-                      </span>
-                    </Table.Cell>
-                    <Table.Cell><span title={fmtDateTime(turn.createdAt)}>{fmtRelative(turn.createdAt)}</span></Table.Cell>
-                    <Table.Cell className="text-end">{turn.answerKind === 'answered' && <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => open(turn)}><Star />{t('设为精选')}</Button>}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-      )}
-      {curate && (
-        <Modal.Backdrop isOpen onOpenChange={(value) => { if (!value) setCurate(null); }}>
-          <Modal.Container scroll="outside" size="lg">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label={t('关闭')} />
-              <Modal.Header><Modal.Heading>{t('设为精选答案')}</Modal.Heading></Modal.Header>
-              <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-                <Modal.Body className="flex flex-col gap-4">
-                  <Notice status="accent">{t('精选会公开给所有访客。去掉个人信息，把问题改成通用问法。批准后长期有效、优先命中，来源文档撤回或改动时自动失效。')}</Notice>
-                  <TextInput isRequired label={t('公开问题')} value={curate.question} onChange={(question) => setCurate({ ...curate, question })} />
-                  <TextAreaInput isRequired label={t('公开答案')} rows={8} value={curate.answer} onChange={(answer) => setCurate({ ...curate, answer })} />
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="tertiary" onPress={() => setCurate(null)}>{t('取消')}</Button>
-                  <Button isPending={busy} type="submit">{t('提交精选')}</Button>
-                </Modal.Footer>
-              </Form>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      )}
-    </>
-  );
+  return <div className="flex flex-col gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <SelectInput label={t('结果')} value={filter} onChange={(value) => { setFilter(value); setCursor(''); }} options={[
+        { value: 'all', label: t('全部') }, { value: 'no_evidence', label: t('无依据') }, { value: 'failed', label: t('失败') }, { value: 'unhelpful', label: t('没帮助') },
+      ]} />
+      <Button variant="secondary" onPress={turns.reload}>{t('刷新')}</Button>
+    </div>
+    {!turns.data.items.length ? <EmptyBlock icon={<Comments />} title={t('还没有问答记录')} description={t('开启公开问答后，访客的提问会出现在这里。')} /> : <Table>
+      <Table.ScrollContainer><Table.Content aria-label={t('问答记录')} className="min-w-[640px]">
+        <Table.Header><Table.Column isRowHeader>{t('问题')}</Table.Column><Table.Column>{t('结果')}</Table.Column><Table.Column>{t('时间')}</Table.Column><Table.Column className="text-end">{t('操作')}</Table.Column></Table.Header>
+        <Table.Body>{turns.data.items.map((turn) => <Table.Row key={turn.turnId} id={turn.turnId}>
+          <Table.Cell><button className="line-clamp-2 text-start hover:text-accent" onClick={() => void open(turn)}>{turn.questionPreview}</button></Table.Cell>
+          <Table.Cell><span className="flex flex-wrap gap-1"><Chip color={turn.answerKind === 'answered' ? 'success' : turn.answerKind === 'failed' ? 'danger' : 'default'} size="sm" variant="soft">{(turn.answerKind && answerKinds[turn.answerKind]) || turn.answerKind || t('未完成')}</Chip>{turn.feedback && <Chip size="sm" variant="soft">{turn.feedback === 'helpful' ? t('有帮助') : t('没帮助')}</Chip>}</span></Table.Cell>
+          <Table.Cell><span title={fmtDateTime(turn.createdAt)}>{fmtRelative(turn.createdAt)}</span></Table.Cell>
+          <Table.Cell className="text-end"><Button isDisabled={busy} size="sm" variant="secondary" onPress={() => open(turn)}>{t('查看')}</Button></Table.Cell>
+        </Table.Row>)}</Table.Body>
+      </Table.Content></Table.ScrollContainer>
+    </Table>}
+    <div className="flex justify-end gap-2">{cursor && <Button variant="tertiary" onPress={() => setCursor('')}>{t('第一页')}</Button>}{turns.data.pageInfo.hasMore && <Button variant="secondary" onPress={() => setCursor(turns.data!.pageInfo.nextCursor ?? '')}>{t('下一页')}</Button>}</div>
+    {selected && <Modal.Backdrop isOpen onOpenChange={(value) => { if (!value) setSelected(null); }}><Modal.Container scroll="outside" size="lg"><Modal.Dialog>
+      <Modal.CloseTrigger aria-label={t('关闭')} /><Modal.Header><Modal.Heading>{t('问答记录')}</Modal.Heading></Modal.Header>
+      <Modal.Body className="flex flex-col gap-5"><section><h3 className="mb-2 text-sm font-medium text-muted">{t('问题')}</h3><p className="whitespace-pre-wrap break-words">{selected.question}</p></section><section><h3 className="mb-2 text-sm font-medium text-muted">{t('回答')}</h3>{selected.answer ? <Markdown text={selected.answer} citations={selected.sources ?? []} /> : <p className="text-muted">{t('未完成')}</p>}</section></Modal.Body>
+      <Modal.Footer><Button variant="secondary" onPress={() => setSelected(null)}>{t('关闭')}</Button></Modal.Footer>
+    </Modal.Dialog></Modal.Container></Modal.Backdrop>}
+  </div>;
 }
 
-function CacheTab() {
-  const entries = useLoad((signal) => api<{ entries?: CacheEntry[] }>('/v1/admin/cache?limit=50', { signal }).then((result) => result.entries ?? []), []);
-  const { busy, run } = useAction();
-  const approve = (entry: CacheEntry) => run(async () => {
-    const idempotencyKey = newKey();
-    await api(`/v1/admin/cache/${entry.cacheId}/approve`, { method: 'POST', idempotencyKey, body: { cacheId: entry.cacheId, expectedVersion: entry.version, idempotencyKey } });
-    entries.reload();
-  }, t('精选已批准'));
-  const disable = async (entry: CacheEntry) => {
-    if (!(await confirmAction({ title: t('禁用这条缓存？'), body: t('禁用后不会再复用这个答案：“{0}”', entry.question), confirmLabel: t('禁用'), tone: 'warning' }))) return;
-    await run(async () => {
-      const idempotencyKey = newKey();
-      await api(`/v1/admin/cache/${entry.cacheId}/disable`, { method: 'POST', idempotencyKey, body: { cacheId: entry.cacheId, expectedVersion: entry.version, idempotencyKey } });
-      entries.reload();
-    }, t('已禁用'));
-  };
-  if (entries.error && !entries.data) return <ErrorBlock error={entries.error} onRetry={entries.reload} />;
-  if (!entries.data) return <LoadingBlock lines={5} />;
-  if (!entries.data.length) return <EmptyBlock icon={<Comments />} title={t('还没有缓存条目')} description={t('打开“答案缓存”后，完整且可共享的问题回答完会自动写入；撤回或改动来源文档后，相关缓存不再命中。')} />;
-  return (
-    <Table>
-      <Table.ScrollContainer>
-        <Table.Content aria-label={t('答案缓存')} className="min-w-[680px]">
-          <Table.Header>
-            <Table.Column isRowHeader>{t('问题')}</Table.Column>
-            <Table.Column>{t('答案')}</Table.Column>
-            <Table.Column>{t('状态')}</Table.Column>
-            <Table.Column className="text-end">{t('操作')}</Table.Column>
-          </Table.Header>
-          <Table.Body>
-            {entries.data.map((entry) => (
-              <Table.Row key={entry.cacheId} id={entry.cacheId}>
-                <Table.Cell><span className="line-clamp-2 font-medium">{entry.question}</span><span className="text-xs text-muted">{entry.language}</span></Table.Cell>
-                <Table.Cell><span className="line-clamp-2 text-sm text-muted">{(entry.answer ?? '').replace(/\s*\[\[citation\.[0-9a-f]+\]\]/g, '')}</span></Table.Cell>
-                <Table.Cell>
-                  <span className="flex flex-wrap gap-1">
-                    {entry.curated ? <Chip color="accent" size="sm" variant="soft">{t('精选')}</Chip> : <Chip size="sm" variant="soft">{t('自动')}</Chip>}
-                    {entry.state === 'pending' && <Chip color="warning" size="sm" variant="soft">{t('待批准')}</Chip>}
-                    {entry.state === 'disabled' && <Chip color="danger" size="sm" variant="soft">{t('已禁用')}</Chip>}
-                    {!entry.curated && entry.expiresAt && <span className="text-xs text-muted">{t('{0} 过期', fmtDateTime(entry.expiresAt))}</span>}
-                  </span>
-                </Table.Cell>
-                <Table.Cell className="text-end">
-                  <span className="inline-flex gap-2">
-                    {entry.state === 'pending' && <Button isDisabled={busy} size="sm" onPress={() => approve(entry)}>{t('批准')}</Button>}
-                    {entry.state !== 'disabled' && <Button isDisabled={busy} size="sm" variant="tertiary" onPress={() => disable(entry)}>{t('禁用')}</Button>}
-                  </span>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Content>
-      </Table.ScrollContainer>
-    </Table>
-  );
-}
-
-// 调试台：管理员直接试问，结果只存在隔离的诊断记录里（7 天），不影响访客对话和缓存；使用“后台任务”用途的档位。
+// 调试台：管理员直接试问，结果只存在隔离的诊断记录里（7 天），不影响访客对话；使用“后台任务”用途的档位。
 function DebugTab() {
   const [question, setQuestion] = useState('');
   // 接口要求带档位，服务端以任务路线为准，这里只是占位。
@@ -282,7 +172,7 @@ function DebugTab() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-5">
-      <Panel className="xl:col-span-2" title={t('试问')} description={t('检索知识库并调用模型回答，结果不影响访客对话和缓存。')}>
+      <Panel className="xl:col-span-2" title={t('试问')} description={t('检索知识库并调用模型回答，结果不影响访客对话。')}>
         <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
           <TextAreaInput isRequired label={t('问题')} maxLength={500} placeholder={t('例如：如何安装？')} rows={4} value={question} onChange={setQuestion} />
           <p className="text-xs text-muted">{t('使用“模型接入”里为问答回答分配的后台档位。')}</p>

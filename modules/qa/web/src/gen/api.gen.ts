@@ -77,7 +77,7 @@ export interface paths {
         };
         /**
          * SSE断线重连
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
+         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 anonymous；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。 逐次活动通过step事件给出稳定id、服务端时间与耗时、公开检索词和正文分页进度；相同类别的多次工具调用独立保留。工具前的公开过程说明与最终答案分开呈现，不转发内部推理或原始上下文。
          */
         get: operations["resumeAnswerStream"];
         put?: never;
@@ -146,70 +146,6 @@ export interface paths {
          */
         put: operations["putQaPolicy"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/cache": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 管理精选缓存
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        get: operations["listCacheEntries"];
-        put?: never;
-        /**
-         * 人工创建精选候选
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        post: operations["proposeCacheEntry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/cache/{cacheId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 批准缓存公开内容
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        post: operations["approveCacheEntry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/cache/{cacheId}/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 人工停用缓存
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        post: operations["disableCacheEntry"];
         delete?: never;
         options?: never;
         head?: never;
@@ -310,26 +246,6 @@ export interface paths {
          * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。service断言身份和superadmin委托；控制调用要求当前epoch与runtime阶段匹配；本地control区不随恢复替换。
          */
         post: operations["exportSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/cache-calibration": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 缓存阈值校准
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 qa.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        get: operations["readCacheCalibration"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -479,26 +395,6 @@ export interface paths {
         };
         /** 受控读取已完成域快照归档 */
         get: operations["readSnapshotArchive"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/internal/cache/{cacheId}/translation-source": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 读取缓存翻译的当前权威基准材料
-         * @description 纯localization同站同代窄读取；正文不入日志，不授予新QA模型许可。
-         */
-        get: operations["readCacheTranslationSource"];
         put?: never;
         post?: never;
         delete?: never;
@@ -845,28 +741,11 @@ export interface components {
              * @default 16000
              */
             maximumContextTokens: number;
-            /** @description 阈值模式可调默认0.94 */
-            semanticThreshold: number;
             /**
              * @description 默认500
              * @default 500
              */
             maximumQuestionCharacters: number;
-            /**
-             * @description 默认500
-             * @default 500
-             */
-            preflightOutputTokens: number;
-            /**
-             * @description 默认800
-             * @default 800
-             */
-            inspectionOutputTokens: number;
-            /**
-             * @description 默认4
-             * @default 4
-             */
-            maximumSubqueries: number;
             /**
              * @description agent最多查阅轮数，默认12；达到后关闭工具生成最终回答。
              * @default 12
@@ -878,18 +757,8 @@ export interface components {
              */
             maximumToolCalls: number;
             /**
-             * @description 默认ai_equivalence
-             * @enum {string}
-             */
-            semanticMode: "ai_equivalence" | "threshold";
-            /**
-             * @description 普通缓存默认7天
-             * @default 7
-             */
-            cacheTtlDays: number;
-            /**
-             * @description 问答记录默认30天可调
-             * @default 30
+             * @description 问答正文与工具历史默认保留15天，到期清除；管理员可调整
+             * @default 15
              */
             recordRetentionDays: number;
             /** @description 默认true */
@@ -904,11 +773,6 @@ export interface components {
              * @default 10
              */
             contextReservePercent: number;
-            /**
-             * @description 独立缓存总开关；关闭仍存问答记录，不查/写exact/semantic/多语言缓存
-             * @default true
-             */
-            cacheEnabled: boolean;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         PutQaPolicyResult: {
@@ -930,138 +794,6 @@ export interface components {
             policy: components["schemas"]["types_QaPolicy"];
             /** @description 策略版本 */
             version: number;
-        };
-        /** @description 同一发布修订内的稳定块引用，附块内容哈希 */
-        BlockRef: {
-            /** @description 块所属不可变发布修订引用 */
-            document: components["schemas"]["PublishedRevisionRef"];
-            /** @description 文档内稳定唯一块ID */
-            blockId: components["schemas"]["Identifier"];
-            /** @description 规范块内容SHA256 */
-            blockHash: components["schemas"]["Hash"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        Citation: {
-            /** @description 引用 */
-            citationId: components["schemas"]["Identifier"];
-            /** @description 当前发布来源 */
-            document: components["schemas"]["PublishedRevisionRef"];
-            /** @description 源块 */
-            block: components["schemas"]["BlockRef"];
-            /** @description 证据单元ID：knowledge分块或当前发布正文的分页片段。 */
-            chunkId: components["schemas"]["Identifier"];
-            /** @description 引用片段hash */
-            excerptHash: components["schemas"]["Hash"];
-            /** @description 安全标题 */
-            title: string;
-            /** @description 公开路由 */
-            href: string;
-            /** @description 授权检查版本 */
-            visibilityRevision: number;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        LocalizedAnswer: {
-            /** @description 访客语言 */
-            language: string;
-            /** @description 对应语言文本 */
-            answer: string;
-            /** @description 基准回答版本 */
-            sourceAnswerRevision: number;
-            /** @description 翻译规则及来源摘要 */
-            translationVersionHash: components["schemas"]["Hash"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        CacheEntry: {
-            /** @description 缓存 */
-            cacheId: components["schemas"]["Identifier"];
-            /** @description CAS版本 */
-            version: number;
-            /** @description 语言 */
-            language: string;
-            /** @description 公开精选问题 */
-            question: string;
-            /** @description 精选回答 */
-            answer: string;
-            /**
-             * @description 状态
-             * @enum {string}
-             */
-            state: "pending" | "approved" | "active" | "stale" | "disabled";
-            /** @description 规范问题 */
-            questionHash: components["schemas"]["Hash"];
-            /** @description site/epoch/规范版本/基准语言/embedding空间摘要，不含问答记忆或回答生成模型；memoryVersionHash独立检查且精选豁免。 */
-            scopeHash: components["schemas"]["Hash"];
-            /** @description 注入版本 */
-            memoryVersionHash: components["schemas"]["Hash"];
-            /** @description 引用 */
-            citations: components["schemas"]["Citation"][];
-            /** @description 批准人 */
-            approvedBy?: components["schemas"]["Identifier"];
-            /** @description 回答版本 */
-            answerRevision: number;
-            /** @description 是否精选 */
-            curated: boolean;
-            /** @description 普通缓存TTL精选无此字段 */
-            expiresAt?: components["schemas"]["Timestamp"];
-            /** @description 基准语言完整问题 */
-            canonicalQuestion: string;
-            /** @description 基准语言 */
-            baseLanguage: string;
-            /** @description 必须true */
-            questionComplete: boolean;
-            /** @description 多语言答案 */
-            localizedAnswers: components["schemas"]["LocalizedAnswer"][];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ProposeCacheEntryResult: {
-            /** @description pending精选 */
-            entry: components["schemas"]["CacheEntry"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ProposeCacheEntryInput: {
-            /** @description 原轮次 */
-            turnId: components["schemas"]["Identifier"];
-            /** @description 清理后公开问题 */
-            publicQuestion: string;
-            /** @description 清理后公开答案 */
-            publicAnswer: string;
-            /** @description 幂等键 */
-            idempotencyKey: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ListCacheEntriesResult: {
-            /** @description 精选条目 */
-            entries: components["schemas"]["CacheEntry"][];
-            /** @description 下一页 */
-            nextCursor?: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ApproveCacheEntryResult: {
-            /** @description active精选 */
-            entry: components["schemas"]["CacheEntry"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ApproveCacheEntryInput: {
-            /** @description 候选 */
-            cacheId: components["schemas"]["Identifier"];
-            /** @description 版本 */
-            expectedVersion: number;
-            /** @description 幂等键 */
-            idempotencyKey: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        DisableCacheEntryResult: {
-            /** @description disabled */
-            entry: components["schemas"]["CacheEntry"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        DisableCacheEntryInput: {
-            /** @description 条目 */
-            cacheId: components["schemas"]["Identifier"];
-            /** @description 版本 */
-            expectedVersion: number;
-            /** @description 幂等键 */
-            idempotencyKey: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         DebugTurn: {
@@ -1095,10 +827,38 @@ export interface components {
             /** @description 幂等键 */
             idempotencyKey: string;
         };
-        /** @description 回答过程中的一步 */
+        /** @description 同一发布修订内的稳定块引用，附块内容哈希 */
+        BlockRef: {
+            /** @description 块所属不可变发布修订引用 */
+            document: components["schemas"]["PublishedRevisionRef"];
+            /** @description 文档内稳定唯一块ID */
+            blockId: components["schemas"]["Identifier"];
+            /** @description 规范块内容SHA256 */
+            blockHash: components["schemas"]["Hash"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        Citation: {
+            /** @description 引用 */
+            citationId: components["schemas"]["Identifier"];
+            /** @description 当前发布来源 */
+            document: components["schemas"]["PublishedRevisionRef"];
+            /** @description 源块 */
+            block: components["schemas"]["BlockRef"];
+            /** @description 证据单元ID：knowledge分块或当前发布正文的分页片段。 */
+            chunkId: components["schemas"]["Identifier"];
+            /** @description 引用片段hash */
+            excerptHash: components["schemas"]["Hash"];
+            /** @description 安全标题 */
+            title: string;
+            /** @description 公开路由 */
+            href: string;
+            /** @description 授权检查版本 */
+            visibilityRevision: number;
+        };
+        /** @description 一次实际处理阶段或只读工具调用；相同id是状态更新，不同调用不能按key覆盖。仅含公开进度与过程说明，不包含原始内部上下文。 */
         AnswerStep: {
             /**
-             * @description 步骤
+             * @description 活动类别；同一类别可出现多次，使用id区分每一次实际调用
              * @enum {string}
              */
             key: "understand" | "page" | "cache" | "search" | "answer";
@@ -1106,13 +866,34 @@ export interface components {
              * @description 状态
              * @enum {string}
              */
-            status: "running" | "done" | "skipped";
+            status: "running" | "done" | "skipped" | "failed" | "cancelled";
             /** @description 简短标题 */
             title: string;
-            /** @description 补充说明（如改写后的检索问题） */
+            /** @description 公开过程说明或工具结果摘要；不作为最终答案，不包含原始提示、记忆或工具正文 */
             detail?: string;
             /** @description 相关条目（如命中的文档标题） */
             items?: string[];
+            /** @description 本轮内稳定活动标识，用于配对开始和结束；旧事件可缺失 */
+            id?: components["schemas"]["Identifier"];
+            /**
+             * @description 实际只读工具名称
+             * @enum {string}
+             */
+            tool?: "read_guide" | "search_documents" | "read_document" | "report_abuse";
+            /** @description 回答模型调用轮次 */
+            round?: number;
+            /** @description 本次工具使用的公开检索词 */
+            query?: string;
+            /** @description 本次正文读取的字符起点 */
+            offset?: number;
+            /** @description 下一页字符起点；缺失且有totalCharacters表示已经读到末尾 */
+            nextOffset?: number;
+            /** @description 当前公开正文的总字符数 */
+            totalCharacters?: number;
+            /** @description 服务端记录的活动开始时间 */
+            startedAt?: components["schemas"]["Timestamp"];
+            /** @description 服务端记录的活动耗时；重放事件保留原耗时 */
+            durationMs?: number;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         AnswerEvent: {
@@ -1122,7 +903,7 @@ export interface components {
              * @description 事件
              * @enum {string}
              */
-            event: "accepted" | "progress" | "step" | "delta" | "citation" | "invalidate" | "completed" | "error" | "cancelled";
+            event: "accepted" | "progress" | "step" | "delta" | "citation" | "invalidate" | "completed" | "failed" | "error" | "cancelled";
             /** @description 文本增量 */
             delta?: string;
             /** @description 引用 */
@@ -1286,17 +1067,6 @@ export interface components {
             includeSecrets: boolean;
         };
         SnapshotExportRequest: components["schemas"]["common.schema_SnapshotExportRequest"];
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ReadCacheCalibrationResult: {
-            /** @description 0.05分桶命中 */
-            similarityBuckets: number[];
-            /** @description 同桶没帮助次数 */
-            unhelpfulBuckets: number[];
-            /** @description 按数据建议阈值 */
-            recommendedThreshold: number;
-            /** @description 观测数 */
-            sampleCount: number;
-        };
         /** @description 服务版本、存活/就绪与能力状态，输出脱敏说明 */
         HealthStatus: {
             /** @description HealthStatus.module；按类型、枚举及required约束使用 */
@@ -1424,25 +1194,14 @@ export interface components {
                 block: components["schemas"]["BlockRef"];
                 valid: boolean;
             }[];
+            /** @description 回答当时的完整引用快照；不因来源后来变化而阻断管理员查看记录 */
+            sources?: components["schemas"]["Citation"][];
         };
         /** @description 首页是否具备QA配置；不代表调用额度或服务健康 */
         ReadPublicCapabilityResult: {
             available: boolean;
             /** @enum {string} */
             reason: "available" | "not_configured" | "unavailable";
-        };
-        /** @description 仅localization纯服务同站同代读取真实缓存基准材料；不由请求自报active，不新建缓存或模型。sourceHash仅由QA固定schema1对象canonical产生，消费者直接保存，不复制算法。 */
-        ReadCacheTranslationSourceResult: {
-            cacheId: components["schemas"]["Identifier"];
-            answerRevision: components["schemas"]["Revision"];
-            sourceHash: components["schemas"]["Hash"];
-            /** @enum {string} */
-            state: "pending" | "active" | "disabled";
-            /** @description 真实当前缓存策略/未过期/引用仍有效；false不得触发付费翻译。 */
-            eligible: boolean;
-            question: string;
-            answer: string;
-            sourceLanguage: string;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         SearchDocumentsResult: {
@@ -2604,6 +2363,59 @@ export interface components {
         ReadCacheAnswerTranslationResult: {
             /** @description ready公开译文 */
             translation: components["schemas"]["CacheAnswerTranslation"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        LocalizedAnswer: {
+            /** @description 访客语言 */
+            language: string;
+            /** @description 对应语言文本 */
+            answer: string;
+            /** @description 基准回答版本 */
+            sourceAnswerRevision: number;
+            /** @description 翻译规则及来源摘要 */
+            translationVersionHash: components["schemas"]["Hash"];
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        CacheEntry: {
+            /** @description 缓存 */
+            cacheId: components["schemas"]["Identifier"];
+            /** @description CAS版本 */
+            version: number;
+            /** @description 语言 */
+            language: string;
+            /** @description 公开精选问题 */
+            question: string;
+            /** @description 精选回答 */
+            answer: string;
+            /**
+             * @description 状态
+             * @enum {string}
+             */
+            state: "pending" | "approved" | "active" | "stale" | "disabled";
+            /** @description 规范问题 */
+            questionHash: components["schemas"]["Hash"];
+            /** @description site/epoch/规范版本/基准语言/embedding空间摘要，不含问答记忆或回答生成模型；memoryVersionHash独立检查且精选豁免。 */
+            scopeHash: components["schemas"]["Hash"];
+            /** @description 注入版本 */
+            memoryVersionHash: components["schemas"]["Hash"];
+            /** @description 引用 */
+            citations: components["schemas"]["Citation"][];
+            /** @description 批准人 */
+            approvedBy?: components["schemas"]["Identifier"];
+            /** @description 回答版本 */
+            answerRevision: number;
+            /** @description 是否精选 */
+            curated: boolean;
+            /** @description 普通缓存TTL精选无此字段 */
+            expiresAt?: components["schemas"]["Timestamp"];
+            /** @description 基准语言完整问题 */
+            canonicalQuestion: string;
+            /** @description 基准语言 */
+            baseLanguage: string;
+            /** @description 必须true */
+            questionComplete: boolean;
+            /** @description 多语言答案 */
+            localizedAnswers: components["schemas"]["LocalizedAnswer"][];
         };
         /** @description 同源规范相对URL：恰好一个起始/，包含当前publicBaseURL的basePath、显式语言和content权威canonicalPath；可带已确认稳定blockId锚点，无query、外部origin、反斜杠或控制空白 */
         PublicRelativeLink: string;
@@ -3777,363 +3589,6 @@ export interface operations {
             };
         };
     };
-    listCacheEntries: {
-        parameters: {
-            query: {
-                /** @description 状态筛选 */
-                state?: string;
-                /** @description 游标 */
-                cursor?: string;
-                /** @description 1..100 */
-                limit: number;
-            };
-            header: {
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 管理精选缓存成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListCacheEntriesResult"];
-                };
-            };
-            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    proposeCacheEntry: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
-                "Idempotency-Key"?: string;
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProposeCacheEntryInput"];
-            };
-        };
-        responses: {
-            /** @description 人工创建精选候选成功；202仅accepted，不保证模型完成或收费已结算。 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProposeCacheEntryResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    approveCacheEntry: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
-                "Idempotency-Key"?: string;
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path: {
-                /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
-                cacheId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApproveCacheEntryInput"];
-            };
-        };
-        responses: {
-            /** @description 批准缓存公开内容成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApproveCacheEntryResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    disableCacheEntry: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
-                "Idempotency-Key"?: string;
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path: {
-                /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
-                cacheId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DisableCacheEntryInput"];
-            };
-        };
-        responses: {
-            /** @description 人工停用缓存成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DisableCacheEntryResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     createDebugTurn: {
         parameters: {
             query?: never;
@@ -4606,99 +4061,6 @@ export interface operations {
             };
         };
     };
-    readCacheCalibration: {
-        parameters: {
-            query: {
-                /** @description 起点 */
-                from: components["schemas"]["Timestamp"];
-                /** @description 终点 */
-                until: components["schemas"]["Timestamp"];
-                /** @description 嵌入空间 */
-                space: components["schemas"]["EmbeddingSpace"];
-            };
-            header: {
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 缓存阈值校准成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReadCacheCalibrationResult"];
-                };
-            };
-            /** @description 输入字段、范围、字节预算或声明配置不合法，业务事务不提交。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     health: {
         parameters: {
             query?: never;
@@ -4873,7 +4235,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description 筛选条件 */
-                filter?: "all" | "no_evidence" | "unhelpful" | "failed" | "cached";
+                filter?: "all" | "no_evidence" | "unhelpful" | "failed";
                 /** @description 语言 */
                 language?: string;
                 /** @description 上一页返回的签名游标 */
@@ -5084,64 +4446,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    readCacheTranslationSource: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cacheId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 当前真实来源；eligible=false不得收费 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReadCacheTranslationSourceResult"];
-                };
-            };
-            /** @description 安全错误 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 安全错误 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 安全错误 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 安全错误 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
             };
         };
     };

@@ -472,7 +472,7 @@ func fireSchedule(ctx context.Context, op OperationContext, epoch platform.Ident
 	tickUTC := tick.UTC()
 	dedupeKey := row.id + "/" + tickUTC.Format(time.RFC3339Nano) + "/" + string(epoch)
 	result, err := CreateJob(ctx, createOp, CreateJobInput{
-		Owner: row.owner, Type: row.jobType, InputRef: ref, DedupeKey: dedupeKey, DataEpoch: epoch, NotBefore: &tickUTC,
+		Owner: row.owner, Type: row.jobType, InputRef: ref, DedupeKey: dedupeKey, DataEpoch: epoch, NotBefore: &tickUTC, Trigger: "schedule",
 	})
 	if err != nil {
 		return 0, err

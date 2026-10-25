@@ -4,7 +4,6 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	oapiruntime "github.com/oapi-codegen/runtime"
 	"io"
 	"net/http"
 	"nice-wiki/libs/platform"
@@ -12,7 +11,6 @@ import (
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/qa/internal/admin"
 	"nice-wiki/modules/qa/internal/answer"
-	"nice-wiki/modules/qa/internal/cache"
 	"nice-wiki/modules/qa/internal/conversation"
 	qadebug "nice-wiki/modules/qa/internal/debug"
 	"nice-wiki/modules/qa/internal/feedback"
@@ -26,23 +24,6 @@ import (
 // NewOperationHandlers 仅交平台NewServiceHandler装配，统一校验、鉴权及门禁在该入口完成。
 func NewOperationHandlers(bind func(context.Context) context.Context) map[string]http.Handler {
 	return map[string]http.Handler{
-		"readCacheTranslationSource": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "no-store")
-			ctx, op, err := operationContext(r, bind)
-			if err != nil {
-				writeResult(w, op, 0, nil, err)
-				return
-			}
-			result, err := cache.ReadCacheTranslationSource(ctx, op, cache.ReadCacheTranslationSourceInput{CacheId: r.PathValue("cacheId")})
-			writeResult(w, op, http.StatusOK, result, err)
-		}),
-		"proposeCacheEntry": jsonOperation(bind, http.StatusCreated, cache.ProposeCacheEntry, nil),
-		"approveCacheEntry": jsonOperation(bind, http.StatusOK, cache.ApproveCacheEntry, func(r *http.Request, i *gen.ApproveCacheEntryInput) error {
-			if i.CacheId != r.PathValue("cacheId") {
-				return platform.NewError(platform.CodeValidation, false, "批准路径与正文条目不一致")
-			}
-			return nil
-		}),
 		"cancelTurn": jsonOperation(bind, http.StatusOK, turn.CancelTurn, func(r *http.Request, input *gen.CancelTurnInput) error {
 			if input.TurnId != r.PathValue("turnId") {
 				return platform.NewError(platform.CodeValidation, false, "路径与取消轮次不一致")
@@ -65,12 +46,6 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 		"recordFeedback": jsonOperation(bind, http.StatusOK, feedback.RecordFeedback, func(r *http.Request, input *gen.RecordFeedbackInput) error {
 			if input.TurnId != r.PathValue("turnId") {
 				return platform.NewError(platform.CodeValidation, false, "路径与反馈轮次不一致")
-			}
-			return nil
-		}),
-		"disableCacheEntry": jsonOperation(bind, http.StatusOK, cache.DisableCacheEntry, func(r *http.Request, input *gen.DisableCacheEntryInput) error {
-			if input.CacheId != r.PathValue("cacheId") {
-				return platform.NewError(platform.CodeValidation, false, "路径与缓存对象不一致")
 			}
 			return nil
 		}),
@@ -104,42 +79,18 @@ func NewOperationHandlers(bind func(context.Context) context.Context) map[string
 			result, err := admin.ReadPublicCapability(ctx, op, admin.ReadPublicCapabilityInput{})
 			writeResult(w, op, 200, result, err)
 		}),
-		"listCacheEntries": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, op, err := operationContext(r, bind)
-			if err != nil {
-				writeResult(w, op, 0, nil, err)
-				return
-			}
-			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-			result, err := admin.ListCacheEntries(ctx, op, admin.ListCacheEntriesInput{State: r.URL.Query().Get("state"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
-			writeResult(w, op, 200, result, err)
-		}),
-		"readCacheCalibration": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, op, err := operationContext(r, bind)
-			if err != nil {
-				writeResult(w, op, 0, nil, err)
-				return
-			}
-			var space gen.EmbeddingSpace
-			if err := oapiruntime.BindQueryParameter("form", true, true, "space", r.URL.Query(), &space); err != nil {
-				writeResult(w, op, 0, nil, platform.NewError(platform.CodeValidation, false, "校准空间查询不可读"))
-				return
-			}
-			result, err := admin.ReadCacheCalibration(ctx, op, admin.ReadCacheCalibrationInput{From: r.URL.Query().Get("from"), Until: r.URL.Query().Get("until"), Space: space})
-			writeResult(w, op, 200, result, err)
-		}),
 		"listTurnRecords": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, op, err := operationContext(r, bind)
 			if err != nil {
 				writeResult(w, op, 0, nil, err)
 				return
 			}
-			var page admin.RecordPage
-			if err := oapiruntime.BindQueryParameter("form", true, true, "page", r.URL.Query(), &page); err != nil {
-				writeResult(w, op, 0, nil, platform.NewError(platform.CodeValidation, false, "问答记录分页不可读"))
-				return
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			filter := r.URL.Query().Get("filter")
+			if filter == "" {
+				filter = "all"
 			}
-			result, err := admin.ListTurnRecords(ctx, op, admin.ListTurnRecordsInput{Page: page, Filter: r.URL.Query().Get("filter"), Language: r.URL.Query().Get("language")})
+			result, err := admin.ListTurnRecords(ctx, op, admin.ListTurnRecordsInput{Page: admin.RecordPage{Cursor: r.URL.Query().Get("cursor"), Limit: limit}, Filter: filter, Language: r.URL.Query().Get("language")})
 			writeResult(w, op, 200, result, err)
 		}),
 		"readTurnRecord": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

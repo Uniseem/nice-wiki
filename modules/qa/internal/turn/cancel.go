@@ -33,6 +33,7 @@ func CancelTurn(ctx context.Context, op OperationContext, input CancelTurnInput)
 			record.CancelRequested = true
 			record.Turn.State = gen.TurnState("cancelled")
 			record.State = "cancelled"
+			record.AnswerKind = "cancelled"
 			record.TerminalNS = time.Now().UnixNano()
 			if err := stream.SaveEvent(tx, &record, gen.AnswerEvent{Event: gen.AnswerEventEvent("cancelled"), Turn: &record.Turn}, "", nil); err != nil {
 				return result, err

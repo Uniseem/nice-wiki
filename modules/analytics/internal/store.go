@@ -48,6 +48,7 @@ type Runtime struct {
 }
 type analyticsRuntimeKey struct{}
 type beaconRow struct {
+	VisitorID, IP, UserAgent                                                       string
 	ID, DocumentID, Locale, EventType, Bucket, DayHash, Source, Country, At, Epoch string
 	Status                                                                         int64
 	QueuedAt                                                                       time.Time
@@ -96,7 +97,7 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 	if err = db.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&version); err != nil {
 		return nil, storageError(err)
 	}
-	if version > 6 {
+	if version > 7 {
 		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "统计schema高于当前版本")
 	}
 	if version == 0 {
@@ -238,14 +239,27 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 			return nil, storageError(e)
 		}
 	}
-	if _, err = db.ExecContext(ctx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,6,?,?)`, siteID, epoch); err != nil {
+	if version < 7 {
+		tx, e := db.BeginTx(ctx, nil)
+		if e != nil {
+			return nil, storageError(e)
+		}
+		defer tx.Rollback()
+		if _, e = tx.ExecContext(ctx, migrations.Visitors); e != nil {
+			return nil, storageError(e)
+		}
+		if e = tx.Commit(); e != nil {
+			return nil, storageError(e)
+		}
+	}
+	if _, err = db.ExecContext(ctx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,7,?,?)`, siteID, epoch); err != nil {
 		return nil, storageError(err)
 	}
 	var storedSite, storedEpoch string
 	if err = db.QueryRowContext(ctx, `SELECT schema_version,site_id,data_epoch FROM analytics_meta WHERE singleton=1`).Scan(&version, &storedSite, &storedEpoch); err != nil {
 		return nil, storageError(err)
 	}
-	if version != 6 {
+	if version != 7 {
 		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "统计schema标记未知")
 	}
 	if storedSite != siteID || storedEpoch != epoch {

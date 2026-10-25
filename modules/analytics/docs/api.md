@@ -32,6 +32,7 @@
 | GET `/v1/audit-exports/{exportId}` | `downloadAuditExport` | `analytics.OpenExport` | `audit.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `analytics.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/jobs/{jobId}/recovery` | `readJobRecovery` | `analytics.ReadJobRecovery` | `service` | `ReadJobRecoveryInput` → 200 `ReadJobRecoveryResult` | 读取原统计聚合任务恢复证明 | `HTTP default` |
+| GET `/v1/statistics/visitors` | `listVisitors` | `analytics.ListVisitors` | `stats.read` | `—` → 200 `ListVisitorsResult` | 按唯一访客查看活动和设备信息 | `FORBIDDEN`、`VALIDATION` |
 <!-- openapi:end -->
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。

@@ -38,15 +38,6 @@
 2. 每批16个key经InvokeModel（localization.ui任务）输出严格schema
 3. ValidateInterfaceCatalog校验占位符与HTML后CAS写machine译文，catalog generation++并登记interface-catalog.changed
 
-#### `localization.cache-answer`
-
-- 执行函数：`localization.ExecuteCacheAnswerTranslation`
-- 触发：TranslateCachedAnswer创建
-
-1. 读取命令固定的源答案hash与answerRevision；memory:resolveContext取qa.cache-translate任务记忆
-2. 以继承的qa根操作、费用类别与准入许可调用InvokeModel（fast档），保留引用token
-3. CommitCacheAnswerTranslation核对源版本后保存ready译文并登记cache-answer.translated
-
 ### 后台任务
 
 | 函数 | 运行时机 | 作用 |

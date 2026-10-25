@@ -28,6 +28,9 @@ func PurgeBeacons(ctx context.Context, op OperationContext, in PurgeBeaconsInput
 	}
 	defer cancel()
 	defer tx.Rollback()
+	if _, err = tx.ExecContext(work, `DELETE FROM visitor_activities WHERE activity_id IN (SELECT activity_id FROM visitor_activities WHERE data_epoch=? AND occurred_at<? ORDER BY occurred_at LIMIT ?)`, op.DataEpoch, now.UTC().AddDate(0, 0, -30).Format(analyticsTimeLayout), limit); err != nil {
+		return PurgeBeaconsResult{}, storageError(err)
+	}
 	var zone string
 	if err = tx.QueryRowContext(work, `SELECT reporting_timezone FROM analytics_meta WHERE singleton=1`).Scan(&zone); err != nil {
 		return PurgeBeaconsResult{}, storageError(err)

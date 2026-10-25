@@ -636,6 +636,10 @@ export interface components {
             dedupeKey: string;
             /** @description 可选固定最早领取时刻；不接受null；省略立即可领，显式值纳入去重 */
             notBefore?: components["schemas"]["Timestamp"];
+            /** @description 任务触发事件，例如language-added、publication-changed或schedule；只含安全元数据 */
+            trigger?: string;
+            /** @description 翻译任务目标语言 */
+            targetLanguage?: string;
         };
         /** @description 安全阶段及计数，不含正文或输出 */
         JobProgressSummary: {
@@ -664,6 +668,12 @@ export interface components {
             lastErrorCode: string;
             /** @description 无进度则省略 */
             progress?: components["schemas"]["JobProgressSummary"];
+            /** @description 任务触发事件，例如language-added、publication-changed或schedule；只含安全元数据 */
+            trigger?: string;
+            /** @description 翻译任务目标语言 */
+            targetLanguage?: string;
+            /** @description 任务入队时间 */
+            createdAt?: string;
         };
         /** @description 分页结果状态；没有下一页时nextCursor省略 */
         PageInfo: {

@@ -1983,22 +1983,6 @@
   "id": "Memori",
   "ar": "الذاكرة"
  },
- "问答": {
-  "zh-Hant": "問答",
-  "en": "Q&A",
-  "ja": "Q&A",
-  "ko": "Q&A",
-  "fr": "Q&R",
-  "de": "Fragen & Antworten",
-  "es": "Preguntas",
-  "pt": "Perguntas",
-  "ru": "Вопросы и ответы",
-  "it": "Domande e risposte",
-  "vi": "Hỏi đáp",
-  "th": "ถามตอบ",
-  "id": "Tanya Jawab",
-  "ar": "الأسئلة والأجوبة"
- },
  "问答管理": {
   "zh-Hant": "問答管理",
   "en": "Manage Q&A",
@@ -2078,5 +2062,21 @@
   "th": "ปรับความกว้างแถบด้านข้าง",
   "id": "Ubah lebar bilah samping",
   "ar": "تغيير عرض الشريط الجانبي"
+ },
+ "问答记录": {
+  "zh-Hant": "問答記錄",
+  "en": "Q&A history",
+  "ja": "Q&A の履歴",
+  "ko": "Q&A 기록",
+  "fr": "Historique des Q&R",
+  "de": "Q&A-Verlauf",
+  "es": "Historial de preguntas",
+  "pt": "Histórico de perguntas",
+  "ru": "История вопросов",
+  "it": "Cronologia domande",
+  "vi": "Lịch sử hỏi đáp",
+  "th": "ประวัติถามตอบ",
+  "id": "Riwayat Tanya Jawab",
+  "ar": "سجل الأسئلة"
  }
 }

@@ -955,6 +955,16 @@
         "notBefore": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "可选最早领取时刻；省略立即可领，显式值按UTC时刻固定纳入去重摘要，不接受null；不作为创建请求或执行期限"
+        },
+        "trigger": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "任务触发事件，例如language-added、publication-changed或schedule；只含安全元数据"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "翻译任务目标语言"
         }
       },
       "required": [
@@ -2402,8 +2412,8 @@
         "scheduleId",
         "expectedRevision",
         "cron",
-      "timezone",
-      "enabled"
+        "timezone",
+        "enabled"
       ]
     },
     "SaveScheduleResult": {
@@ -2690,6 +2700,16 @@
         "notBefore": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "可选固定最早领取时刻；不接受null；省略立即可领，显式值纳入去重"
+        },
+        "trigger": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "任务触发事件，例如language-added、publication-changed或schedule；只含安全元数据"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "翻译任务目标语言"
         }
       },
       "required": [
@@ -3293,11 +3313,11 @@
           "type": "string",
           "description": "经portal同源路由/API前缀，不注入service token"
         },
-      "apiClient": {
-        "type": "object",
-        "description": "portal运行时注入的ModuleAPIClient；仅存在内存，不序列化、不包含凭据，实际TS类型以libs/platform/web/module-api为准",
-        "x-internal": true
-      },
+        "apiClient": {
+          "type": "object",
+          "description": "portal运行时注入的ModuleAPIClient；仅存在内存，不序列化、不包含凭据，实际TS类型以libs/platform/web/module-api为准",
+          "x-internal": true
+        },
         "locale": {
           "type": "string",
           "description": "当前启用BCP47语言"
@@ -3322,7 +3342,7 @@
       "required": [
         "module",
         "apiBaseURL",
-      "apiClient",
+        "apiClient",
         "locale",
         "mountSelector",
         "capabilities",
@@ -3579,10 +3599,10 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "schedule ID"
         },
-      "revision": {
-        "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-        "description": "当前定时记录CAS revision；列表读取后用于updateSchedule"
-      },
+        "revision": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
+          "description": "当前定时记录CAS revision；列表读取后用于updateSchedule"
+        },
         "nextAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
           "description": "下次触发"
@@ -3600,7 +3620,7 @@
         "nextAt",
         "owner",
         "scheduleId",
-      "revision",
+        "revision",
         "timezone",
         "type"
       ]
@@ -3890,6 +3910,21 @@
         "progress": {
           "$ref": "#/$defs/JobProgressSummary",
           "description": "无进度则省略"
+        },
+        "trigger": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "任务触发事件，例如language-added、publication-changed或schedule；只含安全元数据"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "maxLength": 35,
+          "description": "翻译任务目标语言"
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "任务入队时间"
         }
       },
       "required": [

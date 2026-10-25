@@ -22,7 +22,7 @@ func TestAgentMigrationUpgradesDefaultsAndKeepsCustomLimits(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec(all[len(all)-1].SQL); err != nil {
+		if _, err := db.Exec(all[5].SQL); err != nil {
 			t.Fatal(err)
 		}
 		var rounds, calls, version, jsonVersion int

@@ -11,13 +11,7 @@
 
 ### 事件处理
 
-| 事件 | 版本 | 处理函数 | 作用 |
-|---|---|---|---|
-| `content.publication.changed` | 1 | `qa.InvalidateCache` | 消费content.publication.changed执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `content.publication.withdrawn` | 1 | `qa.InvalidateCache` | 消费content.publication.withdrawn执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `index.retired` | 1 | `qa.InvalidateCache` | 消费index.retired执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `memory.context.changed` | 1 | `qa.InvalidateCache` | 消费memory.context.changed执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `cache-answer.translated` | 1 | `qa.StoreLocalizedCacheAnswer` | 消费cache-answer.translated执行本域失效/任务/批准回执；不同步反向请求生产方。 |
+本域不消费事件。
 
 ### 异步任务
 
@@ -26,12 +20,10 @@
 - 执行函数：`qa.ExecuteTurn`
 - 触发：StartTurn与排队轮次出队时创建
 
-1. 读取并续租原轮次和准入，固定上下文与任务路线，预读当前页面；保留快速文本模型前置改写、风险上报和缓存资格，不调用专用决策模型。
-2. 有效缓存经当前引用核对后复用；精确未命中时快速文本模型一次比较最多24个同语言独立问题，必须完全同义。未命中时预载当前公开树和匹配内容哈希摘要维护的全站AGENTS.md。
-3. 将原问题、记忆、全站概括、当前页和经当前发布状态复核的原生工具历史交给回答模型；模型自主调用read_guide、search_documents和read_document，只能读取访客可见的当前发布内容。
-4. 平台modelagent循环只在完整工具参数和tool_calls结束证明后执行，完整回传每个调用结果；按真实窗口分页和移出旧工具正文，支持重读、取消、重复调用检测，以及maximumRetrievalRounds/maximumToolCalls收尾。
-5. 主模型依系统提示处理离题、注入和混合请求；逐步推送实际查阅的指南和文章，工具参数和内部推理不作为答案输出。
-6. 保存本轮原生工具消息到独立agent_messages_json，避免解释访客JSON为角色；核对最终引用并完成原轮次，释放准入，合格答案按原规则缓存。
+1. 校验已消费准入与轮次租约，读取策略和对话历史
+2. 预载当前页与全站指南，主Agent自主搜索及分页阅读；资料与历史不构成指令
+3. 逐次投影模型公开说明和工具活动；主Agent可调用report_abuse，上报结果由风控权威决定
+4. 保存完整历史、计数、最终正文与白名单引用，提交终态并释放准入
 
 #### `qa.compact`
 
@@ -42,17 +34,6 @@
 2. fast task qa.compact且不注入长期记忆
 3. 继承本轮qa根与费用额度
 4. 固定recent retained范围，取消后不提交摘要。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-#### `qa.cache-embedding`
-
-- 执行函数：`qa.BuildCacheEmbedding`
-- 触发：ApproveCacheEntry创建
-
-1. 只active且原version
-2. ctx costClass=background继承批准根
-3. MG生成向量
-4. 返回时CAS版本/space/epoch再写
 5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数180000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 
 ### 后台任务

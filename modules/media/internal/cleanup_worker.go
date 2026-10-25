@@ -501,7 +501,7 @@ func (s *localBlobStore) removeDecidedBlob(ctx context.Context, decision cleanup
 		return err
 	}
 	defer root.Close()
-	name := "blobs/" + decision.Asset.SiteId + "/" + ref.Sha256[:2] + "/" + ref.Sha256
+	name := "blobs/" + decision.Asset.SiteId + "/" + ref.Sha256[:2] + "/" + s.libraryFileName(decision.Asset.SiteId, ref.Sha256)
 	before, err := root.Lstat(name)
 	if errors.Is(err, os.ErrNotExist) {
 		if err := syncDirectory(filepath.Dir(s.blobPath(decision.Asset.SiteId, ref.Sha256))); err != nil {

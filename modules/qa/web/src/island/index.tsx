@@ -1,3 +1,4 @@
+import type { HomeWelcome } from './QaChat';
 import { ArrowUp, Comment } from '@gravity-ui/icons';
 import { Button, Card, Spinner } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
@@ -56,10 +57,10 @@ export function QaInline({ locale, t }: { locale: string; t: Translate }) {
 }
 
 // 首页的“问问 AI”：面板代码下载完之前先放一个同样大小的输入框占位，下载完换成可以多轮对话的输入框。
-export function QaHome({ locale, t }: { locale: string; t: Translate }) {
+export function QaHome({ locale, t, welcome }: { locale: string; t: Translate; welcome?: HomeWelcome }) {
   return (
     <Suspense fallback={<div className="flex min-h-[6.75rem] flex-col justify-between rounded-3xl border border-border bg-field p-4 text-[15px] text-muted">{t('问问这个站点的文档…')}<span className="ms-auto flex size-9 items-center justify-center rounded-full bg-foreground text-background"><ArrowUp className="size-4" /></span></div>}>
-      <QaHomeChat locale={locale} t={t} />
+      <QaHomeChat locale={locale} t={t} welcome={welcome} />
     </Suspense>
   );
 }

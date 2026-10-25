@@ -57,7 +57,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch, AdmitBusiness: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, activeDataEpoch),
-		AllowedCallers:        map[string][]string{"beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
+		AllowedCallers:        map[string][]string{"listAssetGroups": {"portal"}, "createAssetGroup": {"portal"}, "deleteAssetGroup": {"portal"}, "setAssetGroup": {"portal"}, "beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
 		ServiceActorCallers:   map[string][]string{"readJobRecovery": {"jobs"}, "buildDeliveryManifest": {"public-site", "content"}, "readAsset": {"content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
 		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "attachImageVariants": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true, "readJobRecovery": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
@@ -69,6 +69,10 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 
 func (a *Application) serviceHandlers() map[string]http.Handler {
 	return map[string]http.Handler{
+		"listAssetGroups":  libraryHandler("listAssetGroups"),
+		"createAssetGroup": libraryHandler("createAssetGroup"),
+		"deleteAssetGroup": libraryHandler("deleteAssetGroup"),
+		"setAssetGroup":    libraryHandler("setAssetGroup"),
 		"health": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			result, err := Health(r.Context(), a)
 			if err != nil {
@@ -217,7 +221,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 				kind = &value
 			}
 			op, _ := platform.OperationContextFrom(r.Context())
-			result, err := mediaDomain.ListAssets(r.Context(), op, mediaDomain.ListAssetsInput{Page: page, Kind: kind})
+			result, err := mediaDomain.ListAssets(r.Context(), op, mediaDomain.ListAssetsInput{Page: page, Kind: kind, GroupID: groupFilter(r)})
 			if err != nil {
 				writeRequestProblem(w, r, err)
 				return
@@ -237,7 +241,7 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 				kind = &value
 			}
 			op, _ := platform.OperationContextFrom(r.Context())
-			result, err := mediaDomain.ListUnusedAssets(r.Context(), op, mediaDomain.ListUnusedAssetsInput{Page: page, Kind: kind})
+			result, err := mediaDomain.ListUnusedAssets(r.Context(), op, mediaDomain.ListUnusedAssetsInput{Page: page, Kind: kind, GroupID: groupFilter(r)})
 			if err != nil {
 				writeRequestProblem(w, r, err)
 				return

@@ -286,11 +286,13 @@ func ApproveLanguagePlan(ctx context.Context, op OperationContext, input Approve
 			continue
 		}
 		acceptedJob, createErr := localizationruntime.CreatePlanJob(workCtx, approvalOp, struct {
-			Owner     string             `json:"owner"`
-			Type      string             `json:"type"`
-			InputRef  platform.ObjectRef `json:"inputRef"`
-			DedupeKey string             `json:"dedupeKey"`
-		}{"localization", planJobType(job.Kind), job.InputRef, job.DedupeKey}, planJobIdempotencyKey(plan.PlanID, job.Kind, job.DocumentID))
+			Owner          string             `json:"owner"`
+			Type           string             `json:"type"`
+			InputRef       platform.ObjectRef `json:"inputRef"`
+			DedupeKey      string             `json:"dedupeKey"`
+			Trigger        string             `json:"trigger"`
+			TargetLanguage string             `json:"targetLanguage"`
+		}{"localization", planJobType(job.Kind), job.InputRef, job.DedupeKey, "language-added", plan.Language}, planJobIdempotencyKey(plan.PlanID, job.Kind, job.DocumentID))
 		if createErr != nil {
 			return ApproveLanguagePlanResult{}, createErr
 		}

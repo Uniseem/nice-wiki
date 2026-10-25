@@ -1,3 +1,4 @@
+import { recordVisitorActivity } from '@ui/visitor';
 import { FileText, Magnifier } from '@gravity-ui/icons';
 import { Modal, Spinner } from '@heroui/react';
 import { searchDocuments, transient, type SearchHit } from '@modules/qa/web/src/island/client';
@@ -60,6 +61,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
     setDeep({ query: trimmed, status: 'loading', hits: [] });
     try {
       const found = await searchDocuments(trimmed, locale);
+      recordVisitorActivity('search', undefined, locale);
       setDeep((value) => (value?.query === trimmed ? { query: trimmed, status: 'done', hits: found } : value));
       setIndex(0);
     } catch (problem) {

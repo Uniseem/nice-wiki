@@ -2314,6 +2314,8 @@ export interface components {
             createdAt: components["schemas"]["Timestamp"];
             /** @description CAS */
             revision: components["schemas"]["Revision"];
+            groupId?: string;
+            fileName?: string;
         };
         /** @description 读取资源/variants安全元数据的结果 */
         ReadAssetResult: {

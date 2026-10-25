@@ -156,7 +156,7 @@ func executeDebug(ctx context.Context, op OperationContext, record gen.DebugTurn
 		},
 		OnToolDone: func(_ context.Context, _ platform.GatewayToolCall, tool modelagent.ToolResult) error {
 			items := []string{tool.Title}
-			emit(gen.AnswerEvent{Event: "step", Step: &gen.AnswerStep{Key: gen.Search, Status: gen.Done, Title: "查阅文档", Items: &items}})
+			emit(gen.AnswerEvent{Event: "step", Step: &gen.AnswerStep{Key: gen.Search, Status: gen.AnswerStepStatusDone, Title: "查阅文档", Items: &items}})
 			return nil
 		},
 	})

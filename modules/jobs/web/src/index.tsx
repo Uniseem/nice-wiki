@@ -1,6 +1,6 @@
 import { ArrowsRotateRight, ClockArrowRotateLeft, ListCheck } from '@gravity-ui/icons';
 import { Button, Chip, Drawer, Form, Modal, ProgressBar, Table, Tabs } from '@heroui/react';
-import { api, apiClient, confirmAction, Details, EmptyBlock, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, Mono, newKey, notify, Notice, PageHeader, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { api, apiClient, confirmAction, Details, EmptyBlock, ErrorBlock, findSiteLanguage, fmtDateTime, fmtRelative, LoadingBlock, Mono, newKey, notify, Notice, PageHeader, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { components } from './gen/api.gen';
 import { ConfigureProgressAPI, ReconnectProgress, type ProgressEvent } from './progress';
@@ -16,6 +16,15 @@ const states: Record<string, { label: string; tone: 'default' | 'accent' | 'succ
   queued: { label: t('排队中'), tone: 'default' }, leased: { label: t('已领取'), tone: 'accent' }, running: { label: t('运行中'), tone: 'accent' }, 'retry-wait': { label: t('等待重试'), tone: 'warning' },
   'dead-letter': { label: t('死信'), tone: 'danger' }, 'cancel-requested': { label: t('取消中'), tone: 'warning' }, cancelled: { label: t('已取消'), tone: 'default' }, succeeded: { label: t('成功'), tone: 'success' }, orphan: { label: t('无主'), tone: 'warning' },
 };
+const categories = [{ value: 'all', label: t('全部') }, { value: 'localization', label: t('翻译') }, { value: 'knowledge', label: t('知识索引') }, { value: 'media', label: t('资源') }, { value: 'memory', label: t('长期记忆') }, { value: 'analytics', label: t('统计') }, { value: 'data-protection', label: t('备份') }, { value: 'content', label: t('文档') }, { value: 'public-site', label: t('公开站') }, { value: 'qa', label: t('问答记录') }];
+const jobNames: Record<string, string> = {
+ 'analytics.aggregate-daily': t('按天统计'), 'analytics.aggregate-hourly': t('按小时统计'), 'analytics.aggregate-usage': t('用量统计'), 'analytics.reconcile-usage': t('用量对账'),
+ 'data-protection.backup': t('创建备份'), 'data-protection.restore': t('恢复'), 'knowledge.build': t('建立知识索引'), 'knowledge.extract': t('附件提取'),
+ 'localization.document': t('文档翻译'), 'localization.ui': t('界面翻译'), 'media.cleanup': t('资源清理'), 'memory.assistant': t('记忆助手'), 'memory.overview': t('全站概括'),
+ 'public-site.render-publication': t('发布页面'), 'qa.compact': t('长对话压缩'), 'qa.turn': t('访客问答'),
+};
+function JobContext({ job }: { job: Job }) { return <span className="block text-xs text-muted">{job.trigger === 'language-added' ? t('新增语言：{0}', findSiteLanguage(job.targetLanguage ?? '')?.native ?? job.targetLanguage ?? '') : job.trigger === 'schedule' ? t('定时调度') : job.trigger || '—'}{job.createdAt && <time className="ms-2">{fmtDateTime(job.createdAt)}</time>}</span>; }
+
 const terminal = new Set(['succeeded', 'cancelled', 'dead-letter']);
 const stateChip = (state: string) => <Chip color={states[state]?.tone ?? 'default'} size="sm" variant="soft">{states[state]?.label ?? state}</Chip>;
 
@@ -42,7 +51,7 @@ export default function JobsPage() {
 
 function JobsTab() {
   const [state, setState] = useState('active');
-  const [owner, setOwner] = useState('');
+  const [owner, setOwner] = useState('all');
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [cursor, setCursor] = useState('');
   const [error, setError] = useState<unknown>(null);
@@ -55,14 +64,14 @@ function JobsTab() {
     setError(null);
     try {
       const query = new URLSearchParams({ state, limit: '50' });
-      if (owner.trim()) query.set('owner', owner.trim());
+      if (owner !== 'all') query.set('owner', owner);
       if (more && cursor) query.set('cursor', cursor);
       const page = await api<components['schemas']['ListJobsResult']>(`/v1/jobs?${query}`);
       setJobs((current) => more && current ? [...current, ...page.items] : page.items);
       setCursor(page.pageInfo.hasMore ? page.pageInfo.nextCursor ?? '' : '');
     } catch (problem) { setError(problem); } finally { setLoading(false); }
   };
-  useEffect(() => { void load(false); }, [state]); // 状态筛选变化时重新读取
+  useEffect(() => { void load(false); }, [state, owner]); // 状态筛选变化时重新读取
 
   const retry = (job: Job) => run(async () => {
     await api(`/v1/jobs/${encodeURIComponent(job.jobId)}:retry`, { method: 'POST', body: { jobId: job.jobId }, idempotencyKey: newKey() });
@@ -73,7 +82,7 @@ function JobsTab() {
     <div className="flex flex-col gap-4">
       <Form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void load(false); }}>
         <SelectInput className="w-40" label={t('状态')} options={[{ value: 'active', label: t('活动') }, { value: 'failed', label: t('失败') }, { value: 'dead-letter', label: t('死信') }, { value: 'all', label: t('全部') }]} value={state} onChange={setState} variant="primary" />
-        <TextInput className="w-48" label={t('所属服务')} maxLength={64} placeholder={t('例如 knowledge')} value={owner} onChange={setOwner} variant="primary" />
+        <SelectInput className="w-48" label={t('分类')} options={categories} value={owner} onChange={setOwner} variant="primary" />
         <Button isPending={loading} type="submit" variant="secondary"><ArrowsRotateRight />{t('刷新')}</Button>
       </Form>
       {error ? <ErrorBlock error={error} onRetry={() => void load(false)} /> : !jobs ? <LoadingBlock lines={5} /> : !jobs.length ? (
@@ -96,7 +105,7 @@ function JobsTab() {
                   return (
                     <Table.Row key={job.jobId} id={job.jobId}>
                       <Table.Cell>
-                        <span className="block font-medium">{job.owner} · {job.type}</span>
+                        <span className="block font-medium">{jobNames[job.type] ?? job.type}</span><JobContext job={job} />
                         <Mono className="text-[11px]">{job.jobId}</Mono>
                       </Table.Cell>
                       <Table.Cell>{stateChip(job.state)}{job.lastErrorCode && <span className="ms-2 text-xs text-danger">{job.lastErrorCode}</span>}</Table.Cell>
@@ -166,6 +175,7 @@ function JobDrawer({ job, onClose, onChanged }: { job: Job; onClose: () => void;
           <Drawer.Body className="flex flex-col gap-5">
             <Details items={[
               [t('任务 ID'), <Mono>{job.jobId}</Mono>],
+              [t('触发事件'), <JobContext job={job} />],
               [t('状态'), stateChip(state)],
               [t('修订'), `#${detail.data?.revision ?? job.revision}`],
               [t('尝试次数'), String(job.attempt)],

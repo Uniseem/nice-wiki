@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 187 个函数：约束 40 个，参考 147 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 191 个函数：约束 44 个，参考 147 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -1709,6 +1709,7 @@ func InstallLocalBlobStore(dataRoot string, openedEpoch Identifier) error
 **步骤**
 
 1. 受信配置安装私有SQLite与opened epoch
+2. schemaVersion 11启动迁移：校验站点和SHA256后原地重命名旧无后缀blob为SHA256.安全后缀；保持资源ID、字节哈希与已有链接
 
 **错误**
 
@@ -6728,3 +6729,183 @@ func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecove
 - 并发：只读固定快照
 - 幂等：只读，同输入同证明
 - 依赖：`media.loadCleanupApproval`、`media.readCleanupExecution`
+
+## media.ListAssetGroups
+
+- 级别：约束
+- 文件：`modules/media/internal/groups.go`
+- 作用：管理本站资源分组，不移动物理文件，不改变字节引用
+
+```go
+func ListAssetGroups(ctx context.Context, op OperationContext, input ListAssetGroupsInput) (ListAssetGroupsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ListAssetsInput` | 资源库按类别列安全元数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListAssetsResult` | 资源库按类别列安全元数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+
+**步骤**
+
+1. 校验当前站点、数据代次与资源管理或读取权限
+2. 在本域事务读取或修改资源分组；删除分组时资源移入未分组，不删文件
+3. 返回分组或操作结果；不把分组写入公开资源引用
+
+**错误**
+
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+
+- 副作用：无
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读一致快照；签名密钥IO在SQL外，无asset/store锁
+- 幂等：同查询同水位稳定keyset，无业务写入
+- 依赖：无
+
+## media.CreateAssetGroup
+
+- 级别：约束
+- 文件：`modules/media/internal/groups.go`
+- 作用：管理本站资源分组，不移动物理文件，不改变字节引用
+
+```go
+func CreateAssetGroup(ctx context.Context, op OperationContext, input CreateAssetGroupInput) (CreateAssetGroupResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ListAssetsInput` | 资源库按类别列安全元数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListAssetsResult` | 资源库按类别列安全元数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+
+**步骤**
+
+1. 校验当前站点、数据代次与资源管理或读取权限
+2. 在本域事务读取或修改资源分组；删除分组时资源移入未分组，不删文件
+3. 返回分组或操作结果；不把分组写入公开资源引用
+
+**错误**
+
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+
+- 副作用：无
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读一致快照；签名密钥IO在SQL外，无asset/store锁
+- 幂等：同查询同水位稳定keyset，无业务写入
+- 依赖：无
+
+## media.DeleteAssetGroup
+
+- 级别：约束
+- 文件：`modules/media/internal/groups.go`
+- 作用：管理本站资源分组，不移动物理文件，不改变字节引用
+
+```go
+func DeleteAssetGroup(ctx context.Context, op OperationContext, input DeleteAssetGroupInput) (DeleteAssetGroupResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ListAssetsInput` | 资源库按类别列安全元数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListAssetsResult` | 资源库按类别列安全元数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+
+**步骤**
+
+1. 校验当前站点、数据代次与资源管理或读取权限
+2. 在本域事务读取或修改资源分组；删除分组时资源移入未分组，不删文件
+3. 返回分组或操作结果；不把分组写入公开资源引用
+
+**错误**
+
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+
+- 副作用：无
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读一致快照；签名密钥IO在SQL外，无asset/store锁
+- 幂等：同查询同水位稳定keyset，无业务写入
+- 依赖：无
+
+## media.SetAssetGroup
+
+- 级别：约束
+- 文件：`modules/media/internal/groups.go`
+- 作用：管理本站资源分组，不移动物理文件，不改变字节引用
+
+```go
+func SetAssetGroup(ctx context.Context, op OperationContext, input SetAssetGroupInput) (SetAssetGroupResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
+| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
+| `input` | `ListAssetsInput` | 资源库按类别列安全元数据的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ListAssetsResult` | 资源库按类别列安全元数据的完整成功值 | 无 error 时才有效；满足 types.json schema |
+| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | FORBIDDEN: 主体没有所需操作权限，或站点/资源作用域不匹配；VALIDATION: 字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 |
+
+**步骤**
+
+1. 校验当前站点、数据代次与资源管理或读取权限
+2. 在本域事务读取或修改资源分组；删除分组时资源移入未分组，不删文件
+3. 返回分组或操作结果；不把分组写入公开资源引用
+
+**错误**
+
+- `FORBIDDEN`：非当前本站media.manage管理员（不可重试）
+- `VALIDATION`：游标签名/scope/版本或严格查询参数不合法（不可重试）
+- `VERSION_MISMATCH`：opened epoch、本地或引用来源水位改变，须重头分页（可重试）
+- `INTEGRITY_ERROR`：持久Asset/索引/fence/generation或权威材料损坏（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储/密钥/权威来源未知，或风险响应预算超限（可重试）
+
+- 副作用：无
+- 授权：当前本站media.manage或superadmin管理员，HTTP仅portal；每页经平台当前授权，游标仅位置不代替权限
+- 并发：本地短只读一致快照；签名密钥IO在SQL外，无asset/store锁
+- 幂等：同查询同水位稳定keyset，无业务写入
+- 依赖：无

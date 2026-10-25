@@ -3377,10 +3377,9 @@
           ],
           "purpose": "管理员建立临时禁令",
           "steps": [
-            "即时核guard.manage，仅ai scope及manual/abuse原因；subjectRef为已知网络HMAC，不收原IP",
-            "ttl=0取已确认默认600秒，范围1..2592000；同operationId/输入摘要返回原回执",
-            "同事务写active ban、撤销匹配网络别名的本域active租约、写ban-changed outbox与原回执",
-            "只封AI，公开页面继续可读"
+            "校验guard.manage与当前站点代次，规范化单个IP地址",
+            "按IP和指定时长创建AI禁令，最长30天；无需先有可疑事件",
+            "同一事务撤销该IP的在途准入，保存回执并发布无原始IP的事件"
           ],
           "errors": [
             {
@@ -4458,11 +4457,10 @@
           ],
           "purpose": "接收qa已有检测信号",
           "steps": [
-            "仅QA，sessionKey/networkKey匹配本域已验证主体，只接受hash与已有modelVerdict，不接正文/IP",
-            "用可信op.RootOperationID与规范输入摘要幂等；相似度与间隔可选，缺失保存NULL而不是0，不参与实测分组",
-            "abuse同事务创建600秒网络AI ban、撤对应别名租约及outbox；suspicious保留10分钟每5问重验要求",
-            "normal及已有信号只保留最多8项/10分钟；封闭allow/deny/challenge决定由最新ban/通过状态共同给出",
-            "ban存在时返回真实最长恢复时间；信号、决策回执和风险引用同事务提交"
+            "仅接受QA主Agent的结构化滥用报告，验证许可的会话与网络作用域",
+            "按原轮次幂等去重；一次报告只记一次，不持久化问题正文",
+            "单次探测要求挑战；10分钟内至少3轮明确攻击才自动封IP10分钟；真实IP来自portal可信入口",
+            "风控独立保留频率、并发、人机验证和人工IP封禁；普通离题不计为滥用"
           ],
           "errors": [
             {

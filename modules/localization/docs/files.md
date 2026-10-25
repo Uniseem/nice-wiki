@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 89 个：手写 76、UI 1、生成 4、配置 6、迁移 2。函数 162 个：约束 49，参考 113。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 85 个：手写 72、UI 1、生成 4、配置 6、迁移 2。函数 157 个：约束 46，参考 111。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -38,8 +38,6 @@
 | `modules/localization/internal/interface/read.go` | 手写 | 读取运行界面字典所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadInterfaceCatalog`、`localization.EnabledLanguage`（参考）、`localization.ReadMerged`（参考） |
 | `modules/localization/internal/suggestion/select.go` | 手写 | 给访客语言建议所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SuggestLanguage` |
 | `modules/localization/internal/suggestion/preference.go` | 手写 | 保存显式访客语言偏好所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.SaveLanguagePreference`、`localization.NewPreferenceHandlers`（参考） |
-| `modules/localization/internal/cache-answer/create.go` | 手写 | 接受QA精选翻译命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.TranslateCachedAnswer`、`localization.ExecuteCacheAnswerTranslation` |
-| `modules/localization/internal/cache-answer/commit.go` | 手写 | 保存精选翻译供QA审核所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CommitCacheAnswerTranslation`（参考） |
 | `modules/localization/internal/events/withdraw.go` | 手写 | 处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.InvalidateDocumentTranslations` |
 | `modules/localization/internal/runtime/recovery.go` | 手写 | 恢复翻译任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RecoverTranslationLeases`（参考） |
 | `modules/localization/internal/events/outbox.go` | 手写 | 持久发布翻译事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PublishOutbox` |
@@ -50,7 +48,6 @@
 | `modules/localization/internal/translation/fallback.go` | 手写 | 逐级翻译失败降级所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PlanTranslationFallback`（参考） |
 | `modules/localization/internal/translation/terminology.go` | 手写 | 检查规定译法符合度所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.CheckTerminologyCompliance`（参考） |
 | `modules/localization/internal/translation/reflection.go` | 手写 | 可选反思润色所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReflectTranslation`（参考） |
-| `modules/localization/internal/cache-answer/read.go` | 手写 | 读取已完成的自动缓存翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReadCacheAnswerTranslation` |
 | `modules/localization/internal/runtime/worker.go` | 手写 | 主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RunWorker` |
 | `modules/localization/deploy/service.config.json` | 配置 | 未来非敏感配置：serviceId、listenAddress、privateDataDirectory、dependency URLs、timeout；secret仅部署引用；本阶段不创建。；启动职责：ServiceConfig默认值/严格字段及CLI>env>file>defaults覆盖；现有配置文件扩展基础启动字段而不重复维护；secret仅ref | 无 |
 | `modules/localization/migrations/001_initial.sql` | 迁移 | schemaVersion1建本域表与唯一约束；nw_outbox/nw_inbox由平台EnsureSchema建立不在此重复；control区决定日志独立且不属于业务恢复。 | 无 |
@@ -80,7 +77,6 @@
 | `modules/localization/internal/translation/edit.go` | 手写 | 本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。 | `localization.EditTranslationUnit`、`localization.SetUnitProtection` |
 | `modules/localization/internal/translation/http.go` | 手写 | 本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。 | `localization.NewTranslationHandlers`（参考） |
 | `modules/localization/internal/interface/http.go` | 手写 | 本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。 | `localization.NewInterfaceHandlers`（参考） |
-| `modules/localization/internal/cache-answer/http.go` | 手写 | 本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。 | `localization.NewCacheTranslationHandlers`（参考） |
 | `modules/localization/internal/language/protocol.go` | 手写 | 本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。 | `localization.JSONHandler`（参考） |
 | `modules/localization/migrations/004_translation_objects.sql` | 手写 | 译文归属证明、复合身份及权威对象manifest的只追加迁移。 | 无 |
 | `modules/localization/internal/translation/split.go` | 手写 | 本域完整源模板/只读交付或权威客户端的实际实现。 | `localization.SplitTranslationUnits`（参考）、`localization.AppendPath`（参考）、`localization.CollectSlots`（参考）、`localization.AppendTextSlots`（参考）、`localization.AppendSlot`（参考）、`localization.WithoutSourceIDs`（参考） |

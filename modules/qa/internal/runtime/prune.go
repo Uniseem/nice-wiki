@@ -41,6 +41,13 @@ func PruneExpiredRecords(ctx context.Context, op OperationContext, input PruneEx
 	}
 	defer tx.Close()
 	result := PruneExpiredRecordsResult{}
+	policy, err := ReadPolicy(tx)
+	if err != nil {
+		return result, err
+	}
+	if _, err := tx.Tx.ExecContext(tx.Context, `DELETE FROM qa_receipts WHERE created_ns<=?`, input.Now.Add(-time.Duration(policy.RecordRetentionDays)*24*time.Hour).UnixNano()); err != nil {
+		return result, StorageError(err)
+	}
 	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT conversation_id,expires_at FROM conversations c WHERE site_id=? AND data_epoch=? AND state='active' AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.conversation_id=c.conversation_id AND t.state IN ('admitted','queued','retrieving','generating')) ORDER BY expires_at,conversation_id LIMIT ?`, op.Actor.SiteID, op.DataEpoch, input.Limit)
 	if err != nil {
 		return result, StorageError(err)

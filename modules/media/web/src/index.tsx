@@ -1,3 +1,4 @@
+import { LibraryBrowser } from './LibraryBrowser';
 import { Brush, File as FileIcon, Link as LinkIcon, Picture, TrashBin, Video } from '@gravity-ui/icons';
 import { Button, Checkbox, Chip, Drawer, Table, Tabs } from '@heroui/react';
 import type { Selection } from '@heroui/react';
@@ -22,6 +23,11 @@ const planStates: Record<string, string> = { proposed: t('待确认'), confirmed
 const kindIcon = (kind: string) => kind === 'image' || kind === 'platform_cover' ? Picture : kind === 'video' ? Video : kind.startsWith('drawing') ? Brush : FileIcon;
 
 export default function LibraryPage() {
+ const [tab,setTab]=useState('library');
+ return <div className="flex flex-col gap-6"><PageHeader title={t('资源库')} description={t('本地存储的图片、视频和附件，按分组管理、预览和分享。')} /><Tabs selectedKey={tab} onSelectionChange={(key)=>setTab(String(key))}><Tabs.ListContainer><Tabs.List aria-label={t('资源库')}><Tabs.Tab id="library">{t('全部资源')}<Tabs.Indicator /></Tabs.Tab><Tabs.Tab id="cleanup">{t('引用与清理')}<Tabs.Indicator /></Tabs.Tab></Tabs.List></Tabs.ListContainer><Tabs.Panel id="library"><LibraryBrowser /></Tabs.Panel><Tabs.Panel id="cleanup"><CleanupPage /></Tabs.Panel></Tabs></div>;
+}
+
+function CleanupPage() {
   const [tab, setTab] = useState<'all' | 'unused'>('all');
   const [kind, setKind] = useState('all');
   const [assets, setAssets] = useState<Asset[]>([]);

@@ -1658,13 +1658,19 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "ip": {
+          "type": "string",
+          "maxLength": 45,
+          "description": "portal从可信代理链取得的连接IP，访客无权指定"
         }
       },
       "required": [
         "requestId",
         "action",
         "visitorToken",
-        "dataEpoch"
+        "dataEpoch",
+        "ip"
       ]
     },
     "HandleAdmissionResult": {
@@ -2054,18 +2060,6 @@
       "additionalProperties": false,
       "description": "管理员建立临时禁令输入；未标可选字段均必填，空集合用[]，不传null",
       "properties": {
-        "subjectRef": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "已经存在的不可逆网络引用，不接受原始IP。"
-        },
-        "scope": {
-          "type": "string",
-          "description": "scope；UTF-8；不得为 null",
-          "maxLength": 8192,
-          "enum": [
-            "ai"
-          ]
-        },
         "ttlSeconds": {
           "type": "integer",
           "minimum": 0,
@@ -2085,14 +2079,19 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "ip": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 45,
+          "description": "要封禁的单个IPv4或IPv6地址，不接受CIDR；服务端规范化"
         }
       },
       "required": [
-        "subjectRef",
-        "scope",
         "ttlSeconds",
         "reasonCode",
-        "dataEpoch"
+        "dataEpoch",
+        "ip"
       ]
     },
     "CreateBanResult": {
@@ -2900,12 +2899,18 @@
           "type": "string",
           "description": "visitorToken；UTF-8；不得为 null",
           "maxLength": 8192
+        },
+        "ip": {
+          "type": "string",
+          "maxLength": 45,
+          "description": "portal从可信代理链取得的连接IP，访客无权指定"
         }
       },
       "required": [
         "requestId",
         "action",
-        "visitorToken"
+        "visitorToken",
+        "ip"
       ]
     },
     "RenewPermitRequestBody": {
@@ -3006,18 +3011,6 @@
       "additionalProperties": false,
       "description": "指定匿名主体引用及动作 scope，禁止提交原始 IP；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
       "properties": {
-        "subjectRef": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "已经存在的不可逆网络引用，不接受原始IP。"
-        },
-        "scope": {
-          "type": "string",
-          "description": "scope；UTF-8；不得为 null",
-          "maxLength": 8192,
-          "enum": [
-            "ai"
-          ]
-        },
         "ttlSeconds": {
           "type": "integer",
           "minimum": 0,
@@ -3033,13 +3026,18 @@
             "manual",
             "abuse"
           ]
+        },
+        "ip": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 45,
+          "description": "要封禁的单个IPv4或IPv6地址，不接受CIDR；服务端规范化"
         }
       },
       "required": [
-        "subjectRef",
-        "scope",
         "ttlSeconds",
-        "reasonCode"
+        "reasonCode",
+        "ip"
       ]
     },
     "RevokeBanRequestBody": {
@@ -3558,6 +3556,10 @@
               "occurredAt": {
                 "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
                 "description": "时间"
+              },
+              "ip": {
+                "type": "string",
+                "maxLength": 45
               }
             },
             "required": [
@@ -3777,6 +3779,11 @@
         },
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
+        },
+        "ip": {
+          "type": "string",
+          "maxLength": 45,
+          "description": "当前记录的IP；旧网络记录无法还原时为空"
         }
       },
       "required": [

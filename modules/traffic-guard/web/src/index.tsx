@@ -6,8 +6,8 @@ import {
 import { useEffect, useState } from 'react';
 
 type Policy = Record<string, number | boolean>;
-type Ban = { banId: string; subjectRef: string; reasonCode: string; state: string; expiresAt: string; revision: number };
-type RiskEvent = { eventId: string; occurredAt: string; action: string; decision: string; networkKey: string };
+type Ban = { ip: string; banId: string; subjectRef: string; reasonCode: string; state: string; expiresAt: string; revision: number };
+type RiskEvent = { eventId: string; occurredAt: string; action: string; decision: string; networkKey: string; ip: string };
 
 const labels: Record<string, [string, string?]> = {
   qaPerSubjectPerMinute: [t('每位访客每分钟提问上限')], qaBurst: [t('每位访客突发次数'), t('短时间内允许连续提问的次数')], qaPerSitePerMinute: [t('全站每分钟提问上限')],
@@ -25,7 +25,7 @@ export default function GuardPage() {
   const bans = useLoad((signal) => api<{ items: Ban[] }>('/v1/bans?limit=50', { signal }).then((result) => result.items), []);
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('防滥用')} description={t('限制访客提问的频率和并发，必要时封禁滥用的网络。只保存不可逆的网络引用，不记录原始访客 IP。')} actions={<Button variant="secondary" onPress={() => setBanTarget('')}><BanIcon />{t('新建禁令')}</Button>} />
+      <PageHeader title={t('防滥用')} description={t('Agent 上报滥用信号，服务端控制频率、并发与人机验证。禁令按单个 IP 和时长执行，不影响阅读文档。')} actions={<Button variant="secondary" onPress={() => setBanTarget('')}><BanIcon />{t('新建禁令')}</Button>} />
       <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(String(key))}>
         <Tabs.ListContainer className="mb-4">
           <Tabs.List aria-label={t('防滥用')}>
@@ -94,13 +94,13 @@ function BansTab({ bans, error, reload }: { bans?: Ban[]; error: unknown; reload
   }, t('禁令已撤销'));
   if (error && !bans) return <ErrorBlock error={error} onRetry={reload} />;
   if (!bans) return <LoadingBlock lines={4} />;
-  if (!bans.length) return <EmptyBlock icon={<Shield />} title={t('没有禁令')} description={t('在“可疑事件”里可以直接封禁某个网络。')} />;
+  if (!bans.length) return <EmptyBlock icon={<Shield />} title={t('没有禁令')} description={t('输入 IP 和时长即可封禁，也可以从可疑事件中选择。')} />;
   return (
     <Table>
       <Table.ScrollContainer>
         <Table.Content aria-label={t('禁令')} className="min-w-[640px]">
           <Table.Header>
-            <Table.Column isRowHeader>{t('网络引用')}</Table.Column>
+            <Table.Column isRowHeader>IP</Table.Column>
             <Table.Column>{t('原因')}</Table.Column>
             <Table.Column>{t('状态')}</Table.Column>
             <Table.Column>{t('到期')}</Table.Column>
@@ -109,7 +109,7 @@ function BansTab({ bans, error, reload }: { bans?: Ban[]; error: unknown; reload
           <Table.Body>
             {bans.map((ban) => (
               <Table.Row key={ban.banId} id={ban.banId}>
-                <Table.Cell><Mono>{shortId(ban.subjectRef, 16)}</Mono></Table.Cell>
+                <Table.Cell><Mono>{ban.ip || shortId(ban.subjectRef, 16)}</Mono></Table.Cell>
                 <Table.Cell>{ban.reasonCode === 'abuse' ? t('滥用') : t('人工')}</Table.Cell>
                 <Table.Cell><Chip color={banState[ban.state]?.tone ?? 'default'} size="sm" variant="soft">{banState[ban.state]?.label ?? ban.state}</Chip></Table.Cell>
                 <Table.Cell>{fmtDateTime(ban.expiresAt)}</Table.Cell>
@@ -145,8 +145,8 @@ function EventsTab({ onBan }: { onBan: (subjectRef: string) => void }) {
                 <Table.Cell><span title={fmtDateTime(event.occurredAt)}>{fmtRelative(event.occurredAt)}</span></Table.Cell>
                 <Table.Cell>{event.action}</Table.Cell>
                 <Table.Cell><Chip color={event.decision === 'deny' ? 'danger' : 'warning'} size="sm" variant="soft">{event.decision}</Chip></Table.Cell>
-                <Table.Cell><Mono>{shortId(event.networkKey, 16)}</Mono></Table.Cell>
-                <Table.Cell className="text-end">{/^[0-9a-f]{64}$/.test(event.networkKey) && <Button size="sm" variant="tertiary" onPress={() => onBan(event.networkKey)}><BanIcon />{t('封禁')}</Button>}</Table.Cell>
+                <Table.Cell><Mono>{event.ip || shortId(event.networkKey, 16)}</Mono></Table.Cell>
+                <Table.Cell className="text-end">{/^[0-9a-f]{64}$/.test(event.networkKey) && <Button size="sm" variant="tertiary" onPress={() => onBan(event.ip)}><BanIcon />{t('封禁')}</Button>}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -161,10 +161,10 @@ function BanDialog({ subjectRef, onClose, onSaved }: { subjectRef: string; onClo
   const [ttl, setTtl] = useState('86400');
   const [reason, setReason] = useState<'manual' | 'abuse'>('abuse');
   const { busy, run } = useAction();
-  const valid = /^[0-9a-f]{64}$/.test(ref.trim());
+  const valid = ref.trim().length > 1 && ref.trim().length <= 45;
   const submit = async () => {
     const done = await run(async () => {
-      await api('/v1/bans', { method: 'POST', body: { subjectRef: ref.trim(), scope: 'ai', ttlSeconds: Number(ttl), reasonCode: reason } });
+      await api('/v1/bans', { method: 'POST', body: { ip: ref.trim(), ttlSeconds: Number(ttl), reasonCode: reason } });
       return true;
     }, t('禁令已建立'));
     if (done) onSaved();
@@ -177,9 +177,9 @@ function BanDialog({ subjectRef, onClose, onSaved }: { subjectRef: string; onClo
           <Modal.Header><Modal.Heading>{t('新建禁令')}</Modal.Heading></Modal.Header>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); if (valid) void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">
-              <TextInput isRequired description={t('64 位十六进制的不可逆网络引用，来自“可疑事件”。')} error={ref && !valid ? t('格式不对：应为 64 位十六进制') : null} label={t('网络引用')} value={ref} onChange={setRef} />
+              <TextInput isRequired label="IP" value={ref} onChange={setRef} />
               <FormGrid>
-                <SelectInput label={t('时长')} options={durations} value={ttl} onChange={setTtl} />
+                <NumberInput label={t('时长（分钟）')} minValue={1} maxValue={43200} value={Number(ttl) / 60} onChange={(value)=>setTtl(String(Math.round(value * 60)))} />
                 <SelectInput label={t('原因')} options={[{ value: 'abuse', label: t('滥用') }, { value: 'manual', label: t('人工') }]} value={reason} onChange={setReason} />
               </FormGrid>
               <p className="text-sm text-muted">{t('禁令只限制 AI 问答，不影响阅读文档。')}</p>

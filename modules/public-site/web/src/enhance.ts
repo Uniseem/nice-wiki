@@ -221,8 +221,7 @@ function math() {
 
 // 访问统计信标：只报文档、语言、来源域名，不报完整地址。站内无刷新跳转时来源是本站，耗时是这次换页用的时间。
 function beacon(from?: { referrer: string; elapsedMs: number }) {
-  const documentId = document.body.dataset.doc;
-  if (!documentId) return;
+  const documentId = document.body.dataset.doc || 'home';
   let referrer = from?.referrer ?? '';
   if (!from) try { referrer = new URL(document.referrer).hostname; } catch { /* 无来源 */ }
   if (/^[0-9.]+$/.test(referrer) || referrer.includes(':')) referrer = '';

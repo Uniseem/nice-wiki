@@ -21,6 +21,7 @@ type ListRiskEventsInput struct {
 	Since string
 }
 type RiskEvent struct {
+	IP         string `json:"ip"`
 	EventID    string `json:"eventId"`
 	Action     string `json:"action"`
 	Decision   string `json:"decision"`
@@ -71,7 +72,7 @@ func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEven
 			return ListRiskEventsResult{}, platform.NewError(platform.CodeValidation, false, "INVALID_CURSOR")
 		}
 	}
-	rows, err := t.tx.QueryContext(t.ctx, `SELECT event_id,action,decision,network_key,occurred_at_ns FROM guard_risk_events
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT event_id,action,decision,network_key,occurred_at_ns,ip FROM guard_risk_events
   WHERE site_id=? AND data_epoch=? AND occurred_at_ns>=? AND (occurred_at_ns<? OR (occurred_at_ns=? AND event_id<?))
   ORDER BY occurred_at_ns DESC,event_id DESC LIMIT ?`, t.site, op.DataEpoch, sinceNS, position.At, position.At, position.ID, limit+1)
 	if err != nil {
@@ -83,7 +84,7 @@ func ListRiskEvents(ctx context.Context, op OperationContext, input ListRiskEven
 	for rows.Next() {
 		var item RiskEvent
 		var at int64
-		if rows.Scan(&item.EventID, &item.Action, &item.Decision, &item.NetworkKey, &at) != nil {
+		if rows.Scan(&item.EventID, &item.Action, &item.Decision, &item.NetworkKey, &at, &item.IP) != nil {
 			return ListRiskEventsResult{}, loginDBError()
 		}
 		item.OccurredAt = time.Unix(0, at).UTC().Format(time.RFC3339Nano)

@@ -542,3 +542,24 @@ func writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams) {
 	writeUnavailable(w, r)
 }
+
+// ListVisitors 仅经当前stats.read授权的后台读取访客活动。
+func (s *server) ListVisitors(w http.ResponseWriter, r *http.Request, params gen.ListVisitorsParams) {
+	op, ok := platform.OperationContextFrom(r.Context())
+	if !ok {
+		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit == 0 {
+		limit = 30
+	}
+	result, err := analytics.ListVisitors(analytics.WithRuntime(r.Context(), s.app.storage), op, analytics.ListVisitorsInput{From: r.URL.Query().Get("from"), To: r.URL.Query().Get("to"), VisitorID: r.URL.Query().Get("visitorId"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(result)
+}

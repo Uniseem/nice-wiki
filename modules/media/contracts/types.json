@@ -216,6 +216,14 @@
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "CAS"
+        },
+        "groupId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 96
         }
       },
       "required": [
@@ -3671,6 +3679,10 @@
             }
           ],
           "description": "全部null"
+        },
+        "groupId": {
+          "type": "string",
+          "maxLength": 128
         }
       },
       "required": [
@@ -5922,6 +5934,133 @@
     },
     "ReadJobRecoveryResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
+    },
+    "AssetGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "groupId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "assetCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "groupId",
+        "name",
+        "assetCount"
+      ]
+    },
+    "ListAssetGroupsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "ListAssetGroupsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/AssetGroup"
+          }
+        }
+      },
+      "required": [
+        "groups"
+      ]
+    },
+    "CreateAssetGroupInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "CreateAssetGroupResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "$ref": "#/$defs/AssetGroup"
+        }
+      },
+      "required": [
+        "group"
+      ]
+    },
+    "DeleteAssetGroupInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "groupId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "groupId"
+      ]
+    },
+    "DeleteAssetGroupResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted"
+      ]
+    },
+    "SetAssetGroupInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "groupId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "assetId",
+        "groupId"
+      ]
+    },
+    "SetAssetGroupResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "updated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "updated"
+      ]
     }
   }
 }

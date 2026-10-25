@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 63 个：手写 50、UI 1、生成 4、配置 6、迁移 2。函数 127 个：约束 34，参考 93。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 64 个：手写 51、UI 1、生成 4、配置 6、迁移 2。函数 128 个：约束 35，参考 93。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -69,3 +69,4 @@
 | `modules/analytics/migrations/0006_usage_statistics_v2.sql` | 手写 | 连续V6完整费用事实、账项/观察当前投影；不改写V1旧费用表 | 无 |
 | `modules/analytics/web/src/index.tsx` | UI | 访问统计：区间访问与费用投影、按文档/按小时明细、CSV 导出、管理审计与链校验 | `analytics.AnalyticsPage` |
 | `modules/analytics/internal/job_recovery.go` | 手写 | 只jobs服务核原聚合任务输入及失效租约后给safeToRetry/pending真实证明 | `analytics.ReadJobRecovery` |
+| `modules/analytics/internal/visitors.go` | 手写 | 唯一访客与活动查询 | `analytics.ListVisitors` |

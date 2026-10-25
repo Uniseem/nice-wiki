@@ -11,7 +11,7 @@ import (
 // ValidateBeacon 只接受已登记访问类型和不含路径、端口或查询的来源域。
 // 原始 HTTP 正文的 2048 字节上限由入口控制，不以重编码代替原始大小。
 func ValidateBeacon(ctx context.Context, op OperationContext, in ValidateBeaconInput) (ValidateBeaconResult, error) {
-	if in.EventType != "page-view" && in.EventType != "navigation-click" {
+	if in.EventType != "page-view" && in.EventType != "navigation-click" && in.EventType != "qa-ask" && in.EventType != "search" {
 		return ValidateBeaconResult{}, platform.NewError(platform.CodeValidation, false, "访问类型未登记")
 	}
 	domain := in.ReferrerDomain

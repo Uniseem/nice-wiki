@@ -439,6 +439,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/statistics/visitors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 按唯一访客查看活动和设备信息
+         * @description 站内随机cookie作为访客标识；IP与设备仅供受权限保护的后台查看，明细保留30天，不写日志或公开导出。
+         */
+        get: operations["listVisitors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1005,6 +1025,7 @@ export interface components {
             userAgent: string;
             /** @description 不可复用的站点代次/密钥代次标识；不使用整数比较新旧 */
             dataEpoch: components["schemas"]["Identifier"];
+            visitorId: string;
         };
         /** @description 已授权过滤范围生成CSV引用，最多10万行；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateAuditExportRequestBody: {
@@ -1041,6 +1062,43 @@ export interface components {
             paidResultRefs: components["schemas"]["Identifier"][];
         };
         ReadJobRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
+        VisitorSummary: {
+            visitorId: string;
+            ip: string;
+            userAgent: string;
+            device: string;
+            browser: string;
+            os: string;
+            country: string;
+            firstSeen: string;
+            lastSeen: string;
+            pageViews: number;
+            activities: number;
+        };
+        VisitorActivity: {
+            id: string;
+            documentId: string;
+            locale: string;
+            eventType: string;
+            ip: string;
+            userAgent: string;
+            occurredAt: string;
+            referrerDomain: string;
+        };
+        /** @description 分页结果状态；没有下一页时nextCursor省略 */
+        PageInfo: {
+            /** @description 下一页签名游标，无下一页则省略 */
+            nextCursor?: string;
+            /** @description 是否存在下一页 */
+            hasMore: boolean;
+        };
+        ListVisitorsResult: {
+            visitors: components["schemas"]["VisitorSummary"][];
+            activities: components["schemas"]["VisitorActivity"][];
+            totalVisitors: number;
+            pageViews: number;
+            pageInfo: components["schemas"]["PageInfo"];
+        };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
@@ -2722,6 +2780,55 @@ export interface operations {
             };
             /** @description 公共Problem */
             default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listVisitors: {
+        parameters: {
+            query: {
+                /** @description 区间起点 */
+                from: string;
+                /** @description 区间终点 */
+                to: string;
+                /** @description 下一页签名游标 */
+                cursor?: string;
+                /** @description 访客标识；提供时读取其活动 */
+                visitorId?: string;
+                /** @description 每页数量 */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 按UTC小时或站点时区日聚合访问 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListVisitorsResult"];
+                };
+            };
+            /** @description 公共错误；VALIDATION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description 公共错误；FORBIDDEN */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

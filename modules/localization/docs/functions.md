@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 162 个函数：约束 49 个，参考 113 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 157 个函数：约束 46 个，参考 111 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -2236,149 +2236,6 @@ func NewPreferenceHandlers() map[string]http.Handler
 - 幂等：本域原回执、代数或不可变引用；不自动创建收费重算。
 - 依赖：`localization.SaveLanguagePreference`、`localization.JSONHandler`
 
-## localization.TranslateCachedAnswer
-
-- 级别：约束
-- 文件：`modules/localization/internal/cache-answer/create.go`
-- 作用：接受QA精选翻译命令
-
-```go
-func TranslateCachedAnswer(ctx context.Context, op OperationContext, input TranslateCachedAnswerInput) (TranslateCachedAnswerResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `TranslateCachedAnswerInput` | 封闭业务输入；逐字段见types $defs/TranslateCachedAnswerInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `TranslateCachedAnswerResult` | 成功结果；逐字段见types $defs/TranslateCachedAnswerResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. callerService=qa且源为active普通或精选cache，不新增人工批准或模型配置权限门槛
-2. 核对sourceHash和基准answerRevision，已配置根qa.cache-translate fast任务并分别取翻译任务记忆
-3. 继承原qa rootOperationId/costClass及同一签名admissionPermit到每个MG调用，费用计相同session/network小时作用域
-4. 创建localization.cache-answer任务由ExecuteCacheAnswerTranslation执行，完成自动ready，发cache-answer.translated，由QA自动保存对应语言答案
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-6. 待实施：原QA permit只经公共SealTaskSecret/OpenTaskSecret在原owner/site/epoch/root/purpose绑定下密文保存，读取后仍核原截止；此接口源码未完成不计ready。
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `CONFLICT` / HTTP 409：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：写缓存译文任务；MG费用由background继承
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:createJob`、`memory:resolveContext`、`platform.SealTaskSecret`、`platform.OpenTaskSecret`
-
-## localization.ExecuteCacheAnswerTranslation
-
-- 级别：约束
-- 文件：`modules/localization/internal/cache-answer/create.go`
-- 作用：把一条缓存答案翻译为目标语言
-
-```go
-func ExecuteCacheAnswerTranslation(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 可信操作上下文 | 服务边界构建，禁止浏览器自造；dataEpoch等于site-config当前active epoch |
-| `input` | `JobExecutionInput` | 输入 | 必须通过对应schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `JobExecutionResult` | 结果 | 无error时有效 |
-| `error` | `Error` | 失败时result无效，返回标准Problem | 只使用登记错误码；detail不含正文、密钥或IP |
-
-**步骤**
-
-1. 读取命令固定的源答案hash与answerRevision；memory:resolveContext取qa.cache-translate任务记忆
-2. 以继承的qa根操作、费用类别与准入许可调用InvokeModel（fast档），保留引用token
-3. CommitCacheAnswerTranslation核对源版本后保存ready译文并登记cache-answer.translated
-
-**错误**
-
-- `STALE_RESULT`：源答案已变（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：网关不可用（可重试）
-
-- 副作用：写缓存答案译文；模型费用经网关
-- 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
-- 并发：同cacheId/language一次一个
-- 幂等：按cacheId/answerRevision/language唯一
-- 依赖：`memory:resolveContext`、`localization.InvokeModel`、`localization.CommitCacheAnswerTranslation`
-
-## localization.CommitCacheAnswerTranslation
-
-- 级别：参考
-- 文件：`modules/localization/internal/cache-answer/commit.go`
-- 作用：保存精选翻译供QA审核
-
-```go
-func CommitCacheAnswerTranslation(ctx context.Context, op OperationContext, input CommitCacheAnswerTranslationInput) (CommitCacheAnswerTranslationResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `CommitCacheAnswerTranslationInput` | 封闭业务输入；逐字段见types $defs/CommitCacheAnswerTranslationInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `CommitCacheAnswerTranslationResult` | 成功结果；逐字段见types $defs/CommitCacheAnswerTranslationResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. 源cache answerRevision/hash/epoch匹配
-2. 引用token和语言格式核验
-3. 保存ready自动译文不加人工批准
-4. 发cache-answer.translated引用事件供QA自动存localized答案。
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `STALE_RESULT` / HTTP 409：（不可重试）
-- `INTEGRITY_ERROR` / HTTP 422：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：写译文与outbox，不同步调用QA
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：无
-
 ## localization.InvalidateDocumentTranslations
 
 - 级别：约束
@@ -3088,56 +2945,6 @@ func ReflectTranslation(ctx context.Context, op OperationContext, input ReflectT
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
 - 依赖：`localization.InvokeModel`
 
-## localization.ReadCacheAnswerTranslation
-
-- 级别：约束
-- 文件：`modules/localization/internal/cache-answer/read.go`
-- 作用：读取已完成的自动缓存翻译
-
-```go
-func ReadCacheAnswerTranslation(ctx context.Context, op OperationContext, input ReadCacheAnswerTranslationInput) (ReadCacheAnswerTranslationResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | Go取消与截止控制 | 不可nil；与op.deadline取最早截止。 |
-| `op` | `OperationContext` | 可信执行元数据 | 公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。 |
-| `input` | `ReadCacheAnswerTranslationInput` | 封闭业务输入；逐字段见types $defs/ReadCacheAnswerTranslationInput | required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。 |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReadCacheAnswerTranslationResult` | 成功结果；逐字段见types $defs/ReadCacheAnswerTranslationResult | 仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。 |
-| `err` | `error` | nil表示成功；非nil映射公共Problem与本函数错误集合 | 只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。 |
-
-**步骤**
-
-1. callerService=qa
-2. 源answerRevision精确匹配
-3. ready且dataEpoch当前才返回
-4. 不改变审核策略、不隐式调模型
-5. 业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-
-**错误**
-
-- `FORBIDDEN` / HTTP 403：（不可重试）
-- `STALE_RESULT` / HTTP 409：（不可重试）
-- `NOT_FOUND` / HTTP 404：（不可重试）
-- `UNAUTHENTICATED` / HTTP 401：（不可重试）
-- `LOCKED` / HTTP 409：（不可重试）
-- `CANCELLED` / HTTP 409：（不可重试）
-- `DEADLINE_EXCEEDED` / HTTP 504：（不可重试）
-- `INTERNAL` / HTTP 500：（不可重试）
-
-- 副作用：无
-- 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-- 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
-- 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`localization.ReadData`、`localization.StorageError`
-
 ## localization.RunWorker
 
 - 级别：约束
@@ -3185,7 +2992,7 @@ func RunWorker(ctx context.Context, op OperationContext, input RunWorkerInput) (
 - 授权：权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
 - 并发：本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数30000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。
 - 幂等：有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。
-- 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:startJob`、`jobs:checkLease`、`localization.ExecuteTranslation`、`localization.TranslateInterfaceCatalog`、`localization.ExecuteCacheAnswerTranslation`、`platform.RunWorkerLoop`
+- 依赖：`jobs:claimJob`、`jobs:heartbeatJob`、`jobs:completeJob`、`jobs:failJob`、`jobs:startJob`、`jobs:checkLease`、`localization.ExecuteTranslation`、`localization.TranslateInterfaceCatalog`、`platform.RunWorkerLoop`
 
 ## localization.All
 
@@ -3299,7 +3106,7 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 - 授权：permission：service；rule：进程启动控制面；Health/Ready为匿名安全状态；业务路由仍各自鉴权，初始化不调用模型
 - 并发：装配单flight；ready前不接受业务；不共享DB或执行外域算法
 - 幂等：启动重入按journal和epoch恢复，不新建paid operation
-- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.NewCacheTranslationHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`model-gateway:readInference`、`model-gateway:lookupInference`、`localization.ConfigurePlanAdapters`
+- 依赖：`site-config:registerActivation`、`localization.LoadRuntime`、`localization.RecoverTranslationLeases`、`localization.PublishOutbox`、`localization.ConsumeEvents`、`localization.RunWorker`、`platform.ApplyRestoreSwap`、`platform.ReadRuntime`、`platform.NewSiteConfigClient`、`platform.NewRequestValidator`、`localization.NewGlossaryHandlers`、`localization.NewTranslationHandlers`、`localization.NewInterfaceHandlers`、`localization.ConfigureExecutionAdapters`、`localization.ConfigureSourceClient`、`localization.NewPreferenceHandlers`、`localization.NewSuggestionPolicyHandlers`、`platform.NewSnapshotManager`、`platform.SnapshotManager.AdmitBusiness`、`platform.SnapshotManager.WriteWindow`、`model-gateway:readInference`、`model-gateway:lookupInference`、`localization.ConfigurePlanAdapters`
 - 其他依赖说明：本域implementation全部x-handler；本域journal恢复函数；site-config.readRuntimeState（本域site-config读取自身权威）
 
 ## localization.Serve
@@ -5550,45 +5357,6 @@ func NewInterfaceHandlers()map[string]http.Handler
 - 幂等：本域原回执、代数或不可变引用；不自动创建收费重算。
 - 依赖：`localization.PutInterfaceString`、`localization.ReadInterfaceCatalog`、`localization.JSONHandler`
 
-## localization.NewCacheTranslationHandlers
-
-- 级别：参考
-- 文件：`modules/localization/internal/cache-answer/http.go`
-- 作用：本域参考支持 NewCacheTranslationHandlers；精确输入输出以实际Go签名为准。
-
-```go
-func NewCacheTranslationHandlers()map[string]http.Handler
-```
-
-**输入**
-
-无
-
-**输出**
-
-无
-
-**步骤**
-
-1. 按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。
-
-**错误**
-
-- `VALIDATION`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `CONFLICT`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `VERSION_MISMATCH`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `INTEGRITY_ERROR`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `FORBIDDEN`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `NOT_FOUND`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `INTERNAL`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：按本用例来源、CAS或私有IO边界失败关闭（不可重试）
-
-- 副作用：无
-- 授权：信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。
-- 并发：复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。
-- 幂等：本域原回执、代数或不可变引用；不自动创建收费重算。
-- 依赖：`localization.ReadCacheAnswerTranslation`、`localization.JSONHandler`
-
 ## localization.JSONHandler
 
 - 级别：参考
@@ -6163,7 +5931,7 @@ func ConfigureSourceClient(client *gen.ContentClient, validators map[string]func
 - 授权：信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。
 - 并发：固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。
 - 幂等：确定性源模板或只读版本投影，不创建独立收费操作。
-- 依赖：`qa:readCacheTranslationSource`
+- 依赖：无
 
 ## localization.ValidateSourcePayload
 

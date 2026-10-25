@@ -1,7 +1,7 @@
 import { ChevronsCollapseUpRight, ChevronsExpandUpRight, Xmark } from '@gravity-ui/icons';
 import { Button, Card, cn, Drawer, Tooltip, useMediaQuery } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import { QaChat, type Translate } from './QaChat';
+import { QaChat, type Translate, type HomeWelcome } from './QaChat';
 
 type PanelProps = { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string };
 
@@ -50,7 +50,7 @@ function FloatingWindow({ open, onOpenChange, locale, t, documentId, pageTitle }
         <h2 className="flex-1 text-sm font-semibold text-foreground">{t('AI 问答')}</h2>
         <Button isIconOnly aria-label={t('关闭')} size="sm" variant="ghost" onPress={() => onOpenChange(false)}><Xmark /></Button>
       </header>
-      <QaChat autoFocus={open} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+      <QaChat key={locale} autoFocus={open} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
     </section>
   );
 }
@@ -68,7 +68,7 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
             <Drawer.Heading className="text-base">{t('AI 问答')}</Drawer.Heading>
           </Drawer.Header>
           <Drawer.Body className="m-0 flex flex-col overflow-hidden p-0 text-foreground">
-            <QaChat documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+            <QaChat key={locale} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
           </Drawer.Body>
         </Drawer.Dialog>
       </Drawer.Content>
@@ -78,10 +78,10 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
 
 // 首页主视觉里的“问问 AI”：还没提问时只是一个输入框；开始提问后原地展开成对话卡片（多轮，和面板、问答页共用会话），
 // 对话在卡片里滚动。卡片高度由 :has() 按是否已有对话切换。
-export function QaHomeChat({ locale, t }: { locale: string; t: Translate }) {
+export function QaHomeChat({ locale, t, welcome }: { locale: string; t: Translate; welcome?: HomeWelcome }) {
   return (
-    <div className="nw-home-ask-card flex min-h-0 flex-col">
-      <QaChat compact locale={locale} suggestions={[t('这个站点有哪些内容？'), t('我应该从哪里开始？'), t('帮我梳理主要概念')]} t={t} />
+    <div className="nw-home-agent-chat flex min-h-0 flex-1 flex-col">
+      <QaChat key={locale} welcome={welcome} locale={locale} suggestions={[t('这个站点有哪些内容？'), t('我应该从哪里开始？'), t('帮我梳理主要概念')]} t={t} />
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function QaHomeChat({ locale, t }: { locale: string; t: Translate }) {
 export function QaInlineChat({ locale, t }: { locale: string; t: Translate }) {
   return (
     <Card className="flex h-[max(28rem,calc(100dvh-16rem))] flex-col gap-0 overflow-hidden p-0">
-      <QaChat autoFocus locale={locale} t={t} />
+      <QaChat key={locale} autoFocus locale={locale} t={t} />
     </Card>
   );
 }

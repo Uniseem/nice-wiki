@@ -114,6 +114,18 @@ type homePage struct {
 	HeroBackground, HeroOverlay                 template.CSS
 	HeroDark, HeroCustomColor                   bool
 	WikiURL                                     string
+	Welcome                                     homeWelcome
+}
+
+type homeTopic struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+type homeWelcome struct {
+	Name          string      `json:"name"`
+	Description   string      `json:"description"`
+	Topics        []homeTopic `json:"topics"`
+	DocumentCount int         `json:"documentCount"`
 }
 
 // HandleHome 渲染固定一屏的问答首页，入口指向第一篇已发布文档。
@@ -180,6 +192,22 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	if len(nodes) > 0 {
 		page.WikiURL = nodes[0].CanonicalPath
 	}
+	// 开场只介绍当前语言可见的公开目录和既有摘要，打开首页不调用模型。
+	page.Welcome = homeWelcome{Name: page.SiteName, Description: meta.Description, Topics: []homeTopic{}, DocumentCount: len(nodes)}
+	for _, node := range nodes {
+		if node.ParentID != nil || len(page.Welcome.Topics) >= 6 {
+			continue
+		}
+		title, description := []rune(node.Title), []rune(node.SEODescription)
+		page.Welcome.Topics = append(page.Welcome.Topics, homeTopic{string(title[:min(80, len(title))]), string(description[:min(160, len(description))])})
+	}
+	var islandConfig map[string]any
+	if err := json.Unmarshal([]byte(page.Config), &islandConfig); err != nil {
+		return HandleHomeResult{}, dependency("首页引导配置不可读")
+	}
+	islandConfig["welcome"] = page.Welcome
+	encoded, _ := json.Marshal(islandConfig)
+	page.Config = string(encoded)
 	for _, link := range home.HeaderLinks {
 		page.HeaderLinks = append(page.HeaderLinks, Breadcrumb{Label: link.Text, URL: link.URL})
 	}

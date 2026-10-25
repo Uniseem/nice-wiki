@@ -361,22 +361,21 @@ func (s *Store) runMigrations(ctx context.Context) error {
 
 func validateSchema(ctx context.Context, db *sql.DB) error {
 	required := map[string][]string{
-		"languages":                 {"language_tag", "default_language", "automatic_translation"},
-		"translation_jobs":          {"job_id", "state", "lease_id"},
-		"translation_units":         {"unit_id", "protected", "human_generation"},
-		"translation_manifests":     {"translation_id", "glossary_generation", "state"},
-		"glossary":                  {"term_id", "generation", "source"},
-		"interface_catalog":         {"language", "key", "placeholders"},
-		"language_preferences":      {"visitor_subject", "expires_at"},
-		"approved_proposals":        {"proposal_id", "proposal_hash", "state"},
-		"cache_answer_translations": {"translation_id", "answer_revision", "state"},
-		"schema_migrations":         {"version", "name", "applied_at"},
-		"operation_receipts":        {"site_id", "actor_id", "function_id", "input_hash"},
-		"runtime_meta":              {"singleton", "data_epoch", "updated_at"},
-		"local_barrier":             {"singleton", "state", "data_epoch"},
-		"language_plans":            {"plan_id", "snapshot_hash", "expires_at", "state", "approval_operation_json", "approval_root_operation_id", "approval_actor_id", "approval_deadline"},
-		"language_plan_documents":   {"plan_id", "document_id", "reference_hash"},
-		"language_plan_jobs":        {"plan_id", "kind", "input_hash", "dedupe_key", "state"},
+		"languages":               {"language_tag", "default_language", "automatic_translation"},
+		"translation_jobs":        {"job_id", "state", "lease_id"},
+		"translation_units":       {"unit_id", "protected", "human_generation"},
+		"translation_manifests":   {"translation_id", "glossary_generation", "state"},
+		"glossary":                {"term_id", "generation", "source"},
+		"interface_catalog":       {"language", "key", "placeholders"},
+		"language_preferences":    {"visitor_subject", "expires_at"},
+		"approved_proposals":      {"proposal_id", "proposal_hash", "state"},
+		"schema_migrations":       {"version", "name", "applied_at"},
+		"operation_receipts":      {"site_id", "actor_id", "function_id", "input_hash"},
+		"runtime_meta":            {"singleton", "data_epoch", "updated_at"},
+		"local_barrier":           {"singleton", "state", "data_epoch"},
+		"language_plans":          {"plan_id", "snapshot_hash", "expires_at", "state", "approval_operation_json", "approval_root_operation_id", "approval_actor_id", "approval_deadline"},
+		"language_plan_documents": {"plan_id", "document_id", "reference_hash"},
+		"language_plan_jobs":      {"plan_id", "kind", "input_hash", "dedupe_key", "state"},
 	}
 	for table, columns := range required {
 		if err := checkContext(ctx); err != nil {

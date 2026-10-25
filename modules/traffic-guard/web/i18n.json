@@ -47,22 +47,6 @@
   "id": "30 hari",
   "ar": "30 يومًا"
  },
- "64 位十六进制的不可逆网络引用，来自“可疑事件”。": {
-  "zh-Hant": "64 位十六進位的不可逆網路參照，來自「可疑事件」。",
-  "en": "A 64-character hex, non-reversible network reference from Suspicious events.",
-  "ja": "「不審なイベント」から取得した、64 桁 16 進数の不可逆なネットワーク参照です。",
-  "ko": "'의심 이벤트'에서 가져온 64자리 16진수 비가역 네트워크 참조입니다.",
-  "fr": "Référence réseau irréversible de 64 caractères hexadécimaux, issue des événements suspects.",
-  "de": "Nicht umkehrbare Netzwerkreferenz aus 64 Hex-Zeichen, aus „Verdächtige Ereignisse“.",
-  "es": "Referencia de red irreversible de 64 caracteres hexadecimales, tomada de Eventos sospechosos.",
-  "pt": "Referência de rede irreversível de 64 caracteres hexadecimais, vinda de Eventos suspeitos.",
-  "ru": "Необратимая сетевая ссылка из 64 шестнадцатеричных символов из раздела «Подозрительные события».",
-  "it": "Riferimento di rete irreversibile di 64 caratteri esadecimali, dagli eventi sospetti.",
-  "vi": "Tham chiếu mạng không thể đảo ngược gồm 64 ký tự thập lục phân, lấy từ \"Sự kiện đáng ngờ\".",
-  "th": "การอ้างอิงเครือข่ายแบบย้อนกลับไม่ได้ เลขฐานสิบหก 64 หลัก จาก “เหตุการณ์ที่น่าสงสัย”",
-  "id": "Referensi jaringan tak terbalikkan 64 karakter heksadesimal dari Peristiwa mencurigakan.",
-  "ar": "مرجع شبكة غير قابل للعكس من 64 حرفًا ست عشريًا، من «الأحداث المريبة»."
- },
  "7 天": {
   "zh-Hant": "7 天",
   "en": "7 days",
@@ -303,22 +287,6 @@
   "id": "Total untuk satu jaringan (mis. keluaran satu perusahaan)",
   "ar": "الإجمالي لشبكة واحدة (مثل مخرج شركة)"
  },
- "在“可疑事件”里可以直接封禁某个网络。": {
-  "zh-Hant": "在「可疑事件」中可以直接封鎖某個網路。",
-  "en": "You can ban a network directly from Suspicious events.",
-  "ja": "「不審なイベント」から直接ネットワークを禁止できます。",
-  "ko": "'의심 이벤트'에서 바로 네트워크를 차단할 수 있습니다.",
-  "fr": "Vous pouvez bannir un réseau directement depuis Événements suspects.",
-  "de": "Unter „Verdächtige Ereignisse“ können Sie ein Netzwerk direkt sperren.",
-  "es": "Puedes bloquear una red directamente desde Eventos sospechosos.",
-  "pt": "Você pode banir uma rede direto em Eventos suspeitos.",
-  "ru": "Заблокировать сеть можно прямо в разделе «Подозрительные события».",
-  "it": "Puoi bloccare una rete direttamente da Eventi sospetti.",
-  "vi": "Có thể chặn trực tiếp một mạng trong \"Sự kiện đáng ngờ\".",
-  "th": "สามารถแบนเครือข่ายได้โดยตรงจาก “เหตุการณ์ที่น่าสงสัย”",
-  "id": "Anda dapat memblokir jaringan langsung dari Peristiwa mencurigakan.",
-  "ar": "يمكنك حظر شبكة مباشرة من «الأحداث المريبة»."
- },
  "处置": {
   "zh-Hant": "處置",
   "en": "Response",
@@ -479,22 +447,6 @@
   "id": "Blokir baru",
   "ar": "حظر جديد"
  },
- "时长": {
-  "zh-Hant": "時長",
-  "en": "Duration",
-  "ja": "期間",
-  "ko": "기간",
-  "fr": "Durée",
-  "de": "Dauer",
-  "es": "Duración",
-  "pt": "Duração",
-  "ru": "Длительность",
-  "it": "Durata",
-  "vi": "Thời lượng",
-  "th": "ระยะเวลา",
-  "id": "Durasi",
-  "ar": "المدة"
- },
  "时间": {
   "zh-Hant": "時間",
   "en": "Time",
@@ -526,22 +478,6 @@
   "th": "ไม่มีเหตุการณ์ที่น่าสงสัย",
   "id": "Tidak ada peristiwa mencurigakan",
   "ar": "لا توجد أحداث مريبة"
- },
- "格式不对：应为 64 位十六进制": {
-  "zh-Hant": "格式錯誤：應為 64 位十六進位",
-  "en": "Wrong format: must be 64 hex characters",
-  "ja": "形式が違います：64 桁の 16 進数にしてください",
-  "ko": "형식 오류: 16진수 64자리여야 합니다",
-  "fr": "Format incorrect : 64 caractères hexadécimaux attendus",
-  "de": "Falsches Format: 64 Hex-Zeichen erforderlich",
-  "es": "Formato incorrecto: deben ser 64 caracteres hexadecimales",
-  "pt": "Formato incorreto: devem ser 64 caracteres hexadecimais",
-  "ru": "Неверный формат: нужно 64 шестнадцатеричных символа",
-  "it": "Formato errato: servono 64 caratteri esadecimali",
-  "vi": "Sai định dạng: phải là 64 ký tự thập lục phân",
-  "th": "รูปแบบไม่ถูกต้อง ต้องเป็นเลขฐานสิบหก 64 หลัก",
-  "id": "Format salah: harus 64 karakter heksadesimal",
-  "ar": "تنسيق خاطئ: يجب أن يكون 64 حرفًا ست عشريًا"
  },
  "每个网络每分钟上限": {
   "zh-Hant": "每個網路每分鐘上限",
@@ -783,22 +719,6 @@
   "id": "Versi kebijakan #{0}",
   "ar": "إصدار السياسة #{0}"
  },
- "网络引用": {
-  "zh-Hant": "網路參照",
-  "en": "Network reference",
-  "ja": "ネットワーク参照",
-  "ko": "네트워크 참조",
-  "fr": "Référence réseau",
-  "de": "Netzwerkreferenz",
-  "es": "Referencia de red",
-  "pt": "Referência de rede",
-  "ru": "Сетевая ссылка",
-  "it": "Riferimento di rete",
-  "vi": "Tham chiếu mạng",
-  "th": "การอ้างอิงเครือข่าย",
-  "id": "Referensi jaringan",
-  "ar": "مرجع الشبكة"
- },
  "网络标识": {
   "zh-Hant": "網路識別",
   "en": "Network ID",
@@ -863,22 +783,6 @@
   "id": "Perlindungan penyalahgunaan",
   "ar": "الحماية من إساءة الاستخدام"
  },
- "限制访客提问的频率和并发，必要时封禁滥用的网络。只保存不可逆的网络引用，不记录原始访客 IP。": {
-  "zh-Hant": "限制訪客提問的頻率和並行，必要時封鎖濫用的網路。只保存不可逆的網路參照，不記錄原始訪客 IP。",
-  "en": "Limit how often and how many questions visitors can ask at once, and ban abusive networks when needed. Only non-reversible network references are stored, never raw visitor IPs.",
-  "ja": "訪問者の質問頻度と同時実行数を制限し、必要に応じて不正なネットワークを禁止します。保存するのは不可逆なネットワーク参照だけで、訪問者の生の IP は記録しません。",
-  "ko": "방문자 질문의 빈도와 동시 실행을 제한하고 필요하면 남용 네트워크를 차단합니다. 비가역 네트워크 참조만 저장하며 원래 방문자 IP는 기록하지 않습니다.",
-  "fr": "Limitez la fréquence et la simultanéité des questions des visiteurs, et bannissez les réseaux abusifs si besoin. Seules des références réseau irréversibles sont stockées, jamais d'IP brutes.",
-  "de": "Begrenzen Sie Häufigkeit und Gleichzeitigkeit von Besucherfragen und sperren Sie bei Bedarf missbräuchliche Netzwerke. Gespeichert werden nur nicht umkehrbare Netzwerkreferenzen, keine echten Besucher-IPs.",
-  "es": "Limita la frecuencia y concurrencia de las preguntas de los visitantes y bloquea redes abusivas si hace falta. Solo se guardan referencias de red irreversibles, nunca IP reales.",
-  "pt": "Limite a frequência e a simultaneidade das perguntas dos visitantes e bana redes abusivas quando necessário. Só são guardadas referências de rede irreversíveis, nunca IPs reais.",
-  "ru": "Ограничивайте частоту и параллельность вопросов посетителей и при необходимости блокируйте злоупотребляющие сети. Хранятся только необратимые сетевые ссылки, исходные IP не записываются.",
-  "it": "Limita frequenza e concorrenza delle domande dei visitatori e, se serve, blocca le reti abusive. Si salvano solo riferimenti di rete irreversibili, mai gli IP reali.",
-  "vi": "Giới hạn tần suất và số câu hỏi đồng thời của khách, chặn mạng lạm dụng khi cần. Chỉ lưu tham chiếu mạng không đảo ngược được, không ghi IP gốc của khách.",
-  "th": "จำกัดความถี่และจำนวนคำถามพร้อมกันของผู้เยี่ยมชม และแบนเครือข่ายที่ละเมิดเมื่อจำเป็น เก็บเฉพาะการอ้างอิงเครือข่ายที่ย้อนกลับไม่ได้ ไม่บันทึก IP จริงของผู้เยี่ยมชม",
-  "id": "Batasi laju dan konkurensi pertanyaan pengunjung, dan blokir jaringan penyalahguna bila perlu. Hanya referensi jaringan tak terbalikkan yang disimpan, bukan IP asli pengunjung.",
-  "ar": "قيّد معدل أسئلة الزوار وتزامنها، واحظر الشبكات المسيئة عند الحاجة. لا تُحفظ إلا مراجع شبكة غير قابلة للعكس، ولا تُسجَّل عناوين IP الأصلية."
- },
  "需要另行配置第三方验证的密钥。": {
   "zh-Hant": "需要另外設定第三方驗證的金鑰。",
   "en": "Requires separately configured third-party verification keys.",
@@ -894,5 +798,53 @@
   "th": "ต้องตั้งค่าคีย์ของบริการยืนยันภายนอกแยกต่างหาก",
   "id": "Memerlukan kunci verifikasi pihak ketiga yang dikonfigurasi terpisah.",
   "ar": "يتطلب ضبط مفاتيح تحقق خارجية على حدة."
+ },
+ "Agent 上报滥用信号，服务端控制频率、并发与人机验证。禁令按单个 IP 和时长执行，不影响阅读文档。": {
+  "zh-Hant": "Agent 回報濫用訊號，伺服器控制頻率、並行與人機驗證。禁令按單一 IP 和時長執行，不影響閱讀文件。",
+  "en": "The Agent reports abuse; the server enforces rate, concurrency and human verification. Bans target one IP for a duration and leave documents readable.",
+  "ja": "Agentが不正利用を報告し、サーバーが頻度・同時実行・本人確認を制御します。期限付きIP制限でも文書は読めます。",
+  "ko": "Agent가 남용을 보고하고 서버가 빈도·동시 실행·사람 확인을 제어합니다. IP별 기간 제한은 문서 읽기에 영향을 주지 않습니다.",
+  "fr": "L’Agent signale les abus. Le serveur gère limites et vérification humaine. Un bannissement temporaire d’IP laisse les documents lisibles.",
+  "de": "Der Agent meldet Missbrauch. Der Server begrenzt Rate und Parallelität und prüft Menschen. Zeitlich begrenzte IP-Sperren verhindern kein Lesen.",
+  "es": "El Agent informa abusos; el servidor controla frecuencia, concurrencia y verificación. El bloqueo temporal de una IP no impide leer documentos.",
+  "pt": "O Agent relata abusos; o servidor limita frequência, concorrência e verifica humanos. O bloqueio temporário de IP não impede ler documentos.",
+  "ru": "Агент сообщает о злоупотреблениях, сервер ограничивает частоту и параллельность и проверяет пользователя. Временная блокировка IP не мешает чтению.",
+  "it": "L’Agent segnala abusi; il server limita frequenza e concorrenza e verifica l’utente. Il blocco temporaneo di un IP non impedisce la lettura.",
+  "vi": "Agent báo lạm dụng; máy chủ kiểm soát tần suất, đồng thời và xác minh người. Cấm từng IP có thời hạn không ảnh hưởng đọc tài liệu.",
+  "th": "Agent รายงานการใช้งานผิด เซิร์ฟเวอร์จำกัดความถี่ งานพร้อมกัน และตรวจสอบผู้ใช้ การแบน IP ตามเวลาไม่กระทบการอ่าน",
+  "id": "Agent melaporkan penyalahgunaan; server membatasi laju, konkurensi, dan memverifikasi manusia. Blokir IP sementara tidak menghalangi membaca.",
+  "ar": "يبلغ Agent عن الإساءة، ويضبط الخادم المعدل والتزامن والتحقق البشري. حظر IP المؤقت لا يمنع قراءة المستندات."
+ },
+ "时长（分钟）": {
+  "zh-Hant": "時長（分鐘）",
+  "en": "Duration (minutes)",
+  "ja": "期間（分）",
+  "ko": "기간(분)",
+  "fr": "Durée (minutes)",
+  "de": "Dauer (Minuten)",
+  "es": "Duración (minutos)",
+  "pt": "Duração (minutos)",
+  "ru": "Длительность (минуты)",
+  "it": "Durata (minuti)",
+  "vi": "Thời lượng (phút)",
+  "th": "ระยะเวลา (นาที)",
+  "id": "Durasi (menit)",
+  "ar": "المدة (بالدقائق)"
+ },
+ "输入 IP 和时长即可封禁，也可以从可疑事件中选择。": {
+  "zh-Hant": "輸入 IP 和時長即可封禁，也可以從可疑事件中選擇。",
+  "en": "Enter an IP and duration, or select an IP from suspicious events.",
+  "ja": "IPと期間を入力するか、不審なイベントからIPを選択してください。",
+  "ko": "IP와 기간을 입력하거나 의심 이벤트에서 IP를 선택하세요.",
+  "fr": "Saisissez une IP et une durée, ou choisissez une IP dans les événements suspects.",
+  "de": "IP und Dauer eingeben oder eine IP aus verdächtigen Ereignissen auswählen.",
+  "es": "Introduce IP y duración o elige una IP de eventos sospechosos.",
+  "pt": "Informe IP e duração ou escolha um IP dos eventos suspeitos.",
+  "ru": "Введите IP и срок либо выберите IP из подозрительных событий.",
+  "it": "Inserisci IP e durata o scegli un IP dagli eventi sospetti.",
+  "vi": "Nhập IP và thời hạn hoặc chọn IP từ sự kiện đáng ngờ.",
+  "th": "กรอก IP และระยะเวลา หรือเลือก IP จากเหตุการณ์น่าสงสัย",
+  "id": "Masukkan IP dan durasi, atau pilih IP dari peristiwa mencurigakan.",
+  "ar": "أدخل IP والمدة، أو اختر عنواناً من الأحداث المشبوهة."
  }
 }

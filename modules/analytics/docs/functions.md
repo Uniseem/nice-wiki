@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 127 个函数：约束 34 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 128 个函数：约束 35 个，参考 93 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4673,3 +4673,45 @@ func ReadJobRecovery(ctx context.Context,op OperationContext,input ReadJobRecove
 - 并发：只读固定快照
 - 幂等：只读，同输入同证明
 - 依赖：`analytics.runtimeFrom`
+
+## analytics.ListVisitors
+
+- 级别：约束
+- 文件：`modules/analytics/internal/visitors.go`
+- 作用：按唯一访客聚合并读取活动明细
+
+```go
+func ListVisitors(ctx context.Context, op OperationContext, in ListVisitorsInput) (ListVisitorsResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 调用取消与deadline；不得携带正文到日志 | Go标准库context；用户取消/超时即停止新副作用 |
+| `op` | `OperationContext` | 经可信鉴权中间件构建的操作上下文；含epoch与可选恢复授权 | 公开入口actor=visitor；服务身份与delegation不接受客户端自声明；deadline不超过上游 |
+| `in` | `QueryPageStatisticsInput` | 访问汇总查询；字段见本域types.json对应$defs | 严格schema，拒未知字段；字段约束与默认参数见types/requirements |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `QueryPageStatisticsResult` | 访问汇总查询成功结果；字段见types.json | 成功时满足全部required字段；失败返回零值且不泄漏半结果 |
+| `error` | `error` | Go error转公共Problem；TypeScript拒绝Promise携带Problem | 成功nil；失败仅登记公共code，detail不含IP/提问/密钥 |
+
+**步骤**
+
+1. 校验当前stats.read、站点、代次和30天内查询范围
+2. 以站内随机访客ID去重，在同一只读快照统计区间独立访客与浏览量
+3. 按签名游标返回访客或其活动，IP和设备仅返回管理员；不记录日志或公开导出
+
+**错误**
+
+- `FORBIDDEN` / HTTP 403：FORBIDDEN：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+- `VALIDATION` / HTTP 400：INVALID_RANGE：在步骤中的对应校验或依赖失败（不可重试）；未完成写入回滚事务/删除临时文件；已有持久提交按本函数恢复日志继续，不倒退已提交恢复决策
+
+- 副作用：无
+- 授权：permission：stats.read；rule：stats.read
+- 并发：SQLite快照读，最多1000聚合行分页
+- 幂等：GET幂等
+- 依赖：无

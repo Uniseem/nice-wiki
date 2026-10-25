@@ -4650,324 +4650,6 @@
       ]
     },
     {
-      "path": "modules/localization/internal/cache-answer/create.go",
-      "kind": "handwritten",
-      "purpose": "接受QA精选翻译命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.TranslateCachedAnswer",
-          "name": "TranslateCachedAnswer",
-          "signature": "func TranslateCachedAnswer(ctx context.Context, op OperationContext, input TranslateCachedAnswerInput) (TranslateCachedAnswerResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "TranslateCachedAnswerInput",
-              "description": "封闭业务输入；逐字段见types $defs/TranslateCachedAnswerInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "TranslateCachedAnswerResult",
-              "description": "成功结果；逐字段见types $defs/TranslateCachedAnswerResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "接受QA精选翻译命令",
-          "steps": [
-            "1 callerService=qa且源为active普通或精选cache，不新增人工批准或模型配置权限门槛",
-            "2 核对sourceHash和基准answerRevision，已配置根qa.cache-translate fast任务并分别取翻译任务记忆",
-            "3 继承原qa rootOperationId/costClass及同一签名admissionPermit到每个MG调用，费用计相同session/network小时作用域",
-            "4 创建localization.cache-answer任务由ExecuteCacheAnswerTranslation执行，完成自动ready，发cache-answer.translated，由QA自动保存对应语言答案",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-            "待实施：原QA permit只经公共SealTaskSecret/OpenTaskSecret在原owner/site/epoch/root/purpose绑定下密文保存，读取后仍核原截止；此接口源码未完成不计ready。"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "CONFLICT",
-              "httpStatus": 409,
-              "meaning": "幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写缓存译文任务；MG费用由background继承"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "jobs:createJob",
-            "memory:resolveContext",
-            "platform.SealTaskSecret",
-            "platform.OpenTaskSecret"
-          ],
-          "resources": [],
-          "contract": "binding"
-        },
-        {
-          "id": "localization.ExecuteCacheAnswerTranslation",
-          "name": "ExecuteCacheAnswerTranslation",
-          "signature": "func ExecuteCacheAnswerTranslation(ctx context.Context, op OperationContext, input JobExecutionInput) (JobExecutionResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "取消与截止传播；不得携带正文到日志",
-              "constraints": [
-                "用户取消、进程退出或截止到达即停止新副作用"
-              ]
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信操作上下文",
-              "constraints": [
-                "服务边界构建，禁止浏览器自造",
-                "dataEpoch等于site-config当前active epoch"
-              ]
-            },
-            {
-              "name": "input",
-              "type": "JobExecutionInput",
-              "description": "输入",
-              "constraints": [
-                "必须通过对应schema"
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "JobExecutionResult",
-              "description": "结果",
-              "constraints": [
-                "无error时有效"
-              ]
-            },
-            {
-              "name": "error",
-              "type": "Error",
-              "description": "失败时result无效，返回标准Problem",
-              "constraints": [
-                "只使用登记错误码",
-                "detail不含正文、密钥或IP"
-              ]
-            }
-          ],
-          "purpose": "把一条缓存答案翻译为目标语言",
-          "steps": [
-            "读取命令固定的源答案hash与answerRevision；memory:resolveContext取qa.cache-translate任务记忆",
-            "以继承的qa根操作、费用类别与准入许可调用InvokeModel（fast档），保留引用token",
-            "CommitCacheAnswerTranslation核对源版本后保存ready译文并登记cache-answer.translated"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "when": "源答案已变",
-              "retryable": false
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "when": "网关不可用",
-              "retryable": true
-            }
-          ],
-          "sideEffects": [
-            "写缓存答案译文",
-            "模型费用经网关"
-          ],
-          "authorization": {
-            "permission": "service",
-            "rule": "本域后台worker以服务身份调用jobs；不接受外部请求触发"
-          },
-          "concurrency": "同cacheId/language一次一个",
-          "idempotency": "按cacheId/answerRevision/language唯一",
-          "dependencies": [
-            "memory:resolveContext",
-            "localization.InvokeModel",
-            "localization.CommitCacheAnswerTranslation"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
-      "path": "modules/localization/internal/cache-answer/commit.go",
-      "kind": "handwritten",
-      "purpose": "保存精选翻译供QA审核所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.CommitCacheAnswerTranslation",
-          "name": "CommitCacheAnswerTranslation",
-          "signature": "func CommitCacheAnswerTranslation(ctx context.Context, op OperationContext, input CommitCacheAnswerTranslationInput) (CommitCacheAnswerTranslationResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "CommitCacheAnswerTranslationInput",
-              "description": "封闭业务输入；逐字段见types $defs/CommitCacheAnswerTranslationInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "CommitCacheAnswerTranslationResult",
-              "description": "成功结果；逐字段见types $defs/CommitCacheAnswerTranslationResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "保存精选翻译供QA审核",
-          "steps": [
-            "1 源cache answerRevision/hash/epoch匹配",
-            "2 引用token和语言格式核验",
-            "3 保存ready自动译文不加人工批准",
-            "4 发cache-answer.translated引用事件供QA自动存localized答案。",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "httpStatus": 422,
-              "meaning": "内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [
-            "写译文与outbox，不同步调用QA"
-          ],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/localization/internal/events/withdraw.go",
       "kind": "handwritten",
       "purpose": "处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -6504,120 +6186,6 @@
       ]
     },
     {
-      "path": "modules/localization/internal/cache-answer/read.go",
-      "kind": "handwritten",
-      "purpose": "读取已完成的自动缓存翻译所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": [
-        {
-          "id": "localization.ReadCacheAnswerTranslation",
-          "name": "ReadCacheAnswerTranslation",
-          "signature": "func ReadCacheAnswerTranslation(ctx context.Context, op OperationContext, input ReadCacheAnswerTranslationInput) (ReadCacheAnswerTranslationResult, error)",
-          "inputs": [
-            {
-              "name": "ctx",
-              "type": "context.Context",
-              "description": "Go取消与截止控制",
-              "constraints": "不可nil；与op.deadline取最早截止。"
-            },
-            {
-              "name": "op",
-              "type": "OperationContext",
-              "description": "可信执行元数据",
-              "constraints": "公共schema；入口验证来源、权限、dataEpoch、rootOperationId和costClass继承。"
-            },
-            {
-              "name": "input",
-              "type": "ReadCacheAnswerTranslationInput",
-              "description": "封闭业务输入；逐字段见types $defs/ReadCacheAnswerTranslationInput",
-              "constraints": "required字段不得省略，额外字段/null拒绝；UTF8字节限制另按步骤检查。"
-            }
-          ],
-          "outputs": [
-            {
-              "name": "result",
-              "type": "ReadCacheAnswerTranslationResult",
-              "description": "成功结果；逐字段见types $defs/ReadCacheAnswerTranslationResult",
-              "constraints": "仅全部成功校验/提交后返回；未产生字段用schema允许的缺失，不返回null。"
-            },
-            {
-              "name": "err",
-              "type": "error",
-              "description": "nil表示成功；非nil映射公共Problem与本函数错误集合",
-              "constraints": "只能返回errors登记code；无prompt/secret/IP/原请求体；失败结果零值不得被调用方使用。"
-            }
-          ],
-          "purpose": "读取已完成的自动缓存翻译",
-          "steps": [
-            "1 callerService=qa",
-            "2 源answerRevision精确匹配",
-            "3 ready且dataEpoch当前才返回",
-            "4 不改变审核策略、不隐式调模型",
-            "业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。"
-          ],
-          "errors": [
-            {
-              "code": "FORBIDDEN",
-              "httpStatus": 403,
-              "meaning": "身份、租户、对象拥有者或登记权限不满足。",
-              "retryable": false
-            },
-            {
-              "code": "STALE_RESULT",
-              "httpStatus": 409,
-              "meaning": "dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。",
-              "retryable": false
-            },
-            {
-              "code": "NOT_FOUND",
-              "httpStatus": 404,
-              "meaning": "对象不存在、游标已过保留期或公开派生结果尚不可用。",
-              "retryable": false
-            },
-            {
-              "code": "UNAUTHENTICATED",
-              "httpStatus": 401,
-              "meaning": "服务凭证、访客凭证或管理会话缺失/过期。",
-              "retryable": false
-            },
-            {
-              "code": "LOCKED",
-              "httpStatus": 409,
-              "meaning": "本地屏障阻止新业务写入或执行，恢复控制许可例外。",
-              "retryable": false
-            },
-            {
-              "code": "CANCELLED",
-              "httpStatus": 409,
-              "meaning": "贯穿取消已经生效，禁止后续业务写入与流输出。",
-              "retryable": false
-            },
-            {
-              "code": "DEADLINE_EXCEEDED",
-              "httpStatus": 504,
-              "meaning": "全链路截止已到，取消子调用；费用未知仍交MG对账。",
-              "retryable": false
-            },
-            {
-              "code": "INTERNAL",
-              "httpStatus": 500,
-              "meaning": "本服务内部错误，事务回滚且记录脱敏requestId。",
-              "retryable": false
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。",
-          "concurrency": "本服务资源行锁及expectedVersion/expectedRevision CAS；lease绑定owner与到期时间，30秒租约每10秒续约；只读固定快照；业务写入前校验op.dataEpoch等于site-config当前active epoch；本地屏障非released拒绝新业务写。截止=min(ctx deadline,op.deadline,本函数5000ms)，每一外部调用/批次/提交前检查取消；失败事务回滚。",
-          "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
-          "dependencies": [
-            "localization.ReadData",
-            "localization.StorageError"
-          ],
-          "resources": [],
-          "contract": "binding"
-        }
-      ]
-    },
-    {
       "path": "modules/localization/internal/runtime/worker.go",
       "kind": "handwritten",
       "purpose": "主动领取本域持久任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -6732,7 +6300,6 @@
             "jobs:checkLease",
             "localization.ExecuteTranslation",
             "localization.TranslateInterfaceCatalog",
-            "localization.ExecuteCacheAnswerTranslation",
             "platform.RunWorkerLoop"
           ],
           "resources": [],
@@ -6943,7 +6510,6 @@
             "localization.NewGlossaryHandlers",
             "localization.NewTranslationHandlers",
             "localization.NewInterfaceHandlers",
-            "localization.NewCacheTranslationHandlers",
             "localization.ConfigureExecutionAdapters",
             "localization.ConfigureSourceClient",
             "localization.NewPreferenceHandlers",
@@ -10927,76 +10493,6 @@
       ]
     },
     {
-      "path": "modules/localization/internal/cache-answer/http.go",
-      "kind": "handwritten",
-      "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
-      "functions": [
-        {
-          "id": "localization.NewCacheTranslationHandlers",
-          "name": "NewCacheTranslationHandlers",
-          "signature": "func NewCacheTranslationHandlers()map[string]http.Handler",
-          "inputs": [],
-          "outputs": [],
-          "purpose": "本域参考支持 NewCacheTranslationHandlers；精确输入输出以实际Go签名为准。",
-          "steps": [
-            "按已固定来源和调用方事务处理本域正文/元数据或纯算法；保留公开错误，不创建隐式模型调用。"
-          ],
-          "errors": [
-            {
-              "code": "VALIDATION",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "CONFLICT",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "VERSION_MISMATCH",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "INTEGRITY_ERROR",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "FORBIDDEN",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "NOT_FOUND",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "INTERNAL",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            },
-            {
-              "code": "DEPENDENCY_UNAVAILABLE",
-              "retryable": false,
-              "when": "按本用例来源、CAS或私有IO边界失败关闭"
-            }
-          ],
-          "sideEffects": [],
-          "authorization": "信任已核入口，特殊人工保护/任务记忆/模型费用及来源约束由所属用例执行。",
-          "concurrency": "复用固定快照/事务；权威文件先落盘、元数据CAS后激活，失败回滚；取消由ctx传IO。",
-          "idempotency": "本域原回执、代数或不可变引用；不自动创建收费重算。",
-          "dependencies": [
-            "localization.ReadCacheAnswerTranslation",
-            "localization.JSONHandler"
-          ],
-          "resources": [],
-          "contract": "reference"
-        }
-      ]
-    },
-    {
       "path": "modules/localization/internal/language/protocol.go",
       "kind": "handwritten",
       "purpose": "本域权威译文、纯翻译规则、固定字典或平台适配的实际实现。",
@@ -12066,9 +11562,7 @@
           "authorization": "信任已核入口；人工主体、源服务来源与游标稳定身份按所属用例绑定。",
           "concurrency": "固定快照；外部IO后复核水位；未知或变化整次失败，不拼装部分成功。",
           "idempotency": "确定性源模板或只读版本投影，不创建独立收费操作。",
-          "dependencies": [
-            "qa:readCacheTranslationSource"
-          ],
+          "dependencies": [],
           "resources": [],
           "contract": "reference"
         },
@@ -13621,8 +13115,7 @@
   ],
   "jobHandlers": {
     "localization.document": "localization.FetchTranslationSource",
-    "localization.ui": "localization.TranslateInterfaceCatalog",
-    "localization.cache-answer": "localization.TranslateCachedAnswer"
+    "localization.ui": "localization.TranslateInterfaceCatalog"
   },
   "jobTypes": [
     {
@@ -13635,12 +13128,6 @@
       "type": "localization.ui",
       "executor": "localization.TranslateInterfaceCatalog",
       "trigger": "ApproveLanguagePlan与RequestInterfaceTranslation创建",
-      "managementPermission": "localization.manage"
-    },
-    {
-      "type": "localization.cache-answer",
-      "executor": "localization.ExecuteCacheAnswerTranslation",
-      "trigger": "TranslateCachedAnswer创建",
       "managementPermission": "localization.manage"
     }
   ],

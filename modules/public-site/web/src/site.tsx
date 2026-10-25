@@ -106,7 +106,7 @@ function Islands({ header, ask, homeAsk }: { header: HTMLElement | null; ask: HT
       {navUsed && <Suspense fallback={null}><MobileNav open={navOpen} t={t} onOpenChange={setNavOpen} /></Suspense>}
       {config.aiEnabled && !ask && config.kind !== 'home' && <QaFloating documentId={config.documentId || undefined} locale={config.locale} open={askOpen} pageTitle={pageTitle(config)} t={t} onOpenChange={setAskOpen} />}
       {config.aiEnabled && ask && createPortal(<QaInline locale={config.locale} t={t} />, ask)}
-      {config.aiEnabled && homeAsk && createPortal(<QaHome locale={config.locale} t={t} />, homeAsk)}
+      {config.aiEnabled && homeAsk && createPortal(<QaHome locale={config.locale} t={t} welcome={config.welcome} />, homeAsk)}
       {suggested && <LanguageSuggestion config={config} t={t} target={suggested} onClose={() => setSuggested(null)} />}
     </I18nProvider>
   );

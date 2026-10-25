@@ -18,7 +18,6 @@ import (
 	"nice-wiki/libs/platform/modelclient"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
-	cacheanswer "nice-wiki/modules/localization/internal/cache-answer"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/glossary"
 	interfacecatalog "nice-wiki/modules/localization/internal/interface"
@@ -142,7 +141,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	handlers := language.NewLanguageHandlers()
-	for _, additional := range []map[string]http.Handler{language.NewSuggestionPolicyHandlers(), glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), cacheanswer.NewCacheTranslationHandlers(), suggestion.NewPreferenceHandlers(), suggestion.NewSuggestionHandlers()} {
+	for _, additional := range []map[string]http.Handler{language.NewSuggestionPolicyHandlers(), glossary.NewGlossaryHandlers(), translation.NewTranslationHandlers(), interfacecatalog.NewInterfaceHandlers(), suggestion.NewPreferenceHandlers(), suggestion.NewSuggestionHandlers()} {
 		for id, handler := range additional {
 			handlers[id] = handler
 		}
@@ -166,7 +165,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"approveLanguagePlan":  {"portal"},
 			"listLanguages":        {"portal", "public-site"},
 			"putGlossaryTerm":      {"portal"}, "deleteGlossaryTerm": {"portal"}, "listGlossary": {"portal"}, "rollbackAutomaticGlossaryBatch": {"portal"}, "applyApprovedGlossaryProposal": {"memory"},
-			"saveLanguagePreference": {"public-site"}, "suggestLanguage": {"portal"}, "readTranslation": {"public-site", "qa"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"}, "readCacheAnswerTranslation": {"qa"},
+			"saveLanguagePreference": {"public-site"}, "suggestLanguage": {"portal"}, "readTranslation": {"public-site", "qa"}, "listTranslationTitles": {"public-site"}, "listTranslationProgress": {"portal"}, "createTranslation": {"portal"}, "cancelTranslation": {"portal"}, "readTranslationUnits": {"portal"}, "editTranslationUnit": {"portal"}, "setUnitProtection": {"portal"}, "putInterfaceString": {"portal"}, "readInterfaceCatalog": {"portal", "public-site"}, "requestInterfaceTranslation": {"portal"},
 		},
 	}, handlers)
 	if err != nil {

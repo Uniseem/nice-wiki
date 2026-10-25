@@ -46,9 +46,12 @@ var PermissionGroups = map[string][]string{
 	"manage_resources": []string{
 		"media.manage",
 		"media.read",
+		"media.upload",
 	},
 	"manage_site": []string{
 		"site.manage",
+		"media.read",
+		"media.upload",
 	},
 	"manage_translations": []string{
 		"localization.manage",
@@ -139,7 +142,7 @@ var AdminRoutes = []AdminRouteEntry{
 	{Key: "qa", Path: "/admin/qa", Permissions: []string{
 		"qa.manage",
 		"qa.debug",
-	}, LabelZH: "问答", LabelEN: "Q&A", Navigation: true},
+	}, LabelZH: "问答记录", LabelEN: "Q&A records", Navigation: true},
 	{Key: "knowledge", Path: "/admin/knowledge", Permissions: []string{
 		"knowledge.manage",
 	}, LabelZH: "知识索引", LabelEN: "Knowledge", Navigation: true},

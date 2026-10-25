@@ -33,7 +33,8 @@
     ],
     "manage_resources": [
       "media.manage",
-      "media.read"
+      "media.read",
+      "media.upload"
     ],
     "manage_qa": [
       "qa.manage"
@@ -47,7 +48,9 @@
       "memory.manage"
     ],
     "manage_site": [
-      "site.manage"
+      "site.manage",
+      "media.read",
+      "media.upload"
     ],
     "view_stats": [
       "stats.read"
@@ -180,8 +183,8 @@
         "qa.manage",
         "qa.debug"
       ],
-      "labelZH": "问答",
-      "labelEN": "Q&A",
+      "labelZH": "问答记录",
+      "labelEN": "Q&A records",
       "navigation": true
     },
     {

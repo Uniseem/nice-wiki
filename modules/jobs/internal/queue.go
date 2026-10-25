@@ -57,12 +57,13 @@ var jobsWorkTables = [16]string{
 // CreateJobInput 是内部任务提交合同；HTTP层的 dataEpoch 来自可信操作上下文，
 // 不从浏览器请求正文读取。
 type CreateJobInput struct {
-	Owner     string
-	Type      string
-	InputRef  ObjectRef
-	DedupeKey string
-	DataEpoch platform.Identifier
-	NotBefore *time.Time
+	Trigger, TargetLanguage string
+	Owner                   string
+	Type                    string
+	InputRef                ObjectRef
+	DedupeKey               string
+	DataEpoch               platform.Identifier
+	NotBefore               *time.Time
 }
 
 // CreateJobResult 复用生成的成功响应类型，确保 AcceptedJob 与 OpenAPI 一致。
@@ -256,6 +257,12 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 		if existing.InputHash != inputHash {
 			return rollback(platform.NewError(platform.CodeConflict, false, "任务去重键已绑定不同输入"))
 		}
+		// 展示上下文不改变不可变业务输入的幂等身份；旧任务可补充确知的来源。
+		if in.Trigger != "" {
+			if _, err := tx.ExecContext(ctx, `UPDATE jobs SET trigger_event=CASE WHEN trigger_event='' THEN ? ELSE trigger_event END,target_language=CASE WHEN target_language='' THEN ? ELSE target_language END WHERE job_id=?`, in.Trigger, in.TargetLanguage, existing.JobID); err != nil {
+				return rollback(mapQueueDBError(err))
+			}
+		}
 		if err := tx.Commit(); err != nil {
 			return CreateJobResult{}, mapQueueDBError(err)
 		}
@@ -294,6 +301,9 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 		return rollback(mapQueueDBError(err))
 	}
 
+	if _, err := tx.ExecContext(ctx, `UPDATE jobs SET trigger_event=?,target_language=? WHERE job_id=?`, in.Trigger, in.TargetLanguage, jobID); err != nil {
+		return rollback(mapQueueDBError(err))
+	}
 	payload, err := json.Marshal(jobStateChangedPayload{
 		JobID:       jobID,
 		State:       jobStateQueued,
@@ -386,7 +396,7 @@ func NewQueueHandlers() map[string]http.Handler {
 			}
 			result, err := CreateJob(r.Context(), op, CreateJobInput{
 				Owner: input.Owner, Type: input.Type, InputRef: input.InputRef,
-				DedupeKey: input.DedupeKey, DataEpoch: op.DataEpoch, NotBefore: input.NotBefore,
+				DedupeKey: input.DedupeKey, DataEpoch: op.DataEpoch, NotBefore: input.NotBefore, Trigger: jobMetadataText(input.Trigger), TargetLanguage: jobMetadataText(input.TargetLanguage),
 			})
 			writeEventResponse(w, op.RequestID, result, err, http.StatusAccepted)
 		}),
@@ -590,4 +600,11 @@ func FailJob(ctx context.Context, op OperationContext, in FailJobInput) (FailJob
 		return FailJobResult{}, mapQueueDBError(err)
 	}
 	return result, nil
+}
+
+func jobMetadataText(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

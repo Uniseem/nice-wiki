@@ -1,6 +1,6 @@
 # M14 analytics
 
-聚合匿名公开访问、管理操作审计和 model-gateway 费用引用，提供后台统计及导出；实时预算、账本余额仍由 model-gateway 决定。
+按站内随机访客标识统计公开访问，在受权限保护的后台查看 30 天内的访客活动、IP 和设备；同时聚合管理审计和模型费用引用。公开导出不包含访客明细，实时预算、账本余额仍由 model-gateway 决定。
 
 - [需求与边界](docs/requirements.md)
 - [架构与依赖](docs/architecture.md)

@@ -58,13 +58,6 @@
       "managementPermission": "knowledge.manage"
     },
     {
-      "type": "localization.cache-answer",
-      "owner": "localization",
-      "executor": "localization.ExecuteCacheAnswerTranslation",
-      "schedule": null,
-      "managementPermission": "localization.manage"
-    },
-    {
       "type": "localization.document",
       "owner": "localization",
       "executor": "localization.ExecuteTranslation",
@@ -105,13 +98,6 @@
       "executor": "public-site.PrewarmPublication",
       "schedule": null,
       "managementPermission": "content.publish"
-    },
-    {
-      "type": "qa.cache-embedding",
-      "owner": "qa",
-      "executor": "qa.BuildCacheEmbedding",
-      "schedule": null,
-      "managementPermission": "qa.manage"
     },
     {
       "type": "qa.compact",

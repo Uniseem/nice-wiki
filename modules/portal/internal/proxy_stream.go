@@ -661,7 +661,7 @@ func adaptSessionRevocation(response *http.Response) ([]byte, []*http.Cookie, er
 	return []byte(`{"revoked":true}`), cookies, nil
 }
 
-// prepareTrustedBeacon 仅构造内部签名正文，连接地址不进入持久状态或日志。
+// prepareTrustedBeacon 从可信代理链取得地址，从本站签名cookie取得访客标识；不记录正文或地址日志。
 func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *ProxyRuntime) ([]byte, error) {
 	if runtime.ValidateBeaconBody == nil || runtime.SiteID == "" {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "统计入口权威尚未装配")
@@ -684,7 +684,11 @@ func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *Pro
 	if err := json.Unmarshal(runtime.Body, &body); err != nil {
 		return nil, platform.NewError(platform.CodeValidation, false, "统计正文不可读")
 	}
-	body["peerAddress"], body["userAgent"], body["dataEpoch"] = peer, agent, op.DataEpoch
+	visitorID, err := analyticsVisitor(runtime)
+	if err != nil {
+		return nil, err
+	}
+	body["peerAddress"], body["userAgent"], body["dataEpoch"], body["visitorId"] = peer, agent, op.DataEpoch, visitorID
 	encoded, err := platform.CanonicalJSON(body)
 	if err != nil {
 		return nil, err

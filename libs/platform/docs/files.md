@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 41 个：手写 39、生成 1、配置 1。函数 245 个：约束 21，参考 224。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 41 个：手写 39、生成 1、配置 1。函数 241 个：约束 21，参考 220。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -46,4 +46,4 @@
 | `libs/platform/outbox/observation.go` | 手写 | 公共真实在途屏障、固定签名清理或一致完整捕获机制 | `platform.Store.Observe`（参考）、`platform.Store.ObserveTx`（参考）、`platform.Store.Seal`（参考）、`platform.Store.SealTx`（参考）、`platform.Store.Resume`（参考）、`platform.Store.ResumeTx`（参考） |
 | `libs/platform/lifecycle/snapshot_stage_scope.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.SnapshotStageBinding`（参考） |
 | `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
-| `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 | `platform.SealTaskSecret`（参考）、`platform.OpenTaskSecret`（参考）、`platform.taskSecretAAD`（参考）、`platform.taskSecretCipher`（参考） |
+| `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 | 无 |

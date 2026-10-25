@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// IngestBeacon 在内存中去除地址、客户端标识，只把不可跨日关联的白名单行排队。
+// IngestBeacon 只接收可信入口的随机访客标识、地址与设备信息，排入有界内存队列。
 func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput) (IngestBeaconResult, error) {
 	rt, err := runtimeFrom(ctx, op)
 	if err != nil {
@@ -43,8 +43,10 @@ func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput
 		return IngestBeaconResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "可信报表时区未配置")
 	}
 	now := time.Now().UTC()
-	day := now.In(rt.CountingLocation).Format("2006-01-02")
-	token, err := HashDayToken(ctx, op, HashDayTokenInput{PeerAddress: in.PeerAddress, UserAgent: in.UserAgent, Day: day, SiteID: rt.SiteID})
+	if !platform.ValidIdentifier(in.VisitorID) {
+		return IngestBeaconResult{}, platform.NewError(platform.CodeValidation, false, "访客标识不合法")
+	}
+	peer, err := trustedPeer(in.PeerAddress)
 	if err != nil {
 		return IngestBeaconResult{}, err
 	}
@@ -62,6 +64,6 @@ func IngestBeacon(ctx context.Context, op OperationContext, in IngestBeaconInput
 		rt.dropped++
 		return IngestBeaconResult{}, nil
 	}
-	rt.queue = append(rt.queue, beaconRow{ID: in.BeaconID, DocumentID: in.DocumentID, Locale: in.Locale, EventType: in.EventType, Status: in.Status, Bucket: bucket.Bucket, DayHash: token.DayHash, Source: strings.ToLower(in.ReferrerDomain), Country: country.CountryCode, At: now.Format(analyticsTimeLayout), Epoch: rt.Epoch, QueuedAt: now})
+	rt.queue = append(rt.queue, beaconRow{ID: in.BeaconID, DocumentID: in.DocumentID, Locale: in.Locale, EventType: in.EventType, Status: in.Status, Bucket: bucket.Bucket, DayHash: in.VisitorID, VisitorID: in.VisitorID, IP: peer.String(), UserAgent: in.UserAgent, Source: strings.ToLower(in.ReferrerDomain), Country: country.CountryCode, At: now.Format(analyticsTimeLayout), Epoch: rt.Epoch, QueuedAt: now})
 	return IngestBeaconResult{Accepted: true}, nil
 }

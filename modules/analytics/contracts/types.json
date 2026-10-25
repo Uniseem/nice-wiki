@@ -1094,6 +1094,10 @@
         "dataEpoch": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
+        },
+        "visitorId": {
+          "type": "string",
+          "maxLength": 128
         }
       },
       "required": [
@@ -1106,7 +1110,8 @@
         "referrerDomain",
         "peerAddress",
         "userAgent",
-        "dataEpoch"
+        "dataEpoch",
+        "visitorId"
       ]
     },
     "IngestBeaconResult": {
@@ -4198,6 +4203,191 @@
     },
     "ReadJobRecoveryResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
+    },
+    "VisitorSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visitorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "ip": {
+          "type": "string",
+          "maxLength": 45
+        },
+        "userAgent": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "device": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "browser": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "os": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 8
+        },
+        "firstSeen": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastSeen": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "pageViews": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "activities": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "visitorId",
+        "ip",
+        "userAgent",
+        "device",
+        "browser",
+        "os",
+        "country",
+        "firstSeen",
+        "lastSeen",
+        "pageViews",
+        "activities"
+      ]
+    },
+    "VisitorActivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "documentId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 35
+        },
+        "eventType": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "ip": {
+          "type": "string",
+          "maxLength": 45
+        },
+        "userAgent": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "occurredAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "referrerDomain": {
+          "type": "string",
+          "maxLength": 253
+        }
+      },
+      "required": [
+        "id",
+        "documentId",
+        "locale",
+        "eventType",
+        "ip",
+        "userAgent",
+        "occurredAt",
+        "referrerDomain"
+      ]
+    },
+    "ListVisitorsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "visitorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "limit"
+      ]
+    },
+    "ListVisitorsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visitors": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/VisitorSummary"
+          }
+        },
+        "activities": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/VisitorActivity"
+          }
+        },
+        "totalVisitors": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pageViews": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pageInfo": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/PageInfo"
+        }
+      },
+      "required": [
+        "visitors",
+        "activities",
+        "totalVisitors",
+        "pageViews",
+        "pageInfo"
+      ]
     }
   }
 }

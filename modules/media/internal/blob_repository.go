@@ -68,6 +68,7 @@ const (
 // 数据库单连接串行写入；mu 串行化同进程的提交，使“写文件→元数据事务”
 // 不与另一提交交错。所有路径都由受约束的 ID/hash 生成。
 type localBlobStore struct {
+	blobNames                 sync.Map
 	root                      string
 	db                        *sql.DB
 	mu                        sync.Mutex
@@ -243,6 +244,10 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		_ = db.Close()
 		return nil, err
 	}
+	if err := store.migrateLibraryNames(context.Background()); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	return store, nil
 }
 
@@ -345,7 +350,7 @@ func (s *localBlobStore) stagingPath(uploadID Identifier, sha256Hash Hash) strin
 }
 
 func (s *localBlobStore) blobPath(siteID Identifier, sha256Hash Hash) string {
-	return filepath.Join(s.root, "blobs", siteID, sha256Hash[:2], sha256Hash)
+	return filepath.Join(s.root, "blobs", siteID, sha256Hash[:2], s.libraryFileName(siteID, sha256Hash))
 }
 
 func (s *localBlobStore) isolatedPath(prefix, uploadID Identifier, sha256Hash Hash) string {
@@ -679,11 +684,12 @@ func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, op OperationCon
 	if err := appendJournal(prepare, s.db, blobJournalPrepared, op.Actor.SiteID, input.UploadID, input.SHA256, ""); err != nil {
 		return gen.Asset{}, err
 	}
+	s.blobNames.LoadOrStore(op.Actor.SiteID+"/"+input.SHA256, libraryName(input.SHA256, record.session.OriginalName, input.MediaType))
 	finalPath := s.blobPath(op.Actor.SiteID, input.SHA256)
 	if err := ensureMediaDirectory(filepath.Dir(finalPath)); err != nil {
 		return gen.Asset{}, err
 	}
-	finalName := "blobs/" + op.Actor.SiteID + "/" + input.SHA256[:2] + "/" + input.SHA256
+	finalName := "blobs/" + op.Actor.SiteID + "/" + input.SHA256[:2] + "/" + s.libraryFileName(op.Actor.SiteID, input.SHA256)
 	finalInfo, err := root.Lstat(finalName)
 	if err == nil {
 		if !finalInfo.Mode().IsRegular() {

@@ -3,7 +3,6 @@ package admin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/qa/internal/gen"
@@ -38,6 +37,7 @@ type CitationStatus struct {
 	Valid bool         `json:"valid"`
 }
 type ReadTurnRecordResult struct {
+	Sources          []gen.Citation   `json:"sources"`
 	TurnID           string           `json:"turnId"`
 	Question         string           `json:"question"`
 	Answer           string           `json:"answer"`
@@ -75,7 +75,7 @@ func ListTurnRecords(ctx context.Context, op OperationContext, input ListTurnRec
 			return ListTurnRecordsResult{}, platform.NewError(platform.CodeValidation, false, "记录分页游标不合法")
 		}
 	}
-	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT t.turn_id,t.question,t.answer_kind,COALESCE(f.value,''),t.created_at FROM turns t LEFT JOIN feedback f ON f.turn_id=t.turn_id AND f.visitor_subject=t.visitor_subject WHERE t.site_id=? AND t.data_epoch=? AND t.redacted=0 AND (?='' OR t.created_at<? OR (t.created_at=? AND t.turn_id<?)) AND (?='' OR t.language=?) AND (?='all' OR (?='no_evidence' AND t.answer_kind='no_evidence') OR (?='unhelpful' AND f.value='unhelpful') OR (?='failed' AND t.state='failed') OR (?='cached' AND t.answer_kind='cached')) ORDER BY t.created_at DESC, t.turn_id DESC LIMIT ?`, op.Actor.SiteID, op.DataEpoch, after.CreatedAt, after.CreatedAt, after.CreatedAt, after.TurnID, input.Language, input.Language, input.Filter, input.Filter, input.Filter, input.Filter, input.Filter, input.Page.Limit+1)
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT t.turn_id,t.question,t.answer_kind,COALESCE(f.value,''),t.created_at FROM turns t LEFT JOIN feedback f ON f.turn_id=t.turn_id AND f.visitor_subject=t.visitor_subject WHERE t.site_id=? AND t.data_epoch=? AND t.redacted=0 AND (?='' OR t.created_at<? OR (t.created_at=? AND t.turn_id<?)) AND (?='' OR t.language=?) AND (?='all' OR (?='no_evidence' AND t.answer_kind='no_evidence') OR (?='unhelpful' AND f.value='unhelpful') OR (?='failed' AND t.state='failed')) ORDER BY t.created_at DESC, t.turn_id DESC LIMIT ?`, op.Actor.SiteID, op.DataEpoch, after.CreatedAt, after.CreatedAt, after.CreatedAt, after.TurnID, input.Language, input.Language, input.Filter, input.Filter, input.Filter, input.Filter, input.Page.Limit+1)
 	if err != nil {
 		return ListTurnRecordsResult{}, qaruntime.StorageError(err)
 	}
@@ -122,19 +122,9 @@ func ReadTurnRecord(ctx context.Context, op OperationContext, input ReadTurnReco
 		return ReadTurnRecordResult{}, err
 	}
 	result := ReadTurnRecordResult{TurnID: input.TurnID, Question: record.Question, Answer: record.Answer, Citations: make([]gen.BlockRef, 0, len(record.Citations)), AnswerKind: record.AnswerKind, CitationStatuses: make([]CitationStatus, 0, len(record.Citations))}
+	result.Sources = record.Citations
 	for _, citation := range record.Citations {
-		valid := true
-		_, err := qaruntime.ValidateCitations(ctx, op, []gen.Citation{citation}, record.Language)
-		if err != nil {
-			var failure *platform.Error
-			if errors.As(err, &failure) && (failure.Code == platform.CodeNotFound || failure.Code == platform.CodeGone || failure.Code == platform.CodeStaleResult) {
-				valid = false
-			} else {
-				return ReadTurnRecordResult{}, err
-			}
-		}
 		result.Citations = append(result.Citations, citation.Block)
-		result.CitationStatuses = append(result.CitationStatuses, CitationStatus{Block: citation.Block, Valid: valid})
 	}
 	// 不返回访客标识、IP、准入token或模型请求体。
 	return result, nil

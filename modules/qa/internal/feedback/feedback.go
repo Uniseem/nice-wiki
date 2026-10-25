@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"
-	"nice-wiki/modules/qa/internal/cache"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
@@ -45,40 +44,6 @@ func RecordFeedback(ctx context.Context, op OperationContext, input RecordFeedba
 	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO feedback(turn_id,visitor_subject,answer_revision,value,version) VALUES(?,?,?,?,?) ON CONFLICT(turn_id,visitor_subject) DO UPDATE SET answer_revision=excluded.answer_revision,value=excluded.value,version=excluded.version`, input.TurnId, op.Actor.SubjectID, input.AnswerRevision, input.Value, version)
 	if err != nil {
 		return result, qaruntime.StorageError(err)
-	}
-	if string(input.Value) == "unhelpful" {
-		rows, err := tx.Tx.QueryContext(tx.Context, `SELECT cache_id FROM answer_cache WHERE source_turn_id=? AND curated=0 AND state='active' AND site_id=? AND data_epoch=?`, input.TurnId, op.Actor.SiteID, op.DataEpoch)
-		if err != nil {
-			return result, qaruntime.StorageError(err)
-		}
-		ids := make([]string, 0)
-		for rows.Next() {
-			var id string
-			if err := rows.Scan(&id); err != nil {
-				rows.Close()
-				return result, qaruntime.StorageError(err)
-			}
-			ids = append(ids, id)
-		}
-		err = rows.Err()
-		rows.Close()
-		if err != nil {
-			return result, qaruntime.StorageError(err)
-		}
-		for _, id := range ids {
-			cached, err := cache.ReadCache(tx, op, id)
-			if err != nil {
-				return result, err
-			}
-			cached.Entry.Version++
-			cached.Entry.State = gen.CacheEntryState("stale")
-			if err := cache.SaveCache(tx, op, cached); err != nil {
-				return result, err
-			}
-			if err := cache.EmitCacheInvalidated(tx, op, cached.Entry, "unhelpful"); err != nil {
-				return result, err
-			}
-		}
 	}
 	payload, _ := json.Marshal(struct {
 		TurnID          string `json:"turnId"`

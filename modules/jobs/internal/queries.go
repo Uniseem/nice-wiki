@@ -26,6 +26,9 @@ type JobProgressSummary struct {
 	TotalUnits     int64  `json:"totalUnits"`
 }
 type JobSummary struct {
+	Trigger         string              `json:"trigger,omitempty"`
+	TargetLanguage  string              `json:"targetLanguage,omitempty"`
+	CreatedAt       string              `json:"createdAt,omitempty"`
 	JobID           string              `json:"jobId"`
 	OperationID     string              `json:"operationId"`
 	RootOperationID *string             `json:"rootOperationId"`
@@ -233,9 +236,9 @@ func listJobBatch(ctx context.Context, op OperationContext, input ListJobsInput,
 		return nil, err
 	}
 	defer work.close()
-	rows, err := work.tx.QueryContext(ctx, `SELECT job_id FROM jobs WHERE data_epoch=? AND job_id>? AND (?='' OR owner=?)
-        AND (?='all' OR state=? OR (?='active' AND state IN ('queued','leased','running','retry-wait','cancel-requested','orphan')))
-        ORDER BY job_id LIMIT 100`, op.DataEpoch, after, input.Owner, input.Owner, input.State, input.State, input.State)
+	rows, err := work.tx.QueryContext(ctx, `SELECT job_id FROM jobs WHERE data_epoch=? AND (?='' OR (created_at,job_id)<((SELECT created_at FROM jobs WHERE job_id=? AND data_epoch=?),?)) AND (?='' OR owner=?)
+        AND (?='all' OR state=? OR (?='active' AND state IN ('queued','leased','running','retry-wait','cancel-requested','orphan')) OR (?='failed' AND state IN ('retry-wait','dead-letter','orphan')))
+        ORDER BY created_at DESC,job_id DESC LIMIT 100`, op.DataEpoch, after, after, op.DataEpoch, after, input.Owner, input.Owner, input.State, input.State, input.State, input.State)
 	if err != nil {
 		return nil, mapQueueDBError(err)
 	}
@@ -331,8 +334,8 @@ func filterManagementBatch(ctx context.Context, op OperationContext, batch []man
 func readJobSummary(ctx context.Context, work *leaseOperation, jobID string) (JobSummary, error) {
 	var result JobSummary
 	var root string
-	err := work.tx.QueryRowContext(ctx, `SELECT job_id,operation_id,root_operation_id,owner,type,state,revision,attempt,last_error_code
-        FROM jobs WHERE job_id=? AND data_epoch=?`, jobID, work.runtime.Runtime.DataEpoch).Scan(&result.JobID, &result.OperationID, &root, &result.Owner, &result.Type, &result.State, &result.Revision, &result.Attempt, &result.LastErrorCode)
+	err := work.tx.QueryRowContext(ctx, `SELECT job_id,operation_id,root_operation_id,owner,type,state,revision,attempt,last_error_code,trigger_event,target_language,created_at
+        FROM jobs WHERE job_id=? AND data_epoch=?`, jobID, work.runtime.Runtime.DataEpoch).Scan(&result.JobID, &result.OperationID, &root, &result.Owner, &result.Type, &result.State, &result.Revision, &result.Attempt, &result.LastErrorCode, &result.Trigger, &result.TargetLanguage, &result.CreatedAt)
 	if err != nil {
 		return JobSummary{}, mapQueueDBError(err)
 	}

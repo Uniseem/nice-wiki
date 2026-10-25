@@ -545,6 +545,8 @@ export interface components {
             action: string;
             /** @description visitorToken；UTF-8；不得为 null */
             visitorToken: string;
+            /** @description portal从可信代理链取得的连接IP，访客无权指定 */
+            ip: string;
         };
         /** @description 延长活跃并发租约成功结果；失败不返回半成功结果 */
         RenewPermitResult: {
@@ -676,17 +678,8 @@ export interface components {
             /** @description revision 非负 int64；不用浮点数 */
             revision: components["schemas"]["Revision"];
         };
-        /** @description SHA-256 小写十六进制 */
-        Hash: string;
         /** @description 指定匿名主体引用及动作 scope，禁止提交原始 IP；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateBanRequestBody: {
-            /** @description 已经存在的不可逆网络引用，不接受原始IP。 */
-            subjectRef: components["schemas"]["Hash"];
-            /**
-             * @description scope；UTF-8；不得为 null
-             * @enum {string}
-             */
-            scope: "ai";
             /** @description ttlSeconds 非负 int64；不用浮点数 */
             ttlSeconds: number;
             /**
@@ -694,7 +687,11 @@ export interface components {
              * @enum {string}
              */
             reasonCode: "manual" | "abuse";
+            /** @description 要封禁的单个IPv4或IPv6地址，不接受CIDR；服务端规范化 */
+            ip: string;
         };
+        /** @description SHA-256 小写十六进制 */
+        Hash: string;
         BanRecord: {
             banId: components["schemas"]["Identifier"];
             subjectRef: components["schemas"]["Hash"];
@@ -707,6 +704,8 @@ export interface components {
             /** @enum {unknown} */
             state: "active" | "expired" | "revoked";
             revision: components["schemas"]["Revision"];
+            /** @description 当前记录的IP；旧网络记录无法还原时为空 */
+            ip?: string;
         };
         /** @description 分页禁令成功结果；失败不返回半成功结果 */
         ListBansResult: {
@@ -1058,6 +1057,7 @@ export interface components {
                 networkKey: string;
                 /** @description 时间 */
                 occurredAt: components["schemas"]["Timestamp"];
+                ip?: string;
             }[];
             /** @description 分页信息 */
             pageInfo: components["schemas"]["PageInfo"];

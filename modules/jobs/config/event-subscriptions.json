@@ -2,12 +2,6 @@
   "version": 1,
   "subscriptions": [
     {
-      "event": "cache-answer.translated",
-      "version": 1,
-      "consumer": "qa",
-      "handler": "qa.StoreLocalizedCacheAnswer"
-    },
-    {
       "event": "content.publication.changed",
       "version": 1,
       "consumer": "data-protection",
@@ -38,12 +32,6 @@
       "handler": "public-site.InvalidatePublication"
     },
     {
-      "event": "content.publication.changed",
-      "version": 1,
-      "consumer": "qa",
-      "handler": "qa.InvalidateCache"
-    },
-    {
       "event": "content.publication.withdrawn",
       "version": 1,
       "consumer": "knowledge",
@@ -60,12 +48,6 @@
       "version": 1,
       "consumer": "public-site",
       "handler": "public-site.InvalidatePublication"
-    },
-    {
-      "event": "content.publication.withdrawn",
-      "version": 1,
-      "consumer": "qa",
-      "handler": "qa.InvalidateCache"
     },
     {
       "event": "content.resources.changed",
@@ -92,12 +74,6 @@
       "handler": "traffic-guard.ConsumeIdentityEvent"
     },
     {
-      "event": "index.retired",
-      "version": 1,
-      "consumer": "qa",
-      "handler": "qa.InvalidateCache"
-    },
-    {
       "event": "invocation.reconciled",
       "version": 1,
       "consumer": "analytics",
@@ -114,12 +90,6 @@
       "version": 1,
       "consumer": "data-protection",
       "handler": "data-protection.ConsumeBarrierEvent"
-    },
-    {
-      "event": "memory.context.changed",
-      "version": 1,
-      "consumer": "qa",
-      "handler": "qa.InvalidateCache"
     },
     {
       "event": "qa.turn.completed",

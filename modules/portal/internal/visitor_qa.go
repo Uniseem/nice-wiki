@@ -100,7 +100,11 @@ func createAdmission(ctx context.Context, op OperationContext, runtime *ProxyRun
 	if base == "" {
 		return platform.AdmissionPermit{}, platform.NewError(platform.CodeDependencyUnavailable, true, "风控服务地址未配置")
 	}
-	raw, _ := json.Marshal(map[string]string{"requestId": op.RootOperationID, "action": action, "visitorToken": visitorToken})
+	peer, err := serviceauth.ResolveVisitorAddress(runtime.Request.RemoteAddr, strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs)
+	if err != nil {
+		return platform.AdmissionPermit{}, err
+	}
+	raw, _ := json.Marshal(map[string]string{"requestId": op.RootOperationID, "action": action, "visitorToken": visitorToken, "ip": peer})
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/v1/admissions", bytes.NewReader(raw))
 	if err != nil {
 		return platform.AdmissionPermit{}, platform.NewError(platform.CodeInternal, false, "准入请求构造失败")

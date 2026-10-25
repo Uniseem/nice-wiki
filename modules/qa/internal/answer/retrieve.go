@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"nice-wiki/libs/platform"
-	"nice-wiki/modules/qa/internal/cache"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
@@ -58,7 +57,7 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 	}
 	embedding := input.Embedding
 	if embedding == nil {
-		created, err := cache.AcquireQueryEmbedding(ctx, op, cache.AcquireQueryEmbeddingInput{CanonicalQuestion: input.Normalized, Space: input.Policy.RetrievalSpace})
+		created, err := AcquireQueryEmbedding(ctx, op, AcquireQueryEmbeddingInput{CanonicalQuestion: input.Normalized, Space: input.Policy.RetrievalSpace})
 		if err != nil {
 			return RetrieveEvidenceResult{}, err
 		}

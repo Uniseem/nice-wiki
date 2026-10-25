@@ -17,7 +17,7 @@
 | DELETE `/v1/uploads/{uploadId}` | `abortUpload` | `media.AbortUpload` | `media.upload` | `abortUploadRequest` → 200 `AbortUploadResult` | 取消未完成上传释放配额 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT` |
 | PUT `/v1/uploads/{uploadId}/chunks` | `putUploadChunk` | `media.PutUploadChunk` | `media.upload` | `application/octet-stream` → 200 `PutUploadChunkResult` | 顺序原子写有界上传块 | `VALIDATION`、`CONFLICT`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`BUDGET_EXCEEDED` |
 | POST `/v1/uploads/{uploadId}:complete` | `completeUpload` | `media.CompleteUpload` | `media.upload` | `completeUploadRequest` → 200 `CompleteUploadResult` | 完成hash/MIME验证后发布ready资源 | `VALIDATION`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_SCHEMA`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |
-| GET `/v1/assets` | `listAssets` | `media.ListAssets` | `media.manage` | `—` → 200 `ListAssetsResult` | 资源库按类别列安全元数据，引用详情独立读取 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/assets` | `listAssets` | `media.ListAssets` | `media.read` | `—` → 200 `ListAssetsResult` | 资源库按类别列安全元数据，引用详情独立读取 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/assets/{assetId}` | `readAsset` | `media.ReadAsset` | `media.read` | `—` → 200 `ReadAssetResult` | 读取资源/variants安全元数据 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 | PUT `/v1/assets/{assetId}/variants` | `attachImageVariants` | `media.AttachImageVariants` | `media.upload` | `attachImageVariantsRequest` → 200 `AttachImageVariantsResult` | 关联浏览器多宽WebP原图 | `VALIDATION`、`FORBIDDEN`、`VERSION_MISMATCH`、`INTEGRITY_ERROR` |
 | POST `/v1/references:acquire` | `acquireResourceReferences` | `media.AcquireResourceReferences` | `service` | `AcquireResourceReferencesInput` → 200 `AcquireResourceReferencesResult` | 正文/config提交前保护资源迟到引用 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
@@ -39,5 +39,9 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `media.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `media.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/jobs/{jobId}/recovery` | `readJobRecovery` | `media.ReadJobRecovery` | `service` | `ReadJobRecoveryInput` → 200 `ReadJobRecoveryResult` | 读取原资源清理任务恢复证明 | `HTTP default` |
+| GET `/v1/asset-groups` | `listAssetGroups` | `media.ListAssetGroups` | `media.read` | `—` → 200 `ListAssetGroupsResult` | 读取资源分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
+| POST `/v1/asset-groups` | `createAssetGroup` | `media.CreateAssetGroup` | `media.manage` | `CreateAssetGroupInput` → 200 `CreateAssetGroupResult` | 新建资源分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
+| DELETE `/v1/asset-groups/{groupId}` | `deleteAssetGroup` | `media.DeleteAssetGroup` | `media.manage` | `—` → 200 `DeleteAssetGroupResult` | 删除分组并保留资源 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
+| PUT `/v1/assets/{assetId}/group` | `setAssetGroup` | `media.SetAssetGroup` | `media.manage` | `SetAssetGroupInput` → 200 `SetAssetGroupResult` | 移动资源到分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 <!-- openapi:end -->
 

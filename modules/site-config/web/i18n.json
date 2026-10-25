@@ -1406,5 +1406,37 @@
   "th": "หน้าหลักคงที่ในหนึ่งหน้าจอ บทสนทนาเลื่อนภายในกรอบ ปุ่มเปิดเอกสารที่เผยแพร่หน้าแรก",
   "id": "Beranda tetap satu layar dan percakapan bergulir di dalam kotak. Tombol membuka halaman terbit pertama.",
   "ar": "الصفحة الرئيسية ثابتة في شاشة واحدة، ويكون التمرير داخل المحادثة. يفتح الزر أول صفحة منشورة."
+ },
+ "从图片库选择": {
+  "zh-Hant": "從圖片庫選擇",
+  "en": "Choose from image library",
+  "ja": "画像ライブラリから選択",
+  "ko": "이미지 라이브러리에서 선택",
+  "fr": "Choisir dans la bibliothèque d’images",
+  "de": "Aus der Bildbibliothek wählen",
+  "es": "Elegir de la biblioteca de imágenes",
+  "pt": "Escolher da biblioteca de imagens",
+  "ru": "Выбрать из библиотеки изображений",
+  "it": "Scegli dalla libreria immagini",
+  "vi": "Chọn từ thư viện ảnh",
+  "th": "เลือกจากคลังรูปภาพ",
+  "id": "Pilih dari pustaka gambar",
+  "ar": "اختيار من مكتبة الصور"
+ },
+ "已更新": {
+  "zh-Hant": "已更新",
+  "en": "Updated",
+  "ja": "更新済み",
+  "ko": "업데이트됨",
+  "fr": "Mis à jour",
+  "de": "Aktualisiert",
+  "es": "Actualizado",
+  "pt": "Atualizado",
+  "ru": "Обновлено",
+  "it": "Aggiornato",
+  "vi": "Đã cập nhật",
+  "th": "อัปเดตแล้ว",
+  "id": "Diperbarui",
+  "ar": "تم التحديث"
  }
 }

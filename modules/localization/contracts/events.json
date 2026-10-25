@@ -87,18 +87,6 @@
       "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
     },
     {
-      "name": "cache-answer.translated",
-      "version": 1,
-      "direction": "publish",
-      "payloadSchema": {
-        "$ref": "./types.json#/$defs/EventCacheAnswerTranslatedPayload"
-      },
-      "purpose": "发布cache-answer.translated对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
-      "delivery": "at-least-once",
-      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
-      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
-    },
-    {
       "name": "content.publication.changed",
       "version": 1,
       "direction": "consume",

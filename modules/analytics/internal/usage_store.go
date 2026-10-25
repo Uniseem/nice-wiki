@@ -64,8 +64,8 @@ func ProjectUsageTx(ctx context.Context, op OperationContext, tx *sql.Tx, in Usa
 	if site != rt.SiteID || epoch != rt.Epoch {
 		return ProjectUsageResult{}, platform.NewError(platform.CodeVersionMismatch, false, "费用投影持久站点或代次已变化")
 	}
-	if schema != 6 {
-		return ProjectUsageResult{}, platform.NewError(platform.CodeUnsupportedSchema, false, "完整费用投影要求schemaVersion6")
+	if schema != 7 {
+		return ProjectUsageResult{}, platform.NewError(platform.CodeUnsupportedSchema, false, "完整费用投影要求schemaVersion7")
 	}
 	result := ProjectUsageResult{}
 	var newest int64

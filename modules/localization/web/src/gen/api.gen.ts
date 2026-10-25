@@ -288,26 +288,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/cache-answer-translations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 接受QA精选翻译命令
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        post: operations["translateCachedAnswer"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/barriers": {
         parameters: {
             query?: never;
@@ -382,26 +362,6 @@ export interface paths {
          * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 localization.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
          */
         post: operations["rollbackAutomaticGlossaryBatch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/cache-answer-translations/{translationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 读取已完成的自动缓存翻译
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        get: operations["readCacheAnswerTranslation"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1655,52 +1615,6 @@ export interface components {
             /** @description 已拒建议 */
             previouslyRejected: boolean;
         };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        CacheAnswerTranslation: {
-            /** @description 译文 */
-            translationId: components["schemas"]["Identifier"];
-            /** @description QA精选ID */
-            cacheId: components["schemas"]["Identifier"];
-            /** @description 源答案版本 */
-            answerRevision: number;
-            /** @description 源回答hash */
-            sourceHash: components["schemas"]["Hash"];
-            /** @description 目标语言 */
-            targetLanguage: string;
-            /** @description 问题译文 */
-            translatedQuestion: string;
-            /** @description 回答译文 */
-            translatedAnswer: string;
-            /**
-             * @description 状态
-             * @enum {string}
-             */
-            state: "queued" | "running" | "ready" | "failed" | "cancelled" | "superseded";
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        TranslateCachedAnswerResult: {
-            /** @description queued译文 */
-            translation: components["schemas"]["CacheAnswerTranslation"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        TranslateCachedAnswerInput: {
-            /** @description active普通自动缓存或精选缓存，非仅人工精选 */
-            cacheId: components["schemas"]["Identifier"];
-            /** @description 源版本 */
-            answerRevision: number;
-            /** @description 源 */
-            sourceLanguage: string;
-            /** @description 目标 */
-            targetLanguage: string;
-            /** @description 公开问题 */
-            question: string;
-            /** @description 公开回答 */
-            answer: string;
-            /** @description 问题回答规范hash */
-            sourceHash: components["schemas"]["Hash"];
-            /** @description 幂等键 */
-            idempotencyKey: string;
-        };
         /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
         SnapshotWorkState: {
             outboxRevision: number;
@@ -1846,11 +1760,6 @@ export interface components {
             expectedGeneration: number;
             /** @description 键 */
             idempotencyKey: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        ReadCacheAnswerTranslationResult: {
-            /** @description ready公开译文 */
-            translation: components["schemas"]["CacheAnswerTranslation"];
         };
         /** @description 服务版本、存活/就绪与能力状态，输出脱敏说明 */
         HealthStatus: {
@@ -3922,98 +3831,6 @@ export interface operations {
             };
         };
     };
-    translateCachedAnswer: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
-                "Idempotency-Key"?: string;
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TranslateCachedAnswerInput"];
-            };
-        };
-        responses: {
-            /** @description 接受QA精选翻译命令成功；202仅accepted，不保证模型完成或收费已结算。 */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TranslateCachedAnswerResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 幂等键不同请求、状态迁移或唯一约束冲突，返回原状态证据。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 内容hash、向量空间、证据、插值或不可变记录不一致；隔离结果。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     acquireBarrier: {
         parameters: {
             query?: never;
@@ -4342,98 +4159,6 @@ export interface operations {
                 };
             };
             /** @description expectedVersion/expectedRevision不等于当前版本，旧结果不写入。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    readCacheAnswerTranslation: {
-        parameters: {
-            query: {
-                /** @description QA所见源版本 */
-                expectedAnswerRevision: number;
-            };
-            header: {
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path: {
-                /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
-                translationId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 读取已完成的自动缓存翻译成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReadCacheAnswerTranslationResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description dataEpoch、源修订、人工代数、租约或上下文版本已失效；结果丢弃不覆盖。 */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -47,6 +47,7 @@ func writeLoginResponse(w http.ResponseWriter, requestID Identifier, result any,
 }
 
 type HandleAdmissionInput struct {
+	IP           string `json:"ip"`
 	RequestID    string `json:"requestId"`
 	Action       string `json:"action"`
 	VisitorToken string `json:"visitorToken"`
@@ -79,12 +80,19 @@ func HandleAdmission(ctx context.Context, op OperationContext, in HandleAdmissio
 	if err != nil {
 		return HandleAdmissionResult{}, err
 	}
+	ip, err := bindAdmissionIP(ctx, op, subject.SubjectKey, in.IP)
+	if err != nil {
+		return HandleAdmissionResult{}, err
+	}
 	evaluated, err := EvaluateAdmission(ctx, op, EvaluateAdmissionInput{RequestID: in.RequestID, SubjectKey: subject.SubjectKey, Action: in.Action, DataEpoch: op.DataEpoch})
 	if err != nil {
 		return HandleAdmissionResult{}, err
 	}
 	switch evaluated.Decision {
 	case "allow":
+		if err := storeAdmissionIP(ctx, op, evaluated.Permit.AdmissionID, ip); err != nil {
+			return HandleAdmissionResult{}, err
+		}
 		return HandleAdmissionResult{Permit: *evaluated.Permit}, nil
 	case "challenge":
 		return HandleAdmissionResult{}, platform.NewError(platform.CodeChallengeRequired, false, "请先完成既有人机验证")
