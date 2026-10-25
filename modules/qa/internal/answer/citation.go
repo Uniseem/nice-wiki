@@ -10,7 +10,7 @@ import (
 )
 
 var citationSpelling = regexp.MustCompile(`(?i)\bcitation[.:]([0-9a-f]{8,64})\b`)
-var citationMarker = regexp.MustCompile(`\[\[(citation\.[0-9a-f]{8,64})\]\]`)
+var citationMarker = regexp.MustCompile(`(?i)\[\[(citation[.:][a-z0-9_.:-]{1,256})\]\]`)
 
 // normalizeCitationSpelling 只修正分隔符与大小写；来源仍须精确匹配本轮引用白名单，不猜测或补齐ID。
 func normalizeCitationSpelling(text string) string {

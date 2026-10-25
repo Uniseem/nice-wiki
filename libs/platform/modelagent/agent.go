@@ -21,6 +21,7 @@ type Config struct {
 	MaximumToolCalls       int
 	MaximumInputTokens     int
 	MaximumToolResultBytes int
+	CompactToolResult      func(string, int) string
 	DisableTools           bool
 	Invoke                 func(context.Context, int, []platform.GatewayMessage, string) (platform.ModelOutput, error)
 	Execute                func(context.Context, platform.GatewayToolCall, int) (ToolResult, error)
@@ -66,7 +67,7 @@ func Run(ctx context.Context, config Config) (Result, error) {
 		if config.DisableTools || stop || round == config.MaximumRounds || result.ToolCalls >= config.MaximumToolCalls {
 			choice = "none"
 		}
-		messages, err := fitMessages(result.Messages, config.Tools, config.MaximumInputTokens)
+		messages, err := fitMessages(result.Messages, config.Tools, config.MaximumInputTokens, config.CompactToolResult)
 		if err != nil {
 			return result, err
 		}
@@ -162,12 +163,25 @@ func Run(ctx context.Context, config Config) (Result, error) {
 	return result, platform.NewError(platform.CodeBudgetExceeded, false, "agent查阅未在本轮执行边界内完成")
 }
 
-// fitMessages 只在实际窗口不足时移出旧工具正文，保留调用与结果身份，模型可按原参数重读。
-func fitMessages(messages []platform.GatewayMessage, tools []platform.GatewayTool, maximum int) ([]platform.GatewayMessage, error) {
+// fitMessages 窗口不足时先由调用方保留有界的事实节选，再移出仍放不下的旧正文；原始消息不改写。
+func fitMessages(messages []platform.GatewayMessage, tools []platform.GatewayTool, maximum int, compact func(string, int) string) ([]platform.GatewayMessage, error) {
 	result := append([]platform.GatewayMessage{}, messages...)
 	raw, _ := json.Marshal(tools)
 	budget := maximum - platform.EstimateInputTokens(len(raw), 1) - 256
 	estimate := func() int { return platform.EstimateMessageTokens(result) }
+	if compact != nil && estimate() > budget {
+		for maximum := 2048; maximum >= 512 && estimate() > budget; maximum /= 2 {
+			for index := 0; index < len(result)-1 && estimate() > budget; index++ {
+				if result[index].Role != "tool" {
+					continue
+				}
+				shortened := compact(result[index].Content, maximum)
+				if len(shortened) > 0 && len(shortened) <= maximum && len(shortened) < len(result[index].Content) {
+					result[index].Content = shortened
+				}
+			}
+		}
+	}
 	for index := 0; index < len(result)-1 && (estimate() > budget || len(result) > 250); index++ {
 		if result[index].Role == "tool" {
 			result[index].Content = `{"contextEvicted":true,"message":"旧工具正文已移出模型窗口，需要时按此前参数重新读取；不能把移出当作没有内容。"}`

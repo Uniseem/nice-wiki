@@ -71,6 +71,37 @@ func TestOversizedToolBatchCanBeSplitWithoutExecutingIt(t *testing.T) {
 	}
 }
 
+func TestAgentRetainsCompactedFactBeforeEvictingOldResult(t *testing.T) {
+	config := agentTestConfig()
+	config.MaximumInputTokens = 5200
+	full := strings.Repeat("原始资料", 500)
+	config.Execute = func(context.Context, platform.GatewayToolCall, int) (ToolResult, error) {
+		return ToolResult{Content: full}, nil
+	}
+	sizes := []int{}
+	config.CompactToolResult = func(_ string, maximum int) string {
+		sizes = append(sizes, maximum)
+		content := `{"contextCompacted":true,"fact":"先进入维护状态","citationId":"first-source"}`
+		return content + strings.Repeat(" ", maximum-len(content))
+	}
+	config.Invoke = func(_ context.Context, round int, messages []platform.GatewayMessage, _ string) (platform.ModelOutput, error) {
+		if round == 0 {
+			return platform.ModelOutput{FinishReason: "tool_calls", ToolCalls: []platform.GatewayToolCall{{ID: "first", Name: "read_document", Arguments: `{"documentId":"first"}`}, {ID: "last", Name: "read_document", Arguments: `{"documentId":"last"}`}}}, nil
+		}
+		if !strings.Contains(messages[3].Content, "先进入维护状态") || !strings.Contains(messages[3].Content, "first-source") || messages[4].Content != full {
+			t.Fatal("窗口整理没有保留早期条件及最新正文")
+		}
+		return agentFinal("有依据的答案"), nil
+	}
+	result, err := Run(context.Background(), config)
+	if err != nil || result.Messages[3].Content != full {
+		t.Fatalf("原始工具过程被改写或运行失败：%v", err)
+	}
+	if len(sizes) < 2 || sizes[0] != 2048 || sizes[1] != 1024 {
+		t.Fatal("没有在移出之前进一步缩短旧正文节选")
+	}
+}
+
 func TestAgentStopsOnCancellationAndUnknownTools(t *testing.T) {
 	for _, unknown := range []bool{false, true} {
 		config := agentTestConfig()
