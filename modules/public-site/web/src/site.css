@@ -401,10 +401,12 @@ body[data-page="doc"] .nw-document { animation: nw-enter .45s cubic-bezier(.2,.8
 .nw-qa-topics span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 480px) { .nw-qa-starters { flex-direction: column; align-items: center; } .nw-qa-topics { grid-template-columns: 1fr; gap: 0; } .nw-qa-topics span { white-space: normal; } }
 
-.nw-qa-composer { padding: .65rem; border-radius: .375rem; background: transparent; transition: border-color .2s; }
-.nw-qa-composer textarea { font-family: var(--font-sans); font-size: 1rem; line-height: 1.75; background: transparent; box-shadow: none; }
-.nw-qa-composer .button { border-radius: .25rem; }
-.nw-qa-page .nw-qa-composer { min-height: 7rem; padding: 1rem 1.125rem; }
+.nw-qa-composer { --nw-input-line: 1.625rem; --nw-input-button: 2rem; --nw-input-padding: .4375rem; height: calc(max(var(--nw-input-height, var(--nw-input-line)), var(--nw-input-button)) + var(--nw-input-padding) * 2 + 2px); padding: var(--nw-input-padding) .625rem; border-radius: 1.75rem; background: transparent; transition: height .26s cubic-bezier(.22,.8,.22,1), border-color .2s; }
+.nw-qa-input textarea { display: block; width: 100%; min-height: 0; max-height: none; height: var(--nw-input-height, var(--nw-input-line)); padding: 0 .375rem; font-family: var(--font-sans); font-size: 1rem; line-height: var(--nw-input-line); letter-spacing: normal; background: transparent; box-shadow: none; overflow-y: hidden; transition: height .26s cubic-bezier(.22,.8,.22,1); }
+.nw-qa-input .nw-qa-input-field[data-overflow="true"] { overflow-y: auto; }
+.nw-qa-input .nw-qa-input-measure { position: absolute; inset-inline: 0; top: 0; height: 0; visibility: hidden; pointer-events: none; overflow: hidden; transition: none; }
+.nw-qa-composer .button { flex-shrink: 0; align-self: center; width: var(--nw-input-button); min-width: var(--nw-input-button); height: var(--nw-input-button); border-radius: 50%; }
+.nw-qa-page .nw-qa-composer { --nw-input-line: 1.75rem; --nw-input-button: 2.25rem; --nw-input-padding: .5625rem; }
 .nw-qa-page .nw-qa-composer textarea { font-size: 1.125rem; }
 .nw-qa-tool-summary .nw-qa-tool-chevron { opacity: 0; }
 .nw-qa-tool-summary:is(:hover, :focus-visible, [aria-expanded="true"]) .nw-qa-tool-chevron { opacity: 1; }
@@ -421,7 +423,6 @@ body[data-page="doc"] .nw-document { animation: nw-enter .45s cubic-bezier(.2,.8
   .nw-welcome-arrow { width: 1.5rem; height: 1.5rem; }
   .nw-qa-page .nw-qa-scroll { padding: 1.25rem; }
   .nw-qa-page .nw-qa-form { padding-inline: 1.25rem; }
-  .nw-qa-page .nw-qa-composer { padding: .75rem; min-height: 6rem; }
   .nw-qa-page .nw-qa-form { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
 }
 @media (max-height: 500px) {
@@ -435,5 +436,5 @@ body[data-page="doc"] .nw-document { animation: nw-enter .45s cubic-bezier(.2,.8
 }
 @media (prefers-reduced-motion: reduce) {
   .nw-welcome-name, .nw-welcome-choices, .nw-agent-main, body[data-page="doc"] .nw-document { animation: none; }
-  .nw-welcome-choice, .nw-welcome-arrow, .nw-qa-tool-collapse { transition: none; }
+  .nw-welcome-choice, .nw-welcome-arrow, .nw-qa-tool-collapse, .nw-qa-composer, .nw-qa-input textarea { transition: none; }
 }

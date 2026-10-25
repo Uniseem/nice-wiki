@@ -74,6 +74,32 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
   const list = useRef<HTMLOListElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const inputMeasure = useRef<HTMLTextAreaElement>(null);
+  const inputBox = useRef<HTMLDivElement>(null);
+  const [inputSize, setInputSize] = useState<{ height: number; overflow: boolean } | null>(null);
+
+  // 隐藏副本按相同宽度测量换行，不重置可见输入框的高度、光标和滚动位置。
+  const resizeInput = () => {
+    const measure = inputMeasure.current;
+    if (!measure) return;
+    const line = parseFloat(getComputedStyle(measure).lineHeight);
+    const height = Math.max(line, Math.min(measure.scrollHeight, line * 6));
+    const overflow = measure.scrollHeight > line * 6;
+    setInputSize(current => current?.height === height && current.overflow === overflow ? current : { height, overflow });
+  };
+  useLayoutEffect(resizeInput, [question]);
+  useLayoutEffect(() => {
+    const box = inputBox.current;
+    if (!box) return;
+    let width = 0;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width === width) return;
+      width = entry.contentRect.width;
+      resizeInput();
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     try { sessionStorage.setItem(logKey(locale), JSON.stringify(messages.slice(-30))); } catch { /* 隐私模式 */ }
@@ -253,19 +279,23 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
               <span className="truncate font-medium text-foreground/80">{pageTitle}</span>
             </div>
           )}
-          <div className="nw-qa-composer flex items-end gap-2 border border-border focus-within:border-foreground/50">
+          <div className="nw-qa-composer flex items-center gap-2 border border-border focus-within:border-foreground/50" style={inputSize ? { '--nw-input-height': `${inputSize.height}px` } as CSSProperties : undefined}>
             {messages.length > 0 && <Tooltip delay={300}><Button isIconOnly aria-label={t('新对话')} size="sm" variant="ghost" onPress={restart}><Plus /></Button><Tooltip.Content>{t('新对话')}</Tooltip.Content></Tooltip>}
-            <TextArea
-              ref={input}
-              aria-label={t('问问这个站点的文档…')}
-              className="max-h-40 min-h-9 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-1.5 shadow-none outline-none focus:ring-0"
-              maxLength={500}
-              placeholder={t('问问这个站点的文档…')}
-              rows={fullPage ? 2 : 1}
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
-            />
+            <div ref={inputBox} className="nw-qa-input relative min-w-0 flex-1">
+              <TextArea
+                ref={input}
+                aria-label={t('问问这个站点的文档…')}
+                className="nw-qa-input-field resize-none border-0 bg-transparent shadow-none outline-none focus:ring-0"
+                data-overflow={inputSize?.overflow || undefined}
+                maxLength={500}
+                placeholder={t('问问这个站点的文档…')}
+                rows={1}
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }}
+              />
+              <textarea ref={inputMeasure} className="nw-qa-input-measure" aria-hidden tabIndex={-1} readOnly rows={1} value={question} />
+            </div>
             {running ? (
               <Button isIconOnly aria-label={t('停止')} size="sm" variant="secondary" onPress={stop}><Stop /></Button>
             ) : (

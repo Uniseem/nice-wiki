@@ -1,6 +1,6 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect, useId, useMemo, useRef } from 'react';
+import { memo, useEffect, useId, useMemo, useRef } from 'react';
 import type { Citation } from './client';
 
 // 回答用 react-markdown + remark-gfm 渲染（列表嵌套、列表里的代码块、表格、删除线等都按 CommonMark/GFM 处理）。
@@ -158,7 +158,7 @@ function revealReference(target: HTMLElement, signal: AbortSignal) {
   frame = requestAnimationFrame(tick);
 }
 
-export function Markdown({ text, citations = [], referenceLabel = '参考文献' }: { text: string; citations?: Citation[]; referenceLabel?: string }) {
+export const Markdown = memo(function Markdown({ text, citations = [], referenceLabel = '参考文献' }: { text: string; citations?: Citation[]; referenceLabel?: string }) {
   const scope = `nw-reference-${useId()}`;
   const navigation = useRef<AbortController | null>(null);
   useEffect(() => () => navigation.current?.abort(), []);
@@ -193,4 +193,4 @@ export function Markdown({ text, citations = [], referenceLabel = '参考文献'
       </ReactMarkdown>
     </div>
   );
-}
+});
