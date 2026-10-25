@@ -5,6 +5,7 @@
   :root,
   [data-theme="light"] {
     --nw-font-serif: "Lora", "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+    --nw-font-body: Georgia, var(--font-sans);
     --background: #e6e6e6;
     --foreground: #171717;
     --surface: #f8f8f8;

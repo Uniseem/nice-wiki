@@ -179,10 +179,10 @@ export const Markdown = memo(function Markdown({ text, citations = [], reference
       return href ? <a href={href} rel="noopener">{children}</a> : <>{children}</>;
     },
     // 对话气泡里标题不放大，只加粗。
-    h1: ({ children }) => <p className="font-semibold">{children}</p>,
-    h2: ({ children }) => <p className="font-semibold">{children}</p>,
-    h3: ({ children }) => <p className="font-semibold">{children}</p>,
-    h4: ({ children }) => <p className="font-semibold">{children}</p>,
+    h1: ({ children }) => <p className="font-sans font-semibold">{children}</p>,
+    h2: ({ children }) => <p className="font-sans font-semibold">{children}</p>,
+    h3: ({ children }) => <p className="font-sans font-semibold">{children}</p>,
+    h4: ({ children }) => <p className="font-sans font-semibold">{children}</p>,
     table: ({ children }) => <div className="overflow-x-auto"><table>{children}</table></div>,
     img: () => null,
   }), [referenceLabel]);

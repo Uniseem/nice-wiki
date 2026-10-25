@@ -3,7 +3,7 @@
 @layer components {
   .nw-prose {
     @apply text-lg leading-[1.75] text-muted;
-    font-family: var(--font-sans);
+    font-family: var(--nw-font-body);
     overflow-wrap: anywhere;
   }
 
@@ -14,6 +14,7 @@
   .nw-prose h3 { @apply mt-10 mb-4 text-[23px] font-semibold leading-8 tracking-tight; }
   .nw-prose h4 { @apply mt-7 mb-2 text-lg font-semibold; }
   .nw-prose :is(h1, h2, h3, h4) { @apply text-foreground; font-family: var(--nw-font-serif); scroll-margin-top: 5.5rem; }
+  .nw-prose :is(h5, h6) { font-family: var(--font-sans); }
   .nw-prose p { @apply my-6; }
   .nw-prose a { @apply font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent; }
   .nw-prose strong { @apply font-semibold text-foreground; }
@@ -52,7 +53,7 @@
 
   /* 提示框：左侧按类型显示图标（SVG 蒙版，颜色跟随主题）。 */
   /* 问答回答（访客问答与后台调试台）的排版比正文紧凑一些。 */
-  .nw-prose.nw-answer { @apply font-sans text-base leading-7 text-foreground; }
+  .nw-prose.nw-answer { @apply text-base leading-7 text-foreground; }
   .nw-prose.nw-answer :is(p, ul, ol, pre, blockquote, .overflow-x-auto) { @apply my-2; }
   .nw-prose.nw-answer > :first-child { @apply mt-0; }
   .nw-prose.nw-answer > :last-child { @apply mb-0; }
