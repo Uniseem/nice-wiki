@@ -348,7 +348,7 @@ func writeRequestProblem(w http.ResponseWriter, r *http.Request, err error) {
 
 func serviceCallers() map[string][]string {
 	stateful := []string{"identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
-	runtime := append(append([]string{}, stateful...), "portal")
+	runtime := append(append([]string{}, stateful...), "portal", "agent")
 	callers := map[string][]string{
 		"readRuntimeState": runtime, "transitionRuntimeState": {"data-protection"}, "registerActivation": stateful,
 		"readSiteConfig":           {"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"},
