@@ -30,6 +30,12 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		return ProxyRequestResult{}, err
 	}
 	route := routeResult.Route
+	publicAI := route.Definition.Permission.Permission == "anonymous" && (route.Definition.Owner == "qa" || route.Definition.Owner == "traffic-guard")
+	if publicAI {
+		// 入口校验提前拒绝的响应同样不能被浏览器或中间缓存复用。
+		runtime.Writer.Header().Set("Cache-Control", "no-store")
+		runtime.Writer.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
+	}
 	authentication := authenticationOperation(route)
 	if authentication != "" || (route.Definition.Owner == "identity" && route.Definition.UpstreamOperationID == "revokeSession") {
 		runtime.Writer.Header().Set("Cache-Control", "no-store")
@@ -65,14 +71,11 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 	origin := runtime.Request.Header.Get("Origin")
 	// 公开问答及挑战接口只供本站页面使用；读取/SSE同样拒绝跨站浏览器上下文。
 	// 无Fetch Metadata的非浏览器客户端仍需通过原有来源、身份、挑战和额度检查。
-	publicAI := route.Definition.Permission.Permission == "anonymous" && (route.Definition.Owner == "qa" || route.Definition.Owner == "traffic-guard")
 	if publicAI {
 		fetchSite := runtime.Request.Header.Get("Sec-Fetch-Site")
 		if fetchSite != "" && fetchSite != "same-origin" {
 			return ProxyRequestResult{}, platform.NewError(platform.CodeForbidden, false, "问答接口只接受本站页面请求")
 		}
-		runtime.Writer.Header().Set("Cache-Control", "no-store")
-		runtime.Writer.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 	}
 	// 写入请求必须带完整且同源的 Origin；带会话的读取请求在浏览器同源 GET
 	// 不发送 Origin 时放行，带了 Origin 就必须同源（会话 cookie 为 SameSite=Strict）。
