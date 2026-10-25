@@ -149,7 +149,7 @@ def check_ref(base, target):
 def scan_privacy(label, text):
     for address in re.findall(r'[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', text):
         domain = address.split('@')[1].lower()
-        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and address not in ('noreply@openai.com', 'noreply@anthropic.com', 'noreply@z.ai'):
+        if domain not in ('users.noreply.github.com', 'example.com', 'example.org', 'example.net') and not domain.endswith('.example') and address not in ('noreply@openai.com', 'noreply@anthropic.com', 'noreply@z.ai'):
             fail(label, '不允许的邮箱，具体值不输出')
     if re.search(r'(?:[A-Za-z]:[\\/]Users[\\/][A-Za-z0-9_.-]+|(?:^|[\s\"\x27])/(?:Users|home)/[A-Za-z0-9_.-]+)', text):
         fail(label, '本机用户路径')
@@ -162,7 +162,7 @@ def scan_privacy(label, text):
         except ValueError:
             continue
         # 私有网段（如容器内网）不指向任何真实主机，与文档保留段一样允许。
-        if not address.is_loopback and not address.is_unspecified and not address.is_private and not any(address in n for n in networks):
+        if address.is_global and not address.is_multicast and not any(address in n for n in networks):
             fail(label, '非文档IPv4地址，具体值不输出')
 
 
@@ -552,8 +552,8 @@ def main():
         check_wiring(modules, shared)
         check_rendered()
         check_go_modules()
-        if len(modules) != 15:
-            fail('模块清单', '服务数必须为已登记15域')
+        if len(modules) != 16:
+            fail('模块清单', '服务数必须为已登记16域')
         for name in ('check_docs.py', 'render_docs.py'):
             ast.parse((ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     if ISSUES:

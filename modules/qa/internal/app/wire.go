@@ -97,6 +97,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		Knowledge:           gen.NewKnowledgeClient(dep("knowledge"), ModuleSlug, key),
 		Memory:              gen.NewMemoryClient(dep("memory"), ModuleSlug, key),
 		Localization:        gen.NewLocalizationClient(dep("localization"), ModuleSlug, key),
+		Agents:              gen.NewAgentClient(dep("agent"), ModuleSlug, key),
 		Models:              gen.NewModelGatewayClient(dep("model-gateway"), ModuleSlug, key),
 		Jobs:                gen.NewJobsClient(dep("jobs"), ModuleSlug, key),
 		AnswerContextTokens: 4096, PreflightContextTokens: 2048,

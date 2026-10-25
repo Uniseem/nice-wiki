@@ -563,6 +563,9 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		}
 		outcome.Output = &platform.ModelOutput{Capability: capability, Text: &complete, ToolCalls: calls, FinishReason: outcome.finishReason}
 	}
+	if outcome.Output != nil && (outcome.InputTokens != nil || outcome.OutputTokens != nil) {
+		outcome.Output.Usage = &platform.ModelUsage{InputTokens: outcome.InputTokens, OutputTokens: outcome.OutputTokens}
+	}
 	return outcome, nil
 }
 

@@ -1553,6 +1553,22 @@
             "length",
             "content_filter"
           ]
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "description": "仅供应方实际报告的输入与输出词元；未知字段缺失，不用估算或零替代。",
+          "properties": {
+            "inputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "outputTokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       },
       "required": [

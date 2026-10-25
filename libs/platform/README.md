@@ -16,7 +16,9 @@ ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传�
 
 ## 原生工具 agent
 
-`modelagent.Run` 维护模型与工具交替执行的循环。调用方装配消息、工具声明、模型调用与工具执行回调，以及实际窗口、查阅轮数和调用数；平台负责完整参数、调用 ID、逐一结果配对、取消、重复读取复用、空转终止和旧工具正文移出。平台不访问业务数据，也不决定文档可见性。
+问答主链路现在使用 `zcode` 包连接独立 M16 服务中的 ZCode `AgentRuntime`。平台只承载 Node 进程、已签名 API 的请求帧及取消；模型决策、工具调度和接近默认模型窗口时的压缩直接使用原生框架。问答域仍负责模型网关身份、公开文档权限、引用复核及派生 checkpoint 保存。构建执行 `pnpm build:agent`，不运行本地模型。
+
+`modelagent.Run` 保留为旧循环的兼容实现，问答主链路不再调用；`modelagent.ToolResult` 仍用于既有工具回调。平台不访问业务数据，也不决定文档可见性。
 
 `GatewayMessage` 支持 assistant `toolCalls` 和 tool `toolCallId`；完整 `ModelOutput` 可携带 `toolCalls` 与 `finishReason`。`ValidateToolConversation` 校验成对历史，`ValidateToolCalls` 拒绝残缺 JSON、非对象参数和重复身份。角色与工具过程须由服务端持久记录重放，不解释访客 JSON 为角色。
 

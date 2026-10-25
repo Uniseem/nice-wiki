@@ -564,13 +564,13 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
-          "description": "模型较小窗口历史预算"
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。"
         },
         "maximumContextTokens": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
-          "description": "本轮材料的词元上限，默认16000：文档路由选中的文章整篇交给回答模型时按它截断；没选中文档、改走片段检索时最多取4096",
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。",
           "default": 16000
         },
         "maximumQuestionCharacters": {
@@ -584,14 +584,14 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 32,
-          "description": "agent最多查阅轮数，默认12；达到后关闭工具生成最终回答。",
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。",
           "default": 12
         },
         "maximumToolCalls": {
           "type": "integer",
           "minimum": 1,
           "maximum": 128,
-          "description": "agent本轮最多工具调用，默认48；循环空转或达到上限后仅用已取得材料收尾。",
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。",
           "default": 48
         },
         "recordRetentionDays": {
@@ -603,20 +603,20 @@
         },
         "compactionEnabled": {
           "type": "boolean",
-          "description": "默认true"
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。"
         },
         "retainedRecentTokens": {
           "type": "integer",
           "minimum": 1,
           "maximum": 128000,
-          "description": "默认15000",
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。",
           "default": 15000
         },
         "contextReservePercent": {
           "type": "integer",
           "minimum": 1,
           "maximum": 50,
-          "description": "默认10",
+          "description": "兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。",
           "default": 10
         }
       },

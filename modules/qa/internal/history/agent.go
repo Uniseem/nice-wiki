@@ -9,6 +9,7 @@ import (
 )
 
 type AgentTurn struct {
+	State     json.RawMessage           `json:"state,omitempty"`
 	Messages  []platform.GatewayMessage `json:"messages"`
 	Citations []gen.Citation            `json:"citations"`
 }
@@ -51,6 +52,38 @@ func (c Conversation) AgentCitations() []gen.Citation {
 		}
 	}
 	return result
+}
+
+// AgentState 只返回最后一轮经发布版本复核的原生检查点。
+func (c Conversation) AgentState() string {
+	for index := len(c.Messages) - 1; index >= 0; index-- {
+		if turn, ok := c.AgentTurns[c.Messages[index].MessageId]; ok && len(turn.State) > 0 {
+			return string(turn.State)
+		}
+	}
+	return ""
+}
+
+// ForAgentGateway 只补检查点之后尚未进入原生会话的消息，避免再次发送全部原始历史。
+func (c Conversation) ForAgentGateway() []platform.GatewayMessage {
+	latest := -1
+	for index, message := range c.Messages {
+		if len(c.AgentTurns[message.MessageId].State) > 0 {
+			latest = index
+		}
+	}
+	if latest < 0 {
+		return c.ForGateway()
+	}
+	turn := c.Messages[latest].TurnId
+	remainder := c
+	remainder.Messages = []gen.Message{}
+	for _, message := range c.Messages[latest+1:] {
+		if message.TurnId != turn {
+			remainder.Messages = append(remainder.Messages, message)
+		}
+	}
+	return remainder.ForGateway()
 }
 
 // validateAgentSources 批量核对原生历史材料，版本变化或撤回后不把旧正文交给下一轮模型。
@@ -128,6 +161,10 @@ func SaveAgentTurn(ctx context.Context, op OperationContext, turnID string, turn
 	}
 	defer tx.Close()
 	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE messages SET agent_messages_json=? WHERE message_id=?`, raw, "question."+turnID); err != nil {
+		return qaruntime.StorageError(err)
+	}
+	// 只保留最新完整 checkpoint，逐轮原始工具消息仍保留，避免重复保存累计上下文。
+	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE messages SET agent_messages_json=json_remove(agent_messages_json,'$.state') WHERE conversation_id=(SELECT conversation_id FROM messages WHERE message_id=?) AND message_id<>? AND json_valid(agent_messages_json) AND json_type(agent_messages_json,'$.state') IS NOT NULL`, "question."+turnID, "question."+turnID); err != nil {
 		return qaruntime.StorageError(err)
 	}
 	return tx.Commit()

@@ -18,7 +18,8 @@
     "memory": "http://memory:8109",
     "traffic-guard": "http://traffic-guard:8110",
     "jobs": "http://jobs:8111",
-    "analytics": "http://analytics:8112"
+    "analytics": "http://analytics:8112",
+    "agent": "http://agent:8114"
   },
   "masterKeyRef": "/run/secrets/master-key",
   "backupSources": {
@@ -35,7 +36,8 @@
     "memory": "/sources/memory",
     "traffic-guard": "/sources/traffic-guard",
     "jobs": "/sources/jobs",
-    "analytics": "/sources/analytics"
+    "analytics": "/sources/analytics",
+    "agent": "/sources/agent"
   },
   "backupSecretsDir": "/backup-secrets"
 }

@@ -18,7 +18,8 @@
     "memory": "http://memory:8109",
     "traffic-guard": "http://traffic-guard:8110",
     "jobs": "http://jobs:8111",
-    "data-protection": "http://data-protection:8113"
+    "data-protection": "http://data-protection:8113",
+    "agent": "http://agent:8114"
   },
   "reportingTimeZone": "Asia/Shanghai"
 }

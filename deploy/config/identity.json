@@ -18,6 +18,7 @@
     "traffic-guard": "http://traffic-guard:8110",
     "jobs": "http://jobs:8111",
     "analytics": "http://analytics:8112",
-    "data-protection": "http://data-protection:8113"
+    "data-protection": "http://data-protection:8113",
+    "agent": "http://agent:8114"
   }
 }

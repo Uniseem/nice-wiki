@@ -1,7 +1,7 @@
 import { ChevronsCollapseUpRight, ChevronsExpandUpRight, Xmark } from '@gravity-ui/icons';
 import { Button, cn, Drawer, Tooltip, useMediaQuery } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import { QaChat, type Translate } from './QaChat';
+import { type QaWelcome, QaChat, type Translate } from './QaChat';
 
 type PanelProps = { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string };
 
@@ -77,8 +77,8 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
 }
 
 // 独立页与文档浮窗共享会话，正文和输入框直接布局在页面上。
-export function QaInlineChat({ locale, t }: { locale: string; t: Translate }) {
+export function QaInlineChat({ locale, t, welcome }: { locale: string; t: Translate; welcome?: QaWelcome }) {
   return (
-    <QaChat key={locale} fullPage locale={locale} t={t} />
+    <QaChat key={locale} fullPage locale={locale} t={t} welcome={welcome} />
   );
 }

@@ -22,6 +22,8 @@
 /deploy/.restore-plain.*
 /deploy/caddy/conf.d/*.caddy
 /web-dist/
+/agent-dist/
+/libs/platform/zcode/upstream/dynamic-workflow/src/compiler/libs.generated.ts
 # scripts/release.sh 的中间产物与发布包
 /release/
 /pkg/

@@ -5,6 +5,8 @@ import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, start
 import { Activity, finishSteps, mergeStep, type StepView } from './Activity';
 import { Markdown } from './markdown';
 
+export type QaWelcome = { name: string; description: string; topics: {title: string; href: string}[] };
+
 export type Translate = (key: string) => string;
 
 type Message = {
@@ -59,7 +61,7 @@ function failure(t: Translate, problem: unknown): string {
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
 // 独立页直接使用整页空间；文档中的浮窗沿用同一套会话。
-export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, fullPage }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; fullPage?: boolean }) {
+export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, fullPage, welcome }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; fullPage?: boolean; welcome?: QaWelcome }) {
   const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
@@ -150,8 +152,8 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     if (box && mark) box.scrollTo({ top: box.scrollTop + mark.getBoundingClientRect().top - box.getBoundingClientRect().bottom + 24, behavior: 'smooth' });
   }
 
-  async function ask() {
-    const text = question.trim();
+  async function ask(suggestion?: string) {
+    const text = (suggestion ?? question).trim();
     if (!text || running) return;
     const id = crypto.randomUUID();
     const controller = new AbortController();
@@ -216,7 +218,16 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
       <div className="nw-qa-thread relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="nw-qa-scroll min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
-            fullPage ? <div className="nw-qa-empty"><h1>{t('从一个问题开始')}</h1></div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
+            fullPage ? <div className="nw-qa-empty">
+              <h1>{t('从一个问题开始')}</h1>
+              {welcome?.description && <p className="nw-qa-intro">{welcome.description}</p>}
+              <div className="nw-qa-starters">
+                {['这个站点有哪些内容？', '我应该从哪里开始？'].map(text => <button key={text} type="button" onClick={() => { void ask(t(text)); }}>{t(text)}<ArrowUp size={16} aria-hidden /></button>)}
+              </div>
+              {!!welcome?.topics.length && <nav className="nw-qa-topics" aria-label={t('文档')}>
+                {welcome.topics.map(topic => <a key={topic.href} href={topic.href}><FileText size={18} aria-hidden /><span>{topic.title}</span></a>)}
+              </nav>}
+            </div> : <div className="flex h-full items-center justify-center py-10 text-center"><p className="max-w-64 text-[15px] text-muted">{t('问问这个站点的文档…')}</p></div>
           )}
           <ol ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
             {rounds.map((round, index) => (

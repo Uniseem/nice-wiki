@@ -235,6 +235,20 @@ services:
       - traffic-guard-data:/sources/traffic-guard:ro
       - jobs-data:/sources/jobs:ro
       - analytics-data:/sources/analytics:ro
+      - agent-data:/sources/agent:ro
+
+  agent:
+    image: ${NW_IMAGES:-ghcr.io/uniseem/nice-wiki}-agent:${NW_VERSION:?请在 deploy/.env 里设置 NW_VERSION}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/agent.json:/config/agent.json:ro
+      - ./secrets/agent/signing-key.json:/run/secrets/signing-key.json:ro
+      - ./secrets/agent/signing.pem:/run/secrets/signing.pem:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - agent-data:/data/agent
 
   caddy:
     image: caddy:2-alpine
@@ -267,6 +281,7 @@ volumes:
   jobs-data:
   analytics-data:
   data-protection-data:
+  agent-data:
   backups:
   caddy-data:
   caddy-config:

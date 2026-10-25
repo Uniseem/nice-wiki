@@ -105,6 +105,13 @@
       "port": 8113,
       "dataVolume": "/data/data-protection",
       "secretsDir": "deploy/secrets/data-protection"
+    },
+    {
+      "slug": "agent",
+      "url": "http://agent:8114",
+      "port": 8114,
+      "dataVolume": "/data/agent",
+      "secretsDir": "deploy/secrets/agent"
     }
   ]
 }

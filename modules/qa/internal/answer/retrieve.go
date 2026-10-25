@@ -128,7 +128,7 @@ func RetrieveEvidence(ctx context.Context, op OperationContext, input RetrieveEv
 	}
 	ids := make([]string, 0, 8)
 	refs := make([]gen.PublishedRevisionRef, 0, 8)
-	budget := min(4096, input.Policy.MaximumContextTokens)
+	budget := 4096
 	for _, chunk := range candidates {
 		if len(ids) == 8 || chunk.TokenCount > budget {
 			continue

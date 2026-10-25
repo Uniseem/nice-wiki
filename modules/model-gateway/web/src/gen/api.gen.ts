@@ -1258,6 +1258,11 @@ export interface components {
             toolCalls?: components["schemas"]["common.schema_GatewayToolCall"][];
             /** @enum {string} */
             finishReason?: "stop" | "tool_calls" | "length" | "content_filter";
+            /** @description 仅供应方实际报告的输入与输出词元；未知字段缺失，不用估算或零替代。 */
+            usage?: {
+                inputTokens?: number;
+                outputTokens?: number;
+            };
         } & ({
             /** @constant */
             capability?: "embedding";

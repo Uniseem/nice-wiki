@@ -24,7 +24,7 @@ const numbers: Record<string, string> = {
 const numberHints: Record<string, string> = {
   maximumContextTokens: t('交给回答模型的文章原文上限；实际还不超过回答模型窗口的三分之一。'),
 };
-const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens', 'profileId']);
+const hidden = new Set(['version', 'retrievalSpace', 'maximumHistoryTokens', 'profileId', 'maximumContextTokens', 'contextReservePercent', 'retainedRecentTokens', 'compactionEnabled', 'maximumRetrievalRounds', 'maximumToolCalls']);
 const answerKinds: Record<string, string> = { answered: t('已回答'), refused: t('拒答'), no_evidence: t('无依据'), out_of_scope: t('离题/闲聊'), clarification: t('需澄清'), failed: t('失败'), cancelled: t('已取消') };
 
 export default function QaPage() {

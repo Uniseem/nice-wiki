@@ -1572,7 +1572,6 @@
           "items": {
             "$ref": "#/$defs/GatewayMessage"
           },
-          "maxItems": 256,
           "description": "chat/vision/translation的显式消息；其他能力空"
         },
         "texts": {
@@ -2435,7 +2434,6 @@
           "items": {
             "$ref": "#/$defs/GatewayMessage"
           },
-          "maxItems": 256,
           "description": "消息"
         }
       },
@@ -3272,7 +3270,6 @@
           "items": {
             "$ref": "#/$defs/GatewayMessage"
           },
-          "maxItems": 256,
           "description": "统一输入"
         },
         "modelId": {
@@ -3339,7 +3336,6 @@
           "items": {
             "$ref": "#/$defs/GatewayMessage"
           },
-          "maxItems": 256,
           "description": "统一输入"
         },
         "modelId": {

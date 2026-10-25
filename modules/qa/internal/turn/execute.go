@@ -168,6 +168,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	}
 	generated, err := answer.GenerateAgentAnswer(ctx, op, answer.AgentAnswerInput{
 		TurnID: turnID, TaskID: task, ProfileID: profile, Language: record.Language, Policy: resolved.Policy, Prompt: prompt,
+		State:     conversation.AgentState(),
 		Citations: append(page.Citations, conversation.AgentCitations()...),
 		OnModelStart: func(ctx context.Context, round int) error {
 			progress.model(ctx, round, nil)
@@ -198,7 +199,7 @@ func runTurn(parent context.Context, op OperationContext, turnID, currentDocumen
 	}
 	step(gen.Answer, gen.AnswerStepStatusRunning, "整理引用", "", nil)
 	text, citations := answer.FinalizeCitations(generated.Text, generated.Citations)
-	if err := history.SaveAgentTurn(ctx, op, turnID, history.AgentTurn{Messages: generated.Messages, Citations: generated.Citations}); err != nil {
+	if err := history.SaveAgentTurn(ctx, op, turnID, history.AgentTurn{Messages: generated.Messages, Citations: generated.Citations, State: json.RawMessage(generated.State)}); err != nil {
 		return err
 	}
 	if err := saveAgentCounters(ctx, op, turnID, lease, generated.Rounds, generated.ToolCalls); err != nil {
@@ -342,56 +343,13 @@ func takeState(ctx context.Context, op OperationContext, turnID, lease, state st
 	return record, tx.Commit()
 }
 
-// summaryRoom 是给压缩后新摘要留的估算空间（摘要最多 1500 输出 token，按网关口径约 4000）。
-const summaryRoom = 4000
-
-// answerPrompt 组装回答提示词。超过回答模型窗口（扣掉预留比例和输出额度）时，像 ADE 一样先把早期对话压缩进摘要再组装；
-// 后台关闭压缩时改为丢掉最早的消息。估算和网关核对窗口用同一口径。
+// answerPrompt 保留原始历史；接近模型默认窗口时由 ZCode 原生运行时压缩。
 func answerPrompt(ctx context.Context, op OperationContext, record qaruntime.TurnRecord, resolved ResolveTurnContextResult, materials answer.Materials, conversation history.Conversation, task string) (answer.BuildAnswerPromptResult, error) {
-	build := func() (answer.BuildAnswerPromptResult, error) {
-		return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: conversation.Summary, History: conversation.ForModel(), GatewayHistory: conversation.ForGateway()})
+	summary := conversation.Summary
+	if conversation.AgentState() != "" {
+		summary = ""
 	}
-	prompt, err := build()
-	if err != nil {
-		return prompt, err
-	}
-	window, err := qaruntime.ResolveTaskWindow(ctx, op, task)
-	if err != nil || window == 0 {
-		return prompt, err
-	}
-	policy := resolved.Policy
-	budget := window*(100-policy.ContextReservePercent)/100 - min(prompt.MaximumOutputTokens, policy.MaximumOutputTokens)
-	if materials.Agent {
-		tools, _ := json.Marshal(answer.AgentTools())
-		budget -= platform.EstimateInputTokens(len(tools), 1) + min(16000, window/3)
-	}
-	if os.Getenv("NW_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "回答上下文 turn=%s window=%d budget=%d estimate=%d messages=%d\n", record.Turn.TurnId, window, budget, platform.EstimateMessageTokens(prompt.Messages), len(conversation.Messages))
-	}
-	if platform.EstimateMessageTokens(prompt.Messages) <= budget && len(prompt.Messages) < 180 {
-		return prompt, nil
-	}
-	if !policy.CompactionEnabled {
-		for len(conversation.Messages) > 0 && (platform.EstimateMessageTokens(prompt.Messages) > budget || len(prompt.Messages) >= 180) {
-			conversation.Messages = conversation.Messages[1:]
-			if prompt, err = build(); err != nil {
-				return prompt, err
-			}
-		}
-		return prompt, nil
-	}
-	fixed := platform.EstimateMessageTokens(prompt.Messages) - platform.EstimateMessageTokens(conversation.ForGateway())
-	keep := max(0, min(policy.RetainedRecentTokens, budget-fixed-summaryRoom))
-	if messages := conversation.ForGateway(); len(prompt.Messages) >= 180 && len(messages) > 0 {
-		keep = min(keep, platform.EstimateMessageTokens(messages)*100/len(messages))
-	}
-	if os.Getenv("NW_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "压缩对话 turn=%s keep=%d\n", record.Turn.TurnId, keep)
-	}
-	if conversation, err = history.Compact(ctx, op, history.CompactInput{Conversation: conversation, Language: record.Language, KeepTokens: keep}); err != nil {
-		return prompt, err
-	}
-	return build()
+	return answer.BuildAnswerPrompt(ctx, op, answer.BuildAnswerPromptInput{Question: record.Question, Memory: resolved.Memory, Materials: materials, Summary: summary, GatewayHistory: conversation.ForAgentGateway()})
 }
 
 // saveModelText 保留本轮问题快照；原生历史重放使用独立的agent_messages_json。
@@ -428,13 +386,13 @@ func clip(text string, limit int) string {
 	return string([]rune(text)[:limit])
 }
 
-// materialBudget 是整篇读取时本轮材料的词元上限（网关估算口径）：策略里的“上下文最大词元”，且不超过回答模型可用窗口的三分之一，给记忆、摘要和历史留位置。
+// materialBudget 仅分配当前页预读份额，不缩小 Agent 的完整上下文窗口。
 func materialBudget(ctx context.Context, op OperationContext, policy gen.TypesQaPolicy, task string) int {
-	budget := policy.MaximumContextTokens
-	if window, err := qaruntime.ResolveTaskWindow(ctx, op, task); err == nil && window > 0 {
-		budget = min(budget, (window*(100-policy.ContextReservePercent)/100-policy.MaximumOutputTokens)/3)
+	window, err := qaruntime.ResolveTaskWindow(ctx, op, task)
+	if err != nil {
+		return 4096
 	}
-	return max(budget, 1)
+	return max(1, (window-policy.MaximumOutputTokens)/4)
 }
 
 // FailInterruptedTurns 收尾上次进程留下的未终止轮次：执行它们的协程已随进程退出，落 failed 并释放准入，同会话才能继续提问。

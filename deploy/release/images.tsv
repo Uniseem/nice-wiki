@@ -13,3 +13,4 @@ traffic-guard	10011	8110	/config
 jobs	10012	8111	/config
 analytics	10013	8112	/config
 data-protection	10014	8113	/config
+agent	10015	8114	/config

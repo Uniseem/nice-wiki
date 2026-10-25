@@ -1,0 +1,654 @@
+{
+  "moduleId": "M16",
+  "module": "agent",
+  "version": 1,
+  "phase": "design",
+  "requirements": [],
+  "dependencies": [
+    {
+      "module": "site-config",
+      "mode": "sync",
+      "purpose": "运行权威",
+      "failurePolicy": "读取失败关闭"
+    }
+  ],
+  "files": [
+    {
+      "path": "modules/agent/cmd/agent/main.go",
+      "kind": "handwritten",
+      "purpose": "进程入口",
+      "functions": [
+        {
+          "id": "agent.main",
+          "name": "main",
+          "signature": "func main()",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "启动服务",
+          "steps": [
+            "启动服务",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [
+            "agent.BuildApplication"
+          ],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/agent/internal/app/application.go",
+      "kind": "handwritten",
+      "purpose": "HTTP 与原生运行时装配",
+      "functions": [
+        {
+          "id": "agent.BuildApplication",
+          "name": "BuildApplication",
+          "signature": "func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Application, error)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "装配服务身份、版本化 API 与共享 Node 运行时",
+          "steps": [
+            "装配服务身份、版本化 API 与共享 Node 运行时",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.Health",
+          "name": "Health",
+          "signature": "func (a *Application) Health(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "进程存活",
+          "steps": [
+            "进程存活",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.Ready",
+          "name": "Ready",
+          "signature": "func (a *Application) Ready(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "原生运行时就绪",
+          "steps": [
+            "原生运行时就绪",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.StartRun",
+          "name": "StartRun",
+          "signature": "func (a *Application) StartRun(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "启动独立原生会话",
+          "steps": [
+            "启动独立原生会话",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.ReadEvents",
+          "name": "ReadEvents",
+          "signature": "func (a *Application) ReadEvents(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "读取模型及工具请求",
+          "steps": [
+            "读取模型及工具请求",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.Reply",
+          "name": "Reply",
+          "signature": "func (a *Application) Reply(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "提交模型或工具结果",
+          "steps": [
+            "提交模型或工具结果",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        },
+        {
+          "id": "agent.Cancel",
+          "name": "Cancel",
+          "signature": "func (a *Application) Cancel(w http.ResponseWriter, r *http.Request)",
+          "inputs": [],
+          "outputs": [],
+          "purpose": "取消并释放会话",
+          "steps": [
+            "取消并释放会话",
+            "服务身份、原操作归属及运行代次在入口校验；正文与模型密钥不写日志。"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "httpStatus": 400,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "UNAUTHENTICATED",
+              "httpStatus": 401,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "httpStatus": 403,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "httpStatus": 404,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "LOCKED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "CANCELLED",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "httpStatus": 409,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTEGRITY_ERROR",
+              "httpStatus": 422,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "httpStatus": 503,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "DEADLINE_EXCEEDED",
+              "httpStatus": 504,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            },
+            {
+              "code": "INTERNAL",
+              "httpStatus": 500,
+              "meaning": "入口身份、归属、运行时或生命周期条件不满足；不派发额外模型调用。",
+              "retryable": false
+            }
+          ],
+          "sideEffects": [
+            "进程内独立会话状态"
+          ],
+          "authorization": "仅已签名的 qa 服务及原站点、代次、调用服务、根操作归属。",
+          "concurrency": "原操作截止和取消贯穿运行；不同会话独立。",
+          "idempotency": "读取可重放；原请求编号结果仅接受一次；运行失败不自动重派模型调用。",
+          "dependencies": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/agent/internal/gen/openapi.gen.go",
+      "kind": "generated",
+      "purpose": "从合同生成接口",
+      "functions": []
+    },
+    {
+      "path": "modules/agent/internal/gen/clients.gen.go",
+      "kind": "generated",
+      "purpose": "从合同生成接口",
+      "functions": []
+    }
+  ],
+  "jobHandlers": {},
+  "jobTypes": [],
+  "backgroundTasks": []
+}

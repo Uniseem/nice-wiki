@@ -9,8 +9,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEV = os.path.join(ROOT, ".local", "dev")
 PORTS = {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
-         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113}
-DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "media", "localization", "content", "public-site", "model-gateway", "knowledge", "memory", "analytics", "data-protection", "qa", "portal"]
+         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114}
+DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "media", "localization", "content", "public-site", "model-gateway", "knowledge", "memory", "analytics", "data-protection", "agent", "qa", "portal"]
 
 
 def path(*parts):
@@ -117,7 +117,7 @@ def build_web():
     if os.environ.get("NW_SKIP_WEB_BUILD") and os.path.exists(os.path.join(web, "index.html")):
         return
     quiet(["pnpm", "install", "--frozen-lockfile"], ROOT)
-    quiet(["pnpm", "build"], ROOT, {"NW_WEB_OUT": web})
+    quiet(["pnpm", "build"], ROOT, {"NW_WEB_OUT": web, "NW_AGENT_OUT": path("agent", "worker.mjs")})
 
 
 def pidfile(s):
@@ -127,13 +127,13 @@ def pidfile(s):
 def up(slugs):
     setup()
     build(slugs)
-    if "portal" in slugs:
+    if "portal" in slugs or "agent" in slugs:
         build_web()
     os.makedirs(path("run"), exist_ok=True)
     for s in slugs:
         stop(s)
         log = open(path("logs", s + ".log"), "w")
-        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web")})
+        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")})
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)

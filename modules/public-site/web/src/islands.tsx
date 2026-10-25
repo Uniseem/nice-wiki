@@ -4,7 +4,7 @@ import type { Key } from '@heroui/react';
 import { rememberLanguage } from './enhance';
 
 export type Language = { tag: string; href: string; label: string; current: boolean; prompt?: Record<string, string> };
-export type Config = { kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
+export type Config = { welcome?: import('../../../qa/web/src/island/QaChat').QaWelcome; kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
 export type Translate = (key: string) => string;
 
 // 语言名用该语言自己的写法（English、日本語…），浏览器不支持时退回服务端给的名字。

@@ -34,6 +34,7 @@ type Runtime struct {
 	Knowledge              *gen.KnowledgeClient
 	Memory                 *gen.MemoryClient
 	Localization           *gen.LocalizationClient
+	Agents                 *gen.AgentClient
 	Models                 *gen.ModelGatewayClient
 	Jobs                   *gen.JobsClient
 	Gateway                platform.GatewayClient

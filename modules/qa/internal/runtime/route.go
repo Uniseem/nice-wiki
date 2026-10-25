@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/zcode"
 )
 
 // taskRoute 是网关任务路线里本域用到的部分：生效档位和按序备用模型的输入窗口。
@@ -16,7 +17,10 @@ type taskRoute struct {
 	} `json:"resolved"`
 	Candidates []struct {
 		Model struct {
-			MaxInputTokens int `json:"maxInputTokens"`
+			MaxInputTokens  int    `json:"maxInputTokens"`
+			MaxOutputTokens int    `json:"maxOutputTokens"`
+			ProviderID      string `json:"providerId"`
+			ModelID         string `json:"modelId"`
 		} `json:"model"`
 	} `json:"candidates"`
 }
@@ -52,17 +56,36 @@ func ResolveTaskProfile(ctx context.Context, op OperationContext, taskID string)
 	return route.Resolved.Profile.ProfileID, nil
 }
 
-// ResolveTaskWindow 返回任务路线上各备用模型输入窗口的最小值，任何一个备用模型都放得下；路线未声明窗口时返回 0。
-func ResolveTaskWindow(ctx context.Context, op OperationContext, taskID string) (int, error) {
+// ResolveTaskModel 采用路由首选模型的默认窗口，备用模型不缩小主模型上下文。
+func ResolveTaskModel(ctx context.Context, op OperationContext, taskID string, selected ...string) (zcode.Model, error) {
 	route, err := resolveTaskRoute(ctx, op, taskID)
 	if err != nil {
-		return 0, err
+		return zcode.Model{}, err
 	}
-	window := 0
-	for _, candidate := range route.Candidates {
-		if limit := candidate.Model.MaxInputTokens; limit > 0 && (window == 0 || limit < window) {
-			window = limit
+	if len(route.Candidates) == 0 {
+		return zcode.Model{}, platform.NewError(platform.CodeDependencyUnavailable, false, "回答模型未配置")
+	}
+	model := route.Candidates[0].Model
+	if len(selected) > 0 && selected[0] != "" {
+		found := false
+		for _, candidate := range route.Candidates {
+			if candidate.Model.ModelID == selected[0] {
+				model = candidate.Model
+				found = true
+				break
+			}
+		}
+		if !found {
+			return zcode.Model{}, platform.NewError(platform.CodeDependencyUnavailable, false, "实际模型窗口元数据不可读")
 		}
 	}
-	return window, nil
+	if model.MaxInputTokens < 1 || model.MaxOutputTokens < 1 {
+		return zcode.Model{}, platform.NewError(platform.CodeDependencyUnavailable, false, "模型默认窗口元数据不完整")
+	}
+	return zcode.Model{ProviderID: model.ProviderID, ModelID: model.ModelID, ContextWindow: model.MaxInputTokens, MaxOutputTokens: model.MaxOutputTokens}, nil
+}
+
+func ResolveTaskWindow(ctx context.Context, op OperationContext, taskID string) (int, error) {
+	model, err := ResolveTaskModel(ctx, op, taskID)
+	return model.ContextWindow, err
 }

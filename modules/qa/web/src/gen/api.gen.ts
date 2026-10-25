@@ -734,10 +734,10 @@ export interface components {
              * @default 1500
              */
             maximumOutputTokens: number;
-            /** @description 模型较小窗口历史预算 */
+            /** @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。 */
             maximumHistoryTokens: number;
             /**
-             * @description 本轮材料的词元上限，默认16000：文档路由选中的文章整篇交给回答模型时按它截断；没选中文档、改走片段检索时最多取4096
+             * @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。
              * @default 16000
              */
             maximumContextTokens: number;
@@ -747,12 +747,12 @@ export interface components {
              */
             maximumQuestionCharacters: number;
             /**
-             * @description agent最多查阅轮数，默认12；达到后关闭工具生成最终回答。
+             * @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。
              * @default 12
              */
             maximumRetrievalRounds: number;
             /**
-             * @description agent本轮最多工具调用，默认48；循环空转或达到上限后仅用已取得材料收尾。
+             * @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。
              * @default 48
              */
             maximumToolCalls: number;
@@ -761,15 +761,15 @@ export interface components {
              * @default 15
              */
             recordRetentionDays: number;
-            /** @description 默认true */
+            /** @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。 */
             compactionEnabled: boolean;
             /**
-             * @description 默认15000
+             * @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。
              * @default 15000
              */
             retainedRecentTokens: number;
             /**
-             * @description 默认10
+             * @description 兼容旧策略记录；原生 ZCode 主链路使用模型默认窗口及原生压缩，此字段不约束执行。
              * @default 10
              */
             contextReservePercent: number;
@@ -2306,6 +2306,11 @@ export interface components {
             toolCalls?: components["schemas"]["GatewayToolCall"][];
             /** @enum {string} */
             finishReason?: "stop" | "tool_calls" | "length" | "content_filter";
+            /** @description 仅供应方实际报告的输入与输出词元；未知字段缺失，不用估算或零替代。 */
+            usage?: {
+                inputTokens?: number;
+                outputTokens?: number;
+            };
         } & ({
             /** @constant */
             capability?: "embedding";

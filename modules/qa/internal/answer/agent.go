@@ -2,9 +2,9 @@ package answer
 
 import (
 	"context"
-	"encoding/json"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/modelagent"
+	"nice-wiki/libs/platform/zcode"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"strconv"
@@ -18,6 +18,7 @@ type AgentAnswerInput struct {
 	Policy       gen.TypesQaPolicy
 	Prompt       BuildAnswerPromptResult
 	Citations    []gen.Citation
+	State        string
 	DisableTools bool
 	OnModelStart func(context.Context, int) error
 	OnModelDone  func(context.Context, int, platform.ModelOutput) error
@@ -27,6 +28,7 @@ type AgentAnswerInput struct {
 }
 
 type AgentAnswerResult struct {
+	State     string
 	Text      string
 	Citations []gen.Citation
 	Messages  []platform.GatewayMessage
@@ -40,17 +42,18 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 	if err != nil {
 		return AgentAnswerResult{}, err
 	}
-	if len(input.Prompt.Messages) > 0 {
-		input.Prompt.Messages[0].Content += "\n本站基准语言为" + runtime.BaseLanguage + "。检索时优先使用基准语言和原文产品名，最终回答使用访客语言" + input.Language + "。"
+	if runtime.Agents == nil {
+		return AgentAnswerResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "原生 Agent 服务未装配")
 	}
-	window, err := qaruntime.ResolveTaskWindow(ctx, op, input.TaskID)
+	model, err := qaruntime.ResolveTaskModel(ctx, op, input.TaskID)
 	if err != nil {
 		return AgentAnswerResult{}, err
 	}
-	maximumOutput := min(input.Prompt.MaximumOutputTokens, input.Policy.MaximumOutputTokens)
-	budget := window*(100-input.Policy.ContextReservePercent)/100 - maximumOutput - platform.EstimateMessageTokens([]platform.GatewayMessage{{Role: "user", Content: answerReminder}}) - platform.EstimateInputTokens(agentReminderExtraBytes, 1)
-	if budget < 4096 {
-		return AgentAnswerResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "回答模型的可用窗口不足以查阅文档")
+	// 输出额度沿用管理员配置；输入上下文不受旧问答策略的固定窗口限制。
+	model.MaxOutputTokens = min(model.MaxOutputTokens, input.Policy.MaximumOutputTokens)
+	tools := AgentTools()
+	if input.DisableTools {
+		tools = []platform.GatewayTool{}
 	}
 	citations := map[string]gen.Citation{}
 	order := []string{}
@@ -64,34 +67,47 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 	}
 	addCitations(input.Citations)
 	riskReported := false
-	result, err := modelagent.Run(ctx, modelagent.Config{
-		Messages: input.Prompt.Messages, Tools: AgentTools(), MaximumRounds: input.Policy.MaximumRetrievalRounds, MaximumToolCalls: input.Policy.MaximumToolCalls,
-		MaximumInputTokens: budget, MaximumToolResultBytes: min(56000, max(4096, budget/3)), DisableTools: input.DisableTools,
-		CompactToolResult: compactAgentToolResult,
-		Invoke: func(ctx context.Context, round int, messages []platform.GatewayMessage, choice string) (platform.ModelOutput, error) {
-			if input.OnModelStart != nil {
+	result, err := zcode.Run(qaruntime.ServiceReadContext(ctx, op), runtime.Agents, zcode.Config{
+		Input: zcode.Input{Model: model, Language: input.Language, Messages: input.Prompt.Messages, Tools: tools, TurnStart: input.Prompt.TurnMessageStart, State: input.State},
+		Invoke: func(ctx context.Context, round int, request zcode.Invocation) (zcode.InvokeResult, error) {
+			// 压缩模型关闭工具选择，但历史里的工具身份仍须在网关声明。
+			if len(request.Tools) == 0 {
+				request.Tools = AgentTools()
+				request.ToolChoice = "none"
+			}
+			if request.Public && input.OnModelStart != nil {
 				if err := input.OnModelStart(ctx, round+1); err != nil {
-					return platform.ModelOutput{}, err
+					return zcode.InvokeResult{}, err
 				}
 			}
-			// 工具正文同样可能夹带指令；每次查阅后重申固定边界，不把提醒写进会话历史。
-			if round > 0 {
-				messages = append(append([]platform.GatewayMessage{}, messages...), agentRoundReminder(messages))
-			}
-			outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: true, Request: platform.CreateInvocationInput{TaskID: input.TaskID, ProfileID: input.ProfileID, Capability: platform.CapabilityChat, Messages: messages, MaximumOutputTokens: int64(maximumOutput), Tools: AgentTools(), ToolChoice: choice, IDempotencyKey: "answer.agent." + strconv.Itoa(round)}})
+			// 原生压缩与内部模型请求不进入公开回答流。
+			outcome, err := qaruntime.InvokeModel(ctx, op, qaruntime.InvokeModelInput{Stream: request.Public, Request: platform.CreateInvocationInput{TaskID: input.TaskID, ProfileID: input.ProfileID, Capability: platform.CapabilityChat, Messages: request.Messages, MaximumOutputTokens: int64(request.MaximumOutputTokens), Tools: request.Tools, ToolChoice: request.ToolChoice, IDempotencyKey: "answer.agent." + strconv.Itoa(round)}})
 			if err != nil {
-				return platform.ModelOutput{}, err
+				return zcode.InvokeResult{}, err
 			}
 			if outcome.State != "completed" || outcome.CurrentSnapshot == nil || outcome.CurrentSnapshot.Output == nil {
-				return platform.ModelOutput{}, platform.NewError(platform.CodeDependencyUnavailable, false, "agent原模型调用尚无完整持久结果")
+				return zcode.InvokeResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "原模型调用尚无完整持久结果")
 			}
 			output := *outcome.CurrentSnapshot.Output
-			if input.OnModelDone != nil {
+			if request.Public && input.OnModelDone != nil {
 				if err := input.OnModelDone(ctx, round+1, output); err != nil {
-					return platform.ModelOutput{}, err
+					return zcode.InvokeResult{}, err
 				}
 			}
-			return output, nil
+			// 网关切到备用模型时按真正完成调用的模型更新原生窗口。
+			actual := model
+			invocation := outcome.CurrentSnapshot.Invocation
+			for _, attempt := range invocation.Attempts {
+				if invocation.ResultAttemptID != nil && attempt.AttemptID == *invocation.ResultAttemptID && attempt.ModelID != model.ModelID {
+					actual, err = qaruntime.ResolveTaskModel(ctx, op, input.TaskID, attempt.ModelID)
+					if err != nil {
+						return zcode.InvokeResult{}, err
+					}
+					actual.MaxOutputTokens = min(actual.MaxOutputTokens, input.Policy.MaximumOutputTokens)
+					break
+				}
+			}
+			return zcode.InvokeResult{Output: output, Model: &actual}, nil
 		},
 		Execute: func(ctx context.Context, call platform.GatewayToolCall, maximum int) (modelagent.ToolResult, error) {
 			if call.Name == "report_abuse" {
@@ -121,35 +137,5 @@ func GenerateAgentAnswer(ctx context.Context, op OperationContext, input AgentAn
 	for _, id := range order {
 		allowed = append(allowed, citations[id])
 	}
-	// 本轮当前页预读也属于可复用的工具过程；公共系统提示和先前轮次另由上下文装配。
-	messages := result.Messages[input.Prompt.TurnMessageStart:]
-	return AgentAnswerResult{Text: normalizeCitationSpelling(*result.Output.Text), Citations: allowed, Messages: messages, Rounds: result.Rounds, ToolCalls: result.ToolCalls}, nil
-}
-
-// compactAgentToolResult 保留旧正文分页的首尾事实及原引用，避免读到结尾后把开头的前提条件完全移出窗口。
-// 只是本次模型输入中的节选，完整工具结果仍按原样保存；不调用额外模型，也不把省略当作没有内容。
-func compactAgentToolResult(content string, maximum int) string {
-	var page agentDocumentPage
-	if json.Unmarshal([]byte(content), &page) != nil || page.DocumentID == "" || len(page.Sections) == 0 {
-		return content
-	}
-	sections := page.Sections
-	if len(sections) > 4 {
-		sections = append(append([]agentSection{}, sections[:2]...), sections[len(sections)-2:]...)
-	}
-	for characters := 384; characters >= 24; characters /= 2 {
-		kept := make([]agentSection, 0, len(sections))
-		for _, section := range sections {
-			text := []rune(section.Text)
-			if len(text) > characters {
-				text = []rune(string(text[:characters*2/3]) + "\n（中间内容省略）\n" + string(text[len(text)-characters/3:]))
-			}
-			kept = append(kept, agentSection{CitationID: section.CitationID, Text: string(text)})
-		}
-		raw, _ := json.Marshal(map[string]any{"contextCompacted": true, "documentId": page.DocumentID, "publishedRevisionId": page.Revision, "offset": page.Offset, "title": clipAgentText(page.Title, 80), "sections": kept, "message": "仅保留这次已读正文的首尾节选，省略部分需要按原文档、版本和offset重新读取；不能把节选当作全文。"})
-		if len(raw) <= maximum {
-			return string(raw)
-		}
-	}
-	return content
+	return AgentAnswerResult{Text: normalizeCitationSpelling(result.Text), State: result.State, Citations: allowed, Messages: result.Messages, Rounds: result.Rounds, ToolCalls: result.ToolCalls}, nil
 }

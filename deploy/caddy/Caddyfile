@@ -12,9 +12,5 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 	}
-	# 只把算出的访客 IP 交给 portal（没配可信代理时就是直连对端）；不这样做时 Caddy 会把 Cloudflare 边缘 IP 接在后面，
-	# portal 按它推导匿名访客身份，边缘一轮换身份就变，人机验证和问答会报 FORBIDDEN。
-	reverse_proxy portal:8080 {
-		header_up X-Forwarded-For {client_ip}
-	}
+	reverse_proxy portal:8080
 }

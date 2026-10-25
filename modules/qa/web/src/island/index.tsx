@@ -1,7 +1,7 @@
 import { MessageCircleIcon as Comment } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
-import type { Translate } from './QaChat';
+import type { QaWelcome, Translate } from './QaChat';
 
 export type { Translate };
 
@@ -45,10 +45,10 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
 }
 
 // 独立问答页按整页布局，加载过程也不引入卡片外壳。
-export function QaInline({ locale, t }: { locale: string; t: Translate }) {
+export function QaInline({ locale, t, welcome }: { locale: string; t: Translate; welcome?: QaWelcome }) {
   return (
     <Suspense fallback={<div className="flex min-h-0 flex-1 items-center justify-center"><Spinner /></div>}>
-      <QaInlineChat locale={locale} t={t} />
+      <QaInlineChat locale={locale} t={t} welcome={welcome} />
     </Suspense>
   );
 }

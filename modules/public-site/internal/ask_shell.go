@@ -2,6 +2,7 @@ package publicsite
 
 import (
 	"context"
+	"encoding/json"
 	"html"
 
 	"nice-wiki/libs/platform"
@@ -37,6 +38,26 @@ func HandleAskShell(ctx context.Context, op platform.OperationContext, in Handle
 		Locale:   in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/ask", in.Locale), Footer: footerHTML, SourceCodeURL: sourceURL,
 		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask", UIStrings: catalog,
 	}, "ask"), Tree: tree}
+	// 引导来自同一份公开导航，不生成额外模型调用。
+	topics := []map[string]string{}
+	var collect func([]treeNode)
+	collect = func(nodes []treeNode) {
+		for _, node := range nodes {
+			if len(topics) >= 4 {
+				return
+			}
+			if node.URL != "" {
+				topics = append(topics, map[string]string{"title": node.Title, "href": node.URL})
+			}
+			collect(node.Children)
+		}
+	}
+	collect(tree)
+	var config map[string]any
+	_ = json.Unmarshal([]byte(page.Config), &config)
+	config["welcome"] = map[string]any{"name": page.SiteName, "description": meta.Description, "topics": topics}
+	raw, _ := json.Marshal(config)
+	page.Config = string(raw)
 	page.HasNav = len(tree) > 0
 	return render("ask", page)
 }

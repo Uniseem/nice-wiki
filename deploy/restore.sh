@@ -5,7 +5,7 @@
 set -eu
 cd "$(dirname "$0")"
 dir="$(cd "$1" && pwd)"; stamp="$2"
-volumes="nice-wiki_portal-data nice-wiki_public-site-data nice-wiki_identity-data nice-wiki_site-config-data nice-wiki_content-data nice-wiki_media-data nice-wiki_model-gateway-data nice-wiki_knowledge-data nice-wiki_qa-data nice-wiki_localization-data nice-wiki_memory-data nice-wiki_traffic-guard-data nice-wiki_jobs-data nice-wiki_analytics-data nice-wiki_data-protection-data"
+volumes="nice-wiki_portal-data nice-wiki_public-site-data nice-wiki_identity-data nice-wiki_site-config-data nice-wiki_content-data nice-wiki_media-data nice-wiki_model-gateway-data nice-wiki_knowledge-data nice-wiki_qa-data nice-wiki_localization-data nice-wiki_memory-data nice-wiki_traffic-guard-data nice-wiki_jobs-data nice-wiki_analytics-data nice-wiki_data-protection-data nice-wiki_agent-data"
 for volume in $volumes; do
 	[ -f "$dir/$volume-$stamp.tar.gz" ] || { echo "缺少 $volume-$stamp.tar.gz，未做任何改动"; exit 1; }
 	docker run --rm -v "$dir":/in:ro alpine tar tzf "/in/$volume-$stamp.tar.gz" > /dev/null || { echo "$volume-$stamp.tar.gz 已损坏，未做任何改动"; exit 1; }

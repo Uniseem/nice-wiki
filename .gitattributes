@@ -2,3 +2,5 @@
 *.json text eol=lf
 *.md text eol=lf
 *.py text eol=lf
+# 第三方源码原样保留；沿用上游空白，并在代码浏览中折叠。
+/libs/platform/zcode/upstream/** linguist-vendored -whitespace

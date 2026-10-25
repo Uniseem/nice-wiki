@@ -650,6 +650,7 @@ type EmbeddingSpace struct {
 }
 
 type ModelOutput struct {
+	Usage          *ModelUsage               `json:"usage,omitempty"`
 	Text           *string                   `json:"text,omitempty"`
 	Capability     string                    `json:"capability"`
 	EmbeddingSpace *EmbeddingSpace           `json:"embeddingSpace,omitempty"`
@@ -658,6 +659,12 @@ type ModelOutput struct {
 	Decision       map[string]DecisionAnswer `json:"decision,omitempty"`
 	ToolCalls      []GatewayToolCall         `json:"toolCalls,omitempty"`
 	FinishReason   string                    `json:"finishReason,omitempty"`
+}
+
+// ModelUsage 仅包含供应方实际返回的数量；未知项保持缺失。
+type ModelUsage struct {
+	InputTokens  *int `json:"inputTokens,omitempty"`
+	OutputTokens *int `json:"outputTokens,omitempty"`
 }
 
 type StreamEvent struct {

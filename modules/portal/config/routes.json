@@ -163,6 +163,16 @@
     },
     {
       "method": "GET",
+      "path": "/healthz",
+      "owner": "agent",
+      "operationId": "health",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/llms.txt",
       "owner": "public-site",
       "operationId": "handleLLMsRoot",
@@ -315,6 +325,16 @@
       "method": "GET",
       "path": "/readyz",
       "owner": "data-protection",
+      "operationId": "ready",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/readyz",
+      "owner": "agent",
       "operationId": "ready",
       "permission": "anonymous",
       "admission": null,

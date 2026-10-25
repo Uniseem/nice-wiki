@@ -56,6 +56,7 @@ images)
 			cp "release/linux-$arch/$slug" "$files/usr/local/bin/$slug"
 			set -- usr
 			env=""
+			base=alpine:3.20
 			if [ "$slug" = portal ]; then
 				cp -R web-dist "$files/web"
 				mkdir -p "$files/config"
@@ -63,9 +64,18 @@ images)
 				set -- usr web config
 				env="--env=NW_WEB_DIR=/web"
 			fi
+			if [ "$slug" = agent ]; then
+				mkdir -p "$files/opt/agent/licenses"
+				cp -R agent-dist/. "$files/opt/agent/"
+				cp -R docs/licenses/. "$files/opt/agent/licenses/"
+				cp THIRD_PARTY_NOTICES.md "$files/opt/agent/"
+				set -- usr opt
+				env="--env=NW_ZCODE_WORKER=/opt/agent/worker.mjs"
+				base=node:24-alpine
+			fi
 			mktar 0 "$files" "$work/$slug-$arch-files.tar" "$@"
 			mktar "$uid" "$data" "$work/$slug-$arch-data.tar" data
-			crane append --platform "linux/$arch" -b alpine:3.20 -f "$work/$slug-$arch-files.tar" -f "$work/$slug-$arch-data.tar" -t "$images-$slug:$tag-$arch"
+			crane append --platform "linux/$arch" -b "$base" -f "$work/$slug-$arch-files.tar" -f "$work/$slug-$arch-data.tar" -t "$images-$slug:$tag-$arch"
 			crane mutate "$images-$slug:$tag-$arch" --entrypoint="/usr/local/bin/$slug" --cmd="--config,/config/$slug.json" --user="$uid:$uid" --workdir="$workdir" --exposed-ports="$port/tcp" $env \
 				--label=org.opencontainers.image.source=https://github.com/Uniseem/nice-wiki --label="org.opencontainers.image.version=$tag" --label=org.opencontainers.image.licenses=AGPL-3.0-only \
 				-t "$images-$slug:$tag-$arch"

@@ -652,7 +652,10 @@ def render_clients(slug, impl, producer_specs):
         lines.append(render_admin_routes(load(ROOT / "contracts/permission-groups.json")))
     if slug == "model-gateway":
         lines.append(render_ai_task_catalog(load(ROOT / "contracts/ai-tasks.json")))
-    return "\n".join(lines)
+    result = "\n".join(lines)
+    if "url." not in result:
+        result = result.replace('\t"net/url"\n', "")
+    return result
 
 
 def render_ai_task_catalog(catalog):

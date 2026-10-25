@@ -341,7 +341,12 @@ func PrepareInvocationAttempt(ctx context.Context, op OperationContext, record g
 		}
 		inputBudget = estimated.InputTokens
 		if candidate.Model.MaxInputTokens > 0 && inputBudget > candidate.Model.MaxInputTokens {
-			return gatewayruntime.AttemptRecord{}, platform.NewError(platform.CodeBudgetExceeded, false, "输入保守预算超过固定模型窗口")
+			if record.Request.TaskId != "qa.answer" {
+				return gatewayruntime.AttemptRecord{}, platform.NewError(platform.CodeBudgetExceeded, false, "输入保守预算超过固定模型窗口")
+			}
+			// 原生 Agent 用实际用量管理默认窗口。UTF8 费用上界不能提前缩小它的可用上下文；
+			// 预留仍以模型物理输入上限为界，真实请求保持完整并由供应方校验。
+			inputBudget = candidate.Model.MaxInputTokens
 		}
 	}
 	ordinal := len(record.Invocation.Attempts) + 1

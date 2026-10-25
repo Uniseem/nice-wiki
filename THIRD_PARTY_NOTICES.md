@@ -60,3 +60,11 @@ ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.
 用户要求沿用 [ZCode 官方开源仓库](https://github.com/zai-org/ZCode) 的工具加载链与图标。参考版本为仓库 `package.json` 标示的 3.16.2（main 源码，无同名 tag）。问答工具摘要改编自 `packages/ui/src/ToolCallBlocks/ToolSummaryRow.tsx`、`ToolLayout.tsx` 及 read/search/explore 渲染器：保留静态搜索图标、运行文字扫光、悬停展开箭头及行内摘要；接入本站 SSE 与 HeroUI 主题，参数、分页和耗时在详情中展开。Copyright 2026 Z.AI Co., Ltd，Apache-2.0；原许可见 [ZCode Apache-2.0](docs/licenses/ZCode-Apache-2.0.txt)，适用声明见 [ZCode NOTICE 摘录](docs/licenses/ZCode-NOTICE.txt)。修改说明保留在组件文件头。
 
 图标通过 `lucide-react` 1.17.0 依赖使用，与上述 ZCode 源码声明的版本一致；使用其 Search、Wrench、ChevronRight 及对话操作图标。Copyright (c) 2026 Lucide Icons and Contributors，ISC；源自 Feather 的图标另受 MIT 许可约束，Copyright (c) 2013-present Cole Bemis。来源 [Lucide 官方仓库](https://github.com/lucide-icons/lucide)，完整许可见 [Lucide / Feather 许可](docs/licenses/lucide-react-1.17.0-LICENSE.txt)。上述许可与声明随公开站静态资源分发。
+
+## ZCode 原生运行时
+
+M16 采用同一 3.16.2 main 源码中的 `@zcode/core`、`contracts`、`dynamic-workflow`、`shared-types`、`shared`、`model-option-map` 与公开 `zcode-cua` 占位包，存于 `libs/platform/zcode/upstream`。保留原始源码、版权和 Apache-2.0 许可，省略测试及不参与运行的模块说明；原生 AgentRuntime、工具注册/执行、上下文和压缩机制直接调用上游实现。宿主适配在 `worker.mjs` 与平台 Go 包中：把模型及只读文档工具交回问答服务，移除产品无关的终端、桌面及账号接入，不修改上游源码。Copyright 2026 Z.AI Co., Ltd；适用许可仍见上述 ZCode 原许可，原始完整声明见 [运行时 NOTICE](docs/licenses/ZCode-runtime-NOTICE.txt)。
+
+实际打包的运行依赖由 pnpm 锁定：diff 9.0.0（BSD-3-Clause）、ipaddr.js 1.9.1（MIT）、marked 16.4.2（MIT）、meriyah 7.4.0（ISC）、TypeScript 5.9.3（Apache-2.0）、unbash 4.0.1（ISC）、yaml 2.9.1（ISC）、zod-to-json-schema 3.25.2（ISC）、zod 3.25.76 与 4.6.5（MIT）。这些包通过 npm 工作区依赖打包，不复制修改源码。构建器使用 esbuild 0.25.12（MIT）。`pnpm build:agent` 按真实打包清单收集各包的完整 LICENSE、NOTICE 和 TypeScript 第三方声明，随 `agent-dist/licenses`、运行文件及镜像一起分发；不以此处的许可名称替代原文。
+
+上游另包含两处派生源码：`core/src/tool/handlers/generated/bash-command-registry.ts` 来自 Fig autocomplete 2.692.3 的生成数据（原始仓库 MIT、npm 元数据 ISC，Copyright (c) 2021 Hercules Labs Inc. (Fig)），保留 [Fig 原始 MIT](docs/licenses/Fig-autocomplete-MIT.txt)；`shared/src/zcode-protocol-v4/wire-codec.ts` 源于 Visual Studio Code IPC/common 工具（MIT，Copyright (c) Microsoft Corporation），保留 [VS Code 原始 MIT](docs/licenses/VSCode-MIT.txt)。原许可文本取自 ZCode 对应源码快照的第三方声明，亦随原生服务分发。

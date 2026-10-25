@@ -7,9 +7,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERVICES = {  # slug: 端口
     "portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103, "media": 8104,
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
-    "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113,
+    "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114,
 }
-STATELESS = {"portal", "public-site"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
+STATELESS = {"portal", "public-site", "agent"}  # 不存业务数据，在线备份里没有它们的目录，恢复时不动它们的卷
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
 SUBNET = "10.231.97.0/24"  # 内部桥接网络：用私有网段（服务器防火墙通常只给私有网段放行转发，文档保留段的容器出不了网），避开 Docker 默认地址池
 IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程（scripts/release.sh）推送的镜像：{IMAGES}-{slug}:{版本}
@@ -31,16 +31,31 @@ def dockerfile(slug, port):
         web = f"""FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
-COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY libs/platform/zcode/upstream/ libs/platform/zcode/upstream/
 RUN pnpm install --frozen-lockfile
 COPY contracts/permission-groups.json contracts/permission-groups.json
 COPY libs/platform/web/ libs/platform/web/
 {sources}
 COPY modules/public-site/internal/ modules/public-site/internal/
-RUN NW_WEB_OUT=/out/web pnpm build
+RUN NW_WEB_OUT=/out/web pnpm build:web
 
 """
         copy_web = "COPY --from=web /out/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\nENV NW_WEB_DIR=/web\n"
+    if slug == "agent":
+        web = """FROM node:24-slim AS native
+RUN npm install -g pnpm@9.15.9
+WORKDIR /src
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY libs/platform/zcode/ libs/platform/zcode/
+RUN pnpm install --frozen-lockfile
+COPY scripts/build_zcode.mjs scripts/build_zcode.mjs
+COPY THIRD_PARTY_NOTICES.md ./
+COPY docs/licenses/ docs/licenses/
+RUN pnpm build:agent
+
+"""
+        copy_web = "COPY --from=native /src/agent-dist/ /opt/agent/\nCOPY --from=native /src/docs/licenses/ /opt/agent/licenses/\nCOPY THIRD_PARTY_NOTICES.md /opt/agent/THIRD_PARTY_NOTICES.md\nENV NW_ZCODE_WORKER=/opt/agent/worker.mjs\n"
     return f"""# {slug} 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 {web}FROM golang:1.25-alpine AS build
 WORKDIR /src
@@ -54,7 +69,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/{slug} ./cmd/{slug}
 
 def runtime_stage(slug, port, copy_binary, copy_web):
     uid = 10000 + list(SERVICES).index(slug)
-    return f"""FROM alpine:3.20
+    return f"""FROM {"node:24-alpine" if slug == "agent" else "alpine:3.20"}
 RUN adduser -D -u {uid} {slug} && mkdir -p /data/{slug} && chown {uid}:{uid} /data/{slug}
 {copy_binary}
 {copy_web}USER {uid}:{uid}

@@ -3958,10 +3958,11 @@ func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocume
 
 **步骤**
 
-1. 校验已消费准入与轮次租约，读取策略和对话历史
-2. 预载当前页与全站指南，主Agent自主搜索及分页阅读；资料与历史不构成指令
-3. 逐次投影模型公开说明和工具活动；主Agent可调用report_abuse，上报结果由风控权威决定
-4. 保存完整历史、计数、最终正文与白名单引用，提交终态并释放准入
+1. 校验原准入和轮次归属，续租并贯穿取消。
+2. 加载历史时复核公开来源版本，读取有效原生检查点及其后的消息；预读当前页和站点导航。
+3. 交由独立 ZCode AgentRuntime 使用模型默认窗口，自主以英文关键词进行嵌入混合检索并继续查阅相关正文；接近窗口上限时由原生机制压缩。
+4. 模型调用仍由问答服务经模型网关执行，工具继续在本域核对公开权限与发布版本；不应用旧固定上下文、轮数或工具次数限制。
+5. 保存本轮原始工具消息及最新原生检查点，校验最终引用并完成问答、释放准入；失败不重新派发原模型调用。
 
 **错误**
 
@@ -3974,7 +3975,7 @@ func ExecuteTurn(ctx context.Context, op OperationContext, turnID, currentDocume
 - 授权：permission：service；rule：本域后台worker以服务身份调用jobs；不接受外部请求触发
 - 并发：同会话同时只执行一轮；所有写入核lease、取消与epoch
 - 幂等：按turnId唯一；已派发调用不重放
-- 依赖：`qa.NormalizeQuestion`、`qa.ResolveTurnContext`、`qa.ResolveCurrentPageHint`、`qa.RetrieveEvidence`、`qa.InspectEvidence`、`qa.BuildAnswerPrompt`、`qa.GenerateAnswer`、`qa.ValidateCitation`、`qa.CompleteTurn`、`qa.CreateCompaction`、`traffic-guard:renewAdmission`、`traffic-guard:queueSessionAdmission`、`jobs:createJob`、`qa.reportAgentAbuse`
+- 依赖：`qa.NormalizeQuestion`、`qa.ResolveTurnContext`、`qa.ResolveCurrentPageHint`、`qa.RetrieveEvidence`、`qa.InspectEvidence`、`qa.BuildAnswerPrompt`、`qa.GenerateAnswer`、`qa.ValidateCitation`、`qa.CompleteTurn`、`qa.CreateCompaction`、`traffic-guard:renewAdmission`、`traffic-guard:queueSessionAdmission`、`jobs:createJob`、`qa.reportAgentAbuse`、`agent:startAgentRun`、`agent:readAgentEvents`、`agent:replyAgentRequest`、`agent:cancelAgentRun`
 
 ## qa.ListTurnRecords
 

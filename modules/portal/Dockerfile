@@ -2,7 +2,8 @@
 FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
-COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY libs/platform/zcode/upstream/ libs/platform/zcode/upstream/
 RUN pnpm install --frozen-lockfile
 COPY contracts/permission-groups.json contracts/permission-groups.json
 COPY libs/platform/web/ libs/platform/web/
@@ -22,7 +23,7 @@ COPY modules/analytics/web/ modules/analytics/web/
 COPY modules/data-protection/web/ modules/data-protection/web/
 COPY modules/public-site/web/ modules/public-site/web/
 COPY modules/public-site/internal/ modules/public-site/internal/
-RUN NW_WEB_OUT=/out/web pnpm build
+RUN NW_WEB_OUT=/out/web pnpm build:web
 
 FROM golang:1.25-alpine AS build
 WORKDIR /src

@@ -2,6 +2,8 @@
 **/node_modules
 **/dist
 web-dist
+agent-dist
+libs/platform/zcode/upstream/dynamic-workflow/src/compiler/libs.generated.ts
 .git
 .local
 deploy/secrets
