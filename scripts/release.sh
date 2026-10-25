@@ -28,7 +28,7 @@ mktar() {
 
 case "$step" in
 build)
-	# 32 个程序互不依赖，但共用大量依赖（platform、SQLite 等）：每种架构先编一个服务，把共用依赖放进构建缓存，
+	# 各程序互不依赖，但共用大量依赖（platform、SQLite 等）：每种架构先编一个服务，把共用依赖放进构建缓存，
 	# 再按 CPU 数并行编其余的。直接全部并行时每个进程都会各自重编一遍共用依赖，反而更慢。任一失败整步失败。
 	export ROOT="$PWD"
 	one='cd "$ROOT/${1%/cmd/*}" && CGO_ENABLED=0 GOOS=linux GOARCH="$0" go build -trimpath -ldflags "-s -w" -o "$ROOT/release/linux-$0/${1##*/}" "./cmd/${1##*/}"'
@@ -105,6 +105,7 @@ package)
 		mkdir -p "$root/config" "$root/deploy"
 		cp -R "release/linux-$arch" "$root/bin"
 		cp -R web-dist "$root/web"
+		cp -R agent-dist "$root/agent"
 		cp modules/portal/config/routes.json "$root/config/routes.json"
 		cp -R deploy/config deploy/caddy "$root/deploy/"
 		# 本机生成的公钥表和 Caddy 本地定制不属于发布包（CI 的干净检出里本来就没有）。
@@ -115,6 +116,7 @@ package)
 		sed "s/^NW_VERSION=.*/NW_VERSION=$tag/" deploy/.env.example >"$root/deploy/.env.example"
 		cp deploy/release/README.md "$root/README.md"
 		cp LICENSE "$root/"
+		cp THIRD_PARTY_NOTICES.md "$root/"
 		tar -C pkg -czf "dist/$name.tar.gz" "$name"
 	done
 	if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi

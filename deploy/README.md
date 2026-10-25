@@ -23,7 +23,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 从源码构建部署
 
-需要 Go（生成密钥用）和足够内存（在服务器上编译 15 个镜像）。首次部署（需要用户当次同意才能在服务器上执行）：
+需要 Go（生成密钥用）和足够内存（在服务器上编译 16 个镜像）。首次部署（需要用户当次同意才能在服务器上执行）：
 
 ```bash
 sh deploy/init-secrets.sh
@@ -34,7 +34,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
 内存不足 4GB 的机器上，`--build` 同时编译多个服务会把 Go 编译器 OOM 杀掉，改为逐个构建后再启动：
 
 ```bash
-for s in portal public-site identity site-config content media model-gateway knowledge qa localization memory traffic-guard jobs analytics data-protection; do docker compose -f deploy/docker-compose.yml build "$s"; done
+for s in portal public-site identity site-config content media model-gateway knowledge qa localization memory traffic-guard jobs analytics data-protection agent; do docker compose -f deploy/docker-compose.yml build "$s"; done
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
