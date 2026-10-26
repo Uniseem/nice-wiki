@@ -25,6 +25,7 @@ func BindReportingTimeZone(ctx context.Context, rt *Runtime, name string, view p
 	if err != nil {
 		return platform.NewError(platform.CodeValidation, false, "可信报表时区不合法")
 	}
+	rt.reportingZone = name
 	var stored string
 	if err = rt.DB.QueryRowContext(ctx, `SELECT reporting_timezone FROM analytics_meta WHERE singleton=1`).Scan(&stored); err != nil {
 		return storageError(err)

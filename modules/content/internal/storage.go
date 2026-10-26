@@ -478,8 +478,25 @@ func (s *Store) QuarantineDocument(ctx context.Context, documentID Identifier, r
 	return nil
 }
 
-// RecoverDatabaseJournal只能在入口尚未开放的独占启动段调用。
+// RecoverDatabaseJournal只能在入口尚未开放的独占启动段调用。库里有多个站点时逐站点恢复（日志文件各站点共用，按提交归属过滤）。
 func (s *Store) RecoverDatabaseJournal(ctx context.Context) error {
+	sites, err := pgdb.Sites(ctx, s.db)
+	if err != nil {
+		return contentStorageError()
+	}
+	if len(sites) == 0 {
+		return s.recoverSiteJournal(pgdb.WithTemplateView(ctx), false)
+	}
+	for _, site := range sites {
+		if err := s.recoverSiteJournal(pgdb.WithSite(ctx, site), true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// recoverSiteJournal 恢复当前上下文站点的提交日志；shared 表示日志文件被多个站点共用。
+func (s *Store) recoverSiteJournal(ctx context.Context, shared bool) error {
 	var site sql.NullString
 	if err := s.db.QueryRowContext(ctx, `SELECT site_id FROM store_identity WHERE singleton=1`).Scan(&site); err != nil {
 		return contentStorageError()
@@ -489,6 +506,9 @@ func (s *Store) RecoverDatabaseJournal(ctx context.Context) error {
 		return err
 	}
 	if !site.Valid {
+		if shared {
+			return nil
+		}
 		if info, err := os.Lstat(path); err == nil && info.Size() != 0 {
 			return platform.NewError(platform.CodeIntegrityError, false, "未绑定站点的正文库存在提交日志")
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -510,6 +530,15 @@ func (s *Store) RecoverDatabaseJournal(ctx context.Context) error {
 	defer cancel()
 	op := OperationContext{RequestID: platform.NewIdentifier(), OperationID: platform.NewIdentifier(), CallerService: "content", Actor: platform.AuthContext{Kind: "service", SubjectID: "content", SiteID: site.String}, DataEpoch: s.epoch, Deadline: time.Now().Add(30 * time.Second).UTC().Format(time.RFC3339Nano)}
 	recovery := RevisionRecoveryStore{ActiveRoot: s.root, SiteID: site.String, DataEpoch: s.epoch, State: s, ExclusiveStartup: true}
+	if shared {
+		recovery.Owns = func(ctx context.Context, commitID Identifier) (bool, error) {
+			var n int
+			if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM revision_preparations WHERE commit_id=?`, commitID).Scan(&n); err != nil {
+				return false, contentStorageError()
+			}
+			return n > 0, nil
+		}
+	}
 	if err := s.validatePreparedJournalCoverage(work, recovery); err != nil {
 		return err
 	}

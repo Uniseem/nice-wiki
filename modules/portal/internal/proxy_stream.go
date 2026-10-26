@@ -129,7 +129,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		if optionalAdmin {
 			required.Permission = "portal.use"
 		}
-		required.SiteID = targetSite(runtime.Request, route)
+		required.SiteID = targetSite(runtime, route)
 		required.Action = route.Definition.Owner + ":" + route.Definition.UpstreamOperationID
 		authResult, authErr := ResolveAuthContext(ctx, op, ResolveAuthContextInput{
 			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
@@ -712,14 +712,14 @@ var targetSitePattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 
 // targetSite 是这次后台请求要操作的站点：路径里的 siteId，否则请求头 X-Nw-Site（界面当前选中的站点）。
 // 这只是“想访问哪个站点”的声明，是否有权由 identity 按成员角色判定。
-func targetSite(request *http.Request, route ResolvedRoute) string {
+func targetSite(runtime *ProxyRuntime, route ResolvedRoute) string {
 	for _, p := range route.Parameters {
 		if p.Name == "siteId" && targetSitePattern.MatchString(p.Value) {
 			return p.Value
 		}
 	}
-	if v := request.Header.Get("X-Nw-Site"); targetSitePattern.MatchString(v) {
+	if v := runtime.Request.Header.Get("X-Nw-Site"); targetSitePattern.MatchString(v) {
 		return v
 	}
-	return ""
+	return string(runtime.HostSiteID)
 }

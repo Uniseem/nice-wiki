@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/pgdb"
 	"strings"
 	"time"
 )
@@ -263,10 +264,14 @@ func backgroundOperation(ctx context.Context, rt *Runtime, operation, root strin
 }
 
 func aggregateJobOperation(ctx context.Context, rt *Runtime, job platform.ClaimedJob) (OperationContext, error) {
-	var operation, root, ref, kind, epoch, id string
-	err := rt.DB.QueryRowContext(ctx, `SELECT operation_id,root_operation_id,input_ref,job_type,data_epoch,job_id FROM aggregate_jobs WHERE input_id=?`, job.InputRef.ObjectID).Scan(&operation, &root, &ref, &kind, &epoch, &id)
+	var operation, root, ref, kind, epoch, id, jobSite string
+	err := rt.DB.QueryRowContext(pgdb.WithSite(ctx, ""), `SELECT operation_id,root_operation_id,input_ref,job_type,data_epoch,job_id,site_id FROM aggregate_jobs WHERE input_id=?`, job.InputRef.ObjectID).Scan(&operation, &root, &ref, &kind, &epoch, &id, &jobSite)
 	if err != nil {
 		return OperationContext{}, storageError(err)
+	}
+	rt, err = rt.ForSite(ctx, jobSite)
+	if err != nil {
+		return OperationContext{}, err
 	}
 	expected, _ := platform.CanonicalJSON(job.InputRef)
 	if ref != string(expected) || epoch != rt.Epoch || job.DataEpoch != epoch || operation != job.OperationID || root != job.RootOperationID || kind != job.JobType || (id != "" && id != job.JobID) {

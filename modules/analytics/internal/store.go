@@ -11,7 +11,7 @@ import (
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
-	_ "nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/analytics/migrations"
 	"os"
 	"path/filepath"
@@ -45,6 +45,12 @@ type Runtime struct {
 	CountingLocation    *time.Location
 	closeOnce           sync.Once
 	closeErr            error
+
+	// 多站点：基础运行态（平台站点）之外，每个站点有一份共用存储、各自信标队列与日盐的运行态。
+	base          *Runtime
+	sitesMu       sync.Mutex
+	perSite       map[string]*Runtime
+	reportingZone string
 }
 type analyticsRuntimeKey struct{}
 type beaconRow struct {
@@ -252,11 +258,13 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 			return nil, storageError(e)
 		}
 	}
-	if _, err = db.ExecContext(ctx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,7,?,?)`, siteID, epoch); err != nil {
+	// 启动只认模板行（站点行由租户隔离层按需复制，读到哪一行不确定）。
+	metaCtx := pgdb.WithTemplateView(ctx)
+	if _, err = db.ExecContext(metaCtx, `INSERT OR IGNORE INTO analytics_meta(singleton,schema_version,site_id,data_epoch) VALUES(1,7,?,?)`, siteID, epoch); err != nil {
 		return nil, storageError(err)
 	}
 	var storedSite, storedEpoch string
-	if err = db.QueryRowContext(ctx, `SELECT schema_version,site_id,data_epoch FROM analytics_meta WHERE singleton=1`).Scan(&version, &storedSite, &storedEpoch); err != nil {
+	if err = db.QueryRowContext(metaCtx, `SELECT schema_version,site_id,data_epoch FROM analytics_meta WHERE singleton=1`).Scan(&version, &storedSite, &storedEpoch); err != nil {
 		return nil, storageError(err)
 	}
 	if version != 7 {
@@ -309,10 +317,99 @@ func runtimeFrom(ctx context.Context, op OperationContext) (*Runtime, error) {
 	if !ok || rt == nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "统计私有存储未装配")
 	}
-	if rt.Epoch != op.DataEpoch || rt.SiteID != op.Actor.SiteID {
+	if rt.Epoch != op.DataEpoch {
 		return nil, platform.NewError(platform.CodeVersionMismatch, false, "统计站点或代次不一致")
 	}
-	return rt, nil
+	if rt.SiteID == op.Actor.SiteID {
+		return rt, nil
+	}
+	return rt.ForSite(ctx, op.Actor.SiteID)
+}
+
+// ForSite 返回某个站点的运行态：和基础运行态共用存储与后台配置，但信标队列、限速计数、日盐各自独立；
+// 第一次用到时绑定该站点的报表时区（站点库里的统计记录由租户隔离层按站点分开）。
+func (rt *Runtime) ForSite(ctx context.Context, site string) (*Runtime, error) {
+	base := rt
+	if rt.base != nil {
+		base = rt.base
+	}
+	if site == base.SiteID {
+		return base, nil
+	}
+	if !platform.ValidIdentifier(site) {
+		return nil, platform.NewError(platform.CodeVersionMismatch, false, "统计站点或代次不一致")
+	}
+	base.sitesMu.Lock()
+	existing := base.perSite[site]
+	base.sitesMu.Unlock()
+	if existing != nil {
+		return existing, nil
+	}
+	clone := &Runtime{base: base, Consumer: base.Consumer, Jobs: base.Jobs, Submitter: base.Submitter, ValidateCreateJob: base.ValidateCreateJob,
+		GeoIP: base.GeoIP, DB: base.DB, Root: base.Root, Epoch: base.Epoch, SiteID: site, Key: base.Key, Window: base.Window,
+		Authorize: base.Authorize, ValidateEvent: base.ValidateEvent, Publisher: base.Publisher, CountingLocation: base.CountingLocation,
+		reportingZone: base.reportingZone, salts: map[string][]byte{}, queue: make([]beaconRow, 0, 256)}
+	// 费用统计只对平台站点同步（模型网关的账本按平台站点登记）；站点主人的 AI 用量走 identity 的 readAiUsage。
+	if base.reportingZone != "" && base.Window.Runtime != nil {
+		view, err := base.Window.Runtime(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err = BindReportingTimeZone(pgdb.WithSite(ctx, site), clone, base.reportingZone, view); err != nil {
+			return nil, err
+		}
+	}
+	base.sitesMu.Lock()
+	defer base.sitesMu.Unlock()
+	if existing = base.perSite[site]; existing != nil {
+		return existing, nil
+	}
+	if base.perSite == nil {
+		base.perSite = map[string]*Runtime{}
+	}
+	base.perSite[site] = clone
+	return clone, nil
+}
+
+// openSites 只列内存里已有的站点运行态（不碰数据库），停机排空队列用。
+func (rt *Runtime) openSites() []*Runtime {
+	base := rt
+	if rt.base != nil {
+		base = rt.base
+	}
+	result := []*Runtime{base}
+	base.sitesMu.Lock()
+	defer base.sitesMu.Unlock()
+	for _, site := range base.perSite {
+		result = append(result, site)
+	}
+	return result
+}
+
+// Sites 列出要处理的站点运行态：基础站点、已经出现过请求的站点，以及库里有统计记录的站点。
+func (rt *Runtime) Sites(ctx context.Context) []*Runtime {
+	base := rt
+	if rt.base != nil {
+		base = rt.base
+	}
+	result := []*Runtime{base}
+	seen := map[string]bool{base.SiteID: true}
+	known, _ := pgdb.Sites(ctx, base.DB)
+	base.sitesMu.Lock()
+	for site := range base.perSite {
+		known = append(known, site)
+	}
+	base.sitesMu.Unlock()
+	for _, site := range known {
+		if seen[site] || !platform.ValidIdentifier(site) {
+			continue
+		}
+		seen[site] = true
+		if clone, err := base.ForSite(ctx, site); err == nil {
+			result = append(result, clone)
+		}
+	}
+	return result
 }
 func storageError(err error) error {
 	if err == nil {

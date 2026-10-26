@@ -24,7 +24,15 @@ func RunWorker(ctx context.Context, op OperationContext, input WorkerLoopInput) 
 		return WorkerLoopResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务控制客户端未装配")
 	}
 	execute := func(ctx context.Context, in platform.JobExecutionInput) (platform.JobExecutionResult, error) {
-		return executePageAggregate(ctx, rt, in)
+		op, ok := platform.OperationContextFrom(ctx)
+		if !ok {
+			return platform.JobExecutionResult{}, platform.NewError(platform.CodeUnauthenticated, false, "任务上下文缺失")
+		}
+		site, err := rt.ForSite(ctx, op.Actor.SiteID)
+		if err != nil {
+			return platform.JobExecutionResult{}, err
+		}
+		return executePageAggregate(ctx, site, in)
 	}
 	unavailable := func(context.Context, platform.JobExecutionInput) (platform.JobExecutionResult, error) {
 		return platform.JobExecutionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "费用聚合与对账权威协议尚未完整装配")

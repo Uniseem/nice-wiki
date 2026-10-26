@@ -510,7 +510,9 @@ type proxyRuntimeKey struct{}
 type ProxyRuntime struct {
 	ValidateBeaconBody func(json.RawMessage) error
 	// SiteID与预算key仅由可信启动装配；预算pepper不随HTTP签名key自动轮换。
-	SiteID            platform.Identifier
+	SiteID platform.Identifier
+	// HostSiteID 是访问域名明确登记给的站点（平台域名、本地地址为空）：已登录用户在站点域名下没带站点头时，默认操作这个站点。
+	HostSiteID        platform.Identifier
 	NetworkScopeKeys  []platform.SigningKey
 	Anchors           platform.TrustAnchors
 	Registry          RouteRegistry

@@ -338,6 +338,18 @@ func isStringLit(arg []token) (string, bool) {
 	return "", false
 }
 
+// negativeInt 识别形如 -3 的整数字面量，返回去掉负号后的数字文本。
+func negativeInt(arg []token) (string, bool) {
+	arg = trimSpace(arg)
+	if len(arg) == 2 && arg[0].kind == tkPunct && arg[0].text == "-" && arg[1].kind == tkNumber {
+		return arg[1].text, true
+	}
+	if len(arg) == 1 && arg[0].kind == tkNumber && strings.HasPrefix(arg[0].text, "-") {
+		return arg[0].text[1:], true
+	}
+	return "", false
+}
+
 // jsonPath 把 SQLite 的 '$.a.b[0]' 路径转成 PostgreSQL 的 '{a,b,0}' 文本数组字面量。
 func jsonPath(path string) string {
 	path = strings.TrimPrefix(path, "$")
@@ -389,6 +401,13 @@ func rewriteCall(name string, rawArgs [][]token, tokens []token, at, end int) (r
 		if len(rawArgs) == 2 {
 			if path, ok := isStringLit(rawArgs[1]); ok {
 				return replacement{tokens: joinTokens("(public.nw_jsonb(", args[0], ") #>> ", jsonPath(path), ")")}, true
+			}
+		}
+	case "substr", "substring":
+		// SQLite 的 substr(x, -N) 取末尾 N 个字符；PostgreSQL 里负起点会从头取，得换成 right()。
+		if len(rawArgs) == 2 {
+			if n, ok := negativeInt(rawArgs[1]); ok {
+				return replacement{tokens: joinTokens("right(", args[0], ", ", n, ")")}, true
 			}
 		}
 	case "json_valid":

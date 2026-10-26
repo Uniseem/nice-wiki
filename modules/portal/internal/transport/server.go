@@ -241,8 +241,12 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	if resolved, ok := a.hostSite(r); ok && resolved.SiteID != "" && r.Host != "" {
 		origins = append(origins, "https://"+r.Host, "http://"+r.Host)
 	}
+	var hostSiteID platform.Identifier
+	if resolved, ok := a.hostSite(r); ok && resolved.PrimaryHost != "" {
+		hostSiteID = resolved.SiteID
+	}
 	runtime := &portal.ProxyRuntime{
-		SiteID: site, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
+		SiteID: site, HostSiteID: hostSiteID, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs, Countries: a.countries,

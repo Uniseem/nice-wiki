@@ -94,6 +94,8 @@ type RevisionRecoveryStore struct {
 	DataEpoch   Identifier
 	Gate        RevisionRecoveryGate
 	State       RevisionRecoveryState
+	// Owns 在多站点库里判断日志里的某次提交是否属于当前站点（日志文件是各站点共用的）；为空表示都属于当前站点。
+	Owns func(context.Context, Identifier) (bool, error)
 
 	// ExclusiveStartup 只适用于尚未接入外部 safe 屏障的单进程启动阶段。
 	// 正式屏障恢复应提供 Gate；未设置 Gate 且此字段为 false 时拒绝恢复。
@@ -388,6 +390,17 @@ func scanCommitJournal(ctx context.Context, store RevisionRecoveryStore, journal
 				return nil, false, err
 			}
 			continue
+		}
+		if store.Owns != nil {
+			if _, known := latest[journal.CommitID]; !known {
+				owned, ownErr := store.Owns(ctx, journal.CommitID)
+				if ownErr != nil {
+					return nil, false, ownErr
+				}
+				if !owned {
+					continue
+				}
+			}
 		}
 		entry, exists := latest[journal.CommitID]
 		if !exists {

@@ -270,7 +270,8 @@ func (s *Store) load(ctx context.Context) error {
 		return err
 	}
 	var defaults int64
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM languages WHERE default_language = 1`).Scan(&defaults); err != nil {
+	// 每个站点各有一个默认语言：按站点分组后取最大个数。
+	if err := s.db.QueryRowContext(ctx, `SELECT COALESCE(MAX(n), 0) FROM (SELECT COUNT(*) AS n FROM languages WHERE default_language = 1 GROUP BY site_id) AS per_site`).Scan(&defaults); err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "默认语言记录不可读")
 	}
 	if defaults > 1 {

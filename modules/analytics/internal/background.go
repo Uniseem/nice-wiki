@@ -70,7 +70,13 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 		})
 	})
 	launchPageLoop(func(ctx context.Context) error {
-		return runAnalyticsPeriodic(ctx, rt, 60000, "费用统计同步", func(ctx context.Context, op OperationContext) error { return SyncUsage(ctx, op, rt) })
+		return runAnalyticsPeriodic(ctx, rt, 60000, "费用统计同步", func(ctx context.Context, op OperationContext) error {
+			site, err := runtimeFrom(ctx, op)
+			if err != nil {
+				return err
+			}
+			return SyncUsage(ctx, op, site)
+		})
 	})
 	launchPageLoop(func(ctx context.Context) error { return RunRetentionBackground(ctx, rt) })
 	err := runAnalyticsPeriodic(work, rt, 5000, "访问信标落库", func(ctx context.Context, op OperationContext) error {
@@ -90,21 +96,39 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 	}
 }
 
-// runAnalyticsPeriodic只装配本域可信操作，轮询/运行权威/安全窗口由平台统一执行。
+// runAnalyticsPeriodic只装配本域可信操作，轮询/运行权威/安全窗口由平台统一执行；每个周期逐站点各跑一次，
+// 某个站点失败不耽误其他站点，返回第一个错误。
 func runAnalyticsPeriodic(ctx context.Context, rt *Runtime, millis int, label string, run func(context.Context, OperationContext) error) error {
 	return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: millis, Runtime: rt.Window.Runtime, WriteWindow: rt.Window.WriteWindow, Recover: func(ctx context.Context) error {
-		call, cancel, op := backgroundOperation(ctx, rt, "", "", 30*time.Second)
-		defer cancel()
-		err := run(call, op)
-		if err != nil && os.Getenv("NW_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "统计后台任务失败 %s：%v\n", label, err)
+		var first error
+		for _, site := range rt.Sites(ctx) {
+			call, cancel, op := backgroundOperation(ctx, site, "", "", 30*time.Second)
+			err := run(call, op)
+			cancel()
+			if err != nil {
+				if os.Getenv("NW_DEBUG") != "" {
+					fmt.Fprintf(os.Stderr, "统计后台任务失败 %s（站点 %s）：%v\n", label, site.SiteID, err)
+				}
+				if first == nil {
+					first = err
+				}
+			}
 		}
-		return err
+		return first
 	}})
 }
 
 // DrainBeacons只供HTTP停止或公共屏障私有cleanup上下文排空，不能用普通新写通行证。
 func DrainBeacons(ctx context.Context, rt *Runtime) error {
+	for _, site := range rt.openSites() {
+		if err := drainBeacons(ctx, site); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func drainBeacons(ctx context.Context, rt *Runtime) error {
 	for {
 		rt.mu.Lock()
 		pending := len(rt.queue) != 0 || rt.dropped != 0
@@ -123,10 +147,14 @@ func DrainBeacons(ctx context.Context, rt *Runtime) error {
 
 // RunRetentionBackground有界续清，仅把本域保留策略回调交给平台周期机制。
 func RunRetentionBackground(ctx context.Context, rt *Runtime) error {
-	lastHour, lastAudit := "", ""
+	lastHour, lastAudit := map[string]string{}, map[string]string{}
 	return runAnalyticsPeriodic(ctx, rt, 60000, "保留清理", func(call context.Context, op OperationContext) error {
 		now := time.Now().UTC()
-		if err := PruneDaySalts(call, rt, now); err != nil {
+		site, err := runtimeFrom(call, op)
+		if err != nil {
+			return err
+		}
+		if err := PruneDaySalts(call, site, now); err != nil {
 			return err
 		}
 		for batch := 0; batch < 50; batch++ {
@@ -139,20 +167,20 @@ func RunRetentionBackground(ctx context.Context, rt *Runtime) error {
 			}
 		}
 		hour := now.Format("2006-01-02T15")
-		if lastHour != hour {
+		if lastHour[site.SiteID] != hour {
 			if _, err := PurgeExports(call, op, PurgeExportsInput{Now: now.Format(analyticsTimeLayout)}); err != nil {
 				return err
 			}
-			lastHour = hour
+			lastHour[site.SiteID] = hour
 		}
 		day := now.Format("2006-01-02")
-		if lastAudit != day {
+		if lastAudit[site.SiteID] != day {
 			result, err := PurgeAuditHistory(call, op, PurgeAuditHistoryInput{Now: now.Format(analyticsTimeLayout), RetentionDays: 180})
 			if err != nil {
 				return err
 			}
 			if result.Deleted < 10000 {
-				lastAudit = day
+				lastAudit[site.SiteID] = day
 			}
 		}
 		return nil
