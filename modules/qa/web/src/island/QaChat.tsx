@@ -1,5 +1,5 @@
 import { ArrowDownIcon as ArrowDown, ArrowUpIcon as ArrowUp, FileTextIcon as FileText, PlusIcon as Plus, SquareIcon as Stop, ThumbsDownIcon as ThumbsDown, ThumbsUpIcon as ThumbsUp } from 'lucide-react';
-import { Button, cn, ScrollShadow, Spinner, TextArea, Tooltip } from '@heroui/react';
+import { Button, cn, ScrollShadow, TextArea, Tooltip } from '@heroui/react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { cancelTurn, followTurn, QaError, resetConversation, sendFeedback, startTurn, transient, verifyHuman, type Citation, type StreamEvent, type TurnInfo } from './client';
 import { Activity, finishSteps, mergeStep, type StepView } from './Activity';
@@ -19,6 +19,7 @@ type Message = {
   turn?: TurnInfo;
   feedback?: 'helpful' | 'unhelpful';
   live?: boolean; // 本次打开后新提问得到的回答：逐字写出
+  replacing?: boolean; // 服务端要求整段重发：下一段文字替换现有正文，不先清空
   streamPath?: string;
   sequence?: number;
   reconnecting?: boolean;
@@ -139,12 +140,18 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
   function trackRun(value: typeof running) { activeRun.current = value; setRunning(value); }
   function endRun(controller: AbortController) { if (activeRun.current?.controller === controller) trackRun(null); }
 
+  // 模型每一轮的文字都实时流出；带工具调用的一轮结束时，它的过程说明随步骤进入时间线，从正文末尾移走，
+  // 正文只留最终回答。服务端收尾时若要求整段重发，等新文字到了再替换，已经写出的部分不会清空重打。
   function receive(id: string, event: StreamEvent, allowChallenge = false): boolean {
-    if (event.kind === 'step') patch(id, (message) => ({ ...message, steps: mergeStep(message.steps ?? [], event.step) }));
-    else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.text + event.text }));
-    else if (event.kind === 'reset') patch(id, (message) => ({ ...message, text: '' }));
+    if (event.kind === 'step') patch(id, (message) => {
+      const narration = event.step.key === 'answer' && event.step.status === 'done' && !event.step.tool ? event.step.detail?.trim() : undefined;
+      const text = narration && message.text.trimEnd().endsWith(narration) ? message.text.trimEnd().slice(0, -narration.length) : message.text;
+      return { ...message, text, steps: mergeStep(message.steps ?? [], event.step) };
+    });
+    else if (event.kind === 'delta') patch(id, (message) => ({ ...message, text: message.replacing ? event.text : message.text + event.text, replacing: false }));
+    else if (event.kind === 'reset') patch(id, (message) => ({ ...message, replacing: true }));
     else if (event.kind === 'citation') patch(id, (message) => ({ ...message, citations: [...message.citations, event.citation] }));
-    else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', steps: finishSteps(message.steps, 'done'), reconnecting: false, turn: event.turn?.turnId ? event.turn : message.turn }));
+    else if (event.kind === 'done') patch(id, (message) => ({ ...message, status: 'done', text: message.replacing ? '' : message.text, replacing: false, steps: finishSteps(message.steps, 'done'), reconnecting: false, turn: event.turn?.turnId ? event.turn : message.turn }));
     else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled', steps: finishSteps(message.steps, 'cancelled'), reconnecting: false }));
     else if (event.kind === 'failed') {
       if (event.code === 'CHALLENGE_REQUIRED' && allowChallenge) return true;
@@ -240,7 +247,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
 
   const rounds = group(messages);
   return (
-    <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', fullPage && 'nw-qa-page', className)} data-empty={!messages.length} style={view ? { '--nw-qa-activity-height': `${Math.max(128, view - 176)}px` } as CSSProperties : undefined}>
+    <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', fullPage && 'nw-qa-page', className)} data-empty={!messages.length}>
       <div className="nw-qa-thread relative flex min-h-0 flex-1 flex-col">
         <ScrollShadow ref={scroller} className="nw-qa-scroll min-h-0 flex-1 px-4 py-4" onScroll={check}>
           {!messages.length && (
@@ -257,7 +264,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
           )}
           <ol ref={list} className="nw-qa-content mx-auto flex w-full flex-col gap-8">
             {rounds.map((round, index) => (
-              <li key={round.id} className="flex flex-col gap-4" data-turn={round.id} style={round.id === pinned && view ? { minHeight: view - 32 } : undefined}>
+              <li key={round.id} className="flex flex-col gap-4" data-turn={round.id} data-live={round.answer?.live || undefined} style={round.id === pinned && view ? { minHeight: view - 32 } : undefined}>
                 {round.question && <div className="nw-qa-question ms-10 self-end whitespace-pre-wrap break-words rounded-xl bg-default px-4 py-2.5 text-base leading-7 text-foreground">{round.question.text}</div>}
                 {round.answer && <Answer last={index === rounds.length - 1} message={round.answer} t={t} end={end} onRate={rate} />}
               </li>
@@ -323,12 +330,11 @@ function group(messages: Message[]): { id: string; question?: Message; answer?: 
 function Answer({ message, last, end, t, onRate }: { message: Message; last: boolean; end: RefObject<HTMLDivElement | null>; t: Translate; onRate: (message: Message, value: 'helpful' | 'unhelpful') => void }) {
   return (
     <div className="nw-qa-answer flex min-w-0 flex-col gap-3">
-      {!!message.steps?.length && <Activity active={message.status === 'streaming'} answerText={message.text} reconnecting={message.reconnecting} steps={message.steps} t={t} />}
+      {/* 过程标题行从提问那一刻起就在原位：先是“思考中…”，再换成当前动作，不在占位和过程之间来回切换。 */}
+      {(message.status === 'streaming' || !!message.steps?.length) && <Activity answerText={message.text} reconnecting={message.reconnecting} status={message.status} steps={message.steps ?? []} t={t} />}
       {/* 回答直接呈现为正文，出错时才使用提示底色。 */}
-      <div className={cn('text-base', message.status === 'error' && !message.error ? 'rounded-xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'text-foreground', message.status === 'streaming' && !message.text && message.steps?.length && 'hidden')}>
-        {message.status === 'streaming' && !message.text ? (
-          <span className="flex items-center gap-2 text-muted"><Spinner color="current" size="sm" />{t('思考中…')}</span>
-        ) : message.status === 'error' && !message.error ? message.text : <Typed message={message} t={t} />}
+      <div className={cn('text-base', message.status === 'error' && !message.error ? 'rounded-xl bg-danger-soft px-3.5 py-2.5 text-danger-soft-foreground' : 'text-foreground', message.status === 'streaming' && !message.text && 'hidden')}>
+        {message.status === 'error' && !message.error ? message.text : <Typed message={message} t={t} />}
       </div>
       {message.error && <p role="alert" className="rounded-2xl bg-danger-soft px-3.5 py-2.5 text-sm text-danger-soft-foreground">{message.error}</p>}
       {message.status === 'cancelled' && <p className="px-1 text-xs text-muted">{t('已停止')}</p>}

@@ -2,7 +2,8 @@ import { enhancePage } from './enhance';
 import type { Config, Translate } from './islands';
 
 // 站内无刷新跳转：文档页之间点链接时只取新页面的 HTML，替换正文、本页目录、页面标题和交互岛配置；
-// 页头、文档树（保留展开状态和滚动位置）、问答面板（对话不中断）都留在原地，新正文淡入。
+// 页头、文档树（保留展开状态和滚动位置）、问答面板（对话不中断）都留在原地；支持视图过渡的浏览器里旧正文淡出、新正文上浮淡入，
+// 其余浏览器新正文直接淡入。
 // 指针移到链接上、手指按下时就开始预取，空闲时预取上一篇/下一篇；取过的页面在内存里缓存 5 分钟。
 // 目标不是同语言的文档页（首页、问答页、换语言）、站点刚发了新版本或取不到时，照常整页打开。
 
@@ -47,7 +48,7 @@ function compatible(doc: Document): boolean {
 
 const headSelector = 'meta[name="description"], link[rel="canonical"], link[rel="alternate"], meta[property^="og:"], meta[name^="twitter:"], script[type="application/ld+json"]';
 
-function swap(doc: Document) {
+function swap(doc: Document, enter: boolean) {
   document.title = doc.title;
   document.head.querySelectorAll(headSelector).forEach((node) => node.remove());
   const anchor = document.head.querySelector('script');
@@ -61,7 +62,7 @@ function swap(doc: Document) {
     const current = document.getElementById(id);
     if (!next || !current) continue;
     const node = document.importNode(next, true) as HTMLElement;
-    node.classList.add('nw-enter');
+    if (enter) node.classList.add('nw-enter');
     current.replaceWith(node);
   }
   document.body.dataset.doc = doc.body.dataset.doc ?? '';
@@ -89,6 +90,15 @@ function swap(doc: Document) {
 
 let sequence = 0;
 let progress: HTMLElement | null = null;
+
+// 顶部进度条：加载完成时从当前位置走满再淡出，不是直接消失。
+function settle() {
+  const bar = progress;
+  progress = null;
+  if (!bar) return;
+  void bar.animate([{ transform: getComputedStyle(bar).transform, opacity: 1 }, { transform: 'scaleX(1)', opacity: 0 }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' })
+    .finished.then(() => bar.remove());
+}
 let translate: Translate = (key) => key;
 // 当前显示的是哪一页（路径加查询串）：返回、前进只改了锚点时不用换页。
 let current = location.pathname + location.search;
@@ -106,8 +116,7 @@ async function go(url: URL, push: boolean, scroll?: number) {
   }, 120);
   const page = await load(url);
   window.clearTimeout(timer);
-  progress?.remove();
-  progress = null;
+  settle();
   if (id !== sequence) return;
   if (!page || !compatible(page.doc)) {
     if (push) location.assign(url.href);
@@ -121,17 +130,21 @@ async function go(url: URL, push: boolean, scroll?: number) {
     final.hash = url.hash;
     history.pushState({ scroll: 0 }, '', final.href);
   }
-  swap(page.doc);
-  current = location.pathname + location.search;
-  const anchor = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : null;
-  if (anchor) anchor.scrollIntoView({ behavior: 'instant' });
-  else window.scrollTo({ top: scroll ?? 0, behavior: 'instant' });
-  const heading = document.querySelector<HTMLElement>('#nw-main h1');
-  if (heading) {
-    heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
-  }
-  enhancePage(translate, { referrer, elapsedMs: performance.now() - started });
+  const update = (enter: boolean) => {
+    swap(page.doc, enter);
+    current = location.pathname + location.search;
+    const anchor = url.hash ? document.getElementById(decodeURIComponent(url.hash.slice(1))) : null;
+    if (anchor) anchor.scrollIntoView({ behavior: 'instant' });
+    else window.scrollTo({ top: scroll ?? 0, behavior: 'instant' });
+    const heading = document.querySelector<HTMLElement>('#nw-main h1');
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+    enhancePage(translate, { referrer, elapsedMs: performance.now() - started });
+  };
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(() => update(false));
+  else update(true);
 }
 
 // 用程序打开站内页面（比如搜索结果按回车）：能无刷新就无刷新。

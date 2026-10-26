@@ -1,6 +1,7 @@
 import { MessageCircleIcon as Comment } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
+import { Matrix } from './loader';
 import type { QaWelcome, Translate } from './QaChat';
 
 export type { Translate };
@@ -28,7 +29,7 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
       onHoverStart={preloadQa}
       onPress={() => onOpenChange(true)}
     >
-      {pending ? <Spinner color="current" size="sm" /> : <Comment className="size-5" />}
+      {pending ? <Matrix className="text-lg" /> : <Comment className="size-5" />}
       <span className="hidden sm:inline">{t('AI 问答')}</span>
     </Button>
   );
@@ -44,10 +45,10 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
   );
 }
 
-// 独立问答页按整页布局，加载过程也不引入卡片外壳。
+// 独立问答页按整页布局，加载过程也不引入卡片外壳：只在中间放一个点阵加载，代码到了淡入对话。
 export function QaInline({ locale, t, welcome }: { locale: string; t: Translate; welcome?: QaWelcome }) {
   return (
-    <Suspense fallback={<div className="flex min-h-0 flex-1 items-center justify-center"><Spinner /></div>}>
+    <Suspense fallback={<div className="nw-qa-loading flex min-h-0 flex-1 items-center justify-center text-muted"><Matrix className="text-2xl" /></div>}>
       <QaInlineChat locale={locale} t={t} welcome={welcome} />
     </Suspense>
   );

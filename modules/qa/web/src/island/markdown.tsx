@@ -49,17 +49,18 @@ type MarkdownNode = {
 };
 
 // 在 Markdown 语法树里统一正文与文末编号，代码块和行内代码中的示例不参与引用。
-// 同一精确链接复用编号；不同段落锚点保留独立条目，避免把不同证据合并掉。
+// 同一篇文档（忽略段落锚点）共用一个编号，文末只列一次，链接到第一次引用的段落；紧挨着的同号标记合成一个。
 function referencePlugin(citations: Citation[], scope: string, label: string) {
   return () => (tree: MarkdownNode) => {
     const refs = new Map(citations.filter(item => item.citationId).map(item => [item.citationId!, item]));
-    const entries = new Map<string, { number: number; citation: Citation }>();
+    const entries = new Map<string, { number: number; href: string; citation: Citation }>();
     let hasMarkers = false;
     const entry = (citation: Citation) => {
       const href = citation.href && safeHref(citation.href);
       if (!href) return;
-      if (!entries.has(href)) entries.set(href, { number: entries.size + 1, citation });
-      return entries.get(href);
+      const document = href.replace(/#.*$/, '');
+      if (!entries.has(document)) entries.set(document, { number: entries.size + 1, href, citation });
+      return entries.get(document);
     };
     const prepare = (parent: MarkdownNode) => {
       parent.children = parent.children?.flatMap(node => {
@@ -77,16 +78,21 @@ function referencePlugin(citations: Citation[], scope: string, label: string) {
     };
     prepare(tree);
     const walk = (parent: MarkdownNode) => {
+      let previous: number | undefined;
       parent.children = parent.children?.flatMap(node => {
         if (node.type === 'link' && node.url?.startsWith('cite:')) {
           hasMarkers = true;
           const citation = refs.get(node.url.slice(5));
           const ref = citation && entry(citation);
-          if (!ref) return [];
+          if (!ref || ref.number === previous) return [];
+          previous = ref.number;
           node.url = `#${scope}-${ref.number}`;
           node.children = [{ type: 'text', value: `[${ref.number}]` }];
           node.data = { hProperties: { 'data-citation-number': ref.number, title: ref.citation.title } };
-        } else if (node.children) walk(node);
+          return [node];
+        }
+        if (node.type !== 'text' || node.value?.trim()) previous = undefined;
+        if (node.children) walk(node);
         return [node];
       });
     };
@@ -97,7 +103,7 @@ function referencePlugin(citations: Citation[], scope: string, label: string) {
     tree.children!.push({
       type: 'list', ordered: true, start: 1, spread: false,
       data: { hProperties: { className: ['nw-references'], 'aria-label': label } },
-      children: [...entries].map(([href, { number, citation }]) => ({
+      children: [...entries.values()].map(({ number, href, citation }) => ({
         type: 'listItem', spread: false,
         data: { hProperties: { id: `${scope}-${number}`, className: ['nw-reference'], tabIndex: -1 } },
         children: [{ type: 'paragraph', children: [{

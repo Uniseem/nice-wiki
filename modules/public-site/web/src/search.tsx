@@ -1,7 +1,8 @@
 import { recordVisitorActivity } from '@ui/visitor';
 import { FileText, Magnifier } from '@gravity-ui/icons';
-import { Modal, Spinner } from '@heroui/react';
+import { Modal } from '@heroui/react';
 import { searchDocuments, transient, type SearchHit } from '@modules/qa/web/src/island/client';
+import { Matrix } from '@modules/qa/web/src/island/loader';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Translate } from './islands';
 import { visit } from './navigate';
@@ -114,7 +115,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                   return (
                     <li key="deep" aria-selected={selected} role="option">
                       <button className={rowClass} type="button" onClick={() => choose(row)} onMouseEnter={() => setIndex(position)}>
-                        {current?.status === 'loading' ? <Spinner className="mt-0.5 shrink-0" color="current" size="sm" /> : <Magnifier className="mt-0.5 size-4 shrink-0" />}
+                        {current?.status === 'loading' ? <Matrix className="mt-0.5 text-base" /> : <Magnifier className="mt-0.5 size-4 shrink-0" />}
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-foreground">{current?.status === 'loading' ? t('正在检索全文…') : `${t('检索全文')}：${trimmed}`}</span>
                           {current?.status === 'error' && <span className="block text-xs text-danger">{current.message}</span>}
