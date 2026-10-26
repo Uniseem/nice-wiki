@@ -38,8 +38,9 @@ function guard(): string {
   try { return store.getItem(keys.guard) ?? ''; } catch { return ''; }
 }
 
-// 暂时不可用：入口或依赖服务正在重启（503 DEPENDENCY_UNAVAILABLE、反向代理的 502/504、Cloudflare 的 520–524）或网络断开。
-const busyStatus = (status: number) => status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 524);
+// 暂时不可用：入口或依赖服务正在重启（503 DEPENDENCY_UNAVAILABLE、反向代理的 502/504）、Cloudflare 回源失败
+// （520–524，以及偶发的 525 回源 TLS 握手失败，换一条回源连接通常就好）或网络断开。
+const busyStatus = (status: number) => status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 525);
 export function transient(problem: unknown): boolean {
   return problem instanceof QaError && (problem.code === 'DEPENDENCY_UNAVAILABLE' || problem.code === 'NETWORK' || busyStatus(problem.status));
 }
