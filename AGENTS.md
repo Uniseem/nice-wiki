@@ -13,12 +13,13 @@ nice-wiki 是从零重建的微服务文档站。旧实现在 old 分支，只�
 - 不写过程记录：任何文档都不记 SHA、pipeline/job 号、补丁哈希、"证据"、交接流水。git log 就是历史。
 - 做完一件事，只更新 STATUS.md 里"现在能用什么 / 下一步"，保持一页以内。
 
-## 编译与检查（全部本地）
+## 编译与检查（全部在 NL 编译机）
 
+- 2026-10-26 起，编译、检查、测试和冒烟实例都放在 NL 编译机上（连接方式与工作区约定见机器管理仓库），本机只改代码、开浏览器。源码用 rsync 同步到 `/srv/build/nice-wiki`（不含 node_modules、.local、web-dist），Go/pnpm 缓存放 `/srv/build/nice-wiki-cache`，可随时清理。
 - `make build`：全部 Go 模块 build/vet/gofmt，约 30 秒。改了 Go 就跑。
 - `make check`：合同结构、链接、隐私，约 2 秒。改了合同或文档就跑。
 - 改 OpenAPI/合同后跑 `make gen`、`make docs`；生成目录不手改，go.sum 和 pnpm lock 只由 go/pnpm 命令生成。
-- 可以在本地启动服务，用 curl 或浏览器冒烟验证。
+- 冒烟用 NL 上的测试实例（端口偏移、只监听 127.0.0.1），本机经 SSH 隧道用 curl 或浏览器验证；模型联调可接 OpenRouter 的免费模型（`:free`），只给问答档位，后台任务用假供应方。用完删掉实例里的密钥数据。
 - GitLab CI 只是推送后的兜底，不等它，也不把它当编译手段。
 
 ## 合同
