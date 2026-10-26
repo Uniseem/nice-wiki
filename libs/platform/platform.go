@@ -192,15 +192,17 @@ type OperationContext struct {
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
 type EventEnvelope struct {
-	EventID      Identifier      `json:"eventId"`
-	EventType    string          `json:"eventType"`
-	EventVersion int             `json:"eventVersion"`
-	Producer     string          `json:"producer"`
-	SubjectID    Identifier      `json:"subjectId"`
-	Revision     Revision        `json:"revision"`
-	OccurredAt   Timestamp       `json:"occurredAt"`
-	DataEpoch    Identifier      `json:"dataEpoch"`
-	Payload      json.RawMessage `json:"payload"`
+	EventID      Identifier `json:"eventId"`
+	EventType    string     `json:"eventType"`
+	EventVersion int        `json:"eventVersion"`
+	Producer     string     `json:"producer"`
+	SubjectID    Identifier `json:"subjectId"`
+	Revision     Revision   `json:"revision"`
+	OccurredAt   Timestamp  `json:"occurredAt"`
+	DataEpoch    Identifier `json:"dataEpoch"`
+	// SiteID 是事件发生在哪个站点（多站点平台上，消费者按它切换站点作用域）；平台级事件为空。
+	SiteID  Identifier      `json:"siteId,omitempty"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 // SigningKey 私钥引用；私钥字节只在内存，不进日志。
@@ -836,6 +838,7 @@ type OutboxRow struct {
 	Revision      Revision
 	OccurredAt    Timestamp
 	DataEpoch     Identifier
+	SiteID        Identifier
 	Payload       json.RawMessage
 	PayloadHash   Hash
 	State         string

@@ -15,8 +15,10 @@ import (
 	"nice-wiki/modules/model-gateway/internal/admin"
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/channels"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"nice-wiki/modules/model-gateway/internal/invocation"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	"nice-wiki/modules/model-gateway/internal/routing"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
@@ -120,6 +122,25 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identityClient := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	authorize := apivalidate.NewIdentityAuthorizer(identityClient)
+	ownership.AllowLoopback = config.AllowLocalHTTP
+	ownership.Configure(func(ctx context.Context, siteID string, epoch platform.Identifier) (ownership.Policy, error) {
+		work, cancel := context.WithTimeout(platform.WithPortalProof(ctx, ""), 4*time.Second)
+		defer cancel()
+		deadline, _ := work.Deadline()
+		id := platform.NewIdentifier()
+		stamp := deadline.UTC().Format(time.RFC3339Nano)
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, DataEpoch: epoch, Deadline: stamp,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: platform.Identifier(siteID), Grants: []string{}, ExpiresAt: stamp}}
+		raw, err := identityClient.ReadSiteAiPolicy(platform.WithOperationContext(work, op), siteID)
+		if err != nil {
+			return ownership.Policy{}, err
+		}
+		var policy ownership.Policy
+		if json.Unmarshal(raw, &policy) != nil || policy.SiteID != siteID {
+			return ownership.Policy{}, platform.NewError(platform.CodeIntegrityError, false, "站点 AI 策略响应不符合合同")
+		}
+		return policy, nil
+	})
 	assignmentCallers := []string{"portal"}
 	seen := map[string]bool{"portal": true}
 	for _, task := range gen.AITaskCatalog {
@@ -171,6 +192,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for operationID, handler := range security.NewCredentialHandlers() {
 		handlers[operationID] = handler
 	}
+	for operationID, handler := range channels.Handlers() {
+		handlers[operationID] = handler
+	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self:    ModuleSlug,
 		Anchors: anchors,
@@ -213,6 +237,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"createConnectionProbe":   {"portal"},
 			"readFeeBudgetPolicy":     {"portal"},
 			"putFeeBudgetPolicy":      {"portal"},
+			"listAiChannels":          {"portal"},
+			"createAiChannel":         {"portal"},
+			"deleteAiChannel":         {"portal"},
+			"readAiUsage":             {"portal"},
 		},
 	}, handlers)
 	if err != nil {

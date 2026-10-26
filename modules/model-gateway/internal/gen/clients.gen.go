@@ -281,6 +281,11 @@ func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
 }
 
+// ReadSiteAiPolicy GET /v1/sites/{siteId}/ai-policy（identity:readSiteAiPolicy）。
+func (c *IdentityClient) ReadSiteAiPolicy(ctx context.Context, siteId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/sites/"+url.PathEscape(siteId)+"/ai-policy", nil, "")
+}
+
 // JobsClient 调用jobs服务（自动附服务断言）。
 type JobsClient struct{ *producerClient }
 

@@ -153,7 +153,8 @@ func (c *consumerLoop) queueFor(subject string) chan consumerDelivery {
 }
 
 // operation每次IO建立新截止与当前代次；不转发启动时的委托凭证。
-func (c *consumerLoop) operation(ctx context.Context, epoch, root string) (context.Context, context.CancelFunc) {
+// 多站点平台上，事件带着自己的站点：处理它的操作以该站点的身份进行，其余用消费者配置的站点。
+func (c *consumerLoop) operation(ctx context.Context, epoch, root string, eventSite ...platform.Identifier) (context.Context, context.CancelFunc) {
 	work, cancel := context.WithTimeout(platform.WithPortalProof(ctx, ""), 30*time.Second)
 	deadline, _ := work.Deadline()
 	id := platform.NewIdentifier()
@@ -161,6 +162,9 @@ func (c *consumerLoop) operation(ctx context.Context, epoch, root string) (conte
 		root = id
 	}
 	site := c.config.SiteID
+	if len(eventSite) > 0 && eventSite[0] != "" {
+		site = eventSite[0]
+	}
 	if site == "" {
 		site = "system"
 	}
@@ -183,7 +187,7 @@ func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, str
 			c.failed.Add(1)
 			continue
 		}
-		work, cancelDelivery := c.operation(parent, event.DataEpoch, event.EventID)
+		work, cancelDelivery := c.operation(parent, event.DataEpoch, event.EventID, event.SiteID)
 		scoped, release, scopeErr := c.config.AdmitDelivery(work)
 		if scopeErr != nil {
 			cancelDelivery()
@@ -209,7 +213,7 @@ func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnve
 		c.failed.Add(1)
 		return
 	}
-	work, cancel := c.operation(ctx, view.DataEpoch, event.EventID)
+	work, cancel := c.operation(ctx, view.DataEpoch, event.EventID, event.SiteID)
 	defer cancel()
 	if c.client.AcknowledgeEvent(work, c.config.ConsumerID, event.EventID) != nil {
 		c.failed.Add(1)
@@ -227,7 +231,7 @@ func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope
 		c.failed.Add(1)
 		return
 	}
-	work, cancel := c.operation(ctx, view.DataEpoch, event.EventID)
+	work, cancel := c.operation(ctx, view.DataEpoch, event.EventID, event.SiteID)
 	err := c.handlers.Handler(event.EventType)(work, platform.EventDelivery{Envelope: event})
 	cancel()
 	if err != nil && !errors.Is(err, ErrEventSkipped) {

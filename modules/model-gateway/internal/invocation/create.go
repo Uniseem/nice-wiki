@@ -9,6 +9,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	"nice-wiki/modules/model-gateway/internal/provider"
 	"nice-wiki/modules/model-gateway/internal/routing"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -37,8 +38,12 @@ func CreateInvocation(ctx context.Context, op OperationContext, input CreateInvo
 	if err != nil {
 		return CreateInvocationResult{}, err
 	}
-	if options.SiteID == "" || op.Actor.SiteID != options.SiteID {
-		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "新调用必须绑定当前实际站点")
+	if options.SiteID == "" || op.Actor.SiteID == "" {
+		return CreateInvocationResult{}, platform.NewError(platform.CodeForbidden, false, "新调用必须带站点")
+	}
+	// 先读到站点的 AI 策略：谁付费、有没有额度、有没有自带渠道；读不到就不接受新调用。
+	if _, err := ownership.Lookup(ctx, string(op.Actor.SiteID), op.DataEpoch); err != nil {
+		return CreateInvocationResult{}, err
 	}
 	canonical := CanonicalInvocationInput(op, input)
 	read, err := gatewayruntime.BeginExecution(ctx, op, false)

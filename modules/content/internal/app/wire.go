@@ -132,22 +132,20 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	application.SetBackground([]platform.BackgroundTask{
 		{Name: "content.relay-outbox", Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
-				site, bound := store.SiteID(batch)
-				if !bound {
-					return nil
-				}
-				_, err := content.RelayOutbox(content.WithRelayRuntime(batch, relay), content.ServiceOperation(site, epoch), content.RelayOutboxInput{BatchLimit: 100})
+				// 发件箱不分站点：事件自己带着站点，转发用平台身份。
+				_, err := content.RelayOutbox(content.WithRelayRuntime(batch, relay), content.ServiceOperation("system", epoch), content.RelayOutboxInput{BatchLimit: 100})
 				return err
 			}})
 		}},
 		{Name: "content.expire-idle-locks", Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 5000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
-				site, bound := store.SiteID(batch)
-				if !bound {
-					return nil
+				for _, site := range store.Sites(batch) {
+					op := content.ServiceOperation(site, epoch)
+					if _, err := content.ExpireIdleLocks(content.WithEditLockRuntime(platform.WithOperationContext(batch, op), content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}), op, content.ExpireIdleLocksInput{Now: time.Now().UTC()}); err != nil {
+						return err
+					}
 				}
-				_, err := content.ExpireIdleLocks(content.WithEditLockRuntime(batch, content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}), content.ServiceOperation(site, epoch), content.ExpireIdleLocksInput{Now: time.Now().UTC()})
-				return err
+				return nil
 			}})
 		}},
 	})

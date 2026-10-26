@@ -29,6 +29,7 @@ const SchemaSQL = `CREATE TABLE IF NOT EXISTS nw_outbox (
 	revision        INTEGER NOT NULL,
 	occurred_at     TEXT NOT NULL,
 	data_epoch      TEXT NOT NULL,
+	site_id         TEXT NOT NULL DEFAULT '',
 	payload         BLOB NOT NULL,
 	payload_hash    TEXT NOT NULL,
 	state           TEXT NOT NULL DEFAULT 'pending',
@@ -37,12 +38,19 @@ const SchemaSQL = `CREATE TABLE IF NOT EXISTS nw_outbox (
 	lease_until     TEXT NOT NULL DEFAULT '',
 	quarantine_note TEXT NOT NULL DEFAULT ''
 )`
+
+// addSiteColumnSQL 给早先建好的发件箱补站点列（新表已带）。
+const addSiteColumnSQL = `ALTER TABLE nw_outbox ADD COLUMN IF NOT EXISTS site_id TEXT NOT NULL DEFAULT ''`
+
 const schemaIndexSQL = `CREATE INDEX IF NOT EXISTS idx_nw_outbox_due ON nw_outbox (state, next_attempt_at)`
 
 // EnsureSchema 创建outbox表与索引；幂等。
 func EnsureSchema(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, SchemaSQL); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "创建outbox表失败")
+	}
+	if _, err := db.ExecContext(ctx, addSiteColumnSQL); err != nil {
+		return platform.NewError(platform.CodeInternal, true, "补发件箱站点列失败")
 	}
 	if _, err := db.ExecContext(ctx, schemaIndexSQL); err != nil {
 		return platform.NewError(platform.CodeInternal, true, "创建outbox索引失败")
@@ -55,8 +63,8 @@ func EnsureSchema(ctx context.Context, db *sql.DB) error {
 
 // insertSQL 与业务事务共用同一连接提交；事务回滚则事件不存在。
 const insertSQL = `INSERT INTO nw_outbox
-	(event_id, event_type, event_version, producer, subject_id, revision, occurred_at, data_epoch, payload, payload_hash, state, attempts, next_attempt_at, lease_until, quarantine_note)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, '', '')`
+	(event_id, event_type, event_version, producer, subject_id, revision, occurred_at, data_epoch, payload, payload_hash, state, attempts, next_attempt_at, lease_until, quarantine_note, site_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, '', '', COALESCE(NULLIF(?, ''), COALESCE(current_setting('nw.site', true), '')))`
 
 // EnqueueEvent 在业务事务内登记outbox事件：
 // 校验信封与载荷不含正文、密钥、IP，按eventId唯一插入pending行，
@@ -71,7 +79,7 @@ func EnqueueEvent(tx platform.Tx, envelope platform.EventEnvelope) error {
 		_, err := tx.ExecContext(context.Background(), insertSQL,
 			envelope.EventID, envelope.EventType, envelope.EventVersion, envelope.Producer,
 			envelope.SubjectID, envelope.Revision, envelope.OccurredAt, envelope.DataEpoch,
-			[]byte(envelope.Payload), payloadHash, now)
+			[]byte(envelope.Payload), payloadHash, now, string(envelope.SiteID))
 		return err
 	}
 	if err := insert(); err != nil {
@@ -140,7 +148,7 @@ WHERE event_id IN (
 		AND (lease_until = '' OR lease_until <= ?)
 	ORDER BY rowid LIMIT ?
 ) RETURNING event_id, event_type, event_version, producer, subject_id, revision,
-	occurred_at, data_epoch, payload, payload_hash, state, attempts, next_attempt_at`
+	occurred_at, data_epoch, payload, payload_hash, state, attempts, next_attempt_at, site_id`
 
 func (s *Store) ClaimBatch(ctx context.Context, limit int, lease time.Duration) ([]platform.OutboxRow, error) {
 	now := platform.Now()
@@ -156,7 +164,7 @@ func (s *Store) ClaimBatch(ctx context.Context, limit int, lease time.Duration) 
 		var payload []byte
 		if err := rows.Scan(&row.EventID, &row.EventType, &row.EventVersion, &row.Producer,
 			&row.SubjectID, &row.Revision, &row.OccurredAt, &row.DataEpoch,
-			&payload, &row.PayloadHash, &row.State, &row.Attempts, &row.NextAttemptAt); err != nil {
+			&payload, &row.PayloadHash, &row.State, &row.Attempts, &row.NextAttemptAt, &row.SiteID); err != nil {
 			return nil, platform.NewError(platform.CodeInternal, true, "读取outbox行失败")
 		}
 		row.Payload = payload

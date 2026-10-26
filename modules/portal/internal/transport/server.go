@@ -234,6 +234,10 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	if configured, err := url.Parse(a.config.PublicBaseURL); err == nil && configured.Host != "" {
 		origins = []string{configured.Scheme + "://" + configured.Host}
 	}
+	// 已登记并验证过的站点域名：同域名发来的请求（访客提问、站点后台）本身就是同源，浏览器带的 Origin 等于它自己的域名。
+	if resolved, ok := a.hostSite(r); ok && resolved.SiteID != "" && r.Host != "" {
+		origins = append(origins, "https://"+r.Host, "http://"+r.Host)
+	}
 	runtime := &portal.ProxyRuntime{
 		SiteID: site, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,

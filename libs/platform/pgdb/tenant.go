@@ -1,9 +1,12 @@
 package pgdb
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 // 租户隔离：多个站点共用同一批表，靠 PostgreSQL 行级安全（RLS）隔离。
@@ -299,3 +302,64 @@ func tenantDML(module, statement string) string {
 	}
 	return render(tokens[:open+1]) + inner + render(tokens[closeAt:])
 }
+
+// Sites 列出本组件里出现过的站点（各单例表里 nw_site 的并集，不含模板行）。后台循环按它逐站点处理，
+// 站点第一次被访问时才会出现，结果缓存几秒。
+func Sites(ctx context.Context, db *sql.DB) ([]string, error) {
+	var schema string
+	if err := db.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err != nil {
+		return nil, err
+	}
+	sitesMu.Lock()
+	cached, ok := sitesCache[schema]
+	sitesMu.Unlock()
+	if ok && time.Now().Before(cached.expires) {
+		return cached.sites, nil
+	}
+	rows, err := db.QueryContext(ctx, `SELECT table_name FROM information_schema.columns WHERE table_schema = current_schema() AND column_name = 'nw_site'`)
+	if err != nil {
+		return nil, err
+	}
+	var parts []string
+	for rows.Next() {
+		var table string
+		if rows.Scan(&table) == nil {
+			parts = append(parts, `SELECT nw_site FROM `+quoteIdent(schema)+`.`+quoteIdent(table))
+		}
+	}
+	rows.Close()
+	var sites []string
+	if len(parts) > 0 {
+		// 系统视角（不带站点、不带模板视角）才能看到全部行。
+		conn, err := db.Conn(WithSite(ctx, ""))
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+		result, err := conn.QueryContext(WithSite(ctx, ""), `SELECT DISTINCT nw_site FROM (`+strings.Join(parts, " UNION ALL ")+`) s WHERE nw_site <> '' ORDER BY nw_site`)
+		if err != nil {
+			return nil, err
+		}
+		defer result.Close()
+		for result.Next() {
+			var site string
+			if result.Scan(&site) == nil {
+				sites = append(sites, site)
+			}
+		}
+	}
+	sitesMu.Lock()
+	sitesCache[schema] = sitesEntry{sites, time.Now().Add(3 * time.Second)}
+	sitesMu.Unlock()
+	return sites, nil
+}
+
+type sitesEntry struct {
+	sites   []string
+	expires time.Time
+}
+
+var (
+	sitesMu    sync.Mutex
+	sitesCache = map[string]sitesEntry{}
+)

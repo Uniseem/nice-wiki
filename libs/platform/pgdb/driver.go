@@ -308,16 +308,18 @@ func WithTemplateView(ctx context.Context) context.Context {
 	return context.WithValue(ctx, templateViewKey, true)
 }
 
-// siteOf 取访问视角：站点（请求上下文或 WithSite 指定；没有时为空，表示系统视角能看到全部行）和是否只看模板行。
-func siteOf(ctx context.Context) (string, bool) {
-	template, _ := ctx.Value(templateViewKey).(bool)
+// siteOf 取访问视角：站点（请求上下文或 WithSite 指定；没有时为空，表示系统视角能看到全部行）、是否只看模板行，
+// 以及上下文有没有给出站点信息。事务里某条语句用了不带任何站点信息的上下文（比如发件箱入队用的 Background），
+// 沿用事务开始时的站点，不要把会话站点清掉。
+func siteOf(ctx context.Context) (site string, template bool, given bool) {
+	template, _ = ctx.Value(templateViewKey).(bool)
 	if site, ok := ctx.Value(siteOverrideKey).(string); ok {
-		return site, template
+		return site, template, true
 	}
 	if op, ok := platform.OperationContextFrom(ctx); ok {
-		return string(op.Actor.SiteID), template
+		return string(op.Actor.SiteID), template, true
 	}
-	return "", template
+	return "", template, template
 }
 
 // useSite 让本连接的会话变量 nw.site 与请求站点一致；站点第一次出现时先复制单例模板行。
@@ -325,7 +327,10 @@ func (c *conn) useSite(ctx context.Context) error {
 	if !c.owner.tenant {
 		return nil
 	}
-	site, template := siteOf(ctx)
+	site, template, given := siteOf(ctx)
+	if !given && c.inTx && c.siteSet {
+		return nil
+	}
 	if c.siteSet && c.site == site && c.template == template {
 		return nil
 	}

@@ -8,11 +8,11 @@
     "OauthStartResult": {"description": "授权跳转地址与一次性状态", "props": {"authorizeUrl": "string:2048", "state": "string:256"}},
     "OauthLoginInput": {"description": "第三方登录回调：用授权码换身份，首次登录自动建号", "props": {"code": "string:2048:1", "state": "string:256:1", "redirectUri": "string:512:1", "inviteCode": "string:128?"}},
     "UserLimits": {"description": "当前用户的站点与存储额度", "props": {"maxSites": "int:0", "siteCount": "int:0", "storageBytes": "int:0", "storageUsed": "int:0"}},
-    "SiteSummary": {"description": "站点摘要（含当前用户在该站的角色）", "props": {"siteId": "id", "slug": "string:63", "name": "string:100", "status": "enum:active|suspended|deleted", "role": "enum:owner|editor|viewer", "visibility": "enum:public|private", "primaryHost": "string:253", "createdAt": "ts"}},
+    "SiteSummary": {"description": "站点摘要（含当前用户在该站的角色）", "props": {"siteId": "id", "slug": "string:63", "name": "string:100", "status": "enum:active|suspended|deleted", "role": "enum:owner|editor|viewer", "visibility": "enum:public|private", "primaryHost": "string:253", "createdAt": "ts", "visitorQaDaily": "int:0", "qaPausedOn": "string:10"}},
     "ListMySitesResult": {"description": "我能访问的站点", "props": {"sites": "[SiteSummary]", "limits": "UserLimits"}},
     "CreateSiteInput": {"description": "创建站点并成为所有者", "props": {"slug": "string:63:3", "name": "string:100:1", "baseLanguage": "string:35?"}},
     "SiteResult": {"description": "单个站点", "props": {"site": "SiteSummary"}},
-    "UpdateSiteInput": {"description": "修改站点名称或可见性", "props": {"name": "string:100:1?", "visibility": "enum:public|private?"}},
+    "UpdateSiteInput": {"description": "修改站点名称、可见性或访客每日提问上限", "props": {"name": "string:100:1?", "visibility": "enum:public|private?", "visitorQaDaily": "int:0:100000?"}},
     "RemovedResult": {"description": "删除结果", "props": {"removed": "bool"}},
     "SiteMember": {"description": "站点成员", "props": {"userId": "id", "displayName": "string:100", "email": "string:320", "role": "enum:owner|editor|viewer", "createdAt": "ts"}},
     "ListSiteMembersResult": {"description": "站点成员列表", "props": {"members": "[SiteMember]"}},
@@ -46,7 +46,17 @@
     "Report": {"description": "举报记录", "props": {"reportId": "id", "siteId": "id", "host": "string:253", "url": "string:1024", "reason": "enum:spam|phishing|illegal|copyright|other", "detail": "string:2000", "status": "enum:open|dismissed|takedown|banned", "resolution": "string:500", "createdAt": "ts"}},
     "ListReportsResult": {"description": "举报列表", "props": {"reports": "[Report]"}},
     "ResolveReportInput": {"description": "处理举报", "props": {"action": "enum:dismiss|takedown|ban_owner", "note": "string:500?"}},
-    "ReportResult": {"description": "单个举报", "props": {"report": "Report"}}
+    "ReportResult": {"description": "单个举报", "props": {"report": "Report"}},
+    "AiInvite": {"description": "AI 邀请码（只存摘要）：兑换后给用户平台 AI 额度", "props": {"inviteId": "id", "note": "string:200", "capMicros": "int:0", "period": "enum:once|monthly", "tasks": "[string:64]", "maxUses": "int:1", "used": "int:0", "maxSites": "int:0?", "storageBytes": "int:0?", "expiresAt": "ts?", "revoked": "bool", "createdAt": "ts"}},
+    "CreateAiInviteInput": {"description": "站主生成 AI 邀请码：花费上限（USD micros）、周期、可用任务、有效期与次数，以及随码带的站点数/存储额度", "props": {"note": "string:200?", "capMicros": "int:0", "period": "enum:once|monthly", "tasks": "[string:64]?", "maxUses": "int:1:10000", "maxSites": "int:0:1000?", "storageBytes": "int:0?", "expiresAt": "ts?"}},
+    "CreateAiInviteResult": {"description": "新码只在创建时返回一次", "props": {"code": "string:64", "invite": "AiInvite"}},
+    "ListAiInvitesResult": {"description": "AI 邀请码列表", "props": {"invites": "[AiInvite]"}},
+    "AiInviteResult": {"description": "单个 AI 邀请码", "props": {"invite": "AiInvite"}},
+    "RedeemAiCodeInput": {"description": "用户兑换 AI 邀请码；新码替换旧码，旧码剩余额度作废", "props": {"code": "string:64:1"}},
+    "MyAi": {"description": "当前用户的平台 AI 权益（已用额度在 model-gateway 的 /v1/ai/usage）", "props": {"entitled": "bool", "capMicros": "int:0", "period": "enum:once|monthly?", "tasks": "[string:64]", "redeemedAt": "ts?", "periodStart": "ts?"}},
+    "MyAiResult": {"description": "当前用户的平台 AI 权益", "props": {"ai": "MyAi"}},
+    "SiteAiPolicy": {"description": "站点的 AI 策略：谁付费、额度、哪些任务可用平台渠道、访客每日提问上限；只给 model-gateway 与 qa", "props": {"siteId": "id", "ownerUserId": "id", "platformOwner": "bool", "platformAllowed": "bool", "capMicros": "int:0", "periodStartNs": "int:0", "tasks": "[string:64]", "siteIds": "[id]", "visitorQaDaily": "int:0"}},
+    "OkResult": {"description": "无返回内容的确认", "props": {"ok": "bool"}}
   },
   "ops": [
     {"id": "readAuthOptions", "method": "get", "path": "/v1/auth/options", "perm": "anonymous", "summary": "读取登录页选项", "out": "ReadAuthOptionsResult"},
@@ -79,6 +89,13 @@
     {"id": "setSiteStatus", "method": "put", "path": "/v1/admin/sites/{siteId}/status", "perm": "system.manage", "summary": "下架或恢复站点", "path_params": ["siteId"], "in": "SetSiteStatusInput", "out": "AdminSiteResult"},
     {"id": "submitReport", "method": "post", "path": "/v1/reports", "perm": "anonymous", "summary": "访客举报站点", "in": "SubmitReportInput", "out": "SubmitReportResult"},
     {"id": "listReports", "method": "get", "path": "/v1/reports", "perm": "system.manage", "summary": "列出举报", "out": "ListReportsResult"},
-    {"id": "resolveReport", "method": "post", "path": "/v1/reports/{reportId}:resolve", "perm": "system.manage", "summary": "处理举报", "path_params": ["reportId"], "in": "ResolveReportInput", "out": "ReportResult"}
+    {"id": "resolveReport", "method": "post", "path": "/v1/reports/{reportId}:resolve", "perm": "system.manage", "summary": "处理举报", "path_params": ["reportId"], "in": "ResolveReportInput", "out": "ReportResult"},
+    {"id": "createAiInvite", "method": "post", "path": "/v1/ai-invites", "perm": "system.manage", "summary": "生成 AI 邀请码", "in": "CreateAiInviteInput", "out": "CreateAiInviteResult"},
+    {"id": "listAiInvites", "method": "get", "path": "/v1/ai-invites", "perm": "system.manage", "summary": "列出 AI 邀请码", "out": "ListAiInvitesResult"},
+    {"id": "revokeAiInvite", "method": "delete", "path": "/v1/ai-invites/{inviteId}", "perm": "system.manage", "summary": "作废 AI 邀请码", "path_params": ["inviteId"], "out": "AiInviteResult"},
+    {"id": "redeemAiCode", "method": "post", "path": "/v1/me/ai:redeem", "perm": "account.self", "summary": "兑换 AI 邀请码", "in": "RedeemAiCodeInput", "out": "MyAiResult"},
+    {"id": "readMyAi", "method": "get", "path": "/v1/me/ai", "perm": "account.self", "summary": "读取自己的平台 AI 权益", "out": "MyAiResult"},
+    {"id": "readSiteAiPolicy", "method": "get", "path": "/v1/sites/{siteId}/ai-policy", "perm": "service", "summary": "读取站点 AI 策略", "path_params": ["siteId"], "out": "SiteAiPolicy"},
+    {"id": "noteVisitorQaCap", "method": "post", "path": "/v1/sites/{siteId}/visitor-qa-cap", "perm": "service", "summary": "记录站点当天访客提问已达上限", "path_params": ["siteId"], "out": "OkResult"}
   ]
 }

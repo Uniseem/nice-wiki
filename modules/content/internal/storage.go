@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	_ "nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -666,6 +666,15 @@ func (s *Store) SiteID(ctx context.Context) (Identifier, bool) {
 		return "", false
 	}
 	return site.String, true
+}
+
+// Sites 列出内容库里出现过的站点；后台循环按它逐站点处理。
+func (s *Store) Sites(ctx context.Context) []Identifier {
+	sites, err := pgdb.Sites(ctx, s.db)
+	if err != nil {
+		return nil
+	}
+	return sites
 }
 
 // ServiceOperation 构造后台循环使用的本域服务操作上下文。

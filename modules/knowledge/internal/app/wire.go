@@ -8,6 +8,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/knowledge/internal/admin"
 	"nice-wiki/modules/knowledge/internal/build"
 	"nice-wiki/modules/knowledge/internal/events"
@@ -159,7 +160,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if _, err = domainruntime.LoadRuntime(startup, operation, domainruntime.LoadRuntimeInput{DataDirectory: config.DataRoot, ServiceID: ModuleSlug}); err != nil {
 		return nil, err
 	}
-	tasks := assembleBackgroundTasks(bind, site.Config.SiteID, view.DataEpoch, window)
+	tasks := assembleBackgroundTasks(bind, db, site.Config.SiteID, view.DataEpoch, window)
 	application, err := transport.NewApplication(config, anchors, authority, view.DataEpoch, db, bind, apivalidate.NewIdentityAuthorizer(gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)), tasks)
 	if err != nil {
 		return nil, err
@@ -204,14 +205,28 @@ func bindSearchRuntime(ctx context.Context, db *sql.DB, indexes indexer.Runtime)
 	return search.WithSearchRuntime(ctx, initialized)
 }
 
-func assembleBackgroundTasks(bind func(context.Context) context.Context, siteID, epoch string, window platform.WriteWindowConfig) []platform.BackgroundTask {
-	batch := func(name string, pollMillis int, run func(context.Context, platform.OperationContext) error) platform.BackgroundTask {
+// assembleBackgroundTasks 装配后台任务。多站点平台上：发件箱、事件消费、任务 worker 不分站点（事件和任务自带站点），
+// 层级摘要、恢复、回收这类轮询按本库里出现过的每个站点分别做。
+func assembleBackgroundTasks(bind func(context.Context) context.Context, db *sql.DB, siteID, epoch string, window platform.WriteWindowConfig) []platform.BackgroundTask {
+	loop := func(name string, pollMillis int, perSite bool, run func(context.Context, platform.OperationContext) error) platform.BackgroundTask {
 		return platform.BackgroundTask{Name: name, Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: pollMillis, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(work context.Context) error {
-				op := serviceOperation(work, siteID, epoch)
-				return run(bind(platform.WithOperationContext(work, op)), op)
+				sites := []string{siteID}
+				if perSite {
+					sites, _ = pgdb.Sites(work, db)
+				}
+				for _, site := range sites {
+					op := serviceOperation(work, site, epoch)
+					if err := run(bind(platform.WithOperationContext(work, op)), op); err != nil {
+						return err
+					}
+				}
+				return nil
 			}})
 		}}
+	}
+	batch := func(name string, pollMillis int, run func(context.Context, platform.OperationContext) error) platform.BackgroundTask {
+		return loop(name, pollMillis, true, run)
 	}
 	nextGC := time.Now().Add(10 * time.Minute)
 	return []platform.BackgroundTask{
@@ -220,7 +235,7 @@ func assembleBackgroundTasks(bind func(context.Context) context.Context, siteID,
 			_, err := domainruntime.RunWorker(bind(platform.WithOperationContext(ctx, op)), op, domainruntime.RunWorkerInput{WorkerID: ModuleSlug, MaximumConcurrentJobs: 4})
 			return err
 		}},
-		batch("knowledge.outbox", 1000, func(ctx context.Context, op platform.OperationContext) error {
+		loop("knowledge.outbox", 1000, false, func(ctx context.Context, op platform.OperationContext) error {
 			_, err := events.PublishOutbox(ctx, op, events.PublishOutboxInput{Limit: 100, WorkerID: ModuleSlug})
 			return err
 		}),

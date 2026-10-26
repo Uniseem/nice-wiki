@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/pgdb"
 	"strconv"
 	"time"
 )
@@ -66,11 +67,13 @@ func ResolveClaimedJobOperation(ctx context.Context, job platform.ClaimedJob) (O
 	if err != nil {
 		return OperationContext{}, err
 	}
-	read, err := runtime.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	// 任务属于哪个站点要从全库的批准记录里查出来：用系统视角读，之后任务以记录里的站点身份执行。
+	system := pgdb.WithSite(ctx, "")
+	read, err := runtime.DB.BeginTx(system, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return OperationContext{}, storageError(err)
 	}
-	original, state, jobsOperation, site, _, err := ApprovedJobInput(ctx, read, job.JobType, job.InputRef.ObjectID)
+	original, state, jobsOperation, site, _, err := ApprovedJobInput(system, read, job.JobType, job.InputRef.ObjectID)
 	_ = read.Rollback()
 	if err != nil {
 		return OperationContext{}, err
@@ -94,11 +97,12 @@ func AdoptClaimedJob(ctx context.Context, job platform.ClaimedJob) (OperationCon
 	if err != nil {
 		return OperationContext{}, err
 	}
-	read, err := runtime.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	system := pgdb.WithSite(ctx, "")
+	read, err := runtime.DB.BeginTx(system, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return OperationContext{}, storageError(err)
 	}
-	original, state, jobsOperation, site, cancelled, err := ApprovedJobInput(ctx, read, job.JobType, job.InputRef.ObjectID)
+	original, state, jobsOperation, site, cancelled, err := ApprovedJobInput(system, read, job.JobType, job.InputRef.ObjectID)
 	_ = read.Rollback()
 	if err != nil {
 		return OperationContext{}, err

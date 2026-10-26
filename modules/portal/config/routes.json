@@ -613,6 +613,76 @@
     },
     {
       "method": "GET",
+      "path": "/v1/ai-invites",
+      "owner": "identity",
+      "operationId": "listAiInvites",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/ai-invites",
+      "owner": "identity",
+      "operationId": "createAiInvite",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/ai-invites/{inviteId}",
+      "owner": "identity",
+      "operationId": "revokeAiInvite",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/ai/channels",
+      "owner": "model-gateway",
+      "operationId": "listAiChannels",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/ai/channels",
+      "owner": "model-gateway",
+      "operationId": "createAiChannel",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/ai/channels/{channelId}",
+      "owner": "model-gateway",
+      "operationId": "deleteAiChannel",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/ai/usage",
+      "owner": "model-gateway",
+      "operationId": "readAiUsage",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/asset-groups",
       "owner": "media",
       "operationId": "listAssetGroups",
@@ -1847,6 +1917,26 @@
       "owner": "memory",
       "operationId": "reorderMappings",
       "permission": "memory.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/me/ai",
+      "owner": "identity",
+      "operationId": "readMyAi",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/ai:redeem",
+      "owner": "identity",
+      "operationId": "redeemAiCode",
+      "permission": "account.self",
       "admission": null,
       "timeoutMs": null,
       "streaming": false

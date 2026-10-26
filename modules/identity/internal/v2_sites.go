@@ -37,14 +37,21 @@ func requireAdminActor(op OperationContext) error {
 func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.SiteSummary, error) {
 	var s gen.SiteSummary
 	var status, visibility, createdAt string
+	var daily sql.NullInt64
 	err := q.QueryRowContext(ctx, `SELECT site_id,slug,name,status,visibility,created_at,
-        COALESCE((SELECT host FROM site_domains WHERE site_id=sites.site_id AND is_primary=1 AND status='verified' LIMIT 1),'')
-        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost)
+        COALESCE((SELECT host FROM site_domains WHERE site_id=sites.site_id AND is_primary=1 AND status='verified' LIMIT 1),''),
+        visitor_qa_daily,qa_paused_on
+        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost, &daily, &s.QaPausedOn)
 	if errors.Is(err, sql.ErrNoRows) {
 		return s, platform.NewError(platform.CodeNotFound, false, "站点不存在")
 	}
 	if err != nil {
 		return s, identityDBError()
+	}
+	if daily.Valid {
+		s.VisitorQaDaily = int(daily.Int64)
+	} else if settings, err := loadSettings(ctx, q); err == nil {
+		s.VisitorQaDaily = settings.DefaultVisitorQaDaily
 	}
 	s.Status, s.Visibility, s.Role, s.CreatedAt = gen.SiteSummaryStatus(status), gen.SiteSummaryVisibility(visibility), gen.SiteSummaryRole(role), parseTS(createdAt)
 	return s, nil
@@ -250,6 +257,14 @@ func UpdateSite(ctx context.Context, op OperationContext, input UpdateSiteCmd) (
 			return gen.SiteResult{}, platform.NewError(platform.CodeForbidden, false, "只有所有者能改可见性")
 		}
 		if _, err := store.db.ExecContext(ctx, `UPDATE sites SET visibility=?, revision=revision+1, updated_at=? WHERE site_id=?`, string(*input.Body.Visibility), platform.Now(), input.SiteID); err != nil {
+			return gen.SiteResult{}, identityDBError()
+		}
+	}
+	if input.Body.VisitorQaDaily != nil {
+		if role != "owner" {
+			return gen.SiteResult{}, platform.NewError(platform.CodeForbidden, false, "只有所有者能改访客提问上限")
+		}
+		if _, err := store.db.ExecContext(ctx, `UPDATE sites SET visitor_qa_daily=?, revision=revision+1, updated_at=? WHERE site_id=?`, *input.Body.VisitorQaDaily, platform.Now(), input.SiteID); err != nil {
 			return gen.SiteResult{}, identityDBError()
 		}
 	}

@@ -17,6 +17,7 @@ import (
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
 
@@ -374,6 +375,9 @@ func SelectCandidatesInTransaction(ctx context.Context, op OperationContext, tx 
 	if err != nil {
 		return ResolveRouteResult{}, err
 	}
+	if resolved.OrderedModelIds, err = ownerRoute(ctx, op, tx, input.TaskId, resolved); err != nil {
+		return ResolveRouteResult{}, err
+	}
 	result := ResolveRouteResult{Resolved: resolved, Candidates: make([]RouteCandidate, 0, 16)}
 	var spaceID platform.Hash
 	eligibleCandidates := []RouteCandidate{}
@@ -416,6 +420,30 @@ func SelectCandidatesInTransaction(ctx context.Context, op OperationContext, tx 
 		return ResolveRouteResult{}, platform.NewError(platform.CodeInternal, false, "路线版本摘要编码失败")
 	}
 	return result, nil
+}
+
+// ownerRoute 按站点所有者调整候选顺序：自带渠道排最前，平台渠道只有在所有者有额度（或是平台站主）时才保留。
+// 嵌入与重排由平台统一提供，不受所有者渠道和额度影响。没有缓存到策略的内部调用（连接探测等）保持平台默认。
+func ownerRoute(ctx context.Context, op OperationContext, tx *sql.Tx, taskID string, resolved ResolveProfileResult) ([]string, error) {
+	policy, ok := ownership.Cached(string(op.Actor.SiteID))
+	if !ok || policy.OwnerUserID == "" {
+		return resolved.OrderedModelIds, nil
+	}
+	if hasGrant(resolved.RequiredCapabilities, "embedding") || hasGrant(resolved.RequiredCapabilities, "rerank") {
+		return resolved.OrderedModelIds, nil
+	}
+	owner := gen.AITaskCatalog[taskID].Owner
+	ordered, err := ownership.ModelsFor(ctx, tx, policy.OwnerUserID, owner)
+	if err != nil {
+		return nil, err
+	}
+	if policy.PlatformFor(owner) {
+		ordered = append(ordered, resolved.OrderedModelIds...)
+	}
+	if len(ordered) == 0 {
+		return nil, platform.NewError(platform.CodeUnsupportedCapability, false, "没有可用的 AI 渠道：请添加自己的 key，或兑换 AI 邀请码")
+	}
+	return ordered, nil
 }
 
 func readRouteCandidate(ctx context.Context, snapshot *availabilitySnapshot, modelID string, requiredCapabilities []string) (RouteCandidate, bool, error) {

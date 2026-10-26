@@ -2315,7 +2315,9 @@
           "dependencies": [
             "jobs:createJob",
             "qa.ValidateAdmission",
-            "traffic-guard:queueSessionAdmission"
+            "traffic-guard:queueSessionAdmission",
+            "identity:readSiteAiPolicy",
+            "identity:noteVisitorQaCap"
           ],
           "resources": [],
           "contract": "binding"

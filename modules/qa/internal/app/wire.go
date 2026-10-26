@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -32,7 +31,8 @@ import (
 // ModuleSlug 是本域固定的服务身份。
 const ModuleSlug = "qa"
 
-var identityOnce sync.Once
+// identityEnsured 记录已经写过存储身份的站点；每个站点第一次带真实站点的请求时写一次。
+var identityEnsured sync.Map
 
 // BuildApplication 返回可运行的 Application。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Application, error) {
@@ -100,6 +100,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		Agents:              gen.NewAgentClient(dep("agent"), ModuleSlug, key),
 		Models:              gen.NewModelGatewayClient(dep("model-gateway"), ModuleSlug, key),
 		Jobs:                gen.NewJobsClient(dep("jobs"), ModuleSlug, key),
+		Identity:            gen.NewIdentityClient(dep("identity"), ModuleSlug, key),
 		AnswerContextTokens: 4096, PreflightContextTokens: 2048,
 	})
 	if err != nil {
@@ -107,11 +108,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	}
 	// 站点基准语言以 site-config 为准：站点初始化前读不到就留空，用到它的问答接口报依赖暂不可用；读到后不再变化。
 	siteConfig := gen.NewSiteConfigClient(dep("site-config"), ModuleSlug, key)
-	var baseLanguage atomic.Value
+	var baseLanguage sync.Map // 站点 -> 基准语言
 	withBaseLanguage := func(c context.Context, op platform.OperationContext) qaruntime.Runtime {
 		current := runtime
-		if cached, ok := baseLanguage.Load().(string); ok {
-			current.BaseLanguage = cached
+		if cached, ok := baseLanguage.Load(string(op.Actor.SiteID)); ok {
+			current.BaseLanguage = cached.(string)
 			return current
 		}
 		raw, readErr := siteConfig.ReadSiteConfig(qaruntime.ServiceReadContext(c, op))
@@ -124,7 +125,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 			readErr = qaruntime.DecodeResponse(runtime, "SiteConfigReadSiteConfigResult", raw, &site)
 		}
 		if readErr == nil && site.Config.BaseLanguage != "" {
-			baseLanguage.Store(site.Config.BaseLanguage)
+			baseLanguage.Store(string(op.Actor.SiteID), site.Config.BaseLanguage)
 			current.BaseLanguage = site.Config.BaseLanguage
 		} else if os.Getenv("NW_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "站点基准语言暂不可读：%v\n", readErr)
@@ -145,10 +146,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		},
 		MaintenanceOperations: map[string]bool{"getConversation": true, "readPublicCapability": true},
 	}, transport.NewOperationHandlers(func(c context.Context) context.Context {
-		// 本域私有存储的站点身份取自首个带真实站点的请求，之后不再变化。
+		// 本域私有存储的站点身份取自该站点第一个带真实站点的请求，之后不再变化。
 		op, ok := platform.OperationContextFrom(c)
 		if ok && op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
-			identityOnce.Do(func() { _ = ensureIdentity(c, db, op.Actor.SiteID, view.DataEpoch) })
+			if _, done := identityEnsured.Load(string(op.Actor.SiteID)); !done {
+				if ensureIdentity(c, db, op.Actor.SiteID, view.DataEpoch) == nil {
+					identityEnsured.Store(string(op.Actor.SiteID), true)
+				}
+			}
 		}
 		if !ok {
 			return qaruntime.WithRuntime(c, runtime)

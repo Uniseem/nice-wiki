@@ -96,6 +96,15 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	handlers["setSiteStatus"] = v2Operation(a, identity.SetSiteStatus, func(b gen.SetSiteStatusInput, r *http.Request) identity.SetSiteStatusCmd {
 		return identity.SetSiteStatusCmd{SiteID: r.PathValue("siteId"), Body: b}
 	})
+	handlers["createAiInvite"] = jsonOperation(a, identity.CreateAiInvite)
+	handlers["listAiInvites"] = jsonOperation(a, identity.ListAiInvites)
+	handlers["revokeAiInvite"] = v2Operation(a, identity.RevokeAiInvite, func(_ none, r *http.Request) identity.InviteRef {
+		return identity.InviteRef{InviteID: r.PathValue("inviteId")}
+	})
+	handlers["redeemAiCode"] = jsonOperation(a, identity.RedeemAiCode)
+	handlers["readMyAi"] = jsonOperation(a, identity.ReadMyAi)
+	handlers["readSiteAiPolicy"] = v2Operation(a, identity.ReadSiteAiPolicy, site)
+	handlers["noteVisitorQaCap"] = v2Operation(a, identity.NoteVisitorQaCap, site)
 	handlers["submitReport"] = jsonOperation(a, identity.SubmitReport)
 	handlers["listReports"] = jsonOperation(a, identity.ListReports)
 	handlers["resolveReport"] = v2Operation(a, identity.ResolveReport, func(b gen.ResolveReportInput, r *http.Request) identity.ResolveReportCmd {

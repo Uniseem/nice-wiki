@@ -6240,6 +6240,255 @@
         "description",
         "parameters"
       ]
+    },
+    "ChannelProbe": {
+      "type": "object",
+      "description": "添加渠道时的探测结论（不含 key 与供应方正文）",
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "chat": {
+          "type": "boolean"
+        },
+        "tools": {
+          "type": "boolean"
+        },
+        "latencyMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 300
+        }
+      },
+      "required": [
+        "ok",
+        "chat",
+        "tools",
+        "latencyMs",
+        "message"
+      ],
+      "x-v2": true
+    },
+    "AiChannel": {
+      "type": "object",
+      "description": "用户自带的 AI 渠道；key 保存后不再回显，只有后四位",
+      "additionalProperties": false,
+      "properties": {
+        "channelId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "baseUrl": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "maxItems": 1000
+        },
+        "keyLast4": {
+          "type": "string",
+          "maxLength": 4
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "probe": {
+          "$ref": "#/$defs/ChannelProbe"
+        }
+      },
+      "required": [
+        "channelId",
+        "name",
+        "baseUrl",
+        "model",
+        "tasks",
+        "capabilities",
+        "keyLast4",
+        "createdAt",
+        "probe"
+      ],
+      "x-v2": true
+    },
+    "ListAiChannelsResult": {
+      "type": "object",
+      "description": "我的自带渠道",
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiChannel"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "channels"
+      ],
+      "x-v2": true
+    },
+    "CreateAiChannelInput": {
+      "type": "object",
+      "description": "添加自带渠道：OpenAI 兼容地址 + key + 模型名；探测通过才保存。tasks 写任务所属服务（qa、localization…），空表示全部",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "baseUrl": {
+          "type": "string",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "apiKey": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "vision": {
+          "type": "boolean"
+        },
+        "maxInputTokens": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 2000000
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 200000
+        }
+      },
+      "required": [
+        "name",
+        "baseUrl",
+        "apiKey",
+        "model"
+      ],
+      "x-v2": true
+    },
+    "AiChannelResult": {
+      "type": "object",
+      "description": "单个自带渠道",
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "$ref": "#/$defs/AiChannel"
+        }
+      },
+      "required": [
+        "channel"
+      ],
+      "x-v2": true
+    },
+    "RemovedResult": {
+      "type": "object",
+      "description": "删除结果",
+      "additionalProperties": false,
+      "properties": {
+        "removed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "removed"
+      ],
+      "x-v2": true
+    },
+    "AiUsage": {
+      "type": "object",
+      "description": "站点所有者的平台 AI 额度使用情况；金额单位 USD micros",
+      "additionalProperties": false,
+      "properties": {
+        "platformAllowed": {
+          "type": "boolean"
+        },
+        "platformOwner": {
+          "type": "boolean"
+        },
+        "capMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "periodStart": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "spentMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "heldMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknownCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "platformAllowed",
+        "platformOwner",
+        "capMicros",
+        "periodStart",
+        "spentMicros",
+        "heldMicros",
+        "unknownCount"
+      ],
+      "x-v2": true
+    },
+    "AiUsageResult": {
+      "type": "object",
+      "description": "额度使用情况",
+      "additionalProperties": false,
+      "properties": {
+        "usage": {
+          "$ref": "#/$defs/AiUsage"
+        }
+      },
+      "required": [
+        "usage"
+      ],
+      "x-v2": true
     }
   }
 }

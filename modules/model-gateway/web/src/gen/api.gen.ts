@@ -759,6 +759,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 列出我的自带 AI 渠道
+         * @description 列出我的自带 AI 渠道
+         */
+        get: operations["listAiChannels"];
+        put?: never;
+        /**
+         * 添加自带 AI 渠道
+         * @description 添加自带 AI 渠道
+         */
+        post: operations["createAiChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/channels/{channelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 删除自带 AI 渠道
+         * @description 删除自带 AI 渠道
+         */
+        delete: operations["deleteAiChannel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取站点所有者的平台 AI 额度使用情况
+         * @description 读取站点所有者的平台 AI 额度使用情况
+         */
+        get: operations["readAiUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2167,6 +2231,63 @@ export interface components {
             catalogId?: string;
             /** @description 按名称排序 */
             models: components["schemas"]["AvailableModel"][];
+        };
+        /** @description 添加渠道时的探测结论（不含 key 与供应方正文） */
+        ChannelProbe: {
+            ok: boolean;
+            chat: boolean;
+            tools: boolean;
+            latencyMs: number;
+            message: string;
+        };
+        /** @description 用户自带的 AI 渠道；key 保存后不再回显，只有后四位 */
+        AiChannel: {
+            channelId: components["schemas"]["Identifier"];
+            name: string;
+            baseUrl: string;
+            model: string;
+            tasks: string[];
+            capabilities: string[];
+            keyLast4: string;
+            createdAt: components["schemas"]["Timestamp"];
+            probe: components["schemas"]["ChannelProbe"];
+        };
+        /** @description 我的自带渠道 */
+        ListAiChannelsResult: {
+            channels: components["schemas"]["AiChannel"][];
+        };
+        /** @description 单个自带渠道 */
+        AiChannelResult: {
+            channel: components["schemas"]["AiChannel"];
+        };
+        /** @description 添加自带渠道：OpenAI 兼容地址 + key + 模型名；探测通过才保存。tasks 写任务所属服务（qa、localization…），空表示全部 */
+        CreateAiChannelInput: {
+            name: string;
+            baseUrl: string;
+            apiKey: string;
+            model: string;
+            tasks?: string[];
+            vision?: boolean;
+            maxInputTokens?: number;
+            maxOutputTokens?: number;
+        };
+        /** @description 删除结果 */
+        RemovedResult: {
+            removed: boolean;
+        };
+        /** @description 站点所有者的平台 AI 额度使用情况；金额单位 USD micros */
+        AiUsage: {
+            platformAllowed: boolean;
+            platformOwner: boolean;
+            capMicros: number;
+            periodStart: components["schemas"]["Timestamp"];
+            spentMicros: number;
+            heldMicros: number;
+            unknownCount: number;
+        };
+        /** @description 额度使用情况 */
+        AiUsageResult: {
+            usage: components["schemas"]["AiUsage"];
         };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
@@ -6329,6 +6450,344 @@ export interface operations {
             };
             /** @description 公共Problem：身份、完整性、版本/幂等、容量或依赖失败。 */
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listAiChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 列出我的自带 AI 渠道的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAiChannelsResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createAiChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAiChannelInput"];
+            };
+        };
+        responses: {
+            /** @description 添加自带 AI 渠道的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiChannelResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteAiChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 删除自带 AI 渠道的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemovedResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readAiUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取站点所有者的平台 AI 额度使用情况的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiUsageResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

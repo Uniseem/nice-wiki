@@ -860,6 +860,8 @@ export interface components {
             occurredAt: components["schemas"]["Timestamp"];
             /** @description 当前业务数据代次 */
             dataEpoch: components["schemas"]["Identifier"];
+            /** @description 事件发生的站点；多站点平台上消费者按它切换站点作用域，平台级事件省略 */
+            siteId?: components["schemas"]["Identifier"];
             /** @description 必须符合生产方 contracts/events.json 登记的载荷 schema */
             payload: Record<string, never>;
         };

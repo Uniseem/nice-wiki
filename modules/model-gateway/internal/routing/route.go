@@ -10,6 +10,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/catalog"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 )
 
 type OperationContext = platform.OperationContext
@@ -30,8 +31,12 @@ func ResolveTaskRoute(ctx context.Context, op OperationContext, input ResolveRou
 	if err != nil {
 		return ResolveRouteResult{}, err
 	}
-	if options.SiteID == "" || op.Actor.SiteID != options.SiteID {
-		return ResolveRouteResult{}, platform.NewError(platform.CodeForbidden, false, "任务路线须当前实际站点")
+	if options.SiteID == "" || op.Actor.SiteID == "" {
+		return ResolveRouteResult{}, platform.NewError(platform.CodeForbidden, false, "任务路线须带站点")
+	}
+	// 先读到站点的 AI 策略（谁付费、有没有额度、有没有自带渠道），读不到就不给路线。
+	if _, err := ownership.Lookup(ctx, string(op.Actor.SiteID), op.DataEpoch); err != nil {
+		return ResolveRouteResult{}, err
 	}
 	return ResolveRoute(ctx, op, input)
 }

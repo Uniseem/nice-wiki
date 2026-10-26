@@ -6,7 +6,9 @@ import (
 	"math/big"
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
+	"strings"
 	"time"
 )
 
@@ -78,7 +80,19 @@ func ReadReservation(tx *gatewayruntime.ExecutionTransaction, id string) (gen.Re
 }
 
 // CheckFeeBudgets 必须在调用方短写事务内执行，所有held含旧日未知继续占同scope。
-func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional *gen.Money, now time.Time) error {
+//
+// payer 是这次尝试的费用承担方：user=用户自带 key，平台不付钱，不受平台额度约束；
+// platform=平台渠道，计入站点所有者的 AI 额度；infra=平台自己承担（嵌入、站主自己的站点）。
+func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional *gen.Money, now time.Time, payer string, policy ownership.Policy) error {
+	if payer == "user" {
+		return nil
+	}
+	// 站点所有者的 AI 额度是产品功能，不受全站“暂停计费”开关影响。
+	if payer == "platform" {
+		if err := checkOwnerQuota(tx, record, additional, policy); err != nil {
+			return err
+		}
+	}
 	if !platform.BillingEnabled {
 		return nil
 	}
@@ -133,8 +147,8 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		if err != nil && err != sql.ErrNoRows {
 			return gatewayruntime.ExecutionStorageError(err)
 		}
-		if err == nil && (site != record.Operation.Actor.SiteID || epoch != record.Operation.DataEpoch) {
-			return platform.NewError(platform.CodeStaleResult, false, "诊断费用策略站点/代际变化")
+		if err == nil && epoch != record.Operation.DataEpoch {
+			return platform.NewError(platform.CodeStaleResult, false, "诊断费用策略代际变化")
 		}
 		budgets = append(budgets, budget{daily, "probe_lane", platform.CostClassAdminProbe, day})
 	} else {
@@ -149,8 +163,8 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 		var site, epoch string
 		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT site_id,data_epoch,hourly_limits_enabled,session_hourly_limit_micro_usd,network_multiplier,daily_qa_limit_micro_usd FROM fee_budget_policy WHERE singleton=1`).Scan(&site, &epoch, &enabled, &sessionLimit, &multiplier, &daily); err != nil && err != sql.ErrNoRows {
 			return gatewayruntime.ExecutionStorageError(err)
-		} else if err == nil && (site != record.Operation.Actor.SiteID || epoch != record.Operation.DataEpoch) {
-			return platform.NewError(platform.CodeStaleResult, false, "费用策略站点或代际不匹配")
+		} else if err == nil && epoch != record.Operation.DataEpoch {
+			return platform.NewError(platform.CodeStaleResult, false, "费用策略代际不匹配")
 		}
 		budgets = append(budgets, budget{daily, "cost_class", "qa", day})
 		if enabled && sessionLimit > 0 {
@@ -204,6 +218,52 @@ func CheckFeeBudgets(tx *gatewayruntime.ExecutionTransaction, record gatewayrunt
 	}
 	return nil
 }
+
+// checkOwnerQuota 是站点所有者的平台 AI 额度：名下所有站点在当前额度周期内的已结算与在途费用之和不能超过额度。
+func checkOwnerQuota(tx *gatewayruntime.ExecutionTransaction, record gatewayruntime.InvocationRecord, additional *gen.Money, policy ownership.Policy) error {
+	if policy.CapMicros <= 0 {
+		return platform.NewError(platform.CodeBudgetExceeded, false, "没有可用的平台 AI 额度")
+	}
+	if additional == nil {
+		return platform.NewError(platform.CodeBudgetExceeded, false, "该模型没有价目，不能计入有限的 AI 额度")
+	}
+	sites := policy.SiteIDs
+	if len(sites) == 0 {
+		sites = []string{string(record.Operation.Actor.SiteID)}
+	}
+	holders := strings.TrimSuffix(strings.Repeat("?,", len(sites)), ",")
+	args := []any{record.Operation.DataEpoch, policy.PeriodStartNs}
+	for _, id := range sites {
+		args = append(args, id)
+	}
+	rows, err := tx.Tx.QueryContext(tx.Context, `SELECT amount_micro_usd FROM fee_commitments WHERE payer='platform' AND data_epoch=? AND (state='held' OR (state='settled' AND created_ns>=?)) AND site_id IN (`+holders+`)`, args...)
+	if err != nil {
+		return gatewayruntime.ExecutionStorageError(err)
+	}
+	total := big.NewInt(int64(additional.Micros))
+	for rows.Next() {
+		var amount sql.NullInt64
+		if err := rows.Scan(&amount); err != nil {
+			rows.Close()
+			return gatewayruntime.ExecutionStorageError(err)
+		}
+		if !amount.Valid {
+			rows.Close()
+			return platform.NewError(platform.CodeBudgetExceeded, false, "AI 额度含未知金额的用量，不能证明额度足够")
+		}
+		total.Add(total, big.NewInt(amount.Int64))
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return gatewayruntime.ExecutionStorageError(err)
+	}
+	if total.Cmp(big.NewInt(policy.CapMicros)) > 0 {
+		return platform.NewError(platform.CodeBudgetExceeded, false, "AI 额度已用完")
+	}
+	return nil
+}
+
 func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInput) (ReserveCostResult, error) {
 	tx, err := gatewayruntime.BeginExecution(ctx, op, true)
 	if err != nil {
@@ -245,7 +305,15 @@ func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInpu
 	if record.Operation.CostClass == platform.CostClassQA && record.Binding == nil {
 		return result, platform.NewError(platform.CodeForbidden, false, "QA费用缺少已验证许可范围")
 	}
-	if err := CheckFeeBudgets(tx, record, maximum, time.Now().UTC()); err != nil {
+	policy, _ := ownership.Cached(string(record.Operation.Actor.SiteID))
+	payer := "platform"
+	switch {
+	case ownership.IsChannelProvider(attempt.Provider.ProviderId):
+		payer = "user"
+	case record.Request.Capability == "embedding" || record.Request.Capability == "rerank" || policy.PlatformOwner:
+		payer = "infra"
+	}
+	if err := CheckFeeBudgets(tx, record, maximum, time.Now().UTC(), payer, policy); err != nil {
 		return result, err
 	}
 	if input.PreparedAttempt != nil {
@@ -275,7 +343,7 @@ func ReserveCost(ctx context.Context, op OperationContext, input ReserveCostInpu
 		session = record.Binding.SessionBudgetScope
 		network = record.Binding.NetworkBudgetScope
 	}
-	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO fee_commitments(reservation_id,attempt_id,site_id,data_epoch,cost_class,profile_id,root_operation_id,session_scope,network_scope,created_ns,state,amount_micro_usd,pricing_known) VALUES(?,?,?,?,?,?,?,?,?,?,'held',?,?)`, id, input.AttemptID, op.Actor.SiteID, op.DataEpoch, op.CostClass, record.Profile.ProfileId, op.RootOperationID, session, network, time.Now().UnixNano(), amount, maximum != nil)
+	_, err = tx.Tx.ExecContext(tx.Context, `INSERT INTO fee_commitments(reservation_id,attempt_id,site_id,data_epoch,cost_class,profile_id,root_operation_id,session_scope,network_scope,created_ns,state,amount_micro_usd,pricing_known,payer) VALUES(?,?,?,?,?,?,?,?,?,?,'held',?,?,?)`, id, input.AttemptID, op.Actor.SiteID, op.DataEpoch, op.CostClass, record.Profile.ProfileId, op.RootOperationID, session, network, time.Now().UnixNano(), amount, maximum != nil, payer)
 	if err != nil {
 		return result, gatewayruntime.ExecutionStorageError(err)
 	}

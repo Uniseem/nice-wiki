@@ -2562,6 +2562,14 @@
         },
         "createdAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "visitorQaDaily": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qaPausedOn": {
+          "type": "string",
+          "maxLength": 10
         }
       },
       "required": [
@@ -2572,7 +2580,9 @@
         "role",
         "visibility",
         "primaryHost",
-        "createdAt"
+        "createdAt",
+        "visitorQaDaily",
+        "qaPausedOn"
       ],
       "x-v2": true
     },
@@ -2640,7 +2650,7 @@
     },
     "UpdateSiteInput": {
       "type": "object",
-      "description": "修改站点名称或可见性",
+      "description": "修改站点名称、可见性或访客每日提问上限",
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -2654,6 +2664,11 @@
             "public",
             "private"
           ]
+        },
+        "visitorQaDaily": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
         }
       },
       "x-v2": true
@@ -3582,6 +3597,323 @@
       },
       "required": [
         "report"
+      ],
+      "x-v2": true
+    },
+    "AiInvite": {
+      "type": "object",
+      "description": "AI 邀请码（只存摘要）：兑换后给用户平台 AI 额度",
+      "additionalProperties": false,
+      "properties": {
+        "inviteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "capMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "once",
+            "monthly"
+          ]
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "maxUses": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxSites": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "storageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "inviteId",
+        "note",
+        "capMicros",
+        "period",
+        "tasks",
+        "maxUses",
+        "used",
+        "revoked",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "CreateAiInviteInput": {
+      "type": "object",
+      "description": "站主生成 AI 邀请码：花费上限（USD micros）、周期、可用任务、有效期与次数，以及随码带的站点数/存储额度",
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "capMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "once",
+            "monthly"
+          ]
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "maxUses": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maxSites": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "storageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "capMicros",
+        "period",
+        "maxUses"
+      ],
+      "x-v2": true
+    },
+    "CreateAiInviteResult": {
+      "type": "object",
+      "description": "新码只在创建时返回一次",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "invite": {
+          "$ref": "#/$defs/AiInvite"
+        }
+      },
+      "required": [
+        "code",
+        "invite"
+      ],
+      "x-v2": true
+    },
+    "ListAiInvitesResult": {
+      "type": "object",
+      "description": "AI 邀请码列表",
+      "additionalProperties": false,
+      "properties": {
+        "invites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiInvite"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "invites"
+      ],
+      "x-v2": true
+    },
+    "AiInviteResult": {
+      "type": "object",
+      "description": "单个 AI 邀请码",
+      "additionalProperties": false,
+      "properties": {
+        "invite": {
+          "$ref": "#/$defs/AiInvite"
+        }
+      },
+      "required": [
+        "invite"
+      ],
+      "x-v2": true
+    },
+    "RedeemAiCodeInput": {
+      "type": "object",
+      "description": "用户兑换 AI 邀请码；新码替换旧码，旧码剩余额度作废",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "x-v2": true
+    },
+    "MyAi": {
+      "type": "object",
+      "description": "当前用户的平台 AI 权益（已用额度在 model-gateway 的 /v1/ai/usage）",
+      "additionalProperties": false,
+      "properties": {
+        "entitled": {
+          "type": "boolean"
+        },
+        "capMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "once",
+            "monthly"
+          ]
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "redeemedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "periodStart": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "entitled",
+        "capMicros",
+        "tasks"
+      ],
+      "x-v2": true
+    },
+    "MyAiResult": {
+      "type": "object",
+      "description": "当前用户的平台 AI 权益",
+      "additionalProperties": false,
+      "properties": {
+        "ai": {
+          "$ref": "#/$defs/MyAi"
+        }
+      },
+      "required": [
+        "ai"
+      ],
+      "x-v2": true
+    },
+    "SiteAiPolicy": {
+      "type": "object",
+      "description": "站点的 AI 策略：谁付费、额度、哪些任务可用平台渠道、访客每日提问上限；只给 model-gateway 与 qa",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "ownerUserId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "platformOwner": {
+          "type": "boolean"
+        },
+        "platformAllowed": {
+          "type": "boolean"
+        },
+        "capMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "periodStartNs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
+        },
+        "siteIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 1000
+        },
+        "visitorQaDaily": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "siteId",
+        "ownerUserId",
+        "platformOwner",
+        "platformAllowed",
+        "capMicros",
+        "periodStartNs",
+        "tasks",
+        "siteIds",
+        "visitorQaDaily"
+      ],
+      "x-v2": true
+    },
+    "OkResult": {
+      "type": "object",
+      "description": "无返回内容的确认",
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok"
       ],
       "x-v2": true
     }

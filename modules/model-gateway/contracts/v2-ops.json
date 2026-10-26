@@ -1,0 +1,18 @@
+{
+  "types": {
+    "ChannelProbe": {"description": "添加渠道时的探测结论（不含 key 与供应方正文）", "props": {"ok": "bool", "chat": "bool", "tools": "bool", "latencyMs": "int:0", "message": "string:300"}},
+    "AiChannel": {"description": "用户自带的 AI 渠道；key 保存后不再回显，只有后四位", "props": {"channelId": "id", "name": "string:100", "baseUrl": "string:2048", "model": "string:200", "tasks": "[string:64]", "capabilities": "[string:32]", "keyLast4": "string:4", "createdAt": "ts", "probe": "ChannelProbe"}},
+    "ListAiChannelsResult": {"description": "我的自带渠道", "props": {"channels": "[AiChannel]"}},
+    "CreateAiChannelInput": {"description": "添加自带渠道：OpenAI 兼容地址 + key + 模型名；探测通过才保存。tasks 写任务所属服务（qa、localization…），空表示全部", "props": {"name": "string:100:1", "baseUrl": "string:2048:1", "apiKey": "string:4096:1", "model": "string:200:1", "tasks": "[string:64]?", "vision": "bool?", "maxInputTokens": "int:1024:2000000?", "maxOutputTokens": "int:64:200000?"}},
+    "AiChannelResult": {"description": "单个自带渠道", "props": {"channel": "AiChannel"}},
+    "RemovedResult": {"description": "删除结果", "props": {"removed": "bool"}},
+    "AiUsage": {"description": "站点所有者的平台 AI 额度使用情况；金额单位 USD micros", "props": {"platformAllowed": "bool", "platformOwner": "bool", "capMicros": "int:0", "periodStart": "ts", "spentMicros": "int:0", "heldMicros": "int:0", "unknownCount": "int:0"}},
+    "AiUsageResult": {"description": "额度使用情况", "props": {"usage": "AiUsage"}}
+  },
+  "ops": [
+    {"id": "listAiChannels", "method": "get", "path": "/v1/ai/channels", "perm": "account.self", "summary": "列出我的自带 AI 渠道", "out": "ListAiChannelsResult"},
+    {"id": "createAiChannel", "method": "post", "path": "/v1/ai/channels", "perm": "account.self", "summary": "添加自带 AI 渠道", "in": "CreateAiChannelInput", "out": "AiChannelResult"},
+    {"id": "deleteAiChannel", "method": "delete", "path": "/v1/ai/channels/{channelId}", "perm": "account.self", "summary": "删除自带 AI 渠道", "path_params": ["channelId"], "out": "RemovedResult"},
+    {"id": "readAiUsage", "method": "get", "path": "/v1/ai/usage", "perm": "account.manage", "summary": "读取站点所有者的平台 AI 额度使用情况", "out": "AiUsageResult"}
+  ]
+}

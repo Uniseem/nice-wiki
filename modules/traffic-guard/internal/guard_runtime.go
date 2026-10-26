@@ -223,13 +223,19 @@ func enqueueGuardEvent(t *guardTransaction, eventType, subject string, revision 
 	}
 	return outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: eventType, EventVersion: 1, Producer: "traffic-guard", SubjectID: subject, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: raw})
 }
+func defaultGuardPolicy() GuardPolicy {
+	network := 60
+	return GuardPolicy{QaPerSubjectPerMinute: 30, QaBurst: 5, QaPerSitePerMinute: 600, QaSubjectConcurrency: 1, QaSiteConcurrency: 32, ChallengeEnabled: true, QaPerNetworkPerMinute: &network}
+}
+
 func readGuardPolicy(t *guardTransaction) (GuardPolicy, int64, error) {
 	var raw []byte
 	var revision int64
 	var epoch string
 	err := t.tx.QueryRowContext(t.ctx, `SELECT policy_json,revision,data_epoch FROM guard_policy WHERE site_id=?`, t.site).Scan(&raw, &revision, &epoch)
 	if errors.Is(err, sql.ErrNoRows) {
-		return GuardPolicy{}, 0, platform.NewError(platform.CodeNotFound, false, "当前站点尚未保存风控策略")
+		// 站点还没保存过策略（比如刚建的站点）：用平台默认值，修订号为 0；站点所有者保存后才有自己的策略。
+		return defaultGuardPolicy(), 0, nil
 	}
 	if err != nil {
 		return GuardPolicy{}, 0, loginDBError()

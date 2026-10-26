@@ -12,6 +12,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -37,6 +38,7 @@ type Runtime struct {
 	Agents                 *gen.AgentClient
 	Models                 *gen.ModelGatewayClient
 	Jobs                   *gen.JobsClient
+	Identity               *gen.IdentityClient
 	Gateway                platform.GatewayClient
 	Validators             map[string]func(json.RawMessage) error
 	FastProfileID          string
@@ -68,6 +70,44 @@ func (r *Runtime) SetPermit(permit platform.AdmissionPermit) {
 }
 
 type runtimeKey struct{}
+
+type capEntry struct {
+	cap     int
+	expires time.Time
+}
+
+var visitorCaps sync.Map // 站点 -> capEntry
+
+// VisitorDailyCap 是站点所有者设定的访客每日提问上限，0 表示不限。读不到策略时不限，不能因此挡住访客。
+func (r Runtime) VisitorDailyCap(ctx context.Context, op platform.OperationContext) int {
+	site := string(op.Actor.SiteID)
+	if cached, ok := visitorCaps.Load(site); ok && time.Now().Before(cached.(capEntry).expires) {
+		return cached.(capEntry).cap
+	}
+	if r.Identity == nil {
+		return 0
+	}
+	read := ServiceReadContext(ctx, op)
+	raw, err := r.Identity.ReadSiteAiPolicy(read, site)
+	if err != nil {
+		return 0
+	}
+	var policy struct {
+		VisitorQaDaily int `json:"visitorQaDaily"`
+	}
+	if json.Unmarshal(raw, &policy) != nil {
+		return 0
+	}
+	visitorCaps.Store(site, capEntry{policy.VisitorQaDaily, time.Now().Add(15 * time.Second)})
+	return policy.VisitorQaDaily
+}
+
+// NoteVisitorCapReached 通知身份服务：这个站点今天的访客提问已达上限，所有者后台能看到。
+func (r Runtime) NoteVisitorCapReached(ctx context.Context, op platform.OperationContext) {
+	if r.Identity != nil {
+		_, _ = r.Identity.NoteVisitorQaCap(ServiceReadContext(ctx, op), string(op.Actor.SiteID), struct{}{})
+	}
+}
 
 // NewRuntime 固定所有使用的生产方响应校验器；未知响应不当作成功。
 func NewRuntime(runtime Runtime) (Runtime, error) {
@@ -134,7 +174,8 @@ func beginTransaction(ctx context.Context, op OperationContext, write bool) (*Tr
 	if err != nil {
 		return nil, err
 	}
-	work := ctx
+	// 读也要带上操作上下文：数据库按它切换站点作用域（后台执行的轮次传进来的 ctx 里没有）。
+	work := platform.WithOperationContext(ctx, op)
 	cancel := func() {}
 	if write {
 		if runtime.WriteWindow.Runtime == nil || runtime.WriteWindow.WriteWindow == nil {

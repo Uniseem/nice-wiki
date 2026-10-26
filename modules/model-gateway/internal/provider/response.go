@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/netguard"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	"os"
 	"slices"
 	"strconv"
@@ -422,7 +424,12 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 	req.Header = request.Headers.Clone()
 	var sent atomic.Bool
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{WroteHeaders: func() { sent.Store(true) }}))
-	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: (&net.Dialer{Timeout: time.Duration(min(provider.ConnectTimeoutMs, 10000)) * time.Millisecond}).DialContext, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: time.Duration(min(provider.RequestTimeoutMs, 180000)) * time.Millisecond}
+	dialer := &net.Dialer{Timeout: time.Duration(min(provider.ConnectTimeoutMs, 10000)) * time.Millisecond}
+	if ownership.IsChannelProvider(provider.ProviderId) {
+		// 用户自带渠道的地址是用户填的：连接时再按实际 IP 检查一遍，挡住内网、环回、云元数据地址和 DNS 重绑定。
+		dialer.Control = netguard.Control(ownership.AllowLoopback)
+	}
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: dialer.DialContext, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: time.Duration(min(provider.RequestTimeoutMs, 180000)) * time.Millisecond}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)

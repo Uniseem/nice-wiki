@@ -8,6 +8,7 @@ import (
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/catalog"
 	"nice-wiki/modules/model-gateway/internal/gen"
+	"nice-wiki/modules/model-gateway/internal/ownership"
 	"nice-wiki/modules/model-gateway/internal/provider"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/tokens"
@@ -163,6 +164,11 @@ func ExecuteInvocation(ctx context.Context, op OperationContext, input ExecuteIn
 		if work.Err() != nil || record.CancelRequested {
 			state, err := FinishCancelledInvocation(ctx, op, record)
 			return ExecuteInvocationResult{State: state}, err
+		}
+		// 用户自带 key 遇到鉴权失败、余额不足、被拒绝：自动切到下一个候选（平台渠道，受所有者额度约束）。
+		if classification.Classification == "terminal" && !outcome.OutputStarted && ownership.IsChannelProvider(attempt.Provider.ProviderId) &&
+			(outcome.HTTPStatus == 401 || outcome.HTTPStatus == 402 || outcome.HTTPStatus == 403 || outcome.HTTPStatus == 404) {
+			classification.Classification = "fallback"
 		}
 		if record.Probe != nil || outcome.OutputStarted || work.Err() != nil || record.CancelRequested || outcome.Completed || classification.Classification == "terminal" {
 			state := "failed"

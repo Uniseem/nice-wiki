@@ -65,5 +65,12 @@
 | GET `/v1/reports` | `listReports` | `identity.ListReports` | `system.manage` | `—` → 200 `ListReportsResult` | 列出举报 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/reports` | `submitReport` | `identity.SubmitReport` | `anonymous` | `SubmitReportInput` → 200 `SubmitReportResult` | 访客举报站点 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/reports/{reportId}:resolve` | `resolveReport` | `identity.ResolveReport` | `system.manage` | `ResolveReportInput` → 200 `ReportResult` | 处理举报 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/ai-invites` | `listAiInvites` | `identity.ListAiInvites` | `system.manage` | `—` → 200 `ListAiInvitesResult` | 列出 AI 邀请码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/ai-invites` | `createAiInvite` | `identity.CreateAiInvite` | `system.manage` | `CreateAiInviteInput` → 200 `CreateAiInviteResult` | 生成 AI 邀请码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| DELETE `/v1/ai-invites/{inviteId}` | `revokeAiInvite` | `identity.RevokeAiInvite` | `system.manage` | `—` → 200 `AiInviteResult` | 作废 AI 邀请码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/me/ai:redeem` | `redeemAiCode` | `identity.RedeemAiCode` | `account.self` | `RedeemAiCodeInput` → 200 `MyAiResult` | 兑换 AI 邀请码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/me/ai` | `readMyAi` | `identity.ReadMyAi` | `account.self` | `—` → 200 `MyAiResult` | 读取自己的平台 AI 权益 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/sites/{siteId}/ai-policy` | `readSiteAiPolicy` | `identity.ReadSiteAiPolicy` | `service` | `—` → 200 `SiteAiPolicy` | 读取站点 AI 策略 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/sites/{siteId}/visitor-qa-cap` | `noteVisitorQaCap` | `identity.NoteVisitorQaCap` | `service` | `—` → 200 `OkResult` | 记录站点当天访客提问已达上限 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 

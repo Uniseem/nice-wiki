@@ -50,7 +50,15 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 	if err == nil {
 		policy, err = qaruntime.ReadPolicy(read)
 	}
-	var active int
+	var active, today int
+	var dailyCap int
+	if err == nil {
+		dailyCap = runtime.VisitorDailyCap(ctx, op)
+		if dailyCap > 0 {
+			dayStart := time.Now().UTC().Truncate(24 * time.Hour).UnixNano()
+			err = qaruntime.StorageError(read.Tx.QueryRowContext(read.Context, `SELECT COUNT(*) FROM turns WHERE site_id=? AND created_ns>=?`, op.Actor.SiteID, dayStart).Scan(&today))
+		}
+	}
 	if err == nil {
 		err = qaruntime.StorageError(read.Tx.QueryRowContext(read.Context, `SELECT COUNT(*) FROM turns WHERE conversation_id=? AND state NOT IN ('completed','cancelled','failed','invalidated')`, input.ConversationId).Scan(&active))
 	}
@@ -59,6 +67,9 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 	case err != nil:
 	case !policy.Enabled:
 		err = platform.NewError(platform.CodeForbidden, false, "公开问答尚未开启")
+	case dailyCap > 0 && today >= dailyCap:
+		runtime.NoteVisitorCapReached(ctx, op)
+		err = platform.NewError(platform.CodeRateLimited, true, "今天这个站点的提问次数已达上限，请明天再来")
 	case active > 0:
 		err = platform.NewError(platform.CodeConflict, false, "上一个问题还在回答，请稍候")
 	case utf8.RuneCountInString(input.Question) > policy.MaximumQuestionCharacters || len(input.Question) > 8192:

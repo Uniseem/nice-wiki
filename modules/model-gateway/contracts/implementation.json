@@ -5186,6 +5186,7 @@
           "idempotency": "有idempotencyKey时按siteId+actorId+函数ID+key唯一，保留7天；同规范输入SHA256返回原结果，不同hash为CONFLICT；无key的纯读取/计算可重复，后台写入以对象/版本/lease/eventId唯一防重复。",
           "dependencies": [
             "identity:checkAuthorization",
+            "identity:readSiteAiPolicy",
             "media:readAsset",
             "model-gateway.ExecuteInvocation",
             "platform.VerifyAdmissionPermit",

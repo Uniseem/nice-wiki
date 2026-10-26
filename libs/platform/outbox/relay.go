@@ -209,6 +209,7 @@ func envelopeOf(row platform.OutboxRow) platform.EventEnvelope {
 		Revision:     row.Revision,
 		OccurredAt:   row.OccurredAt,
 		DataEpoch:    row.DataEpoch,
+		SiteID:       row.SiteID,
 		Payload:      row.Payload,
 	}
 }
