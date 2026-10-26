@@ -275,7 +275,9 @@ def check_modules(modules, permissions, codes, shared=()):
                     fail(slug, '缺少或重复operationId ' + route)
                 operations[key] = op
                 count['operations'] += 1
-                if op.get('x-handler') not in local:
+                if op.get('x-v2'):
+                    pass  # 新架构接口只由 v2-ops.json 展开，不再维护函数级登记
+                elif op.get('x-handler') not in local:
                     fail(key, '未登记处理函数 ' + str(op.get('x-handler')))
                 elif local[op.get('x-handler')].get('contract') != 'binding':
                     fail(key, 'HTTP处理函数必须是binding级别')
@@ -405,7 +407,7 @@ def check_wiring(modules, shared=()):
             fail(fid, '从任何入口都不可达（接口处理、事件处理、启动入口）')
     generic = ('acquireBarrier', 'releaseBarrier', 'exportSnapshot', 'stageSnapshot', 'discardSnapshot', 'health', 'ready')
     for key, op in ops.items():
-        if op.get('x-permission') == 'service' and key.split(':', 1)[1] not in generic and key not in callers:
+        if op.get('x-permission') == 'service' and not op.get('x-v2') and key.split(':', 1)[1] not in generic and key not in callers:
             fail(key, 'service接口没有任何调用方')
 
 

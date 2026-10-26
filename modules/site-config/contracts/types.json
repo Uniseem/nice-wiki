@@ -1358,7 +1358,7 @@
     },
     "InitializeSiteInput": {
       "type": "object",
-      "description": "D55初始化仅站点和基准语言两步；默认zh-Hans",
+      "description": "D55初始化仅站点和基准语言两步；默认zh-Hans。多站点平台上，站点所有者给自己的新站点初始化，可附带该站点的公开地址（缺省用部署地址）",
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -1371,6 +1371,10 @@
           "$ref": "#/$defs/LanguageTag",
           "description": "LanguageTag",
           "default": "zh-Hans"
+        },
+        "publicBaseURL": {
+          "$ref": "#/$defs/SafeURL",
+          "description": "站点公开地址，缺省取部署公开地址；之后可在站点设置里改"
         }
       },
       "required": [

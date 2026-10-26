@@ -376,7 +376,7 @@
         },
         "siteId": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "站点"
+          "description": "站点；access 形态下是要访问的目标站点（缺省为会话所属站点），是否有权由成员角色判定"
         },
         "permission": {
           "type": "string",
@@ -439,11 +439,6 @@
               {
                 "required": [
                   "sessionId"
-                ]
-              },
-              {
-                "required": [
-                  "siteId"
                 ]
               },
               {
@@ -2304,6 +2299,1291 @@
     "SnapshotArchiveReadResult": {
       "x-internal": true,
       "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
+    },
+    "AuthProvider": {
+      "type": "object",
+      "description": "可用的第三方登录方式",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "google",
+            "linuxdo"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "provider",
+        "label"
+      ],
+      "x-v2": true
+    },
+    "ReadAuthOptionsResult": {
+      "type": "object",
+      "description": "登录页需要的公开选项",
+      "additionalProperties": false,
+      "properties": {
+        "registrationOpen": {
+          "type": "boolean"
+        },
+        "emailRegistration": {
+          "type": "boolean"
+        },
+        "inviteRequired": {
+          "type": "boolean"
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuthProvider"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "registrationOpen",
+        "emailRegistration",
+        "inviteRequired",
+        "providers"
+      ],
+      "x-v2": true
+    },
+    "RegisterUserInput": {
+      "type": "object",
+      "description": "邮箱注册：不验证邮箱，需要注册邀请码（站主开放公开注册后可省略）",
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 320,
+          "minLength": 3
+        },
+        "password": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 8
+        },
+        "passwordConfirmation": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 8
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "inviteCode": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "email",
+        "password",
+        "passwordConfirmation",
+        "displayName"
+      ],
+      "x-v2": true
+    },
+    "RegisterUserResult": {
+      "type": "object",
+      "description": "注册成功并登录",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/Account"
+        },
+        "tokens": {
+          "$ref": "#/$defs/SessionTokens"
+        },
+        "nextRoute": {
+          "type": "string",
+          "enum": [
+            "/admin/me",
+            "/admin/setup",
+            "/admin"
+          ]
+        }
+      },
+      "required": [
+        "account",
+        "tokens",
+        "nextRoute"
+      ],
+      "x-v2": true
+    },
+    "OauthStartInput": {
+      "type": "object",
+      "description": "开始第三方登录",
+      "additionalProperties": false,
+      "properties": {
+        "redirectUri": {
+          "type": "string",
+          "maxLength": 512,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "redirectUri"
+      ],
+      "x-v2": true
+    },
+    "OauthStartResult": {
+      "type": "object",
+      "description": "授权跳转地址与一次性状态",
+      "additionalProperties": false,
+      "properties": {
+        "authorizeUrl": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "authorizeUrl",
+        "state"
+      ],
+      "x-v2": true
+    },
+    "OauthLoginInput": {
+      "type": "object",
+      "description": "第三方登录回调：用授权码换身份，首次登录自动建号",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 1
+        },
+        "redirectUri": {
+          "type": "string",
+          "maxLength": 512,
+          "minLength": 1
+        },
+        "inviteCode": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "code",
+        "state",
+        "redirectUri"
+      ],
+      "x-v2": true
+    },
+    "UserLimits": {
+      "type": "object",
+      "description": "当前用户的站点与存储额度",
+      "additionalProperties": false,
+      "properties": {
+        "maxSites": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "siteCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "storageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "storageUsed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "maxSites",
+        "siteCount",
+        "storageBytes",
+        "storageUsed"
+      ],
+      "x-v2": true
+    },
+    "SiteSummary": {
+      "type": "object",
+      "description": "站点摘要（含当前用户在该站的角色）",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 63
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "deleted"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "editor",
+            "viewer"
+          ]
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "primaryHost": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "siteId",
+        "slug",
+        "name",
+        "status",
+        "role",
+        "visibility",
+        "primaryHost",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListMySitesResult": {
+      "type": "object",
+      "description": "我能访问的站点",
+      "additionalProperties": false,
+      "properties": {
+        "sites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SiteSummary"
+          },
+          "maxItems": 1000
+        },
+        "limits": {
+          "$ref": "#/$defs/UserLimits"
+        }
+      },
+      "required": [
+        "sites",
+        "limits"
+      ],
+      "x-v2": true
+    },
+    "CreateSiteInput": {
+      "type": "object",
+      "description": "创建站点并成为所有者",
+      "additionalProperties": false,
+      "properties": {
+        "slug": {
+          "type": "string",
+          "maxLength": 63,
+          "minLength": 3
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "baseLanguage": {
+          "type": "string",
+          "maxLength": 35
+        }
+      },
+      "required": [
+        "slug",
+        "name"
+      ],
+      "x-v2": true
+    },
+    "SiteResult": {
+      "type": "object",
+      "description": "单个站点",
+      "additionalProperties": false,
+      "properties": {
+        "site": {
+          "$ref": "#/$defs/SiteSummary"
+        }
+      },
+      "required": [
+        "site"
+      ],
+      "x-v2": true
+    },
+    "UpdateSiteInput": {
+      "type": "object",
+      "description": "修改站点名称或可见性",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ]
+        }
+      },
+      "x-v2": true
+    },
+    "RemovedResult": {
+      "type": "object",
+      "description": "删除结果",
+      "additionalProperties": false,
+      "properties": {
+        "removed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "removed"
+      ],
+      "x-v2": true
+    },
+    "SiteMember": {
+      "type": "object",
+      "description": "站点成员",
+      "additionalProperties": false,
+      "properties": {
+        "userId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "editor",
+            "viewer"
+          ]
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "email",
+        "role",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListSiteMembersResult": {
+      "type": "object",
+      "description": "站点成员列表",
+      "additionalProperties": false,
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SiteMember"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "members"
+      ],
+      "x-v2": true
+    },
+    "AddSiteMemberInput": {
+      "type": "object",
+      "description": "按邮箱邀请已注册用户成为协作者",
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 320,
+          "minLength": 3
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "editor",
+            "viewer"
+          ]
+        }
+      },
+      "required": [
+        "email",
+        "role"
+      ],
+      "x-v2": true
+    },
+    "SiteMemberResult": {
+      "type": "object",
+      "description": "单个成员",
+      "additionalProperties": false,
+      "properties": {
+        "member": {
+          "$ref": "#/$defs/SiteMember"
+        }
+      },
+      "required": [
+        "member"
+      ],
+      "x-v2": true
+    },
+    "UpdateSiteMemberInput": {
+      "type": "object",
+      "description": "修改成员角色",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "editor",
+            "viewer"
+          ]
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "x-v2": true
+    },
+    "SiteDomain": {
+      "type": "object",
+      "description": "站点域名",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "subdomain",
+            "custom"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "verified",
+            "failed"
+          ]
+        },
+        "primary": {
+          "type": "boolean"
+        },
+        "verifyName": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "verifyToken": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "verifiedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "host",
+        "kind",
+        "status",
+        "primary",
+        "verifyName",
+        "verifyToken",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListSiteDomainsResult": {
+      "type": "object",
+      "description": "站点域名列表",
+      "additionalProperties": false,
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SiteDomain"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "domains"
+      ],
+      "x-v2": true
+    },
+    "AddSiteDomainInput": {
+      "type": "object",
+      "description": "绑定自定义域名",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "maxLength": 253,
+          "minLength": 3
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "x-v2": true
+    },
+    "SiteDomainResult": {
+      "type": "object",
+      "description": "单个域名",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/SiteDomain"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "x-v2": true
+    },
+    "ResolveHostResult": {
+      "type": "object",
+      "description": "域名对应的站点；只给入口与公开站使用",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 63
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "deleted"
+          ]
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "primaryHost": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "redirectHost": {
+          "type": "string",
+          "maxLength": 253
+        }
+      },
+      "required": [
+        "siteId",
+        "slug",
+        "status",
+        "visibility",
+        "primaryHost"
+      ],
+      "x-v2": true
+    },
+    "ProviderConfig": {
+      "type": "object",
+      "description": "第三方登录配置（不含密钥）",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "google",
+            "linuxdo"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "clientId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "clientSecretSet": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "provider",
+        "enabled",
+        "clientId",
+        "clientSecretSet"
+      ],
+      "x-v2": true
+    },
+    "PlatformSettings": {
+      "type": "object",
+      "description": "平台设置",
+      "additionalProperties": false,
+      "properties": {
+        "registrationOpen": {
+          "type": "boolean"
+        },
+        "emailRegistration": {
+          "type": "boolean"
+        },
+        "inviteRequired": {
+          "type": "boolean"
+        },
+        "defaultMaxSites": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "defaultStorageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultVisitorQaDaily": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "platformHost": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "sitesDomain": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderConfig"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "registrationOpen",
+        "emailRegistration",
+        "inviteRequired",
+        "defaultMaxSites",
+        "defaultStorageBytes",
+        "defaultVisitorQaDaily",
+        "platformHost",
+        "sitesDomain",
+        "providers"
+      ],
+      "x-v2": true
+    },
+    "ProviderUpdate": {
+      "type": "object",
+      "description": "第三方登录配置更新；clientSecret 省略表示不改",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "google",
+            "linuxdo"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "clientId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "clientSecret": {
+          "type": "string",
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "provider",
+        "enabled",
+        "clientId"
+      ],
+      "x-v2": true
+    },
+    "UpdatePlatformSettingsInput": {
+      "type": "object",
+      "description": "更新平台设置；省略的字段不改",
+      "additionalProperties": false,
+      "properties": {
+        "registrationOpen": {
+          "type": "boolean"
+        },
+        "emailRegistration": {
+          "type": "boolean"
+        },
+        "inviteRequired": {
+          "type": "boolean"
+        },
+        "defaultMaxSites": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "defaultStorageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultVisitorQaDaily": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "platformHost": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "sitesDomain": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderUpdate"
+          },
+          "maxItems": 1000
+        }
+      },
+      "x-v2": true
+    },
+    "RegistrationInvite": {
+      "type": "object",
+      "description": "注册邀请码（只存摘要）",
+      "additionalProperties": false,
+      "properties": {
+        "inviteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "maxUses": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "inviteId",
+        "note",
+        "maxUses",
+        "used",
+        "revoked",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "CreateRegistrationInviteInput": {
+      "type": "object",
+      "description": "站主生成注册邀请码",
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "maxUses": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "maxUses"
+      ],
+      "x-v2": true
+    },
+    "CreateRegistrationInviteResult": {
+      "type": "object",
+      "description": "新邀请码，明文只在此返回一次",
+      "additionalProperties": false,
+      "properties": {
+        "invite": {
+          "$ref": "#/$defs/RegistrationInvite"
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "invite",
+        "code"
+      ],
+      "x-v2": true
+    },
+    "ListRegistrationInvitesResult": {
+      "type": "object",
+      "description": "注册邀请码列表",
+      "additionalProperties": false,
+      "properties": {
+        "invites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RegistrationInvite"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "invites"
+      ],
+      "x-v2": true
+    },
+    "RegistrationInviteResult": {
+      "type": "object",
+      "description": "单个邀请码",
+      "additionalProperties": false,
+      "properties": {
+        "invite": {
+          "$ref": "#/$defs/RegistrationInvite"
+        }
+      },
+      "required": [
+        "invite"
+      ],
+      "x-v2": true
+    },
+    "UserSummary": {
+      "type": "object",
+      "description": "用户摘要",
+      "additionalProperties": false,
+      "properties": {
+        "userId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "accountId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "disabled",
+            "deleted"
+          ]
+        },
+        "siteCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "accountId",
+        "email",
+        "displayName",
+        "status",
+        "siteCount",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListUsersResult": {
+      "type": "object",
+      "description": "用户列表",
+      "additionalProperties": false,
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserSummary"
+          },
+          "maxItems": 1000
+        },
+        "nextCursor": {
+          "type": "string",
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "users"
+      ],
+      "x-v2": true
+    },
+    "SetUserStatusInput": {
+      "type": "object",
+      "description": "停用或恢复用户",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "disabled"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "x-v2": true
+    },
+    "UserResult": {
+      "type": "object",
+      "description": "单个用户",
+      "additionalProperties": false,
+      "properties": {
+        "user": {
+          "$ref": "#/$defs/UserSummary"
+        }
+      },
+      "required": [
+        "user"
+      ],
+      "x-v2": true
+    },
+    "AdminSite": {
+      "type": "object",
+      "description": "站主视角的站点",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 63
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "ownerUserId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "deleted"
+          ]
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "siteId",
+        "slug",
+        "name",
+        "ownerUserId",
+        "ownerEmail",
+        "status",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListAllSitesResult": {
+      "type": "object",
+      "description": "全部站点",
+      "additionalProperties": false,
+      "properties": {
+        "sites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AdminSite"
+          },
+          "maxItems": 1000
+        },
+        "nextCursor": {
+          "type": "string",
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "sites"
+      ],
+      "x-v2": true
+    },
+    "SetSiteStatusInput": {
+      "type": "object",
+      "description": "下架或恢复站点",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "x-v2": true
+    },
+    "AdminSiteResult": {
+      "type": "object",
+      "description": "单个站点",
+      "additionalProperties": false,
+      "properties": {
+        "site": {
+          "$ref": "#/$defs/AdminSite"
+        }
+      },
+      "required": [
+        "site"
+      ],
+      "x-v2": true
+    },
+    "SubmitReportInput": {
+      "type": "object",
+      "description": "访客举报站点",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "maxLength": 253,
+          "minLength": 3
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "spam",
+            "phishing",
+            "illegal",
+            "copyright",
+            "other"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "contact": {
+          "type": "string",
+          "maxLength": 320
+        }
+      },
+      "required": [
+        "host",
+        "reason"
+      ],
+      "x-v2": true
+    },
+    "SubmitReportResult": {
+      "type": "object",
+      "description": "举报已受理",
+      "additionalProperties": false,
+      "properties": {
+        "reportId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "reportId"
+      ],
+      "x-v2": true
+    },
+    "Report": {
+      "type": "object",
+      "description": "举报记录",
+      "additionalProperties": false,
+      "properties": {
+        "reportId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "spam",
+            "phishing",
+            "illegal",
+            "copyright",
+            "other"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "dismissed",
+            "takedown",
+            "banned"
+          ]
+        },
+        "resolution": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "reportId",
+        "siteId",
+        "host",
+        "url",
+        "reason",
+        "detail",
+        "status",
+        "resolution",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListReportsResult": {
+      "type": "object",
+      "description": "举报列表",
+      "additionalProperties": false,
+      "properties": {
+        "reports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Report"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "reports"
+      ],
+      "x-v2": true
+    },
+    "ResolveReportInput": {
+      "type": "object",
+      "description": "处理举报",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "dismiss",
+            "takedown",
+            "ban_owner"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "x-v2": true
+    },
+    "ReportResult": {
+      "type": "object",
+      "description": "单个举报",
+      "additionalProperties": false,
+      "properties": {
+        "report": {
+          "$ref": "#/$defs/Report"
+        }
+      },
+      "required": [
+        "report"
+      ],
+      "x-v2": true
     }
   }
 }

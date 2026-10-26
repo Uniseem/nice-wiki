@@ -204,7 +204,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 		if err != nil {
 			return AuthorizationDecision{}, err
 		}
-		if snapshot.Session.AccountID != input.SubjectID || snapshot.Session.SiteID != input.SiteID ||
+		if snapshot.Session.AccountID != input.SubjectID ||
 			snapshot.CurrentPermissionRevision != op.Actor.PermissionRevision || op.Actor.SessionRevision <= 0 ||
 			snapshot.Session.Revision != op.Actor.SessionRevision {
 			return AuthorizationDecision{}, platform.NewError(platform.CodeUnauthenticated, false, "委托会话或授权版本已变化")
@@ -220,8 +220,18 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 	if err != nil {
 		return AuthorizationDecision{}, err
 	}
+	// 访问的站点与会话家账户不同：按成员角色（站主按全部权限）即时派生该站点的权限。
+	siteDenied := ""
+	if input.SiteID != "" && input.SiteID != snapshot.Session.SiteID && snapshot.Status == "active" && !snapshot.MustChangePassword {
+		auth, siteDenied, err = targetSiteAuth(ctx, tx, snapshot, auth, input.SiteID)
+		if err != nil {
+			return AuthorizationDecision{}, err
+		}
+	}
 	decision := AuthorizationDecision{AccountName: snapshot.AccountName, Auth: auth, EvaluatedRevision: snapshot.CurrentPermissionRevision, Reason: "allowed"}
 	switch {
+	case siteDenied != "":
+		decision.Reason = siteDenied
 	case snapshot.Status == "disabled":
 		decision.Reason = "disabled"
 	case snapshot.Status == "deleted":
@@ -229,7 +239,7 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 	case snapshot.MustChangePassword && (input.Permission != "account.self" ||
 		(input.Action != "identity:changePassword" && input.Action != "identity:revokeSession" && input.Action != "identity:readSelf")):
 		decision.Reason = "must_change_password"
-	case !snapshot.IsSuperadmin && hasGrant(superadminOnlyGrants, input.Permission):
+	case !snapshot.IsSuperadmin && hasGrant(platformOnlyGrants, input.Permission):
 		decision.Reason = "superadmin_only"
 	case !hasGrant(auth.Grants, input.Permission):
 		decision.Reason = "missing_function"
@@ -237,4 +247,48 @@ func CheckAuthorization(ctx context.Context, op OperationContext, input Authoriz
 		decision.Authorized = true
 	}
 	return decision, nil
+}
+
+// targetSiteAuth 在站点成员表里为当前用户派生目标站点的权限上下文；
+// 返回的第二个值非空表示该访问被拒绝（原因写进决定的 reason）。
+func targetSiteAuth(ctx context.Context, q sessionQueryer, snapshot sessionSnapshot, home platform.AuthContext, siteID string) (platform.AuthContext, string, error) {
+	var status string
+	err := q.QueryRowContext(ctx, `SELECT status FROM sites WHERE site_id = ?`, siteID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return home, "unknown_site", nil
+	}
+	if err != nil {
+		return home, "", platform.NewError(platform.CodeDependencyUnavailable, true, "站点权威不可读")
+	}
+	if status == "deleted" {
+		return home, "site_deleted", nil
+	}
+	auth := home
+	auth.SiteID = siteID
+	if snapshot.IsSuperadmin {
+		mapped, err := MapFunctionGrants(MapFunctionGrantsInput{IsSuperadmin: true})
+		if err != nil {
+			return home, "", err
+		}
+		auth.Grants = mapped.Grants
+		return auth, "", nil
+	}
+	var role string
+	err = q.QueryRowContext(ctx, `SELECT m.role FROM site_members m JOIN users u ON u.user_id = m.user_id WHERE m.site_id = ? AND u.account_id = ? AND u.status = 'active'`,
+		siteID, snapshot.Session.AccountID).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return home, "not_member", nil
+	}
+	if err != nil {
+		return home, "", platform.NewError(platform.CodeDependencyUnavailable, true, "站点成员权威不可读")
+	}
+	if status != "active" {
+		return home, "site_suspended", nil
+	}
+	grants, err := roleGrants(role)
+	if err != nil {
+		return home, "", err
+	}
+	auth.Grants = grants
+	return auth, "", nil
 }

@@ -559,6 +559,9 @@ func newRequestValidator(spec *openapi3.T, rewrite func(*http.Request) *http.Req
 				}
 				p := problem.FromError(platform.NewError(platform.CodeValidation, false, "请求不符合接口规格"), requestID)
 				p.Issues = fieldIssues(err)
+				if os.Getenv("NW_DEBUG") != "" {
+					fmt.Fprintf(os.Stderr, "请求校验失败 %s %s: %v\n", r.Method, r.URL.Path, err)
+				}
 				_ = problem.WriteProblem(w, p)
 				return
 			}

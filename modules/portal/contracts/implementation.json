@@ -1487,7 +1487,8 @@
             "identity:readSelf",
             "site-config:readSiteConfig",
             "portal.BuildCapabilities",
-            "portal.BuildNavigation"
+            "portal.BuildNavigation",
+            "identity:resolveHost"
           ],
           "resources": [],
           "contract": "binding"

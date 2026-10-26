@@ -68,7 +68,7 @@ func HandleLLMsFull(ctx context.Context, op platform.OperationContext, in Handle
 	var size atomic.Int64
 	missing := make([]int, 0)
 	for i, node := range navigation.Tree {
-		if text, ok := llmsFullCache.get(in.Locale, node, navigation.Revision); ok {
+		if text, ok := llmsFullCache.get(siteKey(ctx)+"|"+in.Locale, node, navigation.Revision); ok {
 			pages[i] = text
 			size.Add(int64(len(text)))
 		} else {
@@ -90,7 +90,7 @@ func HandleLLMsFull(ctx context.Context, op platform.OperationContext, in Handle
 				}
 				pages[i] = strings.TrimSpace(page.text)
 				size.Add(int64(len(pages[i])))
-				llmsFullCache.put(in.Locale, navigation.Tree[i], navigation.Revision, page.linked, page.translated, pages[i])
+				llmsFullCache.put(siteKey(ctx)+"|"+in.Locale, navigation.Tree[i], navigation.Revision, page.linked, page.translated, pages[i])
 			}
 		}()
 	}
@@ -108,7 +108,7 @@ func HandleLLMsFull(ctx context.Context, op platform.OperationContext, in Handle
 	if size.Load() > llmsFullLimit {
 		return HandleLLMsFullResult{}, platform.NewError(platform.CodeValidation, false, "LLMS_FULL_TOO_LARGE")
 	}
-	llmsFullCache.keepOnly(in.Locale, navigation.Tree)
+	llmsFullCache.keepOnly(siteKey(ctx)+"|"+in.Locale, navigation.Tree)
 	return HandleLLMsFullResult{Status: 200, Text: strings.Join(pages, "\n\n---\n\n") + "\n"}, nil
 }
 

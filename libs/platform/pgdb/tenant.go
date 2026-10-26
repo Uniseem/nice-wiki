@@ -8,7 +8,8 @@ import (
 
 // 租户隔离：多个站点共用同一批表，靠 PostgreSQL 行级安全（RLS）隔离。
 //
-//   - 驱动按请求上下文里的站点设置会话变量 nw.site；没有站点（后台循环、启动）时为空，表示系统视角，能看到全部行。
+//   - 驱动按请求上下文里的站点设置会话变量 nw.site；没有站点（后台循环、启动）时为空，表示系统视角，能看到全部行；
+//     WithTemplateView 再设置 nw.tpl，系统视角就只剩模板行（组件启动、就绪检查读自己的状态用）。
 //   - 建表时给每张租户表加站点列并启用 RLS（FORCE，表属主也受限）；策略是：会话站点为空，或行的站点列等于会话站点。
 //   - 只有一行的“单例”表（singleton=1）改成每站点一行：新增列 nw_site，主键改为 (nw_site, singleton)；
 //     站点第一次出现时由驱动把系统视角（nw_site=''）的模板行复制一份给该站点。
@@ -18,7 +19,7 @@ import (
 
 // tenantModules 是启用租户隔离的组件。
 var tenantModules = map[string]bool{
-	"content": true, "media": true, "localization": true, "knowledge": true, "qa": true, "memory": true, "analytics": true,
+	"content": true, "media": true, "localization": true, "knowledge": true, "qa": true, "memory": true, "analytics": true, "site-config": true,
 }
 
 // globalTables 是租户组件里不做隔离的表（迁移记录、运行元数据、事件收发件箱、已废弃的快照机制等）。
@@ -41,7 +42,7 @@ func isTenant(module string) bool { return tenantModules[module] }
 const siteDefault = `COALESCE(current_setting('nw.site', true), '')`
 
 func policyExpr(column string) string {
-	return `(NULLIF(current_setting('nw.site', true), '') IS NULL OR "` + column + `" = current_setting('nw.site', true))`
+	return `((NULLIF(current_setting('nw.site', true), '') IS NULL AND COALESCE(current_setting('nw.tpl', true), '') = '') OR "` + column + `" = current_setting('nw.site', true))`
 }
 
 func isConstraintItem(item []token) bool {

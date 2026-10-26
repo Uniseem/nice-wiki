@@ -36,6 +36,9 @@ const (
 )
 
 type Application struct {
+	hostMu             sync.Mutex
+	hostCache          map[string]hostEntry
+	resolveHost        func(context.Context, string) (HostSite, bool, error)
 	siteMu             sync.Mutex
 	siteID             platform.Identifier
 	budgetKey          platform.SigningKey
@@ -208,7 +211,10 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		operationID = platform.NewIdentifier()
 	}
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
-	site := a.currentSite(r.Context())
+	if a.siteGate(w, r) {
+		return
+	}
+	site := a.siteForRequest(r)
 	// 站点还没初始化（读不到站点身份）：打开根路径直接去后台的初始化向导。
 	if site == "" && r.Method == http.MethodGet && r.URL.Path == "/" {
 		w.Header().Set("Cache-Control", "no-store")
@@ -229,7 +235,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		origins = []string{configured.Scheme + "://" + configured.Host}
 	}
 	runtime := &portal.ProxyRuntime{
-		SiteID: a.currentSite(r.Context()), ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
+		SiteID: site, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
 		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs, Countries: a.countries,

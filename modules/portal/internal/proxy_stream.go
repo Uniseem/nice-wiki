@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -109,7 +110,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 			return ProxyRequestResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "内部认证请求超出路由上限")
 		}
 	}
-	if authentication == "createSession" || authentication == "registerFirstSuperadmin" {
+	if authentication == "createSession" || authentication == "registerFirstSuperadmin" || authentication == "registerUser" || authentication == "oauthLogin" {
 		scopes, err := serviceauth.PrivateNetworkScopes(runtime.SigningKey, runtime.Request.RemoteAddr,
 			strings.Join(runtime.Request.Header.Values("X-Forwarded-For"), ","), runtime.TrustedProxyCIDRs, time.Now())
 		if err != nil {
@@ -128,6 +129,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		if optionalAdmin {
 			required.Permission = "portal.use"
 		}
+		required.SiteID = targetSite(runtime.Request, route)
 		required.Action = route.Definition.Owner + ":" + route.Definition.UpstreamOperationID
 		authResult, authErr := ResolveAuthContext(ctx, op, ResolveAuthContextInput{
 			Cookies:  SessionCookies{SessionToken: cookieValue(runtime.Request, "nw_sid"), CSRFCookie: runtime.Request.Header.Get("X-CSRF-Token")},
@@ -484,7 +486,7 @@ func authenticationOperation(route ResolvedRoute) string {
 		return ""
 	}
 	switch route.Definition.UpstreamOperationID {
-	case "createSession", "registerFirstSuperadmin", "refreshSession", "changePassword":
+	case "createSession", "registerFirstSuperadmin", "registerUser", "oauthLogin", "refreshSession", "changePassword":
 		return route.Definition.UpstreamOperationID
 	default:
 		return ""
@@ -545,7 +547,7 @@ func adaptAuthenticationResponse(response *http.Response, operation string) ([]b
 		if tokens == nil || result.CurrentSessionTokens != nil || result.Account != nil || result.NextRoute == nil {
 			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "登录成功响应字段不符")
 		}
-	case "registerFirstSuperadmin":
+	case "registerFirstSuperadmin", "registerUser", "oauthLogin":
 		if tokens == nil || result.CurrentSessionTokens != nil || result.Account == nil || result.NextRoute == nil {
 			return nil, nil, platform.NewError(platform.CodeIntegrityError, false, "注册成功响应字段不符")
 		}
@@ -705,3 +707,19 @@ func prepareTrustedBeacon(ctx context.Context, op OperationContext, runtime *Pro
 // optionalAdminOperations 是匿名路由里允许对已登录管理员附带委托证明的操作。
 // 资源字节：编辑器里刚上传、草稿还没保存（引用未确认）的图片也要能预览，媒体服务按管理员规则放行。
 var optionalAdminOperations = map[string]bool{"localization:listLanguages": true, "media:readAssetBytes": true, "media:headAssetBytes": true}
+
+var targetSitePattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
+
+// targetSite 是这次后台请求要操作的站点：路径里的 siteId，否则请求头 X-Nw-Site（界面当前选中的站点）。
+// 这只是“想访问哪个站点”的声明，是否有权由 identity 按成员角色判定。
+func targetSite(request *http.Request, route ResolvedRoute) string {
+	for _, p := range route.Parameters {
+		if p.Name == "siteId" && targetSitePattern.MatchString(p.Value) {
+			return p.Value
+		}
+	}
+	if v := request.Header.Get("X-Nw-Site"); targetSitePattern.MatchString(v) {
+		return v
+	}
+	return ""
+}

@@ -22,7 +22,7 @@ func ReadSiteConfig(ctx context.Context, op platform.OperationContext, input Rea
 	if store == nil {
 		return gen.ReadSiteConfigResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
 	}
-	config, err := store.loadCurrentConfig(ctx, op)
+	config, err := store.loadCurrentConfig(store.scopeSite(ctx, op), op)
 	return gen.ReadSiteConfigResult{Config: config}, err
 }
 

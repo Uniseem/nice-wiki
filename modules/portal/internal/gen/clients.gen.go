@@ -302,6 +302,11 @@ func (c *IdentityClient) ReadSelf(ctx context.Context) (json.RawMessage, error) 
 	return c.do(ctx, http.MethodGet, "/v1/self", nil, "")
 }
 
+// ResolveHost GET /v1/hosts/{host}（identity:resolveHost）。
+func (c *IdentityClient) ResolveHost(ctx context.Context, host string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/hosts/"+url.PathEscape(host)+"", nil, "")
+}
+
 // UpdatePreferences PUT /v1/preferences（identity:updatePreferences）。
 func (c *IdentityClient) UpdatePreferences(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPut, "/v1/preferences", body, "")

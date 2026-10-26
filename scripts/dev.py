@@ -89,7 +89,7 @@ def setup():
                "signingKeyRef": os.path.join(sec, "signing-key.json"),
                "dependencies": {s: f"http://127.0.0.1:{p}" for s, p in PORTS.items() if s != slug},
                "allowLocalHTTP": True}
-        if slug in ("model-gateway", "data-protection"):
+        if slug in ("model-gateway", "data-protection", "identity"):
             master = os.path.join(sec, "master-key")
             if not os.path.exists(master):
                 with open(master, "wb") as f:

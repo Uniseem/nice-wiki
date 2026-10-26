@@ -255,6 +255,7 @@ type conn struct {
 	owner     *connector
 	inTx      bool
 	site      string // 会话变量 nw.site 当前值
+	template  bool   // 会话变量 nw.tpl 当前值：只看模板行
 	siteSet   bool
 	described map[string][]uint32 // 语句文本 -> 服务端推断的参数类型
 }
@@ -290,12 +291,33 @@ func translate(module, query string) ([]string, error) {
 	return translated, nil
 }
 
-// siteOf 取请求上下文里的站点；没有（后台循环、启动阶段）时为空，表示系统视角。
-func siteOf(ctx context.Context) string {
-	if op, ok := platform.OperationContextFrom(ctx); ok {
-		return string(op.Actor.SiteID)
+type viewKey int
+
+const (
+	siteOverrideKey viewKey = iota
+	templateViewKey
+)
+
+// WithSite 让后台循环以指定站点的身份访问租户表（默认取请求上下文里的站点）。
+func WithSite(ctx context.Context, site string) context.Context {
+	return context.WithValue(ctx, siteOverrideKey, site)
+}
+
+// WithTemplateView 让本次访问只看到单例表的模板行（nw_site=”）：启动、就绪检查把“组件自己的状态”当成单站点读取。
+func WithTemplateView(ctx context.Context) context.Context {
+	return context.WithValue(ctx, templateViewKey, true)
+}
+
+// siteOf 取访问视角：站点（请求上下文或 WithSite 指定；没有时为空，表示系统视角能看到全部行）和是否只看模板行。
+func siteOf(ctx context.Context) (string, bool) {
+	template, _ := ctx.Value(templateViewKey).(bool)
+	if site, ok := ctx.Value(siteOverrideKey).(string); ok {
+		return site, template
 	}
-	return ""
+	if op, ok := platform.OperationContextFrom(ctx); ok {
+		return string(op.Actor.SiteID), template
+	}
+	return "", template
 }
 
 // useSite 让本连接的会话变量 nw.site 与请求站点一致；站点第一次出现时先复制单例模板行。
@@ -303,8 +325,8 @@ func (c *conn) useSite(ctx context.Context) error {
 	if !c.owner.tenant {
 		return nil
 	}
-	site := siteOf(ctx)
-	if c.siteSet && c.site == site {
+	site, template := siteOf(ctx)
+	if c.siteSet && c.site == site && c.template == template {
 		return nil
 	}
 	execer := c.Conn.(driver.ExecerContext)
@@ -313,10 +335,14 @@ func (c *conn) useSite(ctx context.Context) error {
 			return err
 		}
 	}
-	if _, err := execer.ExecContext(ctx, "SELECT set_config('nw.site', $1, false)", []driver.NamedValue{{Ordinal: 1, Value: site}}); err != nil {
+	tpl := ""
+	if template {
+		tpl = "on"
+	}
+	if _, err := execer.ExecContext(ctx, "SELECT set_config('nw.site', $1, false), set_config('nw.tpl', $2, false)", []driver.NamedValue{{Ordinal: 1, Value: site}, {Ordinal: 2, Value: tpl}}); err != nil {
 		return err
 	}
-	c.site, c.siteSet = site, true
+	c.site, c.template, c.siteSet = site, template, true
 	return nil
 }
 
@@ -331,7 +357,7 @@ func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string)
 		return nil
 	}
 	pgxConn := c.Conn.(*stdlib.Conn).Conn()
-	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.site', '', false)"); err != nil {
+	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.site', '', false), set_config('nw.tpl', '', false)"); err != nil {
 		return err
 	}
 	c.siteSet = false

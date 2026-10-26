@@ -7,21 +7,35 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"nice-wiki/libs/platform"
 )
+
+type siteConfigEntry struct {
+	raw     json.RawMessage
+	expires time.Time
+}
 
 var siteConfigCache = struct {
 	sync.Mutex
-	raw     json.RawMessage
-	expires time.Time
-}{}
+	entries map[string]siteConfigEntry
+}{entries: map[string]siteConfigEntry{}}
+
+// siteKey 是本次请求的站点标识，进程内缓存都按它分开，避免站点之间串内容。
+func siteKey(ctx context.Context) string {
+	if op, ok := platform.OperationContextFrom(ctx); ok {
+		return string(op.Actor.SiteID)
+	}
+	return ""
+}
 
 // readSiteConfigCached 页面渲染里站点配置被好几处读取（公告、页脚、站点元信息），短缓存避免每页多次远程调用；改配置后几秒内生效。
 func readSiteConfigCached(ctx context.Context) (json.RawMessage, bool) {
+	site := siteKey(ctx)
 	siteConfigCache.Lock()
-	if siteConfigCache.raw != nil && time.Now().Before(siteConfigCache.expires) {
-		raw := siteConfigCache.raw
+	if entry, ok := siteConfigCache.entries[site]; ok && time.Now().Before(entry.expires) {
 		siteConfigCache.Unlock()
-		return raw, true
+		return entry.raw, true
 	}
 	siteConfigCache.Unlock()
 	directory, err := directoryFrom(ctx)
@@ -33,7 +47,7 @@ func readSiteConfigCached(ctx context.Context) (json.RawMessage, bool) {
 		return nil, false
 	}
 	siteConfigCache.Lock()
-	siteConfigCache.raw, siteConfigCache.expires = raw, time.Now().Add(5*time.Second)
+	siteConfigCache.entries[site] = siteConfigEntry{raw, time.Now().Add(5 * time.Second)}
 	siteConfigCache.Unlock()
 	return raw, true
 }

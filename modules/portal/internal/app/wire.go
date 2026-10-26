@@ -67,8 +67,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	var csrfVerifier portal.IdentityVerifier
 	var authResolver portal.AuthResolver
+	var identityClient *gen.IdentityClient
 	if base := config.Dependencies["identity"]; base != "" {
 		client := gen.NewIdentityClient(base, ModuleSlug, key)
+		identityClient = client
 		csrfVerifier = portal.CSRFVerifier{Client: client}
 		authResolver = portal.IdentityAuthResolver{Client: client}
 	}
@@ -84,6 +86,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	application.SetSiteLoader(func(work context.Context) (platform.Identifier, error) {
 		return readSiteIdentity(work, config, key, view.DataEpoch)
 	})
+	if identityClient != nil {
+		application.SetHostResolver(hostResolver(identityClient, view.DataEpoch))
+	}
 	budgetKey, err := lifecycle.LoadBudgetKey(config)
 	if err != nil {
 		return nil, err
@@ -249,4 +254,33 @@ func readSiteIdentity(ctx context.Context, config platform.ServiceConfig, key pl
 		return "", platform.NewError(platform.CodeIntegrityError, false, "站点身份响应不可读")
 	}
 	return result.Config.SiteID, nil
+}
+
+// hostResolver 经 identity:resolveHost 把访问域名解析成站点；域名未登记返回 (_, false, nil)。
+func hostResolver(client *gen.IdentityClient, epoch platform.Identifier) func(context.Context, string) (transport.HostSite, bool, error) {
+	return func(ctx context.Context, host string) (transport.HostSite, bool, error) {
+		deadline := platform.Timestamp(time.Now().UTC().Add(5 * time.Second).Format(time.RFC3339Nano))
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline, DataEpoch: epoch,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline, Grants: []string{}}}
+		raw, err := client.ResolveHost(platform.WithPortalProof(platform.WithOperationContext(ctx, op), ""), host)
+		if err != nil {
+			var failure *platform.Error
+			if errors.As(err, &failure) && failure.Code == platform.CodeNotFound {
+				return transport.HostSite{}, false, nil
+			}
+			return transport.HostSite{}, false, err
+		}
+		var body struct {
+			SiteID       string `json:"siteId"`
+			Status       string `json:"status"`
+			Visibility   string `json:"visibility"`
+			PrimaryHost  string `json:"primaryHost"`
+			RedirectHost string `json:"redirectHost"`
+		}
+		if json.Unmarshal(raw, &body) != nil || body.SiteID == "" {
+			return transport.HostSite{}, false, nil
+		}
+		return transport.HostSite{SiteID: body.SiteID, Status: body.Status, Visibility: body.Visibility, PrimaryHost: body.PrimaryHost, RedirectHost: body.RedirectHost}, true, nil
+	}
 }

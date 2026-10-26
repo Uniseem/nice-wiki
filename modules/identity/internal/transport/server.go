@@ -17,6 +17,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/secretbox"
 	"nice-wiki/modules/identity/internal"
 	"nice-wiki/modules/identity/internal/gen"
 )
@@ -47,6 +48,7 @@ type Application struct {
 	sessionRuntime      identity.SessionRuntime
 	loginRuntime        identity.LoginRuntime
 	registrationRuntime identity.RegistrationClient
+	secretBox           *secretbox.Box
 	snapshot            *lifecycle.SnapshotManager
 	dataProtection      *gen.DataProtectionClient
 	state               atomic.Int32
@@ -75,6 +77,13 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		registrationRuntime: identity.RegistrationClient{Client: gen.NewSiteConfigClient(config.Dependencies["site-config"], moduleName, sessionRuntime.Key)},
 		snapshot:            snapshot,
 		dataProtection:      gen.NewDataProtectionClient(config.Dependencies["data-protection"], moduleName, sessionRuntime.Key)}
+	if config.MasterKeyRef != "" {
+		box, err := secretbox.Load(config.MasterKeyRef)
+		if err != nil {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "主密钥文件不可用")
+		}
+		application.secretBox = box
+	}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "身份HTTP规格不可读取")
@@ -89,8 +98,10 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot", "readSnapshotArchive"} {
 		callers[id] = []string{"data-protection"}
 	}
+	callers["resolveHost"] = []string{"portal", "public-site", "content", "qa", "traffic-guard"}
 	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
 	serviceCallers := map[string][]string{
+		"resolveHost":    {"portal", "public-site", "content", "qa", "traffic-guard"},
 		"acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"},
 		"exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"},
 		"discardSnapshot": {"data-protection"},
@@ -134,6 +145,9 @@ func (a *Application) identityContext(ctx context.Context) context.Context {
 	ctx = identity.WithRegistrationRuntime(ctx, a.registrationRuntime)
 	ctx = identity.WithSnapshotManager(ctx, a.snapshot)
 	ctx = identity.WithSnapshotRuntime(ctx, a.runtime)
+	if a.secretBox != nil {
+		ctx = identity.WithSecretBox(ctx, a.secretBox)
+	}
 	return identity.WithRestoreArchiveClient(ctx, a.dataProtection)
 }
 
@@ -229,6 +243,7 @@ func (a *Application) operationHandlers() map[string]http.Handler {
 	handlers["releaseBarrier"] = jsonOperation(a, identity.ReleaseBarrier, func(input *identity.ReleaseBarrierInput, r *http.Request) {
 		input.BarrierID = r.PathValue("barrierId")
 	})
+	a.registerV2(handlers)
 	handlers["readSnapshotArchive"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := a.identityContext(r.Context())
 		op, _ := platform.OperationContextFrom(ctx)

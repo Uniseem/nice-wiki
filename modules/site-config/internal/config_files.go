@@ -17,6 +17,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
@@ -185,7 +186,7 @@ func CommitConfigHead(ctx context.Context, op platform.OperationContext, input C
 		if err != nil {
 			return CommitConfigHeadResult{}, err
 		}
-		if decided.Object.Version == record.Object.Version && decided.RevisionID != record.RevisionID {
+		if decided.SiteID == record.SiteID && decided.Object.Version == record.Object.Version && decided.RevisionID != record.RevisionID {
 			return CommitConfigHeadResult{}, platform.NewError(platform.CodeConflict, false, "该配置水位已有不可反悔提交决定")
 		}
 	}
@@ -240,37 +241,46 @@ func RecoverConfigJournal(ctx context.Context, op platform.OperationContext, inp
 		}
 		records = append(records, record)
 	}
-	sort.Slice(records, func(i, j int) bool { return records[i].Object.Version < records[j].Object.Version })
+	// 每个站点各有一条连续的修订链，分别回放并各自写 head。
+	bySite := map[string][]configJournalRecord{}
+	for _, record := range records {
+		bySite[record.SiteID] = append(bySite[record.SiteID], record)
+	}
 	result := RecoverConfigJournalResult{}
 	committed := map[string]bool{}
-	for i, record := range records {
-		if record.ExpectedRevision != gen.Revision(i) || record.Object.Version != gen.Revision(i+1) {
-			return result, platform.NewError(platform.CodeIntegrityError, false, "配置COMMITTED决定水位不连续")
+	for siteID, chain := range bySite {
+		sort.Slice(chain, func(i, j int) bool { return chain[i].Object.Version < chain[j].Object.Version })
+		siteCtx := pgdb.WithSite(ctx, siteID)
+		for i, record := range chain {
+			if record.ExpectedRevision != gen.Revision(i) || record.Object.Version != gen.Revision(i+1) {
+				return result, platform.NewError(platform.CodeIntegrityError, false, "配置COMMITTED决定水位不连续")
+			}
+			config, err := readConfigDocument(store.activeRoot, record)
+			if err != nil {
+				return result, err
+			}
+			prepared, err := readConfigRecord(configRecordPath(store.activeRoot, record.RevisionID, "PREPARED"))
+			if err != nil || prepared.State != "PREPARED" || prepared.SiteID != record.SiteID || prepared.Object != record.Object {
+				return result, platform.NewError(platform.CodeIntegrityError, false, "配置COMMITTED缺少一致的PREPARED")
+			}
+			tx, err := store.db.BeginTx(siteCtx, nil)
+			if err != nil {
+				return result, platform.NewError(platform.CodeDependencyUnavailable, true, "打开配置恢复事务失败")
+			}
+			if err := store.applyConfigCommit(siteCtx, tx, record, config); err != nil {
+				tx.Rollback()
+				return result, err
+			}
+			if err := tx.Commit(); err != nil {
+				return result, platform.NewError(platform.CodeDependencyUnavailable, true, "提交配置恢复水位失败")
+			}
+			committed[record.RevisionID] = true
+			result.CommittedCount++
 		}
-		config, err := readConfigDocument(store.activeRoot, record)
-		if err != nil {
+		if err := writeConfigHead(store.activeRoot, chain[len(chain)-1]); err != nil {
 			return result, err
 		}
-		prepared, err := readConfigRecord(configRecordPath(store.activeRoot, record.RevisionID, "PREPARED"))
-		if err != nil || prepared.State != "PREPARED" || prepared.SiteID != record.SiteID || prepared.Object != record.Object {
-			return result, platform.NewError(platform.CodeIntegrityError, false, "配置COMMITTED缺少一致的PREPARED")
-		}
-		tx, err := store.db.BeginTx(ctx, nil)
-		if err != nil {
-			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "打开配置恢复事务失败")
-		}
-		if err := store.applyConfigCommit(ctx, tx, record, config); err != nil {
-			tx.Rollback()
-			return result, err
-		}
-		if err := tx.Commit(); err != nil {
-			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "提交配置恢复水位失败")
-		}
-		committed[record.RevisionID] = true
-		result.CommittedCount++
-	}
-	if len(records) > 0 {
-		if err := writeConfigHead(store.activeRoot, records[len(records)-1]); err != nil {
+		if err := store.verifyConfigHead(siteCtx); err != nil {
 			return result, err
 		}
 	}
@@ -304,9 +314,6 @@ func RecoverConfigJournal(ctx context.Context, op platform.OperationContext, inp
 			}
 			result.QuarantinedCount++
 		}
-	}
-	if err := store.verifyConfigHead(ctx); err != nil {
-		return result, err
 	}
 	store.stateMu.Lock()
 	store.configRecovered = true

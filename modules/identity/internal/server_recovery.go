@@ -252,7 +252,7 @@ func readAccountAuthority(ctx context.Context, dataRoot string) (accountAuthorit
 
 // readAccountAuthorityQuery 可读取同一未提交账号事务，供提交前索引编码上限核对。
 func readAccountAuthorityQuery(ctx context.Context, query sessionQueryer) (accountAuthority, error) {
-	rows, err := query.QueryContext(ctx, `SELECT account_id, account_name, is_superadmin, status, revision FROM accounts ORDER BY account_id`)
+	rows, err := query.QueryContext(ctx, `SELECT account_id, account_name, is_superadmin, status, revision FROM accounts WHERE site_id NOT LIKE 'home:%' ORDER BY account_id`)
 	if err != nil {
 		return accountAuthority{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账号权威记录不可读")
 	}

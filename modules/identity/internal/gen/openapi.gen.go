@@ -36,6 +36,12 @@ const (
 	AccountStatusDisabled AccountStatus = "disabled"
 )
 
+// Defines values for AddSiteMemberInputRole.
+const (
+	AddSiteMemberInputRoleEditor AddSiteMemberInputRole = "editor"
+	AddSiteMemberInputRoleViewer AddSiteMemberInputRole = "viewer"
+)
+
 // Defines values for AdminRouteKey.
 const (
 	Accounts     AdminRouteKey = "accounts"
@@ -53,6 +59,20 @@ const (
 	Models       AdminRouteKey = "models"
 	Qa           AdminRouteKey = "qa"
 	Settings     AdminRouteKey = "settings"
+)
+
+// Defines values for AdminSiteStatus.
+const (
+	AdminSiteStatusActive    AdminSiteStatus = "active"
+	AdminSiteStatusDeleted   AdminSiteStatus = "deleted"
+	AdminSiteStatusSuspended AdminSiteStatus = "suspended"
+)
+
+// Defines values for AuthProviderProvider.
+const (
+	AuthProviderProviderGithub  AuthProviderProvider = "github"
+	AuthProviderProviderGoogle  AuthProviderProvider = "google"
+	AuthProviderProviderLinuxdo AuthProviderProvider = "linuxdo"
 )
 
 // Defines values for AuthorizationDecisionReason.
@@ -111,6 +131,20 @@ const (
 	ViewStats          FunctionPermission = "view_stats"
 )
 
+// Defines values for ProviderConfigProvider.
+const (
+	ProviderConfigProviderGithub  ProviderConfigProvider = "github"
+	ProviderConfigProviderGoogle  ProviderConfigProvider = "google"
+	ProviderConfigProviderLinuxdo ProviderConfigProvider = "linuxdo"
+)
+
+// Defines values for ProviderUpdateProvider.
+const (
+	Github  ProviderUpdateProvider = "github"
+	Google  ProviderUpdateProvider = "google"
+	Linuxdo ProviderUpdateProvider = "linuxdo"
+)
+
 // Defines values for RegisterFirstSuperadminResultNextRoute.
 const (
 	RegisterFirstSuperadminResultNextRouteAdmin      RegisterFirstSuperadminResultNextRoute = "/admin"
@@ -118,10 +152,134 @@ const (
 	RegisterFirstSuperadminResultNextRouteAdminsetup RegisterFirstSuperadminResultNextRoute = "/admin/setup"
 )
 
+// Defines values for RegisterUserResultNextRoute.
+const (
+	Admin      RegisterUserResultNextRoute = "/admin"
+	Adminme    RegisterUserResultNextRoute = "/admin/me"
+	Adminsetup RegisterUserResultNextRoute = "/admin/setup"
+)
+
+// Defines values for ReportReason.
+const (
+	ReportReasonCopyright ReportReason = "copyright"
+	ReportReasonIllegal   ReportReason = "illegal"
+	ReportReasonOther     ReportReason = "other"
+	ReportReasonPhishing  ReportReason = "phishing"
+	ReportReasonSpam      ReportReason = "spam"
+)
+
+// Defines values for ReportStatus.
+const (
+	ReportStatusBanned    ReportStatus = "banned"
+	ReportStatusDismissed ReportStatus = "dismissed"
+	ReportStatusOpen      ReportStatus = "open"
+	ReportStatusTakedown  ReportStatus = "takedown"
+)
+
+// Defines values for ResolveHostResultStatus.
+const (
+	ResolveHostResultStatusActive    ResolveHostResultStatus = "active"
+	ResolveHostResultStatusDeleted   ResolveHostResultStatus = "deleted"
+	ResolveHostResultStatusSuspended ResolveHostResultStatus = "suspended"
+)
+
+// Defines values for ResolveHostResultVisibility.
+const (
+	ResolveHostResultVisibilityPrivate ResolveHostResultVisibility = "private"
+	ResolveHostResultVisibilityPublic  ResolveHostResultVisibility = "public"
+)
+
+// Defines values for ResolveReportInputAction.
+const (
+	ResolveReportInputActionBanOwner ResolveReportInputAction = "ban_owner"
+	ResolveReportInputActionDismiss  ResolveReportInputAction = "dismiss"
+	ResolveReportInputActionTakedown ResolveReportInputAction = "takedown"
+)
+
+// Defines values for SetSiteStatusInputStatus.
+const (
+	SetSiteStatusInputStatusActive    SetSiteStatusInputStatus = "active"
+	SetSiteStatusInputStatusSuspended SetSiteStatusInputStatus = "suspended"
+)
+
+// Defines values for SetUserStatusInputStatus.
+const (
+	SetUserStatusInputStatusActive   SetUserStatusInputStatus = "active"
+	SetUserStatusInputStatusDisabled SetUserStatusInputStatus = "disabled"
+)
+
+// Defines values for SiteDomainKind.
+const (
+	Custom    SiteDomainKind = "custom"
+	Subdomain SiteDomainKind = "subdomain"
+)
+
+// Defines values for SiteDomainStatus.
+const (
+	Failed   SiteDomainStatus = "failed"
+	Pending  SiteDomainStatus = "pending"
+	Verified SiteDomainStatus = "verified"
+)
+
+// Defines values for SiteMemberRole.
+const (
+	SiteMemberRoleEditor SiteMemberRole = "editor"
+	SiteMemberRoleOwner  SiteMemberRole = "owner"
+	SiteMemberRoleViewer SiteMemberRole = "viewer"
+)
+
+// Defines values for SiteSummaryRole.
+const (
+	SiteSummaryRoleEditor SiteSummaryRole = "editor"
+	SiteSummaryRoleOwner  SiteSummaryRole = "owner"
+	SiteSummaryRoleViewer SiteSummaryRole = "viewer"
+)
+
+// Defines values for SiteSummaryStatus.
+const (
+	SiteSummaryStatusActive    SiteSummaryStatus = "active"
+	SiteSummaryStatusDeleted   SiteSummaryStatus = "deleted"
+	SiteSummaryStatusSuspended SiteSummaryStatus = "suspended"
+)
+
+// Defines values for SiteSummaryVisibility.
+const (
+	SiteSummaryVisibilityPrivate SiteSummaryVisibility = "private"
+	SiteSummaryVisibilityPublic  SiteSummaryVisibility = "public"
+)
+
+// Defines values for SubmitReportInputReason.
+const (
+	SubmitReportInputReasonCopyright SubmitReportInputReason = "copyright"
+	SubmitReportInputReasonIllegal   SubmitReportInputReason = "illegal"
+	SubmitReportInputReasonOther     SubmitReportInputReason = "other"
+	SubmitReportInputReasonPhishing  SubmitReportInputReason = "phishing"
+	SubmitReportInputReasonSpam      SubmitReportInputReason = "spam"
+)
+
 // Defines values for UILocale.
 const (
 	En     UILocale = "en"
 	ZhHans UILocale = "zh-Hans"
+)
+
+// Defines values for UpdateSiteInputVisibility.
+const (
+	Private UpdateSiteInputVisibility = "private"
+	Public  UpdateSiteInputVisibility = "public"
+)
+
+// Defines values for UpdateSiteMemberInputRole.
+const (
+	UpdateSiteMemberInputRoleEditor UpdateSiteMemberInputRole = "editor"
+	UpdateSiteMemberInputRoleViewer UpdateSiteMemberInputRole = "viewer"
+)
+
+// Defines values for UserSummaryStatus.
+const (
+	UserSummaryStatusActive   UserSummaryStatus = "active"
+	UserSummaryStatusDeleted  UserSummaryStatus = "deleted"
+	UserSummaryStatusDisabled UserSummaryStatus = "disabled"
 )
 
 // Defines values for CommonSchemaBarrierRequestStep.
@@ -189,11 +347,59 @@ type AccountStatus string
 // AccountName 创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号
 type AccountName = string
 
+// AddSiteDomainInput 绑定自定义域名
+type AddSiteDomainInput struct {
+	Host string `json:"host"`
+}
+
+// AddSiteMemberInput 按邮箱邀请已注册用户成为协作者
+type AddSiteMemberInput struct {
+	Email string                 `json:"email"`
+	Role  AddSiteMemberInputRole `json:"role"`
+}
+
+// AddSiteMemberInputRole defines model for AddSiteMemberInput.Role.
+type AddSiteMemberInputRole string
+
 // AdminRouteKey 后台相对页面键；路径/权限由permission-groups.adminRoutes唯一映射，不接受URL、query或未登记键
 type AdminRouteKey string
 
+// AdminSite 站主视角的站点
+type AdminSite struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt  Timestamp `json:"createdAt"`
+	Name       string    `json:"name"`
+	OwnerEmail string    `json:"ownerEmail"`
+
+	// OwnerUserId 系统生成的不透明 ID，不含个人信息
+	OwnerUserId Identifier `json:"ownerUserId"`
+
+	// SiteId 系统生成的不透明 ID，不含个人信息
+	SiteId Identifier      `json:"siteId"`
+	Slug   string          `json:"slug"`
+	Status AdminSiteStatus `json:"status"`
+}
+
+// AdminSiteStatus defines model for AdminSite.Status.
+type AdminSiteStatus string
+
+// AdminSiteResult 单个站点
+type AdminSiteResult struct {
+	// Site 站主视角的站点
+	Site AdminSite `json:"site"`
+}
+
 // AuthContext 经identity验证的单站授权上下文；浏览器不能直接构造可信grants
 type AuthContext = CommonSchemaAuthContext
+
+// AuthProvider 可用的第三方登录方式
+type AuthProvider struct {
+	Label    string               `json:"label"`
+	Provider AuthProviderProvider `json:"provider"`
+}
+
+// AuthProviderProvider defines model for AuthProvider.Provider.
+type AuthProviderProvider string
 
 // AuthorizationDecision 单次权威授权
 type AuthorizationDecision struct {
@@ -298,6 +504,22 @@ type CreateAccountResult struct {
 	Account Account `json:"account"`
 }
 
+// CreateRegistrationInviteInput 站主生成注册邀请码
+type CreateRegistrationInviteInput struct {
+	// ExpiresAt RFC3339 UTC 时间
+	ExpiresAt *Timestamp `json:"expiresAt,omitempty"`
+	MaxUses   int        `json:"maxUses"`
+	Note      *string    `json:"note,omitempty"`
+}
+
+// CreateRegistrationInviteResult 新邀请码，明文只在此返回一次
+type CreateRegistrationInviteResult struct {
+	Code string `json:"code"`
+
+	// Invite 注册邀请码（只存摘要）
+	Invite RegistrationInvite `json:"invite"`
+}
+
 // CreateSessionInput 账号名口令登录的输入
 type CreateSessionInput struct {
 	// AccountName 创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号
@@ -327,6 +549,13 @@ type CreateSessionResult struct {
 
 // CreateSessionResultNextRoute 固定后台路径；mustChangePassword时/admin/me只装配改密视图，不返回用户可控重定向
 type CreateSessionResultNextRoute string
+
+// CreateSiteInput 创建站点并成为所有者
+type CreateSiteInput struct {
+	BaseLanguage *string `json:"baseLanguage,omitempty"`
+	Name         string  `json:"name"`
+	Slug         string  `json:"slug"`
+}
 
 // ErrorCode ErrorCode的公共协议类型；字段及范围按本schema
 type ErrorCode string
@@ -373,6 +602,64 @@ type ListAccountsResult struct {
 	PageInfo PageInfo `json:"pageInfo"`
 }
 
+// ListAllSitesResult 全部站点
+type ListAllSitesResult struct {
+	NextCursor *string     `json:"nextCursor,omitempty"`
+	Sites      []AdminSite `json:"sites"`
+}
+
+// ListMySitesResult 我能访问的站点
+type ListMySitesResult struct {
+	// Limits 当前用户的站点与存储额度
+	Limits UserLimits    `json:"limits"`
+	Sites  []SiteSummary `json:"sites"`
+}
+
+// ListRegistrationInvitesResult 注册邀请码列表
+type ListRegistrationInvitesResult struct {
+	Invites []RegistrationInvite `json:"invites"`
+}
+
+// ListReportsResult 举报列表
+type ListReportsResult struct {
+	Reports []Report `json:"reports"`
+}
+
+// ListSiteDomainsResult 站点域名列表
+type ListSiteDomainsResult struct {
+	Domains []SiteDomain `json:"domains"`
+}
+
+// ListSiteMembersResult 站点成员列表
+type ListSiteMembersResult struct {
+	Members []SiteMember `json:"members"`
+}
+
+// ListUsersResult 用户列表
+type ListUsersResult struct {
+	NextCursor *string       `json:"nextCursor,omitempty"`
+	Users      []UserSummary `json:"users"`
+}
+
+// OauthLoginInput 第三方登录回调：用授权码换身份，首次登录自动建号
+type OauthLoginInput struct {
+	Code        string  `json:"code"`
+	InviteCode  *string `json:"inviteCode,omitempty"`
+	RedirectUri string  `json:"redirectUri"`
+	State       string  `json:"state"`
+}
+
+// OauthStartInput 开始第三方登录
+type OauthStartInput struct {
+	RedirectUri string `json:"redirectUri"`
+}
+
+// OauthStartResult 授权跳转地址与一次性状态
+type OauthStartResult struct {
+	AuthorizeUrl string `json:"authorizeUrl"`
+	State        string `json:"state"`
+}
+
 // ObjectRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
 type ObjectRef struct {
 	// ByteSize 完整对象字节数，读取结束复核
@@ -403,6 +690,19 @@ type Password = string
 // PermissionSelection 无重复，首次创建省略时默认10项全部true；不按文档范围授权
 type PermissionSelection = []FunctionPermission
 
+// PlatformSettings 平台设置
+type PlatformSettings struct {
+	DefaultMaxSites       int              `json:"defaultMaxSites"`
+	DefaultStorageBytes   int              `json:"defaultStorageBytes"`
+	DefaultVisitorQaDaily int              `json:"defaultVisitorQaDaily"`
+	EmailRegistration     bool             `json:"emailRegistration"`
+	InviteRequired        bool             `json:"inviteRequired"`
+	PlatformHost          string           `json:"platformHost"`
+	Providers             []ProviderConfig `json:"providers"`
+	RegistrationOpen      bool             `json:"registrationOpen"`
+	SitesDomain           string           `json:"sitesDomain"`
+}
+
 // PortalPreferences identity拥有的自身UI偏好；保存不改变账户权限/认证水位，目标页须当前授权
 type PortalPreferences = CommonSchemaPortalPreferences
 
@@ -431,6 +731,36 @@ type Problem struct {
 
 	// Type 问题类型标识
 	Type string `json:"type"`
+}
+
+// ProviderConfig 第三方登录配置（不含密钥）
+type ProviderConfig struct {
+	ClientId        string                 `json:"clientId"`
+	ClientSecretSet bool                   `json:"clientSecretSet"`
+	Enabled         bool                   `json:"enabled"`
+	Provider        ProviderConfigProvider `json:"provider"`
+}
+
+// ProviderConfigProvider defines model for ProviderConfig.Provider.
+type ProviderConfigProvider string
+
+// ProviderUpdate 第三方登录配置更新；clientSecret 省略表示不改
+type ProviderUpdate struct {
+	ClientId     string                 `json:"clientId"`
+	ClientSecret *string                `json:"clientSecret,omitempty"`
+	Enabled      bool                   `json:"enabled"`
+	Provider     ProviderUpdateProvider `json:"provider"`
+}
+
+// ProviderUpdateProvider defines model for ProviderUpdate.Provider.
+type ProviderUpdateProvider string
+
+// ReadAuthOptionsResult 登录页需要的公开选项
+type ReadAuthOptionsResult struct {
+	EmailRegistration bool           `json:"emailRegistration"`
+	InviteRequired    bool           `json:"inviteRequired"`
+	Providers         []AuthProvider `json:"providers"`
+	RegistrationOpen  bool           `json:"registrationOpen"`
 }
 
 // ReadPreferencesResult 读自身后台偏好的结果
@@ -508,10 +838,89 @@ type RegisterFirstSuperadminResult struct {
 // RegisterFirstSuperadminResultNextRoute 固定后台路径；mustChangePassword时/admin/me只装配改密视图，不返回用户可控重定向
 type RegisterFirstSuperadminResultNextRoute string
 
+// RegisterUserInput 邮箱注册：不验证邮箱，需要注册邀请码（站主开放公开注册后可省略）
+type RegisterUserInput struct {
+	DisplayName          string  `json:"displayName"`
+	Email                string  `json:"email"`
+	InviteCode           *string `json:"inviteCode,omitempty"`
+	Password             string  `json:"password"`
+	PasswordConfirmation string  `json:"passwordConfirmation"`
+}
+
+// RegisterUserResult 注册成功并登录
+type RegisterUserResult struct {
+	// Account 账户元数据；删除后署名保留，不返hash
+	Account   Account                     `json:"account"`
+	NextRoute RegisterUserResultNextRoute `json:"nextRoute"`
+
+	// Tokens 敏感会话结果
+	Tokens SessionTokens `json:"tokens"`
+}
+
+// RegisterUserResultNextRoute defines model for RegisterUserResult.NextRoute.
+type RegisterUserResultNextRoute string
+
+// RegistrationInvite 注册邀请码（只存摘要）
+type RegistrationInvite struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt Timestamp `json:"createdAt"`
+
+	// ExpiresAt RFC3339 UTC 时间
+	ExpiresAt *Timestamp `json:"expiresAt,omitempty"`
+
+	// InviteId 系统生成的不透明 ID，不含个人信息
+	InviteId Identifier `json:"inviteId"`
+	MaxUses  int        `json:"maxUses"`
+	Note     string     `json:"note"`
+	Revoked  bool       `json:"revoked"`
+	Used     int        `json:"used"`
+}
+
+// RegistrationInviteResult 单个邀请码
+type RegistrationInviteResult struct {
+	// Invite 注册邀请码（只存摘要）
+	Invite RegistrationInvite `json:"invite"`
+}
+
 // ReleaseBarrierResult 释放已协调完成的屏障的结果
 type ReleaseBarrierResult struct {
 	// Status 屏障状态及安全点；未到安全点不能导出完整快照
 	Status CommonSchemaBarrierStatus `json:"status"`
+}
+
+// RemovedResult 删除结果
+type RemovedResult struct {
+	Removed bool `json:"removed"`
+}
+
+// Report 举报记录
+type Report struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt Timestamp    `json:"createdAt"`
+	Detail    string       `json:"detail"`
+	Host      string       `json:"host"`
+	Reason    ReportReason `json:"reason"`
+
+	// ReportId 系统生成的不透明 ID，不含个人信息
+	ReportId   Identifier `json:"reportId"`
+	Resolution string     `json:"resolution"`
+
+	// SiteId 系统生成的不透明 ID，不含个人信息
+	SiteId Identifier   `json:"siteId"`
+	Status ReportStatus `json:"status"`
+	Url    string       `json:"url"`
+}
+
+// ReportReason defines model for Report.Reason.
+type ReportReason string
+
+// ReportStatus defines model for Report.Status.
+type ReportStatus string
+
+// ReportResult 单个举报
+type ReportResult struct {
+	// Report 举报记录
+	Report Report `json:"report"`
 }
 
 // ResetAccountPasswordResult 超管重置子账号初始口令的结果
@@ -519,6 +928,33 @@ type ResetAccountPasswordResult struct {
 	// Account 账户元数据；删除后署名保留，不返hash
 	Account Account `json:"account"`
 }
+
+// ResolveHostResult 域名对应的站点；只给入口与公开站使用
+type ResolveHostResult struct {
+	PrimaryHost  string  `json:"primaryHost"`
+	RedirectHost *string `json:"redirectHost,omitempty"`
+
+	// SiteId 系统生成的不透明 ID，不含个人信息
+	SiteId     Identifier                  `json:"siteId"`
+	Slug       string                      `json:"slug"`
+	Status     ResolveHostResultStatus     `json:"status"`
+	Visibility ResolveHostResultVisibility `json:"visibility"`
+}
+
+// ResolveHostResultStatus defines model for ResolveHostResult.Status.
+type ResolveHostResultStatus string
+
+// ResolveHostResultVisibility defines model for ResolveHostResult.Visibility.
+type ResolveHostResultVisibility string
+
+// ResolveReportInput 处理举报
+type ResolveReportInput struct {
+	Action ResolveReportInputAction `json:"action"`
+	Note   *string                  `json:"note,omitempty"`
+}
+
+// ResolveReportInputAction defines model for ResolveReportInput.Action.
+type ResolveReportInputAction string
 
 // Revision 对象单调修订号
 type Revision = int
@@ -630,6 +1066,101 @@ type SetAccountStatusResult struct {
 	// Account 账户元数据；删除后署名保留，不返hash
 	Account Account `json:"account"`
 }
+
+// SetSiteStatusInput 下架或恢复站点
+type SetSiteStatusInput struct {
+	Reason *string                  `json:"reason,omitempty"`
+	Status SetSiteStatusInputStatus `json:"status"`
+}
+
+// SetSiteStatusInputStatus defines model for SetSiteStatusInput.Status.
+type SetSiteStatusInputStatus string
+
+// SetUserStatusInput 停用或恢复用户
+type SetUserStatusInput struct {
+	Status SetUserStatusInputStatus `json:"status"`
+}
+
+// SetUserStatusInputStatus defines model for SetUserStatusInput.Status.
+type SetUserStatusInputStatus string
+
+// SiteDomain 站点域名
+type SiteDomain struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt Timestamp        `json:"createdAt"`
+	Host      string           `json:"host"`
+	Kind      SiteDomainKind   `json:"kind"`
+	Primary   bool             `json:"primary"`
+	Status    SiteDomainStatus `json:"status"`
+
+	// VerifiedAt RFC3339 UTC 时间
+	VerifiedAt  *Timestamp `json:"verifiedAt,omitempty"`
+	VerifyName  string     `json:"verifyName"`
+	VerifyToken string     `json:"verifyToken"`
+}
+
+// SiteDomainKind defines model for SiteDomain.Kind.
+type SiteDomainKind string
+
+// SiteDomainStatus defines model for SiteDomain.Status.
+type SiteDomainStatus string
+
+// SiteDomainResult 单个域名
+type SiteDomainResult struct {
+	// Domain 站点域名
+	Domain SiteDomain `json:"domain"`
+}
+
+// SiteMember 站点成员
+type SiteMember struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt   Timestamp      `json:"createdAt"`
+	DisplayName string         `json:"displayName"`
+	Email       string         `json:"email"`
+	Role        SiteMemberRole `json:"role"`
+
+	// UserId 系统生成的不透明 ID，不含个人信息
+	UserId Identifier `json:"userId"`
+}
+
+// SiteMemberRole defines model for SiteMember.Role.
+type SiteMemberRole string
+
+// SiteMemberResult 单个成员
+type SiteMemberResult struct {
+	// Member 站点成员
+	Member SiteMember `json:"member"`
+}
+
+// SiteResult 单个站点
+type SiteResult struct {
+	// Site 站点摘要（含当前用户在该站的角色）
+	Site SiteSummary `json:"site"`
+}
+
+// SiteSummary 站点摘要（含当前用户在该站的角色）
+type SiteSummary struct {
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt   Timestamp       `json:"createdAt"`
+	Name        string          `json:"name"`
+	PrimaryHost string          `json:"primaryHost"`
+	Role        SiteSummaryRole `json:"role"`
+
+	// SiteId 系统生成的不透明 ID，不含个人信息
+	SiteId     Identifier            `json:"siteId"`
+	Slug       string                `json:"slug"`
+	Status     SiteSummaryStatus     `json:"status"`
+	Visibility SiteSummaryVisibility `json:"visibility"`
+}
+
+// SiteSummaryRole defines model for SiteSummary.Role.
+type SiteSummaryRole string
+
+// SiteSummaryStatus defines model for SiteSummary.Status.
+type SiteSummaryStatus string
+
+// SiteSummaryVisibility defines model for SiteSummary.Visibility.
+type SiteSummaryVisibility string
 
 // SnapshotBarrierObservation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
 type SnapshotBarrierObservation struct {
@@ -784,11 +1315,42 @@ type SnapshotWorkState struct {
 	WorkRevision   int `json:"workRevision"`
 }
 
+// SubmitReportInput 访客举报站点
+type SubmitReportInput struct {
+	Contact *string                 `json:"contact,omitempty"`
+	Detail  *string                 `json:"detail,omitempty"`
+	Host    string                  `json:"host"`
+	Reason  SubmitReportInputReason `json:"reason"`
+	Url     *string                 `json:"url,omitempty"`
+}
+
+// SubmitReportInputReason defines model for SubmitReportInput.Reason.
+type SubmitReportInputReason string
+
+// SubmitReportResult 举报已受理
+type SubmitReportResult struct {
+	// ReportId 系统生成的不透明 ID，不含个人信息
+	ReportId Identifier `json:"reportId"`
+}
+
 // Timestamp RFC3339 UTC 时间
 type Timestamp = time.Time
 
 // UILocale 当前已随界面打包的规范后台语言；站点内容翻译语言不等于已有界面catalog
 type UILocale string
+
+// UpdatePlatformSettingsInput 更新平台设置；省略的字段不改
+type UpdatePlatformSettingsInput struct {
+	DefaultMaxSites       *int              `json:"defaultMaxSites,omitempty"`
+	DefaultStorageBytes   *int              `json:"defaultStorageBytes,omitempty"`
+	DefaultVisitorQaDaily *int              `json:"defaultVisitorQaDaily,omitempty"`
+	EmailRegistration     *bool             `json:"emailRegistration,omitempty"`
+	InviteRequired        *bool             `json:"inviteRequired,omitempty"`
+	PlatformHost          *string           `json:"platformHost,omitempty"`
+	Providers             *[]ProviderUpdate `json:"providers,omitempty"`
+	RegistrationOpen      *bool             `json:"registrationOpen,omitempty"`
+	SitesDomain           *string           `json:"sitesDomain,omitempty"`
+}
 
 // UpdatePreferencesInput 保存自身主题/语言/默认后台页的输入
 type UpdatePreferencesInput struct {
@@ -804,6 +1366,56 @@ type UpdatePreferencesResult struct {
 	// Preferences identity拥有的自身UI偏好；保存不改变账户权限/认证水位，目标页须当前授权
 	Preferences PortalPreferences `json:"preferences"`
 }
+
+// UpdateSiteInput 修改站点名称或可见性
+type UpdateSiteInput struct {
+	Name       *string                    `json:"name,omitempty"`
+	Visibility *UpdateSiteInputVisibility `json:"visibility,omitempty"`
+}
+
+// UpdateSiteInputVisibility defines model for UpdateSiteInput.Visibility.
+type UpdateSiteInputVisibility string
+
+// UpdateSiteMemberInput 修改成员角色
+type UpdateSiteMemberInput struct {
+	Role UpdateSiteMemberInputRole `json:"role"`
+}
+
+// UpdateSiteMemberInputRole defines model for UpdateSiteMemberInput.Role.
+type UpdateSiteMemberInputRole string
+
+// UserLimits 当前用户的站点与存储额度
+type UserLimits struct {
+	MaxSites     int `json:"maxSites"`
+	SiteCount    int `json:"siteCount"`
+	StorageBytes int `json:"storageBytes"`
+	StorageUsed  int `json:"storageUsed"`
+}
+
+// UserResult 单个用户
+type UserResult struct {
+	// User 用户摘要
+	User UserSummary `json:"user"`
+}
+
+// UserSummary 用户摘要
+type UserSummary struct {
+	// AccountId 系统生成的不透明 ID，不含个人信息
+	AccountId Identifier `json:"accountId"`
+
+	// CreatedAt RFC3339 UTC 时间
+	CreatedAt   Timestamp         `json:"createdAt"`
+	DisplayName string            `json:"displayName"`
+	Email       string            `json:"email"`
+	SiteCount   int               `json:"siteCount"`
+	Status      UserSummaryStatus `json:"status"`
+
+	// UserId 系统生成的不透明 ID，不含个人信息
+	UserId Identifier `json:"userId"`
+}
+
+// UserSummaryStatus defines model for UserSummary.Status.
+type UserSummaryStatus string
 
 // VerifySessionCSRFInput portal内部核对CSRF的输入
 type VerifySessionCSRFInput struct {
@@ -1017,6 +1629,12 @@ type ListAccountsParams struct {
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
+// ListAllSitesParams defines parameters for ListAllSites.
+type ListAllSitesParams struct {
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
 // ReadSessionsParams defines parameters for ReadSessions.
 type ReadSessionsParams struct {
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
@@ -1027,6 +1645,12 @@ type ReadSessionsParams struct {
 type ReadSnapshotArchiveParams struct {
 	Sha256   Hash `form:"sha256" json:"sha256"`
 	ByteSize int  `form:"byteSize" json:"byteSize"`
+}
+
+// ListUsersParams defines parameters for ListUsers.
+type ListUsersParams struct {
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
 // CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
@@ -1041,6 +1665,9 @@ type SetAccountPermissionsJSONRequestBody = SetAccountPermissionsRequest
 // SetAccountStatusJSONRequestBody defines body for SetAccountStatus for application/json ContentType.
 type SetAccountStatusJSONRequestBody = SetAccountStatusRequest
 
+// SetSiteStatusJSONRequestBody defines body for SetSiteStatus for application/json ContentType.
+type SetSiteStatusJSONRequestBody = SetSiteStatusInput
+
 // CheckAuthorizationJSONRequestBody defines body for CheckAuthorization for application/json ContentType.
 type CheckAuthorizationJSONRequestBody = AuthorizationRequest
 
@@ -1053,11 +1680,29 @@ type ReleaseBarrierJSONRequestBody = ReleaseBarrierRequest
 // VerifySessionCSRFJSONRequestBody defines body for VerifySessionCSRF for application/json ContentType.
 type VerifySessionCSRFJSONRequestBody = VerifySessionCSRFInput
 
+// OauthLoginJSONRequestBody defines body for OauthLogin for application/json ContentType.
+type OauthLoginJSONRequestBody = OauthLoginInput
+
+// OauthStartJSONRequestBody defines body for OauthStart for application/json ContentType.
+type OauthStartJSONRequestBody = OauthStartInput
+
+// UpdatePlatformSettingsJSONRequestBody defines body for UpdatePlatformSettings for application/json ContentType.
+type UpdatePlatformSettingsJSONRequestBody = UpdatePlatformSettingsInput
+
 // UpdatePreferencesJSONRequestBody defines body for UpdatePreferences for application/json ContentType.
 type UpdatePreferencesJSONRequestBody = UpdatePreferencesInput
 
 // RegisterFirstSuperadminJSONRequestBody defines body for RegisterFirstSuperadmin for application/json ContentType.
 type RegisterFirstSuperadminJSONRequestBody = RegisterFirstSuperadminInput
+
+// CreateRegistrationInviteJSONRequestBody defines body for CreateRegistrationInvite for application/json ContentType.
+type CreateRegistrationInviteJSONRequestBody = CreateRegistrationInviteInput
+
+// SubmitReportJSONRequestBody defines body for SubmitReport for application/json ContentType.
+type SubmitReportJSONRequestBody = SubmitReportInput
+
+// ResolveReportJSONRequestBody defines body for ResolveReport for application/json ContentType.
+type ResolveReportJSONRequestBody = ResolveReportInput
 
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = ChangePasswordInput
@@ -1071,6 +1716,21 @@ type RevokeSessionJSONRequestBody = RevokeSessionRequest
 // RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
 type RefreshSessionJSONRequestBody = RefreshSessionInput
 
+// CreateSiteJSONRequestBody defines body for CreateSite for application/json ContentType.
+type CreateSiteJSONRequestBody = CreateSiteInput
+
+// UpdateSiteJSONRequestBody defines body for UpdateSite for application/json ContentType.
+type UpdateSiteJSONRequestBody = UpdateSiteInput
+
+// AddSiteDomainJSONRequestBody defines body for AddSiteDomain for application/json ContentType.
+type AddSiteDomainJSONRequestBody = AddSiteDomainInput
+
+// AddSiteMemberJSONRequestBody defines body for AddSiteMember for application/json ContentType.
+type AddSiteMemberJSONRequestBody = AddSiteMemberInput
+
+// UpdateSiteMemberJSONRequestBody defines body for UpdateSiteMember for application/json ContentType.
+type UpdateSiteMemberJSONRequestBody = UpdateSiteMemberInput
+
 // DiscardSnapshotJSONRequestBody defines body for DiscardSnapshot for application/json ContentType.
 type DiscardSnapshotJSONRequestBody = SnapshotDiscardRequest
 
@@ -1079,6 +1739,12 @@ type ExportSnapshotJSONRequestBody = SnapshotExportRequest
 
 // StageSnapshotJSONRequestBody defines body for StageSnapshot for application/json ContentType.
 type StageSnapshotJSONRequestBody = SnapshotStageRequest
+
+// SetUserStatusJSONRequestBody defines body for SetUserStatus for application/json ContentType.
+type SetUserStatusJSONRequestBody = SetUserStatusInput
+
+// RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
+type RegisterUserJSONRequestBody = RegisterUserInput
 
 // AsAuthorizationRequest0 returns the union data inside the AuthorizationRequest as a AuthorizationRequest0
 func (t AuthorizationRequest) AsAuthorizationRequest0() (AuthorizationRequest0, error) {
@@ -1493,6 +2159,15 @@ type ServerInterface interface {
 	// 停用/恢复/删除子账号
 	// (PUT /v1/accounts/{accountId}/status)
 	SetAccountStatus(w http.ResponseWriter, r *http.Request, accountId Identifier)
+	// 列出全部站点
+	// (GET /v1/admin/sites)
+	ListAllSites(w http.ResponseWriter, r *http.Request, params ListAllSitesParams)
+	// 下架或恢复站点
+	// (PUT /v1/admin/sites/{siteId}/status)
+	SetSiteStatus(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 读取登录页选项
+	// (GET /v1/auth/options)
+	ReadAuthOptions(w http.ResponseWriter, r *http.Request)
 	// 按最新账号功能权限授权
 	// (POST /v1/authorizations/check)
 	CheckAuthorization(w http.ResponseWriter, r *http.Request)
@@ -1505,6 +2180,21 @@ type ServerInterface interface {
 	// portal内部核对CSRF
 	// (POST /v1/csrf:verify)
 	VerifySessionCSRF(w http.ResponseWriter, r *http.Request)
+	// 按域名解析站点
+	// (GET /v1/hosts/{host})
+	ResolveHost(w http.ResponseWriter, r *http.Request, host string)
+	// 第三方登录回调
+	// (POST /v1/oauth/{provider}:login)
+	OauthLogin(w http.ResponseWriter, r *http.Request, provider Identifier)
+	// 开始第三方登录
+	// (POST /v1/oauth/{provider}:start)
+	OauthStart(w http.ResponseWriter, r *http.Request, provider Identifier)
+	// 读取平台设置
+	// (GET /v1/platform/settings)
+	ReadPlatformSettings(w http.ResponseWriter, r *http.Request)
+	// 更新平台设置
+	// (PUT /v1/platform/settings)
+	UpdatePlatformSettings(w http.ResponseWriter, r *http.Request)
 	// 读自身后台偏好
 	// (GET /v1/preferences)
 	ReadPreferences(w http.ResponseWriter, r *http.Request)
@@ -1517,6 +2207,24 @@ type ServerInterface interface {
 	// 首个注册账户原子成为唯一超管
 	// (POST /v1/registration)
 	RegisterFirstSuperadmin(w http.ResponseWriter, r *http.Request)
+	// 列出注册邀请码
+	// (GET /v1/registration-invites)
+	ListRegistrationInvites(w http.ResponseWriter, r *http.Request)
+	// 生成注册邀请码
+	// (POST /v1/registration-invites)
+	CreateRegistrationInvite(w http.ResponseWriter, r *http.Request)
+	// 作废注册邀请码
+	// (DELETE /v1/registration-invites/{inviteId})
+	RevokeRegistrationInvite(w http.ResponseWriter, r *http.Request, inviteId Identifier)
+	// 列出举报
+	// (GET /v1/reports)
+	ListReports(w http.ResponseWriter, r *http.Request)
+	// 访客举报站点
+	// (POST /v1/reports)
+	SubmitReport(w http.ResponseWriter, r *http.Request)
+	// 处理举报
+	// (POST /v1/reports/{reportId}:resolve)
+	ResolveReport(w http.ResponseWriter, r *http.Request, reportId Identifier)
 	// 读取当前账户
 	// (GET /v1/self)
 	ReadSelf(w http.ResponseWriter, r *http.Request)
@@ -1535,6 +2243,48 @@ type ServerInterface interface {
 	// 内部透明轮换session
 	// (POST /v1/sessions:refresh)
 	RefreshSession(w http.ResponseWriter, r *http.Request)
+	// 列出我的站点
+	// (GET /v1/sites)
+	ListMySites(w http.ResponseWriter, r *http.Request)
+	// 创建站点
+	// (POST /v1/sites)
+	CreateSite(w http.ResponseWriter, r *http.Request)
+	// 删除站点
+	// (DELETE /v1/sites/{siteId})
+	DeleteSite(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 读取站点
+	// (GET /v1/sites/{siteId})
+	ReadSite(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 修改站点
+	// (PATCH /v1/sites/{siteId})
+	UpdateSite(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 列出站点域名
+	// (GET /v1/sites/{siteId}/domains)
+	ListSiteDomains(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 绑定自定义域名
+	// (POST /v1/sites/{siteId}/domains)
+	AddSiteDomain(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 解绑域名
+	// (DELETE /v1/sites/{siteId}/domains/{host})
+	RemoveSiteDomain(w http.ResponseWriter, r *http.Request, siteId string, host string)
+	// 设为主域名
+	// (POST /v1/sites/{siteId}/domains/{host}:primary)
+	SetPrimaryDomain(w http.ResponseWriter, r *http.Request, siteId string, host string)
+	// 验证域名所有权
+	// (POST /v1/sites/{siteId}/domains/{host}:verify)
+	VerifySiteDomain(w http.ResponseWriter, r *http.Request, siteId string, host string)
+	// 列出站点成员
+	// (GET /v1/sites/{siteId}/members)
+	ListSiteMembers(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 添加站点成员
+	// (POST /v1/sites/{siteId}/members)
+	AddSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier)
+	// 移除站点成员
+	// (DELETE /v1/sites/{siteId}/members/{userId})
+	RemoveSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier, userId Identifier)
+	// 修改成员角色
+	// (PUT /v1/sites/{siteId}/members/{userId})
+	UpdateSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier, userId Identifier)
 	// 受控读取已完成域快照归档
 	// (GET /v1/snapshots/{snapshotId}/archive)
 	ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams)
@@ -1547,6 +2297,15 @@ type ServerInterface interface {
 	// 暂存本域恢复归档，不改active目录
 	// (POST /v1/snapshots:stage)
 	StageSnapshot(w http.ResponseWriter, r *http.Request)
+	// 列出用户
+	// (GET /v1/users)
+	ListUsers(w http.ResponseWriter, r *http.Request, params ListUsersParams)
+	// 停用或恢复用户
+	// (PUT /v1/users/{userId}/status)
+	SetUserStatus(w http.ResponseWriter, r *http.Request, userId Identifier)
+	// 邮箱注册并登录
+	// (POST /v1/users:register)
+	RegisterUser(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1750,6 +2509,96 @@ func (siw *ServerInterfaceWrapper) SetAccountStatus(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListAllSites operation middleware
+func (siw *ServerInterfaceWrapper) ListAllSites(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAllSitesParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "cursor", r.URL.Query(), &params.Cursor)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAllSites(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSiteStatus operation middleware
+func (siw *ServerInterfaceWrapper) SetSiteStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSiteStatus(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadAuthOptions operation middleware
+func (siw *ServerInterfaceWrapper) ReadAuthOptions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadAuthOptions(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CheckAuthorization operation middleware
 func (siw *ServerInterfaceWrapper) CheckAuthorization(w http.ResponseWriter, r *http.Request) {
 
@@ -1841,6 +2690,131 @@ func (siw *ServerInterfaceWrapper) VerifySessionCSRF(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// ResolveHost operation middleware
+func (siw *ServerInterfaceWrapper) ResolveHost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "host" -------------
+	var host string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "host", r.PathValue("host"), &host, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveHost(w, r, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OauthLogin operation middleware
+func (siw *ServerInterfaceWrapper) OauthLogin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "provider" -------------
+	var provider Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", r.PathValue("provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OauthLogin(w, r, provider)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OauthStart operation middleware
+func (siw *ServerInterfaceWrapper) OauthStart(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "provider" -------------
+	var provider Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", r.PathValue("provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OauthStart(w, r, provider)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadPlatformSettings operation middleware
+func (siw *ServerInterfaceWrapper) ReadPlatformSettings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadPlatformSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePlatformSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePlatformSettings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePlatformSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ReadPreferences operation middleware
 func (siw *ServerInterfaceWrapper) ReadPreferences(w http.ResponseWriter, r *http.Request) {
 
@@ -1904,6 +2878,152 @@ func (siw *ServerInterfaceWrapper) RegisterFirstSuperadmin(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterFirstSuperadmin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRegistrationInvites operation middleware
+func (siw *ServerInterfaceWrapper) ListRegistrationInvites(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRegistrationInvites(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateRegistrationInvite operation middleware
+func (siw *ServerInterfaceWrapper) CreateRegistrationInvite(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateRegistrationInvite(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeRegistrationInvite operation middleware
+func (siw *ServerInterfaceWrapper) RevokeRegistrationInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "inviteId" -------------
+	var inviteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "inviteId", r.PathValue("inviteId"), &inviteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "inviteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeRegistrationInvite(w, r, inviteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReports operation middleware
+func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReports(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitReport operation middleware
+func (siw *ServerInterfaceWrapper) SubmitReport(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitReport(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "reportId" -------------
+	var reportId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reportId", r.PathValue("reportId"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reportId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveReport(w, r, reportId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2061,6 +3181,491 @@ func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// ListMySites operation middleware
+func (siw *ServerInterfaceWrapper) ListMySites(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMySites(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSite operation middleware
+func (siw *ServerInterfaceWrapper) CreateSite(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSite(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSite operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSite(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadSite operation middleware
+func (siw *ServerInterfaceWrapper) ReadSite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadSite(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSite operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSite(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSiteDomains operation middleware
+func (siw *ServerInterfaceWrapper) ListSiteDomains(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSiteDomains(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSiteDomain operation middleware
+func (siw *ServerInterfaceWrapper) AddSiteDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSiteDomain(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveSiteDomain operation middleware
+func (siw *ServerInterfaceWrapper) RemoveSiteDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "host" -------------
+	var host string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "host", r.PathValue("host"), &host, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveSiteDomain(w, r, siteId, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPrimaryDomain operation middleware
+func (siw *ServerInterfaceWrapper) SetPrimaryDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "host" -------------
+	var host string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "host", r.PathValue("host"), &host, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPrimaryDomain(w, r, siteId, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VerifySiteDomain operation middleware
+func (siw *ServerInterfaceWrapper) VerifySiteDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "host" -------------
+	var host string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "host", r.PathValue("host"), &host, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifySiteDomain(w, r, siteId, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSiteMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListSiteMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSiteMembers(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSiteMember operation middleware
+func (siw *ServerInterfaceWrapper) AddSiteMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSiteMember(w, r, siteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveSiteMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveSiteMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", r.PathValue("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveSiteMember(w, r, siteId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSiteMember operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSiteMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "siteId" -------------
+	var siteId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "siteId", r.PathValue("siteId"), &siteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "siteId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "userId" -------------
+	var userId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", r.PathValue("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSiteMember(w, r, siteId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ReadSnapshotArchive operation middleware
 func (siw *ServerInterfaceWrapper) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request) {
 
@@ -2170,6 +3775,96 @@ func (siw *ServerInterfaceWrapper) StageSnapshot(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.StageSnapshot(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUsers operation middleware
+func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUsersParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "cursor", r.URL.Query(), &params.Cursor)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetUserStatus operation middleware
+func (siw *ServerInterfaceWrapper) SetUserStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "userId" -------------
+	var userId Identifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", r.PathValue("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
+
+	ctx = context.WithValue(ctx, UserDelegationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetUserStatus(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterUser operation middleware
+func (siw *ServerInterfaceWrapper) RegisterUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterUser(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2306,24 +4001,55 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/v1/accounts/{accountId}/password:reset", wrapper.ResetAccountPassword)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/accounts/{accountId}/permissions", wrapper.SetAccountPermissions)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/accounts/{accountId}/status", wrapper.SetAccountStatus)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/admin/sites", wrapper.ListAllSites)
+	m.HandleFunc("PUT "+options.BaseURL+"/v1/admin/sites/{siteId}/status", wrapper.SetSiteStatus)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/auth/options", wrapper.ReadAuthOptions)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/authorizations/check", wrapper.CheckAuthorization)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/barriers", wrapper.AcquireBarrier)
 	m.HandleFunc("DELETE "+options.BaseURL+"/v1/barriers/{barrierId}", wrapper.ReleaseBarrier)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/csrf:verify", wrapper.VerifySessionCSRF)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/hosts/{host}", wrapper.ResolveHost)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/oauth/{provider}:login", wrapper.OauthLogin)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/oauth/{provider}:start", wrapper.OauthStart)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/platform/settings", wrapper.ReadPlatformSettings)
+	m.HandleFunc("PUT "+options.BaseURL+"/v1/platform/settings", wrapper.UpdatePlatformSettings)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/preferences", wrapper.ReadPreferences)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/preferences", wrapper.UpdatePreferences)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/registration", wrapper.ReadRegistrationState)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/registration", wrapper.RegisterFirstSuperadmin)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/registration-invites", wrapper.ListRegistrationInvites)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/registration-invites", wrapper.CreateRegistrationInvite)
+	m.HandleFunc("DELETE "+options.BaseURL+"/v1/registration-invites/{inviteId}", wrapper.RevokeRegistrationInvite)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/reports", wrapper.ListReports)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/reports", wrapper.SubmitReport)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/reports/{reportId}:resolve", wrapper.ResolveReport)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/self", wrapper.ReadSelf)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/self/password:change", wrapper.ChangePassword)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/sessions", wrapper.ReadSessions)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/sessions", wrapper.CreateSession)
 	m.HandleFunc("DELETE "+options.BaseURL+"/v1/sessions/{sessionId}", wrapper.RevokeSession)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/sessions:refresh", wrapper.RefreshSession)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/sites", wrapper.ListMySites)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/sites", wrapper.CreateSite)
+	m.HandleFunc("DELETE "+options.BaseURL+"/v1/sites/{siteId}", wrapper.DeleteSite)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/sites/{siteId}", wrapper.ReadSite)
+	m.HandleFunc("PATCH "+options.BaseURL+"/v1/sites/{siteId}", wrapper.UpdateSite)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/sites/{siteId}/domains", wrapper.ListSiteDomains)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/sites/{siteId}/domains", wrapper.AddSiteDomain)
+	m.HandleFunc("DELETE "+options.BaseURL+"/v1/sites/{siteId}/domains/{host}", wrapper.RemoveSiteDomain)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/sites/{siteId}/domains/{host}:primary", wrapper.SetPrimaryDomain)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/sites/{siteId}/domains/{host}:verify", wrapper.VerifySiteDomain)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/sites/{siteId}/members", wrapper.ListSiteMembers)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/sites/{siteId}/members", wrapper.AddSiteMember)
+	m.HandleFunc("DELETE "+options.BaseURL+"/v1/sites/{siteId}/members/{userId}", wrapper.RemoveSiteMember)
+	m.HandleFunc("PUT "+options.BaseURL+"/v1/sites/{siteId}/members/{userId}", wrapper.UpdateSiteMember)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/snapshots/{snapshotId}/archive", wrapper.ReadSnapshotArchive)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:discard", wrapper.DiscardSnapshot)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:export", wrapper.ExportSnapshot)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:stage", wrapper.StageSnapshot)
+	m.HandleFunc("GET "+options.BaseURL+"/v1/users", wrapper.ListUsers)
+	m.HandleFunc("PUT "+options.BaseURL+"/v1/users/{userId}/status", wrapper.SetUserStatus)
+	m.HandleFunc("POST "+options.BaseURL+"/v1/users:register", wrapper.RegisterUser)
 
 	return m
 }
@@ -2772,6 +4498,246 @@ func (response SetAccountStatus503ApplicationProblemPlusJSONResponse) VisitSetAc
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListAllSitesRequestObject struct {
+	Params ListAllSitesParams
+}
+
+type ListAllSitesResponseObject interface {
+	VisitListAllSitesResponse(w http.ResponseWriter) error
+}
+
+type ListAllSites200JSONResponse ListAllSitesResult
+
+func (response ListAllSites200JSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites400ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites401ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites403ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites404ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites409ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites429ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAllSites503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllSites503ApplicationProblemPlusJSONResponse) VisitListAllSitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatusRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	Body   *SetSiteStatusJSONRequestBody
+}
+
+type SetSiteStatusResponseObject interface {
+	VisitSetSiteStatusResponse(w http.ResponseWriter) error
+}
+
+type SetSiteStatus200JSONResponse AdminSiteResult
+
+func (response SetSiteStatus200JSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus400ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus400ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus401ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus401ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus403ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus404ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus409ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus409ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus429ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus429ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetSiteStatus503ApplicationProblemPlusJSONResponse Problem
+
+func (response SetSiteStatus503ApplicationProblemPlusJSONResponse) VisitSetSiteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptionsRequestObject struct {
+}
+
+type ReadAuthOptionsResponseObject interface {
+	VisitReadAuthOptionsResponse(w http.ResponseWriter) error
+}
+
+type ReadAuthOptions200JSONResponse ReadAuthOptionsResult
+
+func (response ReadAuthOptions200JSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions400ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions400ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions401ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions403ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions404ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions404ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions409ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions409ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions429ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions429ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadAuthOptions503ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadAuthOptions503ApplicationProblemPlusJSONResponse) VisitReadAuthOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CheckAuthorizationRequestObject struct {
 	Body *CheckAuthorizationJSONRequestBody
 }
@@ -2970,6 +4936,407 @@ func (response VerifySessionCSRF422ApplicationProblemPlusJSONResponse) VisitVeri
 type VerifySessionCSRF503ApplicationProblemPlusJSONResponse Problem
 
 func (response VerifySessionCSRF503ApplicationProblemPlusJSONResponse) VisitVerifySessionCSRFResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHostRequestObject struct {
+	Host string `json:"host"`
+}
+
+type ResolveHostResponseObject interface {
+	VisitResolveHostResponse(w http.ResponseWriter) error
+}
+
+type ResolveHost200JSONResponse ResolveHostResult
+
+func (response ResolveHost200JSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost400ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost400ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost401ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost401ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost403ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost403ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost404ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost404ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost409ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost409ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost429ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost429ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveHost503ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveHost503ApplicationProblemPlusJSONResponse) VisitResolveHostResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLoginRequestObject struct {
+	Provider Identifier `json:"provider"`
+	Body     *OauthLoginJSONRequestBody
+}
+
+type OauthLoginResponseObject interface {
+	VisitOauthLoginResponse(w http.ResponseWriter) error
+}
+
+type OauthLogin200JSONResponse RegisterUserResult
+
+func (response OauthLogin200JSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin400ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin400ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin401ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin401ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin403ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin403ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin404ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin404ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin409ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin409ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin429ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin429ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthLogin503ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthLogin503ApplicationProblemPlusJSONResponse) VisitOauthLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStartRequestObject struct {
+	Provider Identifier `json:"provider"`
+	Body     *OauthStartJSONRequestBody
+}
+
+type OauthStartResponseObject interface {
+	VisitOauthStartResponse(w http.ResponseWriter) error
+}
+
+type OauthStart200JSONResponse OauthStartResult
+
+func (response OauthStart200JSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart400ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart400ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart401ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart401ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart403ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart403ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart404ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart404ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart409ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart409ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart429ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart429ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type OauthStart503ApplicationProblemPlusJSONResponse Problem
+
+func (response OauthStart503ApplicationProblemPlusJSONResponse) VisitOauthStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettingsRequestObject struct {
+}
+
+type ReadPlatformSettingsResponseObject interface {
+	VisitReadPlatformSettingsResponse(w http.ResponseWriter) error
+}
+
+type ReadPlatformSettings200JSONResponse PlatformSettings
+
+func (response ReadPlatformSettings200JSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings400ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings400ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings401ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings403ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings404ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings404ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings409ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings409ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings429ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings429ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadPlatformSettings503ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadPlatformSettings503ApplicationProblemPlusJSONResponse) VisitReadPlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettingsRequestObject struct {
+	Body *UpdatePlatformSettingsJSONRequestBody
+}
+
+type UpdatePlatformSettingsResponseObject interface {
+	VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdatePlatformSettings200JSONResponse PlatformSettings
+
+func (response UpdatePlatformSettings200JSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings400ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings400ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings401ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings403ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings404ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings409ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings429ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings429ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePlatformSettings503ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePlatformSettings503ApplicationProblemPlusJSONResponse) VisitUpdatePlatformSettingsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(503)
 
@@ -3189,6 +5556,485 @@ func (response RegisterFirstSuperadmin429ApplicationProblemPlusJSONResponse) Vis
 type RegisterFirstSuperadmin503ApplicationProblemPlusJSONResponse Problem
 
 func (response RegisterFirstSuperadmin503ApplicationProblemPlusJSONResponse) VisitRegisterFirstSuperadminResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvitesRequestObject struct {
+}
+
+type ListRegistrationInvitesResponseObject interface {
+	VisitListRegistrationInvitesResponse(w http.ResponseWriter) error
+}
+
+type ListRegistrationInvites200JSONResponse ListRegistrationInvitesResult
+
+func (response ListRegistrationInvites200JSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites400ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites401ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites403ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites404ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites409ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites429ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRegistrationInvites503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRegistrationInvites503ApplicationProblemPlusJSONResponse) VisitListRegistrationInvitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInviteRequestObject struct {
+	Body *CreateRegistrationInviteJSONRequestBody
+}
+
+type CreateRegistrationInviteResponseObject interface {
+	VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error
+}
+
+type CreateRegistrationInvite200JSONResponse CreateRegistrationInviteResult
+
+func (response CreateRegistrationInvite200JSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite400ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite401ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite403ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite404ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite409ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite429ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite429ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRegistrationInvite503ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateRegistrationInvite503ApplicationProblemPlusJSONResponse) VisitCreateRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInviteRequestObject struct {
+	InviteId Identifier `json:"inviteId"`
+}
+
+type RevokeRegistrationInviteResponseObject interface {
+	VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error
+}
+
+type RevokeRegistrationInvite200JSONResponse RegistrationInviteResult
+
+func (response RevokeRegistrationInvite200JSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite400ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite400ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite401ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite401ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite403ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite403ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite404ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite404ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite409ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite409ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite429ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite429ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeRegistrationInvite503ApplicationProblemPlusJSONResponse Problem
+
+func (response RevokeRegistrationInvite503ApplicationProblemPlusJSONResponse) VisitRevokeRegistrationInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReportsRequestObject struct {
+}
+
+type ListReportsResponseObject interface {
+	VisitListReportsResponse(w http.ResponseWriter) error
+}
+
+type ListReports200JSONResponse ListReportsResult
+
+func (response ListReports200JSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports400ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports401ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports403ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports404ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports409ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports429ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListReports503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListReports503ApplicationProblemPlusJSONResponse) VisitListReportsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReportRequestObject struct {
+	Body *SubmitReportJSONRequestBody
+}
+
+type SubmitReportResponseObject interface {
+	VisitSubmitReportResponse(w http.ResponseWriter) error
+}
+
+type SubmitReport200JSONResponse SubmitReportResult
+
+func (response SubmitReport200JSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport400ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport400ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport401ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport401ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport403ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport403ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport404ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport404ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport409ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport409ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport429ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport429ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitReport503ApplicationProblemPlusJSONResponse Problem
+
+func (response SubmitReport503ApplicationProblemPlusJSONResponse) VisitSubmitReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReportRequestObject struct {
+	ReportId Identifier `json:"reportId"`
+	Body     *ResolveReportJSONRequestBody
+}
+
+type ResolveReportResponseObject interface {
+	VisitResolveReportResponse(w http.ResponseWriter) error
+}
+
+type ResolveReport200JSONResponse ReportResult
+
+func (response ResolveReport200JSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport400ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport400ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport401ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport401ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport403ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport403ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport404ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport404ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport409ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport409ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport429ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport429ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResolveReport503ApplicationProblemPlusJSONResponse Problem
+
+func (response ResolveReport503ApplicationProblemPlusJSONResponse) VisitResolveReportResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(503)
 
@@ -3594,6 +6440,1134 @@ func (response RefreshSession503ApplicationProblemPlusJSONResponse) VisitRefresh
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListMySitesRequestObject struct {
+}
+
+type ListMySitesResponseObject interface {
+	VisitListMySitesResponse(w http.ResponseWriter) error
+}
+
+type ListMySites200JSONResponse ListMySitesResult
+
+func (response ListMySites200JSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites400ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites401ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites403ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites404ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites409ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites429ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMySites503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMySites503ApplicationProblemPlusJSONResponse) VisitListMySitesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSiteRequestObject struct {
+	Body *CreateSiteJSONRequestBody
+}
+
+type CreateSiteResponseObject interface {
+	VisitCreateSiteResponse(w http.ResponseWriter) error
+}
+
+type CreateSite200JSONResponse SiteResult
+
+func (response CreateSite200JSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite400ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite400ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite401ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite403ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite404ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite409ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite429ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite429ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSite503ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSite503ApplicationProblemPlusJSONResponse) VisitCreateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSiteRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+}
+
+type DeleteSiteResponseObject interface {
+	VisitDeleteSiteResponse(w http.ResponseWriter) error
+}
+
+type DeleteSite200JSONResponse RemovedResult
+
+func (response DeleteSite200JSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite400ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite400ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite401ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite403ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite404ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite409ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite429ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite429ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSite503ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSite503ApplicationProblemPlusJSONResponse) VisitDeleteSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSiteRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+}
+
+type ReadSiteResponseObject interface {
+	VisitReadSiteResponse(w http.ResponseWriter) error
+}
+
+type ReadSite200JSONResponse SiteResult
+
+func (response ReadSite200JSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite400ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite400ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite401ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite403ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite404ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite404ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite409ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite409ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite429ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite429ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReadSite503ApplicationProblemPlusJSONResponse Problem
+
+func (response ReadSite503ApplicationProblemPlusJSONResponse) VisitReadSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	Body   *UpdateSiteJSONRequestBody
+}
+
+type UpdateSiteResponseObject interface {
+	VisitUpdateSiteResponse(w http.ResponseWriter) error
+}
+
+type UpdateSite200JSONResponse SiteResult
+
+func (response UpdateSite200JSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite400ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite400ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite401ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite403ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite404ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite409ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite429ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite429ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSite503ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSite503ApplicationProblemPlusJSONResponse) VisitUpdateSiteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomainsRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+}
+
+type ListSiteDomainsResponseObject interface {
+	VisitListSiteDomainsResponse(w http.ResponseWriter) error
+}
+
+type ListSiteDomains200JSONResponse ListSiteDomainsResult
+
+func (response ListSiteDomains200JSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains400ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains401ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains403ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains404ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains409ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains429ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteDomains503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteDomains503ApplicationProblemPlusJSONResponse) VisitListSiteDomainsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomainRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	Body   *AddSiteDomainJSONRequestBody
+}
+
+type AddSiteDomainResponseObject interface {
+	VisitAddSiteDomainResponse(w http.ResponseWriter) error
+}
+
+type AddSiteDomain200JSONResponse SiteDomainResult
+
+func (response AddSiteDomain200JSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain400ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain400ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain401ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain401ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain403ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain403ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain404ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain404ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain409ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain409ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain429ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain429ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteDomain503ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteDomain503ApplicationProblemPlusJSONResponse) VisitAddSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomainRequestObject struct {
+	SiteId string `json:"siteId"`
+	Host   string `json:"host"`
+}
+
+type RemoveSiteDomainResponseObject interface {
+	VisitRemoveSiteDomainResponse(w http.ResponseWriter) error
+}
+
+type RemoveSiteDomain200JSONResponse RemovedResult
+
+func (response RemoveSiteDomain200JSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain400ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain400ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain401ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain401ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain403ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain403ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain404ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain404ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain409ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain409ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain429ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain429ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteDomain503ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteDomain503ApplicationProblemPlusJSONResponse) VisitRemoveSiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomainRequestObject struct {
+	SiteId string `json:"siteId"`
+	Host   string `json:"host"`
+}
+
+type SetPrimaryDomainResponseObject interface {
+	VisitSetPrimaryDomainResponse(w http.ResponseWriter) error
+}
+
+type SetPrimaryDomain200JSONResponse SiteDomainResult
+
+func (response SetPrimaryDomain200JSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain400ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain400ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain401ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain401ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain403ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain404ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain409ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain409ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain429ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain429ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetPrimaryDomain503ApplicationProblemPlusJSONResponse Problem
+
+func (response SetPrimaryDomain503ApplicationProblemPlusJSONResponse) VisitSetPrimaryDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomainRequestObject struct {
+	SiteId string `json:"siteId"`
+	Host   string `json:"host"`
+}
+
+type VerifySiteDomainResponseObject interface {
+	VisitVerifySiteDomainResponse(w http.ResponseWriter) error
+}
+
+type VerifySiteDomain200JSONResponse SiteDomainResult
+
+func (response VerifySiteDomain200JSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain400ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain400ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain401ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain401ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain403ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain403ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain404ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain404ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain409ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain409ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain429ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain429ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifySiteDomain503ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifySiteDomain503ApplicationProblemPlusJSONResponse) VisitVerifySiteDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembersRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+}
+
+type ListSiteMembersResponseObject interface {
+	VisitListSiteMembersResponse(w http.ResponseWriter) error
+}
+
+type ListSiteMembers200JSONResponse ListSiteMembersResult
+
+func (response ListSiteMembers200JSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers400ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers401ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers403ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers404ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers409ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers429ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSiteMembers503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSiteMembers503ApplicationProblemPlusJSONResponse) VisitListSiteMembersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMemberRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	Body   *AddSiteMemberJSONRequestBody
+}
+
+type AddSiteMemberResponseObject interface {
+	VisitAddSiteMemberResponse(w http.ResponseWriter) error
+}
+
+type AddSiteMember200JSONResponse SiteMemberResult
+
+func (response AddSiteMember200JSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember400ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember400ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember401ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember401ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember403ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember403ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember404ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember404ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember409ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember409ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember429ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember429ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddSiteMember503ApplicationProblemPlusJSONResponse Problem
+
+func (response AddSiteMember503ApplicationProblemPlusJSONResponse) VisitAddSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMemberRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	UserId Identifier `json:"userId"`
+}
+
+type RemoveSiteMemberResponseObject interface {
+	VisitRemoveSiteMemberResponse(w http.ResponseWriter) error
+}
+
+type RemoveSiteMember200JSONResponse RemovedResult
+
+func (response RemoveSiteMember200JSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember400ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember400ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember401ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember401ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember403ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember403ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember404ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember404ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember409ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember409ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember429ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember429ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveSiteMember503ApplicationProblemPlusJSONResponse Problem
+
+func (response RemoveSiteMember503ApplicationProblemPlusJSONResponse) VisitRemoveSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMemberRequestObject struct {
+	SiteId Identifier `json:"siteId"`
+	UserId Identifier `json:"userId"`
+	Body   *UpdateSiteMemberJSONRequestBody
+}
+
+type UpdateSiteMemberResponseObject interface {
+	VisitUpdateSiteMemberResponse(w http.ResponseWriter) error
+}
+
+type UpdateSiteMember200JSONResponse SiteMemberResult
+
+func (response UpdateSiteMember200JSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember400ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember400ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember401ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember403ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember404ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember409ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember429ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember429ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSiteMember503ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSiteMember503ApplicationProblemPlusJSONResponse) VisitUpdateSiteMemberResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ReadSnapshotArchiveRequestObject struct {
 	SnapshotId Identifier `json:"snapshotId"`
 	Params     ReadSnapshotArchiveParams
@@ -3796,6 +7770,247 @@ func (response StageSnapshot503ApplicationProblemPlusJSONResponse) VisitStageSna
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListUsersRequestObject struct {
+	Params ListUsersParams
+}
+
+type ListUsersResponseObject interface {
+	VisitListUsersResponse(w http.ResponseWriter) error
+}
+
+type ListUsers200JSONResponse ListUsersResult
+
+func (response ListUsers200JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers400ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers401ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers403ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers404ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers409ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers409ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers429ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers429ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers503ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUsers503ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatusRequestObject struct {
+	UserId Identifier `json:"userId"`
+	Body   *SetUserStatusJSONRequestBody
+}
+
+type SetUserStatusResponseObject interface {
+	VisitSetUserStatusResponse(w http.ResponseWriter) error
+}
+
+type SetUserStatus200JSONResponse UserResult
+
+func (response SetUserStatus200JSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus400ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus400ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus401ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus401ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus403ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus404ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus409ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus409ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus429ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus429ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserStatus503ApplicationProblemPlusJSONResponse Problem
+
+func (response SetUserStatus503ApplicationProblemPlusJSONResponse) VisitSetUserStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUserRequestObject struct {
+	Body *RegisterUserJSONRequestBody
+}
+
+type RegisterUserResponseObject interface {
+	VisitRegisterUserResponse(w http.ResponseWriter) error
+}
+
+type RegisterUser200JSONResponse RegisterUserResult
+
+func (response RegisterUser200JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser400ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser400ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser401ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser401ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser403ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser403ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser404ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser404ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser409ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser409ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser429ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser429ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser503ApplicationProblemPlusJSONResponse Problem
+
+func (response RegisterUser503ApplicationProblemPlusJSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// 本域进程存活
@@ -3819,6 +8034,15 @@ type StrictServerInterface interface {
 	// 停用/恢复/删除子账号
 	// (PUT /v1/accounts/{accountId}/status)
 	SetAccountStatus(ctx context.Context, request SetAccountStatusRequestObject) (SetAccountStatusResponseObject, error)
+	// 列出全部站点
+	// (GET /v1/admin/sites)
+	ListAllSites(ctx context.Context, request ListAllSitesRequestObject) (ListAllSitesResponseObject, error)
+	// 下架或恢复站点
+	// (PUT /v1/admin/sites/{siteId}/status)
+	SetSiteStatus(ctx context.Context, request SetSiteStatusRequestObject) (SetSiteStatusResponseObject, error)
+	// 读取登录页选项
+	// (GET /v1/auth/options)
+	ReadAuthOptions(ctx context.Context, request ReadAuthOptionsRequestObject) (ReadAuthOptionsResponseObject, error)
 	// 按最新账号功能权限授权
 	// (POST /v1/authorizations/check)
 	CheckAuthorization(ctx context.Context, request CheckAuthorizationRequestObject) (CheckAuthorizationResponseObject, error)
@@ -3831,6 +8055,21 @@ type StrictServerInterface interface {
 	// portal内部核对CSRF
 	// (POST /v1/csrf:verify)
 	VerifySessionCSRF(ctx context.Context, request VerifySessionCSRFRequestObject) (VerifySessionCSRFResponseObject, error)
+	// 按域名解析站点
+	// (GET /v1/hosts/{host})
+	ResolveHost(ctx context.Context, request ResolveHostRequestObject) (ResolveHostResponseObject, error)
+	// 第三方登录回调
+	// (POST /v1/oauth/{provider}:login)
+	OauthLogin(ctx context.Context, request OauthLoginRequestObject) (OauthLoginResponseObject, error)
+	// 开始第三方登录
+	// (POST /v1/oauth/{provider}:start)
+	OauthStart(ctx context.Context, request OauthStartRequestObject) (OauthStartResponseObject, error)
+	// 读取平台设置
+	// (GET /v1/platform/settings)
+	ReadPlatformSettings(ctx context.Context, request ReadPlatformSettingsRequestObject) (ReadPlatformSettingsResponseObject, error)
+	// 更新平台设置
+	// (PUT /v1/platform/settings)
+	UpdatePlatformSettings(ctx context.Context, request UpdatePlatformSettingsRequestObject) (UpdatePlatformSettingsResponseObject, error)
 	// 读自身后台偏好
 	// (GET /v1/preferences)
 	ReadPreferences(ctx context.Context, request ReadPreferencesRequestObject) (ReadPreferencesResponseObject, error)
@@ -3843,6 +8082,24 @@ type StrictServerInterface interface {
 	// 首个注册账户原子成为唯一超管
 	// (POST /v1/registration)
 	RegisterFirstSuperadmin(ctx context.Context, request RegisterFirstSuperadminRequestObject) (RegisterFirstSuperadminResponseObject, error)
+	// 列出注册邀请码
+	// (GET /v1/registration-invites)
+	ListRegistrationInvites(ctx context.Context, request ListRegistrationInvitesRequestObject) (ListRegistrationInvitesResponseObject, error)
+	// 生成注册邀请码
+	// (POST /v1/registration-invites)
+	CreateRegistrationInvite(ctx context.Context, request CreateRegistrationInviteRequestObject) (CreateRegistrationInviteResponseObject, error)
+	// 作废注册邀请码
+	// (DELETE /v1/registration-invites/{inviteId})
+	RevokeRegistrationInvite(ctx context.Context, request RevokeRegistrationInviteRequestObject) (RevokeRegistrationInviteResponseObject, error)
+	// 列出举报
+	// (GET /v1/reports)
+	ListReports(ctx context.Context, request ListReportsRequestObject) (ListReportsResponseObject, error)
+	// 访客举报站点
+	// (POST /v1/reports)
+	SubmitReport(ctx context.Context, request SubmitReportRequestObject) (SubmitReportResponseObject, error)
+	// 处理举报
+	// (POST /v1/reports/{reportId}:resolve)
+	ResolveReport(ctx context.Context, request ResolveReportRequestObject) (ResolveReportResponseObject, error)
 	// 读取当前账户
 	// (GET /v1/self)
 	ReadSelf(ctx context.Context, request ReadSelfRequestObject) (ReadSelfResponseObject, error)
@@ -3861,6 +8118,48 @@ type StrictServerInterface interface {
 	// 内部透明轮换session
 	// (POST /v1/sessions:refresh)
 	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
+	// 列出我的站点
+	// (GET /v1/sites)
+	ListMySites(ctx context.Context, request ListMySitesRequestObject) (ListMySitesResponseObject, error)
+	// 创建站点
+	// (POST /v1/sites)
+	CreateSite(ctx context.Context, request CreateSiteRequestObject) (CreateSiteResponseObject, error)
+	// 删除站点
+	// (DELETE /v1/sites/{siteId})
+	DeleteSite(ctx context.Context, request DeleteSiteRequestObject) (DeleteSiteResponseObject, error)
+	// 读取站点
+	// (GET /v1/sites/{siteId})
+	ReadSite(ctx context.Context, request ReadSiteRequestObject) (ReadSiteResponseObject, error)
+	// 修改站点
+	// (PATCH /v1/sites/{siteId})
+	UpdateSite(ctx context.Context, request UpdateSiteRequestObject) (UpdateSiteResponseObject, error)
+	// 列出站点域名
+	// (GET /v1/sites/{siteId}/domains)
+	ListSiteDomains(ctx context.Context, request ListSiteDomainsRequestObject) (ListSiteDomainsResponseObject, error)
+	// 绑定自定义域名
+	// (POST /v1/sites/{siteId}/domains)
+	AddSiteDomain(ctx context.Context, request AddSiteDomainRequestObject) (AddSiteDomainResponseObject, error)
+	// 解绑域名
+	// (DELETE /v1/sites/{siteId}/domains/{host})
+	RemoveSiteDomain(ctx context.Context, request RemoveSiteDomainRequestObject) (RemoveSiteDomainResponseObject, error)
+	// 设为主域名
+	// (POST /v1/sites/{siteId}/domains/{host}:primary)
+	SetPrimaryDomain(ctx context.Context, request SetPrimaryDomainRequestObject) (SetPrimaryDomainResponseObject, error)
+	// 验证域名所有权
+	// (POST /v1/sites/{siteId}/domains/{host}:verify)
+	VerifySiteDomain(ctx context.Context, request VerifySiteDomainRequestObject) (VerifySiteDomainResponseObject, error)
+	// 列出站点成员
+	// (GET /v1/sites/{siteId}/members)
+	ListSiteMembers(ctx context.Context, request ListSiteMembersRequestObject) (ListSiteMembersResponseObject, error)
+	// 添加站点成员
+	// (POST /v1/sites/{siteId}/members)
+	AddSiteMember(ctx context.Context, request AddSiteMemberRequestObject) (AddSiteMemberResponseObject, error)
+	// 移除站点成员
+	// (DELETE /v1/sites/{siteId}/members/{userId})
+	RemoveSiteMember(ctx context.Context, request RemoveSiteMemberRequestObject) (RemoveSiteMemberResponseObject, error)
+	// 修改成员角色
+	// (PUT /v1/sites/{siteId}/members/{userId})
+	UpdateSiteMember(ctx context.Context, request UpdateSiteMemberRequestObject) (UpdateSiteMemberResponseObject, error)
 	// 受控读取已完成域快照归档
 	// (GET /v1/snapshots/{snapshotId}/archive)
 	ReadSnapshotArchive(ctx context.Context, request ReadSnapshotArchiveRequestObject) (ReadSnapshotArchiveResponseObject, error)
@@ -3873,6 +8172,15 @@ type StrictServerInterface interface {
 	// 暂存本域恢复归档，不改active目录
 	// (POST /v1/snapshots:stage)
 	StageSnapshot(ctx context.Context, request StageSnapshotRequestObject) (StageSnapshotResponseObject, error)
+	// 列出用户
+	// (GET /v1/users)
+	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
+	// 停用或恢复用户
+	// (PUT /v1/users/{userId}/status)
+	SetUserStatus(ctx context.Context, request SetUserStatusRequestObject) (SetUserStatusResponseObject, error)
+	// 邮箱注册并登录
+	// (POST /v1/users:register)
+	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -4108,6 +8416,89 @@ func (sh *strictHandler) SetAccountStatus(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// ListAllSites operation middleware
+func (sh *strictHandler) ListAllSites(w http.ResponseWriter, r *http.Request, params ListAllSitesParams) {
+	var request ListAllSitesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAllSites(ctx, request.(ListAllSitesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAllSites")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAllSitesResponseObject); ok {
+		if err := validResponse.VisitListAllSitesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetSiteStatus operation middleware
+func (sh *strictHandler) SetSiteStatus(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request SetSiteStatusRequestObject
+
+	request.SiteId = siteId
+
+	var body SetSiteStatusJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetSiteStatus(ctx, request.(SetSiteStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetSiteStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetSiteStatusResponseObject); ok {
+		if err := validResponse.VisitSetSiteStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadAuthOptions operation middleware
+func (sh *strictHandler) ReadAuthOptions(w http.ResponseWriter, r *http.Request) {
+	var request ReadAuthOptionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadAuthOptions(ctx, request.(ReadAuthOptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadAuthOptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadAuthOptionsResponseObject); ok {
+		if err := validResponse.VisitReadAuthOptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CheckAuthorization operation middleware
 func (sh *strictHandler) CheckAuthorization(w http.ResponseWriter, r *http.Request) {
 	var request CheckAuthorizationRequestObject
@@ -4234,6 +8625,153 @@ func (sh *strictHandler) VerifySessionCSRF(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// ResolveHost operation middleware
+func (sh *strictHandler) ResolveHost(w http.ResponseWriter, r *http.Request, host string) {
+	var request ResolveHostRequestObject
+
+	request.Host = host
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveHost(ctx, request.(ResolveHostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveHost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveHostResponseObject); ok {
+		if err := validResponse.VisitResolveHostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// OauthLogin operation middleware
+func (sh *strictHandler) OauthLogin(w http.ResponseWriter, r *http.Request, provider Identifier) {
+	var request OauthLoginRequestObject
+
+	request.Provider = provider
+
+	var body OauthLoginJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.OauthLogin(ctx, request.(OauthLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "OauthLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(OauthLoginResponseObject); ok {
+		if err := validResponse.VisitOauthLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// OauthStart operation middleware
+func (sh *strictHandler) OauthStart(w http.ResponseWriter, r *http.Request, provider Identifier) {
+	var request OauthStartRequestObject
+
+	request.Provider = provider
+
+	var body OauthStartJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.OauthStart(ctx, request.(OauthStartRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "OauthStart")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(OauthStartResponseObject); ok {
+		if err := validResponse.VisitOauthStartResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadPlatformSettings operation middleware
+func (sh *strictHandler) ReadPlatformSettings(w http.ResponseWriter, r *http.Request) {
+	var request ReadPlatformSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadPlatformSettings(ctx, request.(ReadPlatformSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadPlatformSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadPlatformSettingsResponseObject); ok {
+		if err := validResponse.VisitReadPlatformSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePlatformSettings operation middleware
+func (sh *strictHandler) UpdatePlatformSettings(w http.ResponseWriter, r *http.Request) {
+	var request UpdatePlatformSettingsRequestObject
+
+	var body UpdatePlatformSettingsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePlatformSettings(ctx, request.(UpdatePlatformSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePlatformSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePlatformSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdatePlatformSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ReadPreferences operation middleware
 func (sh *strictHandler) ReadPreferences(w http.ResponseWriter, r *http.Request) {
 	var request ReadPreferencesRequestObject
@@ -4337,6 +8875,175 @@ func (sh *strictHandler) RegisterFirstSuperadmin(w http.ResponseWriter, r *http.
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RegisterFirstSuperadminResponseObject); ok {
 		if err := validResponse.VisitRegisterFirstSuperadminResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRegistrationInvites operation middleware
+func (sh *strictHandler) ListRegistrationInvites(w http.ResponseWriter, r *http.Request) {
+	var request ListRegistrationInvitesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRegistrationInvites(ctx, request.(ListRegistrationInvitesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRegistrationInvites")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRegistrationInvitesResponseObject); ok {
+		if err := validResponse.VisitListRegistrationInvitesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateRegistrationInvite operation middleware
+func (sh *strictHandler) CreateRegistrationInvite(w http.ResponseWriter, r *http.Request) {
+	var request CreateRegistrationInviteRequestObject
+
+	var body CreateRegistrationInviteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRegistrationInvite(ctx, request.(CreateRegistrationInviteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRegistrationInvite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateRegistrationInviteResponseObject); ok {
+		if err := validResponse.VisitCreateRegistrationInviteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeRegistrationInvite operation middleware
+func (sh *strictHandler) RevokeRegistrationInvite(w http.ResponseWriter, r *http.Request, inviteId Identifier) {
+	var request RevokeRegistrationInviteRequestObject
+
+	request.InviteId = inviteId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeRegistrationInvite(ctx, request.(RevokeRegistrationInviteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeRegistrationInvite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeRegistrationInviteResponseObject); ok {
+		if err := validResponse.VisitRevokeRegistrationInviteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListReports operation middleware
+func (sh *strictHandler) ListReports(w http.ResponseWriter, r *http.Request) {
+	var request ListReportsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReports(ctx, request.(ListReportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReportsResponseObject); ok {
+		if err := validResponse.VisitListReportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SubmitReport operation middleware
+func (sh *strictHandler) SubmitReport(w http.ResponseWriter, r *http.Request) {
+	var request SubmitReportRequestObject
+
+	var body SubmitReportJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitReport(ctx, request.(SubmitReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitReportResponseObject); ok {
+		if err := validResponse.VisitSubmitReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveReport operation middleware
+func (sh *strictHandler) ResolveReport(w http.ResponseWriter, r *http.Request, reportId Identifier) {
+	var request ResolveReportRequestObject
+
+	request.ReportId = reportId
+
+	var body ResolveReportJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveReport(ctx, request.(ResolveReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveReportResponseObject); ok {
+		if err := validResponse.VisitResolveReportResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -4520,6 +9227,406 @@ func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// ListMySites operation middleware
+func (sh *strictHandler) ListMySites(w http.ResponseWriter, r *http.Request) {
+	var request ListMySitesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMySites(ctx, request.(ListMySitesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMySites")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMySitesResponseObject); ok {
+		if err := validResponse.VisitListMySitesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateSite operation middleware
+func (sh *strictHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
+	var request CreateSiteRequestObject
+
+	var body CreateSiteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSite(ctx, request.(CreateSiteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateSiteResponseObject); ok {
+		if err := validResponse.VisitCreateSiteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteSite operation middleware
+func (sh *strictHandler) DeleteSite(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request DeleteSiteRequestObject
+
+	request.SiteId = siteId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSite(ctx, request.(DeleteSiteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteSiteResponseObject); ok {
+		if err := validResponse.VisitDeleteSiteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadSite operation middleware
+func (sh *strictHandler) ReadSite(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request ReadSiteRequestObject
+
+	request.SiteId = siteId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadSite(ctx, request.(ReadSiteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadSite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadSiteResponseObject); ok {
+		if err := validResponse.VisitReadSiteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSite operation middleware
+func (sh *strictHandler) UpdateSite(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request UpdateSiteRequestObject
+
+	request.SiteId = siteId
+
+	var body UpdateSiteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSite(ctx, request.(UpdateSiteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSiteResponseObject); ok {
+		if err := validResponse.VisitUpdateSiteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSiteDomains operation middleware
+func (sh *strictHandler) ListSiteDomains(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request ListSiteDomainsRequestObject
+
+	request.SiteId = siteId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSiteDomains(ctx, request.(ListSiteDomainsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSiteDomains")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSiteDomainsResponseObject); ok {
+		if err := validResponse.VisitListSiteDomainsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddSiteDomain operation middleware
+func (sh *strictHandler) AddSiteDomain(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request AddSiteDomainRequestObject
+
+	request.SiteId = siteId
+
+	var body AddSiteDomainJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddSiteDomain(ctx, request.(AddSiteDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddSiteDomain")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddSiteDomainResponseObject); ok {
+		if err := validResponse.VisitAddSiteDomainResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveSiteDomain operation middleware
+func (sh *strictHandler) RemoveSiteDomain(w http.ResponseWriter, r *http.Request, siteId string, host string) {
+	var request RemoveSiteDomainRequestObject
+
+	request.SiteId = siteId
+	request.Host = host
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveSiteDomain(ctx, request.(RemoveSiteDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveSiteDomain")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveSiteDomainResponseObject); ok {
+		if err := validResponse.VisitRemoveSiteDomainResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPrimaryDomain operation middleware
+func (sh *strictHandler) SetPrimaryDomain(w http.ResponseWriter, r *http.Request, siteId string, host string) {
+	var request SetPrimaryDomainRequestObject
+
+	request.SiteId = siteId
+	request.Host = host
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPrimaryDomain(ctx, request.(SetPrimaryDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPrimaryDomain")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPrimaryDomainResponseObject); ok {
+		if err := validResponse.VisitSetPrimaryDomainResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VerifySiteDomain operation middleware
+func (sh *strictHandler) VerifySiteDomain(w http.ResponseWriter, r *http.Request, siteId string, host string) {
+	var request VerifySiteDomainRequestObject
+
+	request.SiteId = siteId
+	request.Host = host
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifySiteDomain(ctx, request.(VerifySiteDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifySiteDomain")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifySiteDomainResponseObject); ok {
+		if err := validResponse.VisitVerifySiteDomainResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSiteMembers operation middleware
+func (sh *strictHandler) ListSiteMembers(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request ListSiteMembersRequestObject
+
+	request.SiteId = siteId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSiteMembers(ctx, request.(ListSiteMembersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSiteMembers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSiteMembersResponseObject); ok {
+		if err := validResponse.VisitListSiteMembersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddSiteMember operation middleware
+func (sh *strictHandler) AddSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier) {
+	var request AddSiteMemberRequestObject
+
+	request.SiteId = siteId
+
+	var body AddSiteMemberJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddSiteMember(ctx, request.(AddSiteMemberRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddSiteMember")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddSiteMemberResponseObject); ok {
+		if err := validResponse.VisitAddSiteMemberResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveSiteMember operation middleware
+func (sh *strictHandler) RemoveSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier, userId Identifier) {
+	var request RemoveSiteMemberRequestObject
+
+	request.SiteId = siteId
+	request.UserId = userId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveSiteMember(ctx, request.(RemoveSiteMemberRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveSiteMember")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveSiteMemberResponseObject); ok {
+		if err := validResponse.VisitRemoveSiteMemberResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSiteMember operation middleware
+func (sh *strictHandler) UpdateSiteMember(w http.ResponseWriter, r *http.Request, siteId Identifier, userId Identifier) {
+	var request UpdateSiteMemberRequestObject
+
+	request.SiteId = siteId
+	request.UserId = userId
+
+	var body UpdateSiteMemberJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSiteMember(ctx, request.(UpdateSiteMemberRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSiteMember")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSiteMemberResponseObject); ok {
+		if err := validResponse.VisitUpdateSiteMemberResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ReadSnapshotArchive operation middleware
 func (sh *strictHandler) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams) {
 	var request ReadSnapshotArchiveRequestObject
@@ -4640,220 +9747,410 @@ func (sh *strictHandler) StageSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListUsers operation middleware
+func (sh *strictHandler) ListUsers(w http.ResponseWriter, r *http.Request, params ListUsersParams) {
+	var request ListUsersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUsers(ctx, request.(ListUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUsers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUsersResponseObject); ok {
+		if err := validResponse.VisitListUsersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetUserStatus operation middleware
+func (sh *strictHandler) SetUserStatus(w http.ResponseWriter, r *http.Request, userId Identifier) {
+	var request SetUserStatusRequestObject
+
+	request.UserId = userId
+
+	var body SetUserStatusJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetUserStatus(ctx, request.(SetUserStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetUserStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetUserStatusResponseObject); ok {
+		if err := validResponse.VisitSetUserStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RegisterUser operation middleware
+func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	var request RegisterUserRequestObject
+
+	var body RegisterUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterUser(ctx, request.(RegisterUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RegisterUserResponseObject); ok {
+		if err := validResponse.VisitRegisterUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"9bTdunm9s+dmV3vbzc4OW7Pt+96+77o6OjrJX3t6b97+vvdWD/n9n3t7Om3Ntvbenu+7u9pv2pptP3b2",
+	"2bt6e27/0GX/oe1m+3Vbs627t/0/6Vdu9dhv3bjR23ezs+O2vf165w9tJb9sb7vR9l1Xd9fNv9mabX1t",
+	"Nztvd3f90AVT+O5Wx587b97u/Gt7Z2cH/U17W097Z3c3/bmjs62ju6unU//3js4bnT0dnT3tf7t9q6ft",
+	"x7au7rbvusl07Tfbujtv93Xab3WTKXf13Oz8c1/Xzb/d7uzr6+1jv+nraesmg1xv6+7u7Pkzef6/bnX1",
+	"0S939fzY206pdZtQo629vfMGmaXRTfte4F3OLkny1xvgVnixsa0tvhgD5GsGHIt+Is+rCNdBoTE0/YZ9",
+	"OpAxNpiY+Msj2wAoSnJGSYbxh9Fc/D0gPN56haMTZCF5b3rl2wHT1YYy4ivfM6f7jUrurL336nIim1jV",
+	"RRgdZ0K59Fw2sYrGNnIPN9Djw1xgUncVeKcg33Z6HX43z6Kj/P0uQRoq+p2b83CD/G1Z5DySi8pZut+6",
+	"GAPS/SrvDtP9ikZVsp85ofCzFnbJ/i+BnHZH4H+9LcmcLBkes7z5qXj99uttl658820T2omg8XkUHkFj",
+	"W9mjGAruUliVZV4kj/1/f2+99Efu0sBP9779+v7/MNry6zznkocasldCwLU6GcTxt58DI2hrDn9Mt6Cd",
+	"d2p6U0lOZR8eoEcxzdxFjstEKjv6Dj+PgHxTLitzPq5fcAn5/5fHIo/RhIW992h6m8JnFHy26sKoklxA",
+	"j5ZhzLpCzdxep99lwH/1hPkKHqrTVl8hILNkqJs3b7Bgtpf6xAKR55w00IQfFDkI1vR7uDucAN7Kn+43",
+	"2+7woskFobZSHIwy1kJ3qertZMQofFcfw6nfHaN7qxO7yy2gH9JqekkTc5VkOBeI4Lmppq4Oxp2m3yjJ",
+	"TSWVUo6W8ch2Vee7/oy3Xfp/uEv/bL30x69uX7v00/82POfdgiQzjUI6gbkgu51GkWjBXECF7apWAoM9",
+	"zy1/0h/TGu1dbu5uF7yil961s+zjBvkuz4C3uiWHPWcinlPmmH/GaKspNV0uIvs1Rk1g0SaBukTsbPeL",
+	"klcsEcW+uXzF6FqRWZAna6NmIcK3hJ5lBDWIAK5ueCCk+WG4ccrg4JPsw4Ns4ig3mzAPf3cJbkGuulai",
+	"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",
+	"2a7ZWvIzt93/6f7/CQAA//8PsfDCsEwCAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

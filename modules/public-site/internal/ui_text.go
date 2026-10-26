@@ -111,8 +111,9 @@ func loadUIStrings(ctx context.Context, locale string) map[string]string {
 	if simplifiedChinese(locale) {
 		return nil
 	}
+	cacheKey := siteKey(ctx) + "\x00" + locale
 	uiCache.Lock()
-	if entry, ok := uiCache.entries[locale]; ok && time.Now().Before(entry.expires) {
+	if entry, ok := uiCache.entries[cacheKey]; ok && time.Now().Before(entry.expires) {
 		uiCache.Unlock()
 		return entry.strings
 	}
@@ -137,7 +138,7 @@ func loadUIStrings(ctx context.Context, locale string) map[string]string {
 		}
 	}
 	uiCache.Lock()
-	uiCache.entries[locale] = uiCacheEntry{result, time.Now().Add(time.Minute)}
+	uiCache.entries[cacheKey] = uiCacheEntry{result, time.Now().Add(time.Minute)}
 	uiCache.Unlock()
 	return result
 }
@@ -157,8 +158,9 @@ type titleCacheEntry struct {
 
 // loadTranslatedTitles 读取某语言各文档的标题和摘要译文（文档 ID → 对应发布修订与译文），缓存一分钟；读不到就当没有，页面沿用原文标题。
 func loadTranslatedTitles(ctx context.Context, locale string) map[string]translatedTitle {
+	cacheKey := siteKey(ctx) + "\x00" + locale
 	titleCache.Lock()
-	if entry, ok := titleCache.entries[locale]; ok && time.Now().Before(entry.expires) {
+	if entry, ok := titleCache.entries[cacheKey]; ok && time.Now().Before(entry.expires) {
 		titleCache.Unlock()
 		return entry.titles
 	}
@@ -182,7 +184,7 @@ func loadTranslatedTitles(ctx context.Context, locale string) map[string]transla
 		}
 	}
 	titleCache.Lock()
-	titleCache.entries[locale] = titleCacheEntry{result, time.Now().Add(time.Minute)}
+	titleCache.entries[cacheKey] = titleCacheEntry{result, time.Now().Add(time.Minute)}
 	titleCache.Unlock()
 	return result
 }

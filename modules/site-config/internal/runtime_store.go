@@ -17,9 +17,10 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	_ "nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
@@ -82,6 +83,7 @@ type ActiveStore struct {
 	settingsMu       sync.Mutex
 	initializationMu sync.Mutex
 	publicBaseURL    string
+	platformSite     atomic.Value // string：平台自己的站点，第一次查到后缓存
 	allowLocalHTTP   bool
 	homeRecovered    bool
 	homeRuntime      HomeRuntime
@@ -436,6 +438,7 @@ func (s *ActiveStore) runActiveMigrationsTx(ctx context.Context, tx *sql.Tx) err
 }
 
 func (s *ActiveStore) ensureActiveState(ctx context.Context, dataEpoch platform.Identifier) error {
+	ctx = pgdb.WithTemplateView(ctx)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "打开active状态事务失败")
@@ -469,6 +472,7 @@ func (s *ActiveStore) ValidateActiveReady(ctx context.Context, dataEpoch platfor
 	if s == nil || s.db == nil {
 		return false, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
 	}
+	ctx = pgdb.WithTemplateView(ctx)
 	if err := s.validateActiveSchema(ctx); err != nil {
 		return false, err
 	}

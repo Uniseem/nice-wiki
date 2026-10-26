@@ -208,6 +208,9 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if err := insertAccount(ctx, tx, account, hashed.EncodedHash); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
+	if err := createPlatformOwner(ctx, tx, account); err != nil {
+		return RegisterFirstSuperadminResult{}, err
+	}
 	session, auth, err := insertSession(ctx, tx, account, 1, "")
 	if err != nil {
 		return RegisterFirstSuperadminResult{}, err
@@ -417,4 +420,32 @@ func (runtime RegistrationClient) ReadInitializationStatus(ctx context.Context, 
 		return InitializationStatus{}, platform.NewError(platform.CodeIntegrityError, false, "已初始化站点缺少身份归属")
 	}
 	return InitializationStatus{Initialized: *response.Initialized, SiteID: response.Coordination.SiteID}, nil
+}
+
+// createPlatformOwner 给站主建用户记录和第一个站点“主站”（站点身份就是首次注册时预留的那个）。
+func createPlatformOwner(ctx context.Context, tx *sql.Tx, account Account) error {
+	settings, err := loadSettings(ctx, tx)
+	if err != nil {
+		return err
+	}
+	userID, now := platform.NewIdentifier(), platform.Now()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO users(user_id,account_id,email,display_name,status,created_at,updated_at) VALUES(?,?,'',?,'active',?,?)`,
+		userID, account.AccountID, account.AccountName, now, now); err != nil {
+		return identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO user_limits(user_id,max_sites,storage_bytes,updated_at) VALUES(?,1000,?,?)`, userID, int64(1)<<40, now); err != nil {
+		return identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO sites(site_id,slug,name,owner_user_id,status,visibility,base_language,revision,created_at,updated_at) VALUES(?,'main','主站',?,'active','public','zh-Hans',1,?,?)`,
+		account.SiteID, userID, now, now); err != nil {
+		return identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO site_members(site_id,user_id,role,created_at) VALUES(?,?,'owner',?)`, account.SiteID, userID, now); err != nil {
+		return identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO site_domains(host,site_id,kind,status,is_primary,verify_token,verified_at,created_at) VALUES(?,?,'subdomain','verified',1,'',?,?)`,
+		"main."+sitesDomainOf(settings), account.SiteID, now, now); err != nil {
+		return identityDBError()
+	}
+	return nil
 }

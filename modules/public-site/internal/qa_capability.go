@@ -18,15 +18,19 @@ type QAProbe struct {
 	base   string
 	client *http.Client
 	mu     sync.Mutex
-	at     time.Time
-	ok     bool
+	probes map[string]qaProbeResult // 按站点缓存
+}
+
+type qaProbeResult struct {
+	at time.Time
+	ok bool
 }
 
 func NewQAProbe(base, issuer string, key platform.SigningKey) *QAProbe {
 	if base == "" {
 		return nil
 	}
-	return &QAProbe{base: strings.TrimRight(base, "/"), client: &http.Client{Transport: serviceauth.SigningTransport(issuer, "qa", key, nil), Timeout: 3 * time.Second}}
+	return &QAProbe{probes: map[string]qaProbeResult{}, base: strings.TrimRight(base, "/"), client: &http.Client{Transport: serviceauth.SigningTransport(issuer, "qa", key, nil), Timeout: 3 * time.Second}}
 }
 
 func (p *QAProbe) Available(ctx context.Context, op platform.OperationContext) bool {
@@ -35,10 +39,11 @@ func (p *QAProbe) Available(ctx context.Context, op platform.OperationContext) b
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if time.Since(p.at) < 30*time.Second {
-		return p.ok
+	site := string(op.Actor.SiteID)
+	if cached, ok := p.probes[site]; ok && time.Since(cached.at) < 30*time.Second {
+		return cached.ok
 	}
-	p.at, p.ok = time.Now(), false
+	p.probes[site] = qaProbeResult{at: time.Now()}
 	deadline := time.Now().UTC().Add(3 * time.Second)
 	id := platform.NewIdentifier()
 	probeOp := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: "public-site", Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: op.DataEpoch,
@@ -59,8 +64,7 @@ func (p *QAProbe) Available(ctx context.Context, op platform.OperationContext) b
 	var result struct {
 		Available bool `json:"available"`
 	}
-	if response.StatusCode == http.StatusOK && json.Unmarshal(raw, &result) == nil {
-		p.ok = result.Available
-	}
-	return p.ok
+	available := response.StatusCode == http.StatusOK && json.Unmarshal(raw, &result) == nil && result.Available
+	p.probes[site] = qaProbeResult{at: p.probes[site].at, ok: available}
+	return available
 }

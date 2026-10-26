@@ -573,6 +573,26 @@
     },
     {
       "method": "GET",
+      "path": "/v1/admin/sites",
+      "owner": "identity",
+      "operationId": "listAllSites",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/sites/{siteId}/status",
+      "owner": "identity",
+      "operationId": "setSiteStatus",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/admin/turns",
       "owner": "qa",
       "operationId": "listTurnRecords",
@@ -797,6 +817,16 @@
       "owner": "analytics",
       "operationId": "readAudit",
       "permission": "audit.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/auth/options",
+      "owner": "identity",
+      "operationId": "readAuthOptions",
+      "permission": "anonymous",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -1576,7 +1606,7 @@
       "path": "/v1/initialization",
       "owner": "site-config",
       "operationId": "initializeSite",
-      "permission": "superadmin",
+      "permission": "site.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -1852,11 +1882,51 @@
       "streaming": false
     },
     {
+      "method": "POST",
+      "path": "/v1/oauth/{provider}:login",
+      "owner": "identity",
+      "operationId": "oauthLogin",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/oauth/{provider}:start",
+      "owner": "identity",
+      "operationId": "oauthStart",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "GET",
       "path": "/v1/objects/{objectId}",
       "owner": "site-config",
       "operationId": "readConfigObject",
       "permission": "site.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/platform/settings",
+      "owner": "identity",
+      "operationId": "readPlatformSettings",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/platform/settings",
+      "owner": "identity",
+      "operationId": "updatePlatformSettings",
+      "permission": "system.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -2047,6 +2117,66 @@
       "owner": "identity",
       "operationId": "registerFirstSuperadmin",
       "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/registration-invites",
+      "owner": "identity",
+      "operationId": "listRegistrationInvites",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/registration-invites",
+      "owner": "identity",
+      "operationId": "createRegistrationInvite",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/registration-invites/{inviteId}",
+      "owner": "identity",
+      "operationId": "revokeRegistrationInvite",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/reports",
+      "owner": "identity",
+      "operationId": "listReports",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/reports",
+      "owner": "identity",
+      "operationId": "submitReport",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/reports/{reportId}:resolve",
+      "owner": "identity",
+      "operationId": "resolveReport",
+      "permission": "system.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -2259,6 +2389,146 @@
       "permission": "knowledge.manage",
       "admission": null,
       "timeoutMs": 5000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sites",
+      "owner": "identity",
+      "operationId": "listMySites",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites",
+      "owner": "identity",
+      "operationId": "createSite",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sites/{siteId}",
+      "owner": "identity",
+      "operationId": "deleteSite",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sites/{siteId}",
+      "owner": "identity",
+      "operationId": "readSite",
+      "permission": "site.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/sites/{siteId}",
+      "owner": "identity",
+      "operationId": "updateSite",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sites/{siteId}/domains",
+      "owner": "identity",
+      "operationId": "listSiteDomains",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/domains",
+      "owner": "identity",
+      "operationId": "addSiteDomain",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sites/{siteId}/domains/{host}",
+      "owner": "identity",
+      "operationId": "removeSiteDomain",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/domains/{host}:primary",
+      "owner": "identity",
+      "operationId": "setPrimaryDomain",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/domains/{host}:verify",
+      "owner": "identity",
+      "operationId": "verifySiteDomain",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sites/{siteId}/members",
+      "owner": "identity",
+      "operationId": "listSiteMembers",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/members",
+      "owner": "identity",
+      "operationId": "addSiteMember",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sites/{siteId}/members/{userId}",
+      "owner": "identity",
+      "operationId": "removeSiteMember",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/sites/{siteId}/members/{userId}",
+      "owner": "identity",
+      "operationId": "updateSiteMember",
+      "permission": "account.manage",
+      "admission": null,
+      "timeoutMs": null,
       "streaming": false
     },
     {
@@ -2557,6 +2827,36 @@
       "owner": "analytics",
       "operationId": "reconcileUsage",
       "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/users",
+      "owner": "identity",
+      "operationId": "listUsers",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/users/{userId}/status",
+      "owner": "identity",
+      "operationId": "setUserStatus",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/users:register",
+      "owner": "identity",
+      "operationId": "registerUser",
+      "permission": "anonymous",
       "admission": null,
       "timeoutMs": null,
       "streaming": false

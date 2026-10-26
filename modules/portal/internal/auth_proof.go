@@ -24,10 +24,14 @@ func (r IdentityAuthResolver) Resolve(ctx context.Context, cookies SessionCookie
 	if r.Client == nil {
 		return AuthContext{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份授权客户端未装配")
 	}
-	raw, err := r.Client.CheckAuthorization(ctx, map[string]any{
+	request := map[string]any{
 		"accessToken": cookies.SessionToken, "permission": required.Permission,
 		"action": required.Action,
-	})
+	}
+	if required.SiteID != "" {
+		request["siteId"] = required.SiteID
+	}
+	raw, err := r.Client.CheckAuthorization(ctx, request)
 	if err != nil {
 		return AuthContext{}, err
 	}

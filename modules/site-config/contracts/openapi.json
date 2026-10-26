@@ -839,7 +839,7 @@
         "summary": "无需AI完成首站点初始化",
         "description": "调用函数 site-config.InitializeSite；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。",
         "x-handler": "site-config.InitializeSite",
-        "x-permission": "superadmin",
+        "x-permission": "site.manage",
         "security": [
           {
             "serviceAssertion": [],

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/site-config/internal/gen"
 )
 
@@ -21,7 +22,7 @@ func ReadInitializationStatus(ctx context.Context, op platform.OperationContext,
 	if store == nil {
 		return gen.ReadInitializationStatusResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "active业务库不可用")
 	}
-	tx, err := store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := store.db.BeginTx(store.scopeSite(ctx, op), &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return gen.ReadInitializationStatusResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "打开初始化读取事务失败")
 	}
@@ -38,11 +39,29 @@ func ReadInitializationStatus(ctx context.Context, op platform.OperationContext,
 		},
 	}
 	trustedService := op.CallerService == "identity" || op.CallerService == "site-config"
-	sameSiteAdmin := op.Actor.Kind == "admin" && slices.Contains(op.Actor.Grants, "superadmin") && op.Actor.SiteID != "" && (state.SiteId == nil || op.Actor.SiteID == *state.SiteId)
+	sameSiteAdmin := op.Actor.Kind == "admin" && (slices.Contains(op.Actor.Grants, "superadmin") || slices.Contains(op.Actor.Grants, "site.manage")) && op.Actor.SiteID != "" && (state.SiteId == nil || op.Actor.SiteID == *state.SiteId)
 	if trustedService || sameSiteAdmin {
 		result.Coordination = &state
 	}
 	return result, nil
+}
+
+// scopeSite 把不带站点的服务调用（启动绑定、单站点时代的读取）定位到平台自己的站点：最早提交初始化的那个；
+// 还没有任何站点完成初始化时只看模板行（即“未初始化”）。
+func (s *ActiveStore) scopeSite(ctx context.Context, op platform.OperationContext) context.Context {
+	if op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
+		return ctx
+	}
+	if site, ok := s.platformSite.Load().(string); ok {
+		return pgdb.WithSite(ctx, site)
+	}
+	var site string
+	err := s.db.QueryRowContext(pgdb.WithSite(ctx, ""), `SELECT site_id FROM initialization_decisions WHERE decision='commit' ORDER BY created_at, operation_id LIMIT 1`).Scan(&site)
+	if err != nil {
+		return pgdb.WithTemplateView(pgdb.WithSite(ctx, ""))
+	}
+	s.platformSite.Store(site)
+	return pgdb.WithSite(ctx, site)
 }
 
 // ConfigureInitialization 仅接收进程配置边界已校验的部署公开地址。
@@ -95,8 +114,15 @@ func InitializeSite(ctx context.Context, op platform.OperationContext, input gen
 		return gen.InitializeSiteResult{}, platform.NewError(platform.CodeConflict, false, "站点已有初始化commit决定")
 	}
 	store.stateMu.RLock()
-	publicBaseURL := store.publicBaseURL
+	publicBaseURL, allowLocalHTTP := store.publicBaseURL, store.allowLocalHTTP
 	store.stateMu.RUnlock()
+	if input.PublicBaseURL != nil && *input.PublicBaseURL != "" {
+		normalized, err := NormalizeBaseURL(NormalizeBaseURLInput{URL: *input.PublicBaseURL, AllowLocalHTTP: allowLocalHTTP})
+		if err != nil {
+			return gen.InitializeSiteResult{}, err
+		}
+		publicBaseURL = normalized.Normalized
+	}
 	if publicBaseURL == "" {
 		return gen.InitializeSiteResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "初始化尚未配置可信公开地址")
 	}
@@ -238,8 +264,8 @@ func AbortInitialization(ctx context.Context, op platform.OperationContext, inpu
 }
 
 func requireInitializationAdmin(op platform.OperationContext) error {
-	if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || op.Actor.SubjectID == "" || op.Actor.SiteID == "" || !slices.Contains(op.Actor.Grants, "superadmin") {
-		return platform.NewError(platform.CodeForbidden, false, "初始化要求已注册唯一超管会话")
+	if op.Actor.Kind != "admin" || op.Actor.SessionID == "" || op.Actor.SubjectID == "" || op.Actor.SiteID == "" || !(slices.Contains(op.Actor.Grants, "superadmin") || slices.Contains(op.Actor.Grants, "site.manage")) {
+		return platform.NewError(platform.CodeForbidden, false, "初始化要求站点所有者或超管会话")
 	}
 	return nil
 }

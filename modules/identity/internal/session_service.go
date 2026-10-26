@@ -589,7 +589,7 @@ func CreateSession(ctx context.Context, op OperationContext, input CreateSession
 	if err != nil {
 		return CreateSessionResult{}, err
 	}
-	if initialization.SiteID != nil && *initialization.SiteID != siteID {
+	if !isHomeSite(siteID) && initialization.SiteID != nil && *initialization.SiteID != siteID {
 		return CreateSessionResult{}, platform.NewError(platform.CodeIntegrityError, false, "站点配置与账号归属不一致")
 	}
 	outcomeSent = true
