@@ -22,6 +22,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+
+	"nice-wiki/libs/platform"
 )
 
 func init() { sql.Register("sqlite", &Driver{}) }
@@ -109,10 +111,6 @@ func resolve(legacy string) (component, string, string, error) {
 var helperSQL = []string{
 	`CREATE OR REPLACE FUNCTION public.nw_json_type(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT CASE jsonb_typeof(j) WHEN 'string' THEN 'text' WHEN 'number' THEN CASE WHEN (j #>> '{}')::numeric = trunc((j #>> '{}')::numeric) THEN 'integer' ELSE 'real' END WHEN 'boolean' THEN (j #>> '{}') ELSE jsonb_typeof(j) END $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_json_value(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN jsonb_typeof(j) IN ('array','object') THEN j::text ELSE j #>> '{}' END $$`,
-	`CREATE OR REPLACE FUNCTION public.nw_json_set(x text, p text[], v jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT jsonb_set(public.nw_jsonb(x), p, v)::text $$`,
-	`CREATE OR REPLACE FUNCTION public.nw_json_set(x bytea, p text[], v jsonb) RETURNS bytea LANGUAGE sql IMMUTABLE AS $$ SELECT convert_to(jsonb_set(public.nw_jsonb(x), p, v)::text, 'UTF8') $$`,
-	`CREATE OR REPLACE FUNCTION public.nw_json_remove(x text, p text[]) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT (public.nw_jsonb(x) #- p)::text $$`,
-	`CREATE OR REPLACE FUNCTION public.nw_json_remove(x bytea, p text[]) RETURNS bytea LANGUAGE sql IMMUTABLE AS $$ SELECT convert_to((public.nw_jsonb(x) #- p)::text, 'UTF8') $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_raise(msg text) RETURNS bigint LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION '%', msg; END $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_text(b bytea) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT convert_from(b, 'UTF8') $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_text(v anyelement) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT v::text $$`,
@@ -121,6 +119,10 @@ var helperSQL = []string{
 	`CREATE OR REPLACE FUNCTION public.nw_jsonb(t text) RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN t IS NULL OR NOT pg_input_is_valid(t, 'jsonb') THEN NULL ELSE t::jsonb END $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_jsonb(b bytea) RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT public.nw_jsonb(convert_from(b, 'UTF8')) $$`,
 	`CREATE OR REPLACE FUNCTION public.nw_jsonb(j jsonb) RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT j $$`,
+	`CREATE OR REPLACE FUNCTION public.nw_json_set(x text, p text[], v jsonb) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT jsonb_set(public.nw_jsonb(x), p, v)::text $$`,
+	`CREATE OR REPLACE FUNCTION public.nw_json_set(x bytea, p text[], v jsonb) RETURNS bytea LANGUAGE sql IMMUTABLE AS $$ SELECT convert_to(jsonb_set(public.nw_jsonb(x), p, v)::text, 'UTF8') $$`,
+	`CREATE OR REPLACE FUNCTION public.nw_json_remove(x text, p text[]) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT (public.nw_jsonb(x) #- p)::text $$`,
+	`CREATE OR REPLACE FUNCTION public.nw_json_remove(x bytea, p text[]) RETURNS bytea LANGUAGE sql IMMUTABLE AS $$ SELECT convert_to((public.nw_jsonb(x) #- p)::text, 'UTF8') $$`,
 }
 
 // operatorSQL 补上 SQLite 宽松比较在 PostgreSQL 里缺的运算符：文本与整数、布尔与整数。
@@ -151,7 +153,15 @@ func operatorSQL() []string {
 	return out
 }
 
-func (Driver) OpenConnector(name string) (driver.Connector, error) {
+func (d Driver) OpenConnector(name string) (driver.Connector, error) {
+	connector, err := d.openConnector(name)
+	if err != nil {
+		debugf("open", err, name)
+	}
+	return connector, err
+}
+
+func (Driver) openConnector(name string) (driver.Connector, error) {
 	c, schema, marker, err := resolve(name)
 	if err != nil {
 		return nil, err
@@ -175,12 +185,13 @@ func (Driver) OpenConnector(name string) (driver.Connector, error) {
 	if err := ensureSchema(ctx, config, schema); err != nil {
 		return nil, err
 	}
+	loadSingletons(ctx, config, c.module, schema)
 	config = config.Copy()
 	config.RuntimeParams["search_path"] = quoteIdent(schema) + ",public"
 	config.RuntimeParams["application_name"] = "nw-" + c.module
 	hash := fnv.New64a()
 	hash.Write([]byte(schema))
-	return &connector{inner: stdlib.GetConnector(*config), lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema}, nil
+	return &connector{inner: stdlib.GetConnector(*config), lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema, tenant: isTenant(c.module)}, nil
 }
 
 // InstallHelpers 在 public schema 安装翻译后语句依赖的辅助函数。
@@ -219,10 +230,13 @@ func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) er
 }
 
 type connector struct {
-	inner   driver.Connector
-	lockKey int64
-	module  string
-	schema  string
+	inner       driver.Connector
+	lockKey     int64
+	module      string
+	schema      string
+	tenant      bool
+	provMu      sync.Mutex
+	provisioned sync.Map // 站点 -> 已在本组件复制过单例模板行
 }
 
 func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
@@ -240,6 +254,8 @@ type conn struct {
 	driver.Conn
 	owner     *connector
 	inTx      bool
+	site      string // 会话变量 nw.site 当前值
+	siteSet   bool
 	described map[string][]uint32 // 语句文本 -> 服务端推断的参数类型
 }
 
@@ -249,28 +265,140 @@ type txWrapper struct {
 	c *conn
 }
 
-func (t *txWrapper) Commit() error   { t.c.inTx = false; return t.Tx.Commit() }
-func (t *txWrapper) Rollback() error { t.c.inTx = false; return t.Tx.Rollback() }
+func (t *txWrapper) Commit() error { t.c.inTx = false; return t.Tx.Commit() }
+func (t *txWrapper) Rollback() error {
+	t.c.inTx = false
+	t.c.siteSet = false // 回滚会撤销事务内设置的会话变量，下次重新设置
+	return t.Tx.Rollback()
+}
 
-var cache sync.Map // SQLite 语句文本 -> []string
+var cache sync.Map // 模块+SQLite 语句文本 -> []string
 
-func translate(query string) ([]string, error) {
-	if cached, ok := cache.Load(query); ok {
+func translate(module, query string) ([]string, error) {
+	key := module + "\x00" + query
+	if cached, ok := cache.Load(key); ok {
 		return cached.([]string), nil
 	}
-	translated, err := TranslateScript(query)
+	translated, err := TenantScript(module, query)
 	if err != nil {
 		return nil, err
 	}
 	if len(translated) == 0 {
 		translated = []string{"SELECT 1"}
 	}
-	cache.Store(query, translated)
+	cache.Store(key, translated)
 	return translated, nil
 }
 
+// siteOf 取请求上下文里的站点；没有（后台循环、启动阶段）时为空，表示系统视角。
+func siteOf(ctx context.Context) string {
+	if op, ok := platform.OperationContextFrom(ctx); ok {
+		return string(op.Actor.SiteID)
+	}
+	return ""
+}
+
+// useSite 让本连接的会话变量 nw.site 与请求站点一致；站点第一次出现时先复制单例模板行。
+func (c *conn) useSite(ctx context.Context) error {
+	if !c.owner.tenant {
+		return nil
+	}
+	site := siteOf(ctx)
+	if c.siteSet && c.site == site {
+		return nil
+	}
+	execer := c.Conn.(driver.ExecerContext)
+	if site != "" {
+		if err := c.owner.ensureProvisioned(ctx, c, site); err != nil {
+			return err
+		}
+	}
+	if _, err := execer.ExecContext(ctx, "SELECT set_config('nw.site', $1, false)", []driver.NamedValue{{Ordinal: 1, Value: site}}); err != nil {
+		return err
+	}
+	c.site, c.siteSet = site, true
+	return nil
+}
+
+// ensureProvisioned 在系统视角下，把本组件各单例表里 nw_site=” 的模板行复制给新站点（幂等）。
+func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string) error {
+	if _, ok := o.provisioned.Load(site); ok {
+		return nil
+	}
+	o.provMu.Lock()
+	defer o.provMu.Unlock()
+	if _, ok := o.provisioned.Load(site); ok {
+		return nil
+	}
+	pgxConn := c.Conn.(*stdlib.Conn).Conn()
+	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.site', '', false)"); err != nil {
+		return err
+	}
+	c.siteSet = false
+	rows, err := pgxConn.Query(ctx, `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name IN (SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site') ORDER BY table_name, ordinal_position`, o.schema)
+	if err != nil {
+		return err
+	}
+	columns := map[string][]string{}
+	var tables []string
+	for rows.Next() {
+		var table, column string
+		if err := rows.Scan(&table, &column); err != nil {
+			rows.Close()
+			return err
+		}
+		if _, ok := columns[table]; !ok {
+			tables = append(tables, table)
+		}
+		columns[table] = append(columns[table], column)
+	}
+	rows.Close()
+	for _, table := range tables {
+		var list, values []string
+		for _, column := range columns[table] {
+			list = append(list, quoteIdent(column))
+			switch column {
+			case "nw_site":
+				values = append(values, "$1")
+			case "site_id":
+				values = append(values, `CASE WHEN "site_id" IS NULL THEN NULL ELSE $1 END`)
+			default:
+				values = append(values, quoteIdent(column))
+			}
+		}
+		name := quoteIdent(o.schema) + "." + quoteIdent(table)
+		if _, err := pgxConn.Exec(ctx, "INSERT INTO "+name+" ("+strings.Join(list, ",")+") SELECT "+strings.Join(values, ",")+" FROM "+name+" WHERE nw_site = '' ON CONFLICT DO NOTHING", site); err != nil {
+			return fmt.Errorf("pgdb: 复制单例模板行失败 %s：%w", table, err)
+		}
+	}
+	if !c.inTx {
+		o.provisioned.Store(site, true)
+	}
+	return nil
+}
+
+// loadSingletons 启动时从已有表结构里登记单例表（建表语句不再执行时靠它）。
+func loadSingletons(ctx context.Context, config *pgx.ConnConfig, module, schema string) {
+	conn, err := pgx.ConnectConfig(ctx, config)
+	if err != nil {
+		return
+	}
+	defer conn.Close(ctx)
+	rows, err := conn.Query(ctx, `SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site'`, schema)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var table string
+		if rows.Scan(&table) == nil {
+			singletons.Store(module+"."+strings.ToLower(table), true)
+		}
+	}
+}
+
 func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	statements, err := translate(query)
+	statements, err := translate(c.owner.module, query)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +414,7 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 		_ = stmt.Close()
 		return nil, mapError(err)
 	}
-	return &bytesStmt{Stmt: stmt, oids: oids}, nil
+	return &bytesStmt{Stmt: stmt, oids: oids, c: c}, nil
 }
 
 // paramTypes 让服务端描述语句，取得各参数的类型（每条连接上每个语句文本只描述一次，并作为命名预编译语句复用）。
@@ -342,9 +470,13 @@ func (r *bytesRows) Next(dest []driver.Value) error {
 type bytesStmt struct {
 	driver.Stmt
 	oids []uint32
+	c    *conn
 }
 
 func (s *bytesStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	if err := s.c.useSite(ctx); err != nil {
+		return nil, mapError(err)
+	}
 	coerceArgs(s.oids, args)
 	rows, err := s.Stmt.(driver.StmtQueryContext).QueryContext(ctx, args)
 	if err != nil {
@@ -354,6 +486,9 @@ func (s *bytesStmt) QueryContext(ctx context.Context, args []driver.NamedValue) 
 }
 
 func (s *bytesStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	if err := s.c.useSite(ctx); err != nil {
+		return nil, mapError(err)
+	}
 	coerceArgs(s.oids, args)
 	result, err := s.Stmt.(driver.StmtExecContext).ExecContext(ctx, args)
 	return result, mapError(err)
@@ -366,6 +501,9 @@ func (c *conn) Prepare(query string) (driver.Stmt, error) {
 func (c *conn) Begin() (driver.Tx, error) { return c.BeginTx(context.Background(), driver.TxOptions{}) }
 
 func (c *conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	if err := c.useSite(ctx); err != nil {
+		return nil, mapError(err)
+	}
 	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -381,10 +519,13 @@ func (c *conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, e
 }
 
 func (c *conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	statements, err := translate(query)
+	statements, err := translate(c.owner.module, query)
 	if err != nil {
 		debugf(c.owner.module, err, query)
 		return nil, err
+	}
+	if err := c.useSite(ctx); err != nil {
+		return nil, mapError(err)
 	}
 	execer := c.Conn.(driver.ExecerContext)
 	var result driver.Result
@@ -426,13 +567,16 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 }
 
 func (c *conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	statements, err := translate(query)
+	statements, err := translate(c.owner.module, query)
 	if err != nil {
 		debugf(c.owner.module, err, query)
 		return nil, err
 	}
 	if len(statements) != 1 {
 		return nil, errors.New("pgdb: 查询只能是单条语句")
+	}
+	if err := c.useSite(ctx); err != nil {
+		return nil, mapError(err)
 	}
 	if len(args) > 0 {
 		oids, perr := c.paramTypes(ctx, statements[0])
