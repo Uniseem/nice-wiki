@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="490" viewBox="0 0 680 490" role="img">
+<title>服务之间的异步事件</title>
+<desc>account、content、ai、edge 把事件写进 PostgreSQL 队列；edge、content、ai、search、ops 从队列领取并处理。</desc>
+<style>
+text{font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+.th{font-size:14px;font-weight:500;fill:#2C2C2A}
+.ts{font-size:12px;fill:#5F5E5A}
+.arr{stroke:#73726C;stroke-width:1.2;fill:none}
+.c-coral>rect{fill:#FAECE7;stroke:#993C1D}
+.c-coral>.th{fill:#712B13}
+.c-coral>.ts{fill:#993C1D}
+.c-teal>rect{fill:#E1F5EE;stroke:#0F6E56}
+.c-teal>.th{fill:#085041}
+.c-teal>.ts{fill:#0F6E56}
+.c-gray>rect{fill:#F1EFE8;stroke:#5F5E5A}
+.c-gray>.th{fill:#444441}
+.c-gray>.ts{fill:#5F5E5A}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="680" height="490" fill="#FFFFFF"/>
+<g class="c-teal">
+<rect x="40" y="110" width="200" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="140" y="128" text-anchor="middle" dominant-baseline="central">account</text>
+<text class="ts" x="140" y="146" text-anchor="middle" dominant-baseline="central">站点、权益、域名变更</text>
+</g>
+<g class="c-teal">
+<rect x="40" y="186" width="200" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="140" y="204" text-anchor="middle" dominant-baseline="central">content</text>
+<text class="ts" x="140" y="222" text-anchor="middle" dominant-baseline="central">发布、撤回、站点代次</text>
+</g>
+<g class="c-teal">
+<rect x="40" y="262" width="200" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="140" y="280" text-anchor="middle" dominant-baseline="central">ai</text>
+<text class="ts" x="140" y="298" text-anchor="middle" dominant-baseline="central">问答轮次、调用结算</text>
+</g>
+<g class="c-coral">
+<rect x="40" y="338" width="200" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="140" y="356" text-anchor="middle" dominant-baseline="central">edge</text>
+<text class="ts" x="140" y="374" text-anchor="middle" dominant-baseline="central">访问统计批次</text>
+</g>
+<g class="c-gray">
+<rect x="290" y="40" width="100" height="424" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="222" text-anchor="middle" dominant-baseline="central">PG 队列</text>
+<text class="ts" x="340" y="246" text-anchor="middle" dominant-baseline="central">同事务入队</text>
+<text class="ts" x="340" y="264" text-anchor="middle" dominant-baseline="central">按租约领取</text>
+<text class="ts" x="340" y="282" text-anchor="middle" dominant-baseline="central">失败自动重试</text>
+</g>
+<g class="c-coral">
+<rect x="440" y="40" width="200" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="540" y="58" text-anchor="middle" dominant-baseline="central">edge</text>
+<text class="ts" x="540" y="78" text-anchor="middle" dominant-baseline="central">清页面缓存、更新域名映射</text>
+<text class="ts" x="540" y="96" text-anchor="middle" dominant-baseline="central">来自 account、content</text>
+</g>
+<g class="c-teal">
+<rect x="440" y="128" width="200" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="540" y="146" text-anchor="middle" dominant-baseline="central">content</text>
+<text class="ts" x="540" y="166" text-anchor="middle" dominant-baseline="central">初始化或清理站点、存储上限</text>
+<text class="ts" x="540" y="184" text-anchor="middle" dominant-baseline="central">来自 account</text>
+</g>
+<g class="c-teal">
+<rect x="440" y="216" width="200" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="540" y="234" text-anchor="middle" dominant-baseline="central">ai</text>
+<text class="ts" x="540" y="254" text-anchor="middle" dominant-baseline="central">更新用户权益与额度</text>
+<text class="ts" x="540" y="272" text-anchor="middle" dominant-baseline="central">来自 account</text>
+</g>
+<g class="c-coral">
+<rect x="440" y="304" width="200" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="540" y="322" text-anchor="middle" dominant-baseline="central">search</text>
+<text class="ts" x="540" y="342" text-anchor="middle" dominant-baseline="central">建索引、删除站点索引</text>
+<text class="ts" x="540" y="360" text-anchor="middle" dominant-baseline="central">来自 content、account</text>
+</g>
+<g class="c-teal">
+<rect x="440" y="392" width="200" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="540" y="410" text-anchor="middle" dominant-baseline="central">ops</text>
+<text class="ts" x="540" y="430" text-anchor="middle" dominant-baseline="central">汇总统计、用量与审计</text>
+<text class="ts" x="540" y="448" text-anchor="middle" dominant-baseline="central">来自 ai、edge 等</text>
+</g>
+<line x1="242" y1="138" x2="284" y2="138" class="arr" marker-end="url(#arrow)"/>
+<line x1="242" y1="214" x2="284" y2="214" class="arr" marker-end="url(#arrow)"/>
+<line x1="242" y1="290" x2="284" y2="290" class="arr" marker-end="url(#arrow)"/>
+<line x1="242" y1="366" x2="284" y2="366" class="arr" marker-end="url(#arrow)"/>
+<line x1="392" y1="76" x2="434" y2="76" class="arr" marker-end="url(#arrow)"/>
+<line x1="392" y1="164" x2="434" y2="164" class="arr" marker-end="url(#arrow)"/>
+<line x1="392" y1="252" x2="434" y2="252" class="arr" marker-end="url(#arrow)"/>
+<line x1="392" y1="340" x2="434" y2="340" class="arr" marker-end="url(#arrow)"/>
+<line x1="392" y1="428" x2="434" y2="428" class="arr" marker-end="url(#arrow)"/>
+</svg>

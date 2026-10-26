@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="620" viewBox="0 0 680 620" role="img">
+<title>服务之间的同步调用与外部系统</title>
+<desc>Caddy 转发请求给 edge；edge 调 account 查会话、域名和角色，调 content 渲染页面和取媒体，调 ai 跑问答流；content 与 ai 互相调用做翻译和读正文；ai 与 search 互相调用做检索和嵌入；ops 调 content 导出站点；account 接第三方登录，ai 接模型供应方，content 接 Git 仓库，ops 接备份目标。</desc>
+<style>
+text{font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+.th{font-size:14px;font-weight:500;fill:#2C2C2A}
+.ts{font-size:12px;fill:#5F5E5A}
+.arr{stroke:#73726C;stroke-width:1.2;fill:none}
+.c-coral>rect,rect.c-coral{fill:#FAECE7;stroke:#993C1D}
+.c-coral>.th{fill:#712B13}
+.c-coral>.ts{fill:#993C1D}
+.c-teal>rect,rect.c-teal{fill:#E1F5EE;stroke:#0F6E56}
+.c-teal>.th{fill:#085041}
+.c-teal>.ts{fill:#0F6E56}
+.c-gray>rect,rect.c-gray{fill:#F1EFE8;stroke:#5F5E5A}
+.c-gray>.th{fill:#444441}
+.c-gray>.ts{fill:#5F5E5A}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect width="680" height="620" fill="#FFFFFF"/>
+<g class="c-gray">
+<rect x="40" y="30" width="180" height="56" rx="8" stroke-width="0.5" stroke-dasharray="4 3"/>
+<text class="th" x="130" y="48" text-anchor="middle" dominant-baseline="central">第三方登录</text>
+<text class="ts" x="130" y="66" text-anchor="middle" dominant-baseline="central">GitHub · Linux DO · Google</text>
+</g>
+<g class="c-gray">
+<rect x="255" y="30" width="170" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="48" text-anchor="middle" dominant-baseline="central">Caddy</text>
+<text class="ts" x="340" y="66" text-anchor="middle" dominant-baseline="central">TLS 终止</text>
+</g>
+<g class="c-gray">
+<rect x="470" y="30" width="170" height="56" rx="8" stroke-width="0.5" stroke-dasharray="4 3"/>
+<text class="th" x="555" y="48" text-anchor="middle" dominant-baseline="central">模型供应方</text>
+<text class="ts" x="555" y="66" text-anchor="middle" dominant-baseline="central">平台渠道、自带 key</text>
+</g>
+<g class="c-coral">
+<rect x="240" y="150" width="200" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="168" text-anchor="middle" dominant-baseline="central">edge</text>
+<text class="ts" x="340" y="186" text-anchor="middle" dominant-baseline="central">Rust</text>
+</g>
+<g class="c-teal">
+<rect x="40" y="270" width="130" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="105" y="288" text-anchor="middle" dominant-baseline="central">account</text>
+<text class="ts" x="105" y="306" text-anchor="middle" dominant-baseline="central">Go</text>
+</g>
+<g class="c-teal">
+<rect x="275" y="270" width="130" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="288" text-anchor="middle" dominant-baseline="central">content</text>
+<text class="ts" x="340" y="306" text-anchor="middle" dominant-baseline="central">Go</text>
+</g>
+<g class="c-teal">
+<rect x="510" y="270" width="130" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="575" y="288" text-anchor="middle" dominant-baseline="central">ai</text>
+<text class="ts" x="575" y="306" text-anchor="middle" dominant-baseline="central">Go + Node</text>
+</g>
+<g class="c-gray">
+<rect x="40" y="420" width="130" height="56" rx="8" stroke-width="0.5" stroke-dasharray="4 3"/>
+<text class="th" x="105" y="438" text-anchor="middle" dominant-baseline="central">Git 仓库</text>
+<text class="ts" x="105" y="456" text-anchor="middle" dominant-baseline="central">用户自己的仓库</text>
+</g>
+<g class="c-teal">
+<rect x="275" y="420" width="130" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="438" text-anchor="middle" dominant-baseline="central">ops</text>
+<text class="ts" x="340" y="456" text-anchor="middle" dominant-baseline="central">Go</text>
+</g>
+<g class="c-coral">
+<rect x="510" y="420" width="130" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="575" y="438" text-anchor="middle" dominant-baseline="central">search</text>
+<text class="ts" x="575" y="456" text-anchor="middle" dominant-baseline="central">Rust</text>
+</g>
+<g class="c-gray">
+<rect x="275" y="540" width="130" height="56" rx="8" stroke-width="0.5" stroke-dasharray="4 3"/>
+<text class="th" x="340" y="558" text-anchor="middle" dominant-baseline="central">备份目标</text>
+<text class="ts" x="340" y="576" text-anchor="middle" dominant-baseline="central">S3、WebDAV、网盘</text>
+</g>
+<line x1="340" y1="88" x2="340" y2="142" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="350" y="116" dominant-baseline="central">转发请求</text>
+<line x1="80" y1="268" x2="80" y2="94" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="88" y="120" dominant-baseline="central">OAuth</text>
+<path d="M240 178 L130 178 L130 262" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="140" y="230" dominant-baseline="central">会话、域名、角色</text>
+<line x1="340" y1="208" x2="340" y2="262" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="350" y="236" dominant-baseline="central">页面渲染、媒体</text>
+<path d="M440 178 L545 178 L545 262" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="452" y="166" dominant-baseline="central">问答流（SSE）</text>
+<line x1="605" y1="268" x2="605" y2="94" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="597" y="120" text-anchor="end" dominant-baseline="central">模型调用（防 SSRF）</text>
+<line x1="407" y1="292" x2="502" y2="292" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="457" y="279" text-anchor="middle" dominant-baseline="central">翻译调用</text>
+<line x1="508" y1="306" x2="413" y2="306" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="457" y="320" text-anchor="middle" dominant-baseline="central">读正文</text>
+<line x1="525" y1="328" x2="525" y2="412" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="517" y="372" text-anchor="end" dominant-baseline="central">检索</text>
+<line x1="565" y1="418" x2="565" y2="334" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="573" y="372" dominant-baseline="central">嵌入、重排</text>
+<line x1="340" y1="418" x2="340" y2="334" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="350" y="376" dominant-baseline="central">站点导出</text>
+<path d="M285 328 L285 362 L105 362 L105 412" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="195" y="348" text-anchor="middle" dominant-baseline="central">推送、拉取</text>
+<line x1="340" y1="478" x2="340" y2="532" class="arr" marker-end="url(#arrow)"/>
+<text class="ts" x="350" y="506" dominant-baseline="central">备份上传</text>
+<rect class="c-coral" x="40" y="542" width="12" height="12" rx="2" stroke-width="0.5"/>
+<text class="ts" x="60" y="548" dominant-baseline="central">Rust 服务</text>
+<rect class="c-teal" x="40" y="562" width="12" height="12" rx="2" stroke-width="0.5"/>
+<text class="ts" x="60" y="568" dominant-baseline="central">Go 服务</text>
+<rect class="c-gray" x="40" y="582" width="12" height="12" rx="2" stroke-width="0.5" stroke-dasharray="3 2"/>
+<text class="ts" x="60" y="588" dominant-baseline="central">外部系统</text>
+</svg>

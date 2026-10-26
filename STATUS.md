@@ -30,7 +30,7 @@ pnpm build
 
 ## 下一步
 
-0. 新架构：改造成多用户平台（6 个服务、共用 PostgreSQL、edge 与 search 用 Rust），设计草案见 [docs/architecture-v2.md](docs/architecture-v2.md)，待确认后在 main 上分阶段改造；现行 16 服务实现留在 `archive-16-services` 分支，正式站保持 v0.1.52 不动。以下为现行实现的遗留事项。
+0. 新架构：改造成多用户平台（6 个服务、共用 PostgreSQL、edge 与 search 用 Rust），设计已定稿，见 [docs/architecture-v2.md](docs/architecture-v2.md)；下一步按其第 15 节阶段 1，把 16 个服务合并成 account、content、ai、ops 四个 Go 服务。现行 16 服务实现留在 `archive-16-services` 分支，正式站保持 v0.1.52 不动。以下为现行实现的遗留事项。
 1. 完成 16 服务真实嵌入检索联调，继续验证免费云端模型的正文查阅、条件与引用质量；复测正式站问答全链路及移动端键盘面板；正式站问答曾偶发 525（回源 TLS 握手失败，复测未再现），前端已改为自动重试并上线，源站临时记录 TLS 握手错误待查根因。付费模型效果仍待单独复测。
 2. M3：批量翻译计划执行器、文档翻译读取记忆、术语后台入口。
 3. M4/M5：各域屏障与快照、在线恢复/镜像；部署时配置离线 IP 国家库。

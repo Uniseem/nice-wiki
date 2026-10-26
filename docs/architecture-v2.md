@@ -1,6 +1,6 @@
 # 新架构设计：多用户文档平台（草案）
 
-- 日期：2026-10-27。状态：待用户确认。
+- 日期：2026-10-27。状态：已定稿。
 - 现行 16 服务实现保存在分支 `archive-16-services`。新架构在 main 上分阶段改造，复用现有代码，不重复造轮子。
 - 现有正式站保持现状，不迁移数据。
 
@@ -57,20 +57,9 @@
 
 ## 3 总体结构
 
-```text
-浏览器 ──HTTPS──> Caddy（TLS 终止：平台域名、站点通配域名、自定义域名按需证书）
-                    │
-                    ▼
-                  edge（Rust）── 公开页缓存 / 媒体缓存 / 限流 / 会话验签 / SSE
-                    │ HTTP（OpenAPI）
-      ┌─────────┬───┴─────┬─────────┬─────────┐
-   account   content     ai       search     ops
-    (Go)      (Go)    (Go+Node)  (Rust)      (Go)
-      └─────────┴────┬────┴─────────┴─────────┘
-                     ▼
-         PostgreSQL（每服务一个 schema + 公共队列 schema，含 pgvector）
-         磁盘或 S3：正文修订文件、媒体 blob；search 的全文索引文件
-```
+![新架构总览：模块与功能](architecture-v2/overview.svg)
+
+图中 edge 到五个服务的箭头，是后台和公开接口的转发。
 
 - **两个可注册域名分开**：
   - 平台域名（示例 `app.example.com`）承载后台、登录和站主后台。
@@ -223,6 +212,16 @@
 
 ## 8 服务间通信
 
+![服务之间的同步调用与外部系统](architecture-v2/calls.svg)
+
+上图只画服务之间、以及服务和外部系统之间的直接调用；后台接口经 edge 的转发见第 3 节总览图。图中省略了三处次要调用：
+
+- search 收到发布事件后，回 content 读取发布内容。
+- account 通过 Caddy 的管理接口下发 DNS 令牌。
+- Caddy 签自定义域名证书前，先问 edge 该域名是否已验证。
+
+通信方式：
+
 - **同步调用**：HTTP/JSON。每个服务的 `contracts/openapi.json` 是唯一来源，Go 和 Rust 的服务端接口与客户端都由它生成。
 - **服务身份**：保留短期服务断言（Ed25519，签发方、目标、有效期，带用户委托上下文）。单机内网下，去掉请求体哈希绑定和防重放。
 - **事件与任务**：统一走 PG 队列，Go 与 Rust 共用一套。
@@ -231,6 +230,10 @@
   - 延迟消息用于退避和定时。
 - **定时任务**：登记、进度、取消、死信与重放的管理由 ops 负责，执行由各服务的 worker 拉取。
 - **实时推送**：后台实时事件由各服务通过 PG NOTIFY 发出，edge 监听后推给浏览器 SSE；问答流由 ai 产生，edge 透传。
+
+![服务之间的异步事件](architecture-v2/events.svg)
+
+各服务的操作审计也以事件形式交给 ops，图中写作"来自 ai、edge 等"。
 
 主要事件：
 
@@ -280,7 +283,7 @@
 
 ## 10 检索（search，Rust）
 
-- **入库**：content 发布事件 → 分块（移植现有分块规则）→ 向 ai 请求嵌入 → 写入全文索引和 pgvector。
+- **入库**：content 发布事件 → 回 content 读取发布内容 → 分块（移植现有分块规则）→ 向 ai 请求嵌入 → 写入全文索引和 pgvector。
 - **全文**：所有站点共用一个 tantivy 索引，中文用 jieba 分词，以 site_id 字段过滤。
 - **向量**：pgvector，按 site_id 过滤检索。
 - **查询**：BM25 + 向量混合召回，RRF 融合，可选调用 ai 重排。每次查询必须带 site_id 和可见性条件，由 Rust 层强制。
@@ -359,12 +362,17 @@
 | Git 同步 | go-git（Apache-2.0，已在用）、gitoxide（Apache-2.0/MIT） |
 | Rust 的 OpenAPI 代码生成 | 待调研 |
 
-## 17 对现有规则的修改（确认设计后执行）
+## 17 对现有规则的修改
 
-- **AGENTS.md 架构底线**：
-  - "事件经 jobs 中转（outbox → jobs → inbox）"改为"事件和任务经 PG 队列，同事务入队"。
-  - "服务之间不共享可写目录或业务表"保留，并补充"共用一个 PG 实例，每服务独立 schema 与账号"。
-  - "公共机制只在 libs/platform"改为"Go 在 libs/platform，Rust 在新建的 Rust 平台库"。
+定稿时已写入 AGENTS.md：
+
+- **架构底线**：
+  - "事件经 jobs 中转（outbox → jobs → inbox）"改为"事件和任务经 PG 队列，同事务入队"；阶段 2 换库前沿用现有 jobs 中转。
+  - "服务之间不共享可写目录或业务表"保留，并补充"共用一个 PG 实例，每服务独立 schema 与账号"；阶段 2 换库前沿用现有 SQLite。
+  - "公共机制只在 libs/platform"改为"Go 在 libs/platform，Rust 在 Rust 平台库"。
+  - 新增"多用户数据按 site_id / user_id 隔离"。
   - "正文文件是权威数据"保留。
-- **AGENTS.md 合同章节**：去掉 implementation.json 的约束。
-- **旧文档归档**：requirements.md、architecture.md、protocols.md 等描述 16 服务的文档，在阶段 2 完成后标注为旧架构，或移入归档目录。
+- **合同**：不再维护函数级 implementation.json；events.json 只登记事件名称、版本和载荷。
+- **总则**：开工前加读本文；ADR 和合同里的技术设计与本文冲突时，以本文为准。
+
+尚未执行：requirements.md、architecture.md、protocols.md 等描述 16 服务的文档，在阶段 2 完成后标注为旧架构，或移入归档目录。
