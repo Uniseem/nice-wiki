@@ -2,7 +2,7 @@ import { recordVisitorActivity } from '@ui/visitor';
 import { solveChallenge } from '@ui/pow';
 import type { components } from '../gen/api.gen';
 
-// 访客问答的同源接口：会话 ID 与准入令牌只放会话存储；需要人机验证时先做一次工作量证明再重试。
+// 访客问答的同源接口：会话 ID 只放内存、准入令牌放会话存储；需要人机验证时先做一次工作量证明再重试。
 // 服务暂时不可用（发版重启、依赖还没起来）时自动退避重试，约 20 秒内恢复就不打扰访客。
 
 export type Citation = { citationId?: string; title?: string; href?: string };
@@ -26,8 +26,8 @@ export class QaError extends Error {
 
 const store = window.sessionStorage;
 const keys = { guard: 'nw-guard' };
-// 会话按语言分开保存：切换站点语言后用新语言的会话，回答语言和检索都跟着变。
-const conversationKey = (language: string) => `nw-qa-conv:${language}`;
+// 会话按语言分开、只放在内存里：刷新或重新打开页面就是新会话，对话不跨页面保留。
+const conversations = new Map<string, string>();
 
 function key(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -98,17 +98,15 @@ async function call<T>(method: string, path: string, body?: Record<string, unkno
 }
 
 async function conversation(language: string): Promise<string> {
-  try {
-    const existing = store.getItem(conversationKey(language));
-    if (existing) return existing;
-  } catch { /* 隐私模式 */ }
+  const existing = conversations.get(language);
+  if (existing) return existing;
   const created = await call<{ conversation: { conversationId: string } }>('POST', '/v1/conversations', { language, idempotencyKey: key() });
-  try { store.setItem(conversationKey(language), created.conversation.conversationId); } catch { /* 隐私模式 */ }
+  conversations.set(language, created.conversation.conversationId);
   return created.conversation.conversationId;
 }
 
 export function resetConversation(language: string): void {
-  try { store.removeItem(conversationKey(language)); } catch { /* 隐私模式 */ }
+  conversations.delete(language);
 }
 
 export type StartedTurn = { turn: TurnInfo; streamPath: string };

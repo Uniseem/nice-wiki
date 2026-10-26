@@ -1,6 +1,7 @@
-import { Comment, Display, Globe, Magnifier, Moon, Sun } from '@gravity-ui/icons';
+import { Display, Globe, Magnifier, Moon, Sun } from '@gravity-ui/icons';
 import { Button, Dropdown, Label, Modal, useTheme } from '@heroui/react';
 import type { Key } from '@heroui/react';
+import { Matrix } from '@modules/qa/web/src/island/loader';
 import { rememberLanguage } from './enhance';
 
 export type Language = { tag: string; href: string; label: string; current: boolean; prompt?: Record<string, string> };
@@ -26,8 +27,8 @@ export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearc
             <kbd className="ms-auto hidden rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted md:inline">{mac ? '⌘K' : 'Ctrl K'}</kbd>
           </Button>
           {config.aiEnabled && config.kind !== 'ask' && (
-            <Button aria-label={t('AI 问答')} size="sm" variant="primary" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
-              <Comment className="sm:hidden" />
+            <Button aria-label={t('AI 问答')} className="nw-ai-entry" size="sm" variant="outline" onFocus={onAskIntent} onHoverStart={onAskIntent} onPress={onAsk}>
+              <Matrix className="nw-ai-mark" />
               <span className="hidden sm:inline">{t('AI 问答')}</span>
             </Button>
           )}

@@ -20,8 +20,6 @@ type Message = {
   feedback?: 'helpful' | 'unhelpful';
   live?: boolean; // 本次打开后新提问得到的回答：逐字写出
   replacing?: boolean; // 服务端要求整段重发：下一段文字替换现有正文，不先清空
-  streamPath?: string;
-  sequence?: number;
   reconnecting?: boolean;
   error?: string;
 };
@@ -29,19 +27,6 @@ type Message = {
 // 触屏设备（手机、平板）上从不主动聚焦输入框：聚焦会直接弹出软键盘、挡住大半屏，等访客自己点输入框。
 // 发送后收起键盘，让出地方看回答。
 const touch = matchMedia('(pointer: coarse)').matches;
-
-// 对话记录和会话一样按语言分开保存。
-const logKey = (locale: string) => `nw-qa-log:${locale}`;
-
-function loadLog(locale: string): Message[] {
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(logKey(locale)) ?? '[]') as Message[];
-    return saved.map((message) => {
-      const interrupted = message.status === 'streaming' && !(message.turn && message.streamPath);
-      return { ...message, live: false, status: interrupted ? 'cancelled' : message.status, steps: interrupted ? finishSteps(message.steps, 'cancelled') : message.steps };
-    });
-  } catch { return []; }
-}
 
 // 服务暂时不可用（发版重启等）时客户端已经自动重试过一阵，仍不行就给一句友好提示，不显示错误码。
 const busy = (t: Translate) => t('服务正在更新，请稍后再试。');
@@ -57,13 +42,13 @@ function failure(t: Translate, problem: unknown): string {
   return (problem as Error)?.message || t('请求失败（');
 }
 
-// 同一浏览器标签里，同一语言的文档页右下角面板和独立问答页共用一个会话和对话记录。
+// 对话不保留：刷新、重新进入问答页或在文档之间换页，都从空白开始，服务端也另起一个会话。
 // documentId 是访客所在页面：每次提问都带上，AI 会先读这一页全文再回答。
 // 滚动只发生在对话区里，从不滚动页面：提问后把这一轮滚到对话区顶部，回答逐字写出时不自动往下滚，
 // 访客可以从头读；最新内容在可视范围外时显示“回到最新”。
-// 独立页直接使用整页空间；文档中的浮窗沿用同一套会话。
+// 独立页直接使用整页空间；文档中的浮窗按当前文档各自从头开始。
 export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle, fullPage, welcome }: { locale: string; t: Translate; autoFocus?: boolean; className?: string; documentId?: string; pageTitle?: string; fullPage?: boolean; welcome?: QaWelcome }) {
-  const [messages, setMessages] = useState<Message[]>(() => loadLog(locale));
+  const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState<{ turnId?: string; controller: AbortController } | null>(null);
   const activeRun = useRef<typeof running>(null);
@@ -101,10 +86,6 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     observer.observe(box);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    try { sessionStorage.setItem(logKey(locale), JSON.stringify(messages.slice(-30))); } catch { /* 隐私模式 */ }
-  }, [messages, locale]);
 
   // 最新回答的末尾在可视范围之下时显示“回到最新”。
   const check = () => {
@@ -160,23 +141,17 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     return false;
   }
 
-  const cursor = (id: string, afterSequence = 0) => ({
-    afterSequence,
-    onSequence: (sequence: number) => patch(id, (message) => ({ ...message, sequence })),
-    onConnection: (reconnecting: boolean) => patch(id, (message) => ({ ...message, reconnecting })),
-  });
+  // 断网或服务重启时 followTurn 自己从最后一个序号续读，这里只把“正在重新连接”显示出来。
+  const cursor = (id: string) => ({ onConnection: (reconnecting: boolean) => patch(id, (message) => ({ ...message, reconnecting })) });
 
-  // 刷新或在文档之间跳转后续读同一轮持久事件，不重新提问或重复调用模型。
+  // 每次挂载都另起服务端会话；离开（换页、换语言、关掉）时停掉还在写的回答，服务端也不再继续花钱。
   useEffect(() => {
-    const pending = messages.find((message) => message.role === 'assistant' && message.status === 'streaming' && message.turn && message.streamPath);
-    if (pending?.turn && pending.streamPath) {
-      const controller = new AbortController();
-      trackRun({ controller, turnId: pending.turn.turnId });
-      void followTurn({ turn: pending.turn, streamPath: pending.streamPath }, (event) => { receive(pending.id, event); }, controller.signal, cursor(pending.id, pending.sequence)).catch((problem) => {
-        if (!controller.signal.aborted) patch(pending.id, (message) => ({ ...message, status: 'error', error: failure(t, problem), steps: finishSteps(message.steps, 'error'), reconnecting: false }));
-      }).finally(() => endRun(controller));
-    }
-    return () => activeRun.current?.controller.abort();
+    resetConversation(locale);
+    return () => {
+      const run = activeRun.current;
+      run?.controller.abort();
+      if (run?.turnId) void cancelTurn(run.turnId).catch(() => {});
+    };
   }, [locale]);
 
   function latest() {
@@ -205,7 +180,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
           throw new DOMException('Aborted', 'AbortError');
         }
         trackRun({ controller, turnId: started.turn.turnId });
-        patch(id, (message) => ({ ...message, turn: started.turn, streamPath: started.streamPath, sequence: 0 }));
+        patch(id, (message) => ({ ...message, turn: started.turn }));
         await followTurn(started, (event) => {
           if (receive(id, event, attempt === 0)) challenged = true;
         }, controller.signal, cursor(id));

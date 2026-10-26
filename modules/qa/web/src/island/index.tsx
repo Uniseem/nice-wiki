@@ -1,5 +1,4 @@
-import { MessageCircleIcon as Comment } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, cn } from '@heroui/react';
 import { lazy, Suspense, useState } from 'react';
 import { Matrix } from './loader';
 import type { QaWelcome, Translate } from './QaChat';
@@ -15,7 +14,7 @@ const QaInlineChat = lazy(() => loadPanel().then((module) => ({ default: module.
 export function preloadQa() {
   void loadPanel();
 }
-// 文档页右下角的问答入口：品牌色渐变的胶囊按钮，带柔光和呼吸光圈（样式在 public-site 的 site.css）；
+// 文档页右下角的问答入口：和问答页同一种磨砂玻璃胶囊，图标是点阵标记（样式在 public-site 的 site.css）；
 // 面板代码还在下载时，按钮原地显示加载状态。documentId 是当前页面，AI 会先读它。
 export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitle }: { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string }) {
   const [used, setUsed] = useState(open);
@@ -29,7 +28,7 @@ export function QaFloating({ open, onOpenChange, locale, t, documentId, pageTitl
       onHoverStart={preloadQa}
       onPress={() => onOpenChange(true)}
     >
-      {pending ? <Matrix className="text-lg" /> : <Comment className="size-5" />}
+      <Matrix className={cn('text-base', !pending && 'nw-ai-mark')} />
       <span className="hidden sm:inline">{t('AI 问答')}</span>
     </Button>
   );

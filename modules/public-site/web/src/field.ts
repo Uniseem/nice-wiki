@@ -1,7 +1,8 @@
 // 字母点阵背景：密排的等宽字母各自缓慢随机换字；一组窄而分明的波纹缓缓流过，经过处略加黑；
 // 点击处荡开三圈更黑的涟漪，被扫到的字母换得更快。波纹本身缓而重，机械感来自字母的离散跳变。
 // 首页默认不显示，点进 AI 问答时从点击处向外铺开；问答页铺满点阵并盖一层磨砂玻璃。
-// 时间按墙上时钟算：从首页跳到问答页时，波纹位置、铺开的波前和涟漪都接着上一页继续。
+// 时间按墙上时钟算、字母由格子和时间槽算出：从首页跳到问答页时，波纹位置、铺开的波前、涟漪和每个字母都接着上一页继续，
+// 两页交叉淡化时看不出接缝。
 // 减少动态效果时只画一帧静态点阵。
 
 const P = {
@@ -27,6 +28,14 @@ const entryKey = 'nw-field-entry';
 // 墙上时钟（秒）：两个页面各自的 performance.now 起点不同，换算成同一时钟才能接上。减去常数保住精度。
 const clock = (ms = performance.now()) => (performance.timeOrigin + ms) / 1000 - 1.7e9;
 
+// 整数哈希到 [0, 1)：同一格子、同一时间槽在任何页面都得到同一个值。
+function hash(a: number, b: number): number {
+  let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((b | 0) + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(Math.floor(b / 4294967296), 0x27d4eb2f);
+  h = Math.imul(h ^ h >>> 15, 0x2c1b3c6d);
+  h = Math.imul(h ^ h >>> 12, 0x297a2d39);
+  return ((h ^ h >>> 15) >>> 0) / 4294967296;
+}
+
 type Point = { x: number; y: number; t0: number };
 type Ripple = Point & { power: number };
 
@@ -46,7 +55,9 @@ export function startLetterField(initial: number): LetterField {
   document.body.prepend(canvas);
   const context = canvas.getContext('2d')!;
   let width = 0, height = 0, ratio = 1, columns = 0, rows = 0, painted = 0;
-  let glyph = new Uint8Array(0), next = new Float64Array(0);
+  // 每格的固定参数（由格子位置算出，各页一致）：平时换字周期与相位、快速翻动周期、进入快速翻动的门槛；以及当前字母和时间槽。
+  let slow = new Float32Array(0), phase = new Float32Array(0), quick = new Float32Array(0), threshold = new Float32Array(0);
+  let glyph = new Uint8Array(0), slot = new Float64Array(0);
   let atlas = document.createElement('canvas');
   let ripples: Ripple[] = [];
   let surge: Point | null = null; // 波前一道深色、身后字母快速翻动
@@ -75,12 +86,16 @@ export function startLetterField(initial: number): LetterField {
     canvas.height = Math.round(height * ratio);
     columns = Math.ceil(width / P.cell) + 1;
     rows = Math.ceil(height / P.cell) + 1;
-    const now = clock();
-    glyph = new Uint8Array(columns * rows);
-    next = new Float64Array(columns * rows);
-    for (let i = 0; i < glyph.length; i++) {
-      glyph[i] = Math.random() * glyphs.length | 0;
-      next[i] = now + Math.random() * P.idleChange * 2;
+    const cells = columns * rows;
+    slow = new Float32Array(cells); phase = new Float32Array(cells); quick = new Float32Array(cells); threshold = new Float32Array(cells);
+    glyph = new Uint8Array(cells); slot = new Float64Array(cells).fill(NaN);
+    for (let i = 0; i < cells; i++) {
+      const seed = (i % columns) * 7919 + (i / columns | 0) * 104729;
+      slow[i] = P.idleChange * (.4 + 1.2 * hash(seed, 1));
+      phase[i] = hash(seed, 2);
+      quick[i] = P.rippleChange * (.6 + .8 * hash(seed, 3));
+      // 门槛各格不同：涟漪和波前消退时，快速翻动一格一格散去，不会整片同时停住。
+      threshold[i] = .04 + .32 * hash(seed, 4);
     }
     buildAtlas();
   };
@@ -137,13 +152,12 @@ export function startLetterField(initial: number): LetterField {
           const d = Math.hypot(x - surge.x, y - surge.y);
           s = surgeAmp * (Math.exp(-(((d - surgeFront) / 60) ** 4)) + (d < surgeFront ? .35 : 0));
         }
-        // 换字：越黑换得越快；被涟漪或波前扫到的字母立刻进入快速翻动。
-        const busy = rp + s * 1.5;
-        if (t >= next[i]) {
-          glyph[i] = Math.random() * glyphs.length | 0;
-          next[i] = t + (busy > .05 ? P.rippleChange / Math.min(1, busy) : P.idleChange / (1 + w * 1.2)) * (.4 + Math.random() * 1.2);
-        } else if (busy > .2 && next[i] - t > P.rippleChange * 2) {
-          next[i] = t + P.rippleChange * Math.random();
+        // 换字：按时间槽取字母，槽一变就换；被涟漪或波前扫到的字母进入快速翻动。机械感来自这种离散跳变。
+        const fast = rp + s * 1.5 > threshold[i];
+        const current = fast ? Math.floor(t / quick[i]) * 2 + 1 : Math.floor(t / slow[i] + phase[i]) * 2;
+        if (current !== slot[i]) {
+          slot[i] = current;
+          glyph[i] = hash((i % columns) * 7919 + (i / columns | 0) * 104729, current) * glyphs.length | 0;
         }
         const alpha = Math.min(.92, (P.base + P.waveDark * w + P.rippleDark * rp + .28 * s) * visible * shown);
         const level = Math.min(levels - 1, alpha * levels / .92 | 0);
@@ -174,7 +188,12 @@ export function startLetterField(initial: number): LetterField {
   };
 
   resize();
-  new ResizeObserver(() => { resize(); if (still) draw(clock()); }).observe(document.documentElement);
+  // 只在窗口尺寸真的变了才重建网格；页面内容变高变矮不影响点阵。
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === width && window.innerHeight === height) return;
+    resize();
+    if (still) draw(clock());
+  });
   // 切换明暗主题时字母换成新的前景色。
   new MutationObserver(() => { buildAtlas(); if (still) draw(clock()); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   if (still) draw(clock());

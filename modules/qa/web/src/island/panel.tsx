@@ -1,6 +1,7 @@
 import { ChevronsCollapseUpRight, ChevronsExpandUpRight, Xmark } from '@gravity-ui/icons';
 import { Button, cn, Drawer, Tooltip, useMediaQuery } from '@heroui/react';
 import { useEffect, useState } from 'react';
+import { Matrix } from './loader';
 import { type QaWelcome, QaChat, type Translate } from './QaChat';
 
 type PanelProps = { open: boolean; onOpenChange: (open: boolean) => void; locale: string; t: Translate; documentId?: string; pageTitle?: string };
@@ -33,7 +34,7 @@ function FloatingWindow({ open, onOpenChange, locale, t, documentId, pageTitle }
     <section
       aria-label={t('AI 问答')}
       className={cn(
-        'nw-qa-window fixed bottom-5 end-5 z-50 flex max-h-[calc(100dvh-2.5rem)] max-w-[calc(100vw-2.5rem)] origin-bottom-right flex-col overflow-hidden rounded-[1.75rem] border border-border bg-overlay shadow-overlay transition-[opacity,transform,width,height] duration-300 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none rtl:origin-bottom-left',
+        'nw-qa-window fixed bottom-5 end-5 z-50 flex max-h-[calc(100dvh-2.5rem)] max-w-[calc(100vw-2.5rem)] origin-bottom-right flex-col overflow-hidden rounded-3xl border border-border transition-[opacity,transform,width,height] duration-300 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none rtl:origin-bottom-left',
         large ? 'h-[max(75dvh,min(44rem,calc(100dvh-2.5rem)))] w-[max(75vw,27rem)]' : 'h-[min(44rem,calc(100dvh-2.5rem))] w-[27rem]',
         open ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
       )}
@@ -47,10 +48,10 @@ function FloatingWindow({ open, onOpenChange, locale, t, documentId, pageTitle }
           </Button>
           <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
-        <h2 className="flex-1 text-sm font-semibold text-foreground">{t('AI 问答')}</h2>
+        <h2 className="flex flex-1 items-center gap-2 text-sm font-semibold text-foreground"><Matrix className="nw-ai-mark" />{t('AI 问答')}</h2>
         <Button isIconOnly aria-label={t('关闭')} size="sm" variant="ghost" onPress={() => onOpenChange(false)}><Xmark /></Button>
       </header>
-      <QaChat key={locale} autoFocus={open} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+      <QaChat key={`${locale}:${documentId ?? ''}`} autoFocus={open} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
     </section>
   );
 }
@@ -61,14 +62,14 @@ function BottomSheet({ open, onOpenChange, locale, t, documentId, pageTitle }: P
   return (
     <Drawer.Backdrop isOpen={open} variant="transparent" onOpenChange={onOpenChange}>
       <Drawer.Content placement="bottom">
-        <Drawer.Dialog aria-label={t('AI 问答')} className="flex h-[min(88dvh,var(--visual-viewport-height,88dvh))] max-h-none flex-col gap-0 p-0">
+        <Drawer.Dialog aria-label={t('AI 问答')} className="nw-qa-window flex h-[min(88dvh,var(--visual-viewport-height,88dvh))] max-h-none flex-col gap-0 p-0">
           <Drawer.Handle />
           <Drawer.CloseTrigger aria-label={t('关闭')} />
           <Drawer.Header className="border-b border-separator px-4 py-3">
             <Drawer.Heading className="text-base">{t('AI 问答')}</Drawer.Heading>
           </Drawer.Header>
           <Drawer.Body className="m-0 flex flex-col overflow-hidden p-0 text-foreground">
-            <QaChat key={locale} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
+            <QaChat key={`${locale}:${documentId ?? ''}`} documentId={documentId} locale={locale} pageTitle={pageTitle} t={t} />
           </Drawer.Body>
         </Drawer.Dialog>
       </Drawer.Content>

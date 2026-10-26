@@ -96,16 +96,28 @@ function ToolRow({ step, expanded, onToggle, t }: { step: StepView; expanded?: b
   </>;
 }
 
+// 思考步骤（准备回答、分析资料、整理回答）也留在时间线里，不随完成消失；带过程说明的显示在标题下方，过长时点开看全文。
+function ThoughtRow({ step, label, expanded, onToggle }: { step: StepView; label: string; expanded?: boolean; onToggle: () => void }) {
+  const time = step.status === 'running' ? undefined : elapsed(step, Date.now());
+  return <>
+    <div className="flex max-w-full items-center gap-2">
+      <span className={cn('shrink-0 font-medium', step.status === 'running' ? 'nw-qa-working' : 'text-foreground/80')}>{label}</span>
+      {time != null && <span className="nw-qa-trace-time shrink-0 tabular-nums">{seconds(time)}</span>}
+    </div>
+    {step.detail && <button type="button" aria-expanded={!!expanded} className={cn('nw-qa-trace-thought', !expanded && 'line-clamp-3')} onClick={onToggle}>{step.detail}</button>}
+  </>;
+}
+
 // 回答上方的过程：标题行在进行中显示当前动作（点阵加载和扫光文字），完成后概括为“思考过程 · 文档数 · 用时”。
-// 始终展开、不自动收起，访客点标题行才收起。工具按调用顺序排成时间线，参数与结果逐行展开。
+// 始终展开、不自动收起，访客点标题行才收起。所有步骤按顺序排成时间线、完成后也留着；工具的参数与结果逐行展开。
 export const Activity = memo(function Activity({ steps, status, reconnecting, answerText, t }: { steps: StepView[]; status: 'streaming' | 'done' | 'error' | 'cancelled'; reconnecting?: boolean; answerText?: string; t: Translate }) {
   const active = status === 'streaming';
   const [open, setOpen] = useState<boolean>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const panelId = useId();
   const answered = !!answerText?.trim();
-  const rows = steps.map((step, index) => ({ step, id: step.id ?? `${step.key}.${index}` }))
-    .filter(({ step }) => step.tool || (step.detail && step.status !== 'running' && step.detail.trim() !== answerText?.trim()));
+  // 旧记录里过程说明与正文相同的，不在时间线里重复。
+  const rows = steps.map((step, index) => ({ step: !step.tool && step.detail && step.detail.trim() === answerText?.trim() ? { ...step, detail: undefined } : step, id: step.id ?? `${step.key}.${index}` }));
   if (!active && !rows.length) return null;
   const shown = open ?? true;
   const current = active ? steps.findLast((step) => step.status === 'running') : undefined;
@@ -131,7 +143,7 @@ export const Activity = memo(function Activity({ steps, status, reconnecting, an
               <span className="nw-qa-trace-node"><StepIcon step={step} /></span>
               <div className="min-w-0">
                 {step.tool ? <ToolRow step={step} expanded={expanded[id]} t={t} onToggle={() => toggle(id, step.status === 'failed')} />
-                  : <button type="button" aria-expanded={!!expanded[id]} className={cn('nw-qa-trace-thought', !expanded[id] && 'line-clamp-3')} onClick={() => toggle(id, false)}>{step.detail}</button>}
+                  : <ThoughtRow step={step} label={step.status === 'running' && answered ? t('整理回答') : t(step.title)} expanded={expanded[id]} onToggle={() => toggle(id, false)} />}
               </div>
             </li>
           ))}
