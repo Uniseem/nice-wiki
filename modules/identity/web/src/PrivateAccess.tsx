@@ -10,7 +10,8 @@ export default function PrivateAccessPage() {
     const back = query.get('return') ?? '/';
     if (!site) { setError(new Error(t('缺少站点'))); return; }
     api<{ code: string; host: string }>(`/v1/sites/${encodeURIComponent(site)}/private-access`, { method: 'POST', body: {} })
-      .then((result) => location.assign(`${location.protocol}//${result.host}/_pv/accept?code=${encodeURIComponent(result.code)}&return=${encodeURIComponent(back)}`))
+      // 本机开发时平台域名带端口（经隧道访问），站点域名沿用同一个端口。
+      .then((result) => location.assign(`${location.protocol}//${result.host.includes(':') || !location.port ? result.host : `${result.host}:${location.port}`}/_pv/accept?code=${encodeURIComponent(result.code)}&return=${encodeURIComponent(back)}`))
       .catch(setError);
   }, []);
   if (error) return <ErrorBlock error={error} title={t('不能进入这个私有站点')} onRetry={() => location.reload()} />;

@@ -106,7 +106,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
       const { site } = await api<{ site: Site }>('/v1/sites', { method: 'POST', body: { slug, name, baseLanguage: language } });
       // 之后的请求都落在新站点里：初始化站点配置，再把基准语言登记成默认语言，公开页才能渲染。
       selectSite({ siteId: site.siteId, grants: site.grants });
-      await api('/v1/initialization', { method: 'POST', body: { name, baseLanguage: language, publicBaseURL: `${location.protocol}//${site.primaryHost}` } });
+      await api('/v1/initialization', { method: 'POST', body: { name, baseLanguage: language, publicBaseURL: `${location.protocol}//${site.primaryHost}${location.port && !site.primaryHost.includes(':') ? `:${location.port}` : ''}` } });
       const key = newKey();
       await api(`/v1/languages/${encodeURIComponent(language)}`, {
         method: 'PUT', idempotencyKey: key, body: {

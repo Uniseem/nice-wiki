@@ -86,7 +86,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
             <div ref={setSlotElement} className={cn('@container min-w-0 items-center gap-2', claims ? 'flex flex-1' : 'hidden')} />
             {claims > 0 && <span className="mx-1 h-5 w-px shrink-0 bg-separator" />}
             <div className={cn('flex items-center gap-1', !claims && 'ms-auto')}>
-              <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href={currentSiteInfo?.primaryHost ? `${location.protocol}//${currentSiteInfo.primaryHost}/` : '/'} rel="noopener" target="_blank">
+              <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href={currentSiteInfo?.primaryHost ? `${location.protocol}//${currentSiteInfo.primaryHost}${location.port && !currentSiteInfo.primaryHost.includes(':') ? `:${location.port}` : ''}/` : '/'} rel="noopener" target="_blank">
                 <ArrowUpRightFromSquare />
                 <span className="hidden sm:inline">{t('查看站点')}</span>
               </a>

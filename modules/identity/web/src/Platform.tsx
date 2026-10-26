@@ -223,7 +223,7 @@ function AiInvitesTab() {
 }
 
 function UsersTab() {
-  const users = useLoad((signal) => api<{ users: User[] }>('/v1/users?limit=200', { signal }).then((result) => result.users), []);
+  const users = useLoad((signal) => api<{ users: User[] }>('/v1/users?limit=100', { signal }).then((result) => result.users), []);
   const { busy, run } = useAction();
   const toggle = async (user: User) => {
     const status = user.status === 'active' ? 'disabled' : 'active';
@@ -242,7 +242,7 @@ function UsersTab() {
 }
 
 function SitesTab() {
-  const sites = useLoad((signal) => api<{ sites: AdminSite[] }>('/v1/admin/sites?limit=200', { signal }).then((result) => result.sites), []);
+  const sites = useLoad((signal) => api<{ sites: AdminSite[] }>('/v1/admin/sites?limit=100', { signal }).then((result) => result.sites), []);
   const { busy, run } = useAction();
   const toggle = async (site: AdminSite) => {
     const status = site.status === 'active' ? 'suspended' : 'active';

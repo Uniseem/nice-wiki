@@ -107,7 +107,7 @@ func NormalizePublicURL(raw string, allowLocalHTTP bool) (string, error) {
 		return invalid()
 	}
 	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
-	local := host == "localhost"
+	local := host == "localhost" || strings.HasSuffix(host, ".localhost")
 	ip := net.ParseIP(host)
 	if ip != nil {
 		host = ip.String()

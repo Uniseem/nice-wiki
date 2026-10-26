@@ -46,7 +46,7 @@ document.getElementById('f').addEventListener('submit',async(e)=>{
   const key=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
   try{
     const r=await fetch('/v1/reports',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(body)});
-    if(r.ok){msg.textContent='已收到，谢谢。Received, thank you.';e.target.reset();}
+    if(r.ok){msg.textContent='已收到，谢谢。Received, thank you.';e.target.reset();document.getElementById('host').value=q.get('host')||location.hostname;}
     else if(r.status===429){msg.textContent='提交太频繁，请稍后再试。Too many requests, try again later.';}
     else{msg.textContent='提交失败，请检查填写内容。Could not submit, please check the form.';}
   }catch{msg.textContent='网络错误。Network error.';}
