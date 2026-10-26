@@ -147,7 +147,8 @@ func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionI
 		}
 		return language.StorageError(tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM translation_units WHERE status='fallback' AND translation_id=(SELECT translation_id FROM translation_manifests WHERE state IN('ready','review') AND `+scope+` ORDER BY updated_at DESC LIMIT 1)`, tag, op.DataEpoch, documentID, revisionID).Scan(&fallback))
 	})
-	if err != nil || busy > 0 || done > 0 && (fallback == 0 || done+failed > 3) {
+	// 补译次数只数完成的译文：整份失败另按退避重来，不占补译次数（否则早年失败多的修订一次也补不上）。
+	if err != nil || busy > 0 || done > 0 && (fallback == 0 || done > 3) {
 		return 0, false, err
 	}
 	var last time.Time
