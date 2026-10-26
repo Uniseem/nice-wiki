@@ -11,6 +11,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/secretbox"
 	"nice-wiki/libs/platform/serviceauth"
 	content "nice-wiki/modules/content/internal"
 	"nice-wiki/modules/content/internal/gen"
@@ -122,6 +123,18 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		drafts := content.DraftRuntime{Store: store, Manager: editLocks, Identity: identity, SiteConfig: gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key), Media: treeRuntime.Media, WriteWindow: window}
 		locks := content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}
 		if err = transport.RegisterDraftRoutes(application, drafts, locks, treeRuntime, anchors); err != nil {
+			return nil, err
+		}
+		siteData := content.SiteData{Drafts: drafts, Locks: locks, Tree: treeRuntime, Epoch: runtimeView.DataEpoch}
+		if endpoint := config.Dependencies["media"]; endpoint != "" {
+			siteData.Media = content.NewMediaGateway(endpoint, ModuleSlug, key)
+		}
+		if config.MasterKeyRef != "" {
+			if box, boxErr := secretbox.Load(config.MasterKeyRef); boxErr == nil {
+				siteData.Box = box
+			}
+		}
+		if err = transport.RegisterSiteDataRoutes(application, siteData, identity, anchors); err != nil {
 			return nil, err
 		}
 	}

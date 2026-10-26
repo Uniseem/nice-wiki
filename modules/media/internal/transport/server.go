@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -57,9 +59,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch, AdmitBusiness: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, activeDataEpoch),
-		AllowedCallers:        map[string][]string{"listAssetGroups": {"portal"}, "createAssetGroup": {"portal"}, "deleteAssetGroup": {"portal"}, "setAssetGroup": {"portal"}, "beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
+		AllowedCallers:        map[string][]string{"listAssetGroups": {"portal"}, "createAssetGroup": {"portal"}, "deleteAssetGroup": {"portal"}, "setAssetGroup": {"portal"}, "beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway", "content"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "importAsset": {"content"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
 		ServiceActorCallers:   map[string][]string{"readJobRecovery": {"jobs"}, "buildDeliveryManifest": {"public-site", "content"}, "readAsset": {"content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
-		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "attachImageVariants": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true, "readJobRecovery": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20}, Authorize: authorize}, application.serviceHandlers())
+		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "attachImageVariants": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true, "readJobRecovery": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20, "importAsset": 128 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +124,25 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 			writeJSON(w, http.StatusOK, result)
 		}),
 		"putUploadChunk": http.HandlerFunc(serveUploadChunk),
+		"importAsset": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.ContentLength < 1 || r.ContentLength > 128<<20 {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "导入文件必须有1字节至128MiB的明确Content-Length"))
+				return
+			}
+			data, err := io.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+			if err != nil || int64(len(data)) != r.ContentLength {
+				writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "导入文件读取不完整"))
+				return
+			}
+			name, _ := url.PathUnescape(r.Header.Get("X-Original-Name"))
+			op, _ := platform.OperationContextFrom(r.Context())
+			asset, err := mediaDomain.ImportAsset(r.Context(), op, mediaDomain.ImportAssetInput{OriginalName: name, CreatedBy: r.Header.Get("X-Created-By"), Data: data})
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"asset": asset})
+		}),
 		"readAssetBytes": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			if err := mediaDomain.ServeAssetBytes(w, r, op, r.PathValue("assetId"), false); err != nil {

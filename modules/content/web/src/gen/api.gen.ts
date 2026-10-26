@@ -711,6 +711,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/site-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档
+         * @description 把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档
+         */
+        post: operations["importSite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/site-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 导出整站（文档、块 JSON、媒体）为压缩包
+         * @description 导出整站（文档、块 JSON、媒体）为压缩包
+         */
+        get: operations["exportSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2141,6 +2181,14 @@ export interface components {
             dataEpoch: components["schemas"]["Identifier"];
         };
         ReadReferenceDecisionResult: components["schemas"]["ReferenceSourceDecision"];
+        /** @description 一次导入的结果；导入的文档都是草稿 */
+        ImportSiteResult: {
+            format: string;
+            documents: number;
+            images: number;
+            warnings: string[];
+            failures: string[];
+        };
         /**
          * @description 可信服务上下文决定，公开请求不能指定
          * @enum {string}
@@ -5030,6 +5078,181 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    importSite: {
+        parameters: {
+            query?: {
+                format?: "auto" | "markdown" | "gitbook" | "notion" | "nicewiki";
+                parent?: components["schemas"]["Identifier"];
+            };
+            header: {
+                "Content-Length": number;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description 把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportSiteResult"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    exportSite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 导出整站（文档、块 JSON、媒体）为压缩包的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

@@ -38,7 +38,7 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 	}
 	admin := op.Actor.Kind == "admin" && op.Actor.SessionID != "" && (hasGrant(op.Actor.Grants, "media.read") || hasGrant(op.Actor.Grants, "superadmin"))
 	// 知识库与模型网关以服务身份读取已发布资源：按版本核对，不需要公开地址里的 sha。
-	service := op.Actor.Kind == "service" && (op.CallerService == "knowledge" || op.CallerService == "model-gateway")
+	service := op.Actor.Kind == "service" && (op.CallerService == "knowledge" || op.CallerService == "model-gateway" || op.CallerService == "content")
 	if !admin {
 		if service {
 			if wanted := r.URL.Query().Get("version"); wanted != "" && wanted != strconv.Itoa(version) {

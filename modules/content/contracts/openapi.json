@@ -3572,6 +3572,252 @@
         },
         "x-internal-only": true
       }
+    },
+    "/v1/site-import": {
+      "post": {
+        "operationId": "importSite",
+        "summary": "把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档",
+        "description": "把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档",
+        "x-handler": "content.ImportSite",
+        "x-permission": "content.edit",
+        "x-v2": true,
+        "x-timeout-ms": 300000,
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "markdown",
+                "gitbook",
+                "notion",
+                "nicewiki"
+              ]
+            }
+          },
+          {
+            "name": "parent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          },
+          {
+            "name": "Content-Length",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16777216
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "types.json#/$defs/ImportSiteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：对象不存在或不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：状态冲突、唯一约束冲突或版本已改变",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：频率或容量限制",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/site-export": {
+      "get": {
+        "operationId": "exportSite",
+        "summary": "导出整站（文档、块 JSON、媒体）为压缩包",
+        "description": "导出整站（文档、块 JSON、媒体）为压缩包",
+        "x-handler": "content.ExportSite",
+        "x-permission": "backup.manage",
+        "x-v2": true,
+        "x-timeout-ms": 300000,
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "导出整站（文档、块 JSON、媒体）为压缩包的成功回执",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：对象不存在或不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：状态冲突、唯一约束冲突或版本已改变",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：频率或容量限制",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

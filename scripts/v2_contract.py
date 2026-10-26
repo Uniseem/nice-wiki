@@ -87,7 +87,14 @@ def build_op(module, op):
     for name, expr in op.get("query", {}).items():
         schema, req = schema_of(expr)
         parameters.append({"name": name, "in": "query", "required": req, "schema": schema})
-    responses = {"200": {"description": op["summary"] + "的成功回执", "content": {"application/json": {"schema": {"$ref": "types.json#/$defs/" + op["out"]}}}}}
+    for name, expr in op.get("headers", {}).items():
+        schema, req = schema_of(expr)
+        parameters.append({"name": name, "in": "header", "required": req, "schema": schema})
+    if op.get("raw_out"):
+        success = {"description": op["summary"] + "的成功回执", "content": {op["raw_out"]: {"schema": {"type": "string", "format": "binary"}}}}
+    else:
+        success = {"description": op["summary"] + "的成功回执", "content": {"application/json": {"schema": {"$ref": "types.json#/$defs/" + op["out"]}}}}
+    responses = {"200": success}
     for code, text in ERRORS.items():
         item = json.loads(json.dumps(PROBLEM))
         item["description"] = text
@@ -99,12 +106,17 @@ def build_op(module, op):
         "x-handler": f"{module}.{op['id'][0].upper()}{op['id'][1:]}",
         "x-permission": perm,
         "x-v2": True,
+        **({"x-timeout-ms": op["timeout_ms"]} if op.get("timeout_ms") else {}),
         "security": security,
         "parameters": parameters,
         "responses": responses,
     }
     if op.get("in"):
         result["requestBody"] = {"required": True, "content": {"application/json": {"schema": {"$ref": "types.json#/$defs/" + op["in"]}}}}
+    if op.get("raw_in"):
+        raw = op["raw_in"]
+        result["parameters"].append({"name": "Content-Length", "in": "header", "required": True, "schema": {"type": "integer", "minimum": 1, "maximum": raw["max"]}})
+        result["requestBody"] = {"required": True, "content": {raw["type"]: {"schema": {"type": "string", "format": "binary"}}}}
     return result
 
 

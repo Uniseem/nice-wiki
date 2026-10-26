@@ -43,5 +43,6 @@
 | POST `/v1/asset-groups` | `createAssetGroup` | `media.CreateAssetGroup` | `media.manage` | `CreateAssetGroupInput` → 200 `CreateAssetGroupResult` | 新建资源分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 | DELETE `/v1/asset-groups/{groupId}` | `deleteAssetGroup` | `media.DeleteAssetGroup` | `media.manage` | `—` → 200 `DeleteAssetGroupResult` | 删除分组并保留资源 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 | PUT `/v1/assets/{assetId}/group` | `setAssetGroup` | `media.SetAssetGroup` | `media.manage` | `SetAssetGroupInput` → 200 `SetAssetGroupResult` | 移动资源到分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
+| POST `/v1/asset-imports` | `importAsset` | `media.ImportAsset` | `service` | `application/octet-stream` → 200 `ImportAssetResult` | 内容域导入站点数据时交来的文件，一次完成声明、写入、校验与登记 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 

@@ -6061,6 +6061,21 @@
       "required": [
         "updated"
       ]
+    },
+    "ImportAssetResult": {
+      "type": "object",
+      "description": "导入完成的资源（含不可变版本引用）",
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "asset"
+      ],
+      "x-v2": true
     }
   }
 }

@@ -2472,6 +2472,26 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/site-export",
+      "owner": "content",
+      "operationId": "exportSite",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": 300000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/site-import",
+      "owner": "content",
+      "operationId": "importSite",
+      "permission": "content.edit",
+      "admission": null,
+      "timeoutMs": 300000,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/site-overview:refresh",
       "owner": "knowledge",

@@ -6845,6 +6845,49 @@
         "entry",
         "body"
       ]
+    },
+    "ImportSiteResult": {
+      "type": "object",
+      "description": "一次导入的结果；导入的文档都是草稿",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "documents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "images": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "maxItems": 1000
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "format",
+        "documents",
+        "images",
+        "warnings",
+        "failures"
+      ],
+      "x-v2": true
     }
   }
 }

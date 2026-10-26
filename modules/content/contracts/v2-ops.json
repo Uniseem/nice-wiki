@@ -1,0 +1,30 @@
+{
+  "types": {
+    "ImportSiteResult": {
+      "description": "一次导入的结果；导入的文档都是草稿",
+      "props": {"format": "string:32", "documents": "int:0", "images": "int:0", "warnings": "[string:500]", "failures": "[string:500]"}
+    }
+  },
+  "ops": [
+    {
+      "id": "importSite",
+      "method": "post",
+      "path": "/v1/site-import",
+      "perm": "content.edit",
+      "summary": "把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档",
+      "query": {"format": "enum:auto|markdown|gitbook|notion|nicewiki?", "parent": "id?"},
+      "raw_in": {"type": "application/octet-stream", "max": 16777216},
+      "timeout_ms": 300000,
+      "out": "ImportSiteResult"
+    },
+    {
+      "id": "exportSite",
+      "method": "get",
+      "path": "/v1/site-export",
+      "perm": "backup.manage",
+      "summary": "导出整站（文档、块 JSON、媒体）为压缩包",
+      "raw_out": "application/zip",
+      "timeout_ms": 300000
+    }
+  ]
+}

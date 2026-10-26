@@ -1,0 +1,20 @@
+{
+  "types": {
+    "ImportAssetResult": {
+      "description": "导入完成的资源（含不可变版本引用）",
+      "props": {"asset": "any"}
+    }
+  },
+  "ops": [
+    {
+      "id": "importAsset",
+      "method": "post",
+      "path": "/v1/asset-imports",
+      "perm": "service",
+      "summary": "内容域导入站点数据时交来的文件，一次完成声明、写入、校验与登记",
+      "headers": {"X-Original-Name": "string:255", "X-Created-By": "id"},
+      "raw_in": {"type": "application/octet-stream", "max": 134217728},
+      "out": "ImportAssetResult"
+    }
+  ]
+}

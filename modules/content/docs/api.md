@@ -48,5 +48,7 @@
 | POST `/v1/snapshots:discard` | `discardSnapshot` | `content.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/reference-decisions/{sourceOperationId}` | `readReferenceDecision` | `content.ReadReferenceDecision` | `service` | `—` → 200 `ReadReferenceDecisionResult` | 读取资源引用源持久提交决定 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 404` |
 | GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `content.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
+| POST `/v1/site-import` | `importSite` | `content.ImportSite` | `content.edit` | `application/octet-stream` → 200 `ImportSiteResult` | 把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/site-export` | `exportSite` | `content.ExportSite` | `backup.manage` | `—` → 200 `application/zip` | 导出整站（文档、块 JSON、媒体）为压缩包 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 
