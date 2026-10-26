@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	_ "modernc.org/sqlite" // 纯Go驱动，注册"sqlite"
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"

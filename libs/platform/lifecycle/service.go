@@ -14,6 +14,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/audit"
+	"nice-wiki/libs/platform/pgdb"
 )
 
 // 退出码语义：0正常、1失败、2配置错误、75恢复重启。
@@ -109,6 +110,12 @@ func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec plat
 	if _, key, err := LoadServiceIdentity(config); err == nil {
 		audit.Install(config, key)
 	}
+	if dsn, err := pgdb.ReadDSN(config.DatabaseRef); err != nil {
+		fmt.Fprintf(os.Stderr, "数据库连接串不可读 %s\n", config.Module)
+		return ExitBadConfig
+	} else if dsn != "" {
+		pgdb.Configure(config.Module, config.DataRoot, dsn)
+	}
 	application, err := spec.BuildApplication(ctx, config)
 	// 依赖还没就绪（站点未初始化、依赖服务未启动）时每 3 秒重试，不必靠进程守护反复重启整个进程。
 	for err != nil && retryableStartup(err) && ctx.Err() == nil {
@@ -117,6 +124,9 @@ func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec plat
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "装配失败 %s，errorCode=%s %s\n", config.Module, errorCodeOf(err), messageOf(err))
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "原始错误：%v\n", err)
+		}
 		return ExitFailure
 	}
 	hosted, hasBackground := application.(platform.BackgroundApplication)

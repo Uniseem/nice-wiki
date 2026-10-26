@@ -1,6 +1,5 @@
--- control区不随业务恢复替换；只允许bootstrap状态单向收敛。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_bootstrap.sql 至 0001_bootstrap.sql）。
 CREATE TABLE control_schema (singleton INTEGER PRIMARY KEY CHECK(singleton=1), schema_version INTEGER NOT NULL);
-INSERT INTO control_schema VALUES(1,1);
 CREATE TABLE bootstrap_claim (
  singleton INTEGER PRIMARY KEY CHECK(singleton=1),
  schema_version INTEGER NOT NULL CHECK(schema_version=1),
@@ -11,3 +10,4 @@ CREATE TABLE bootstrap_claim (
  claimed_at TEXT NOT NULL,
  state TEXT NOT NULL CHECK(state IN ('reserved','committed'))
 );
+INSERT INTO "control_schema"("singleton","schema_version") VALUES(1,1);

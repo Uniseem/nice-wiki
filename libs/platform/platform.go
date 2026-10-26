@@ -707,6 +707,8 @@ type ServiceConfig struct {
 	SigningKeyRef     string            `json:"signingKeyRef"`
 	DelegationKeyRef  string            `json:"delegationKeyRef,omitempty"`
 	MasterKeyRef      string            `json:"masterKeyRef,omitempty"`
+	// DatabaseRef 是存放 PostgreSQL 连接串的私有文件路径（连接串含口令，不写进配置本身）。
+	DatabaseRef       string            `json:"databaseRef,omitempty"`
 	BudgetKeyRef      string            `json:"budgetKeyRef,omitempty"`
 	Dependencies      map[string]string `json:"dependencies"`
 	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`

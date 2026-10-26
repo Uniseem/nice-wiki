@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	_ "modernc.org/sqlite"
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	_ "modernc.org/sqlite"
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"

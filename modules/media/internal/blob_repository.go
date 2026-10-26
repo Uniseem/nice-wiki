@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动（ADR0005）。
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"

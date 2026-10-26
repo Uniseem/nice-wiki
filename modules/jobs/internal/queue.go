@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	_ "modernc.org/sqlite" // 注册无CGO的 sqlite 驱动。
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"

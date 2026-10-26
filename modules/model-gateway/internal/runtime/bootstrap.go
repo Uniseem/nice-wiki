@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	_ "modernc.org/sqlite" // 纯Go SQLite驱动，不依赖CGO。
+	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/outbox"

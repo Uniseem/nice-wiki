@@ -9,6 +9,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # NW_DEV_DIR / NW_DEV_PORT_OFFSET 让同一份脚本在别处（如 NL 测试机）跑隔离实例，不碰默认的 .local/dev。
 DEV = os.environ.get("NW_DEV_DIR") or os.path.join(ROOT, ".local", "dev")
 PORT_OFFSET = int(os.environ.get("NW_DEV_PORT_OFFSET", "0"))
+# PostgreSQL 连接串，如 postgres://用户:口令@127.0.0.1:5432/库?sslmode=disable；开发时用 docker 起一个 pgvector 实例。
+DATABASE_URL = os.environ.get("NW_DEV_DATABASE_URL", "")
 PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114}.items()}
@@ -65,6 +67,8 @@ def geoip():
 
 
 def setup():
+    if not DATABASE_URL:
+        sys.exit("请先设置 NW_DEV_DATABASE_URL（PostgreSQL 连接串）")
     os.makedirs(path("bin"), exist_ok=True)
     os.makedirs(path("logs"), exist_ok=True)
     services = [{"slug": s, "secretsDir": path("secrets", s)} for s in PORTS]
@@ -112,6 +116,12 @@ def setup():
             countries = geoip()
             if countries:
                 cfg["geoipCountryDBRef"] = countries
+        # 全部组件共用一个 PostgreSQL（各组件在自己的 schema 里）；连接串含口令，只写进私有文件，配置里放文件路径。
+        dsn_file = os.path.join(sec, "database-url")
+        with open(dsn_file, "w") as f:
+            f.write(DATABASE_URL)
+        os.chmod(dsn_file, 0o600)
+        cfg["databaseRef"] = dsn_file
         os.makedirs(cfg["dataRoot"], exist_ok=True, mode=0o700)
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
