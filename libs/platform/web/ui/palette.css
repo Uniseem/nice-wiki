@@ -1,10 +1,7 @@
-@import "./fonts/lora.css";
-
-/* 公开站与后台共用的中性灰配色与阅读字体。文字、细边和浅色纸面区分层次，品牌色只用于站标。 */
+/* 公开站与后台共用的中性灰配色与正文字体（标题与界面用各自样式里的无衬线字）。文字、细边和浅色纸面区分层次，品牌色只用于站标。 */
 @layer base {
   :root,
   [data-theme="light"] {
-    --nw-font-serif: "Lora", "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
     --nw-font-body: Georgia, var(--font-sans);
     --background: #e6e6e6;
     --foreground: #171717;

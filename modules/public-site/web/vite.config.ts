@@ -17,7 +17,6 @@ const out = resolve(process.env.NW_WEB_OUT ? resolve(process.env.NW_WEB_OUT) : r
 const katexAssets = () => ({
   name: 'katex-assets',
   closeBundle() {
-    cpSync(resolve(root, 'docs/licenses/lora-OFL.txt'), resolve(out, 'lora-OFL.txt'));
     for (const name of ['ZCode-Apache-2.0.txt', 'ZCode-NOTICE.txt', 'lucide-react-1.17.0-LICENSE.txt']) {
       cpSync(resolve(root, 'docs/licenses', name), resolve(out, name));
     }

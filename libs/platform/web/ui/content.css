@@ -13,8 +13,9 @@
   .nw-prose h2 { @apply mt-14 mb-5 text-[28px] font-semibold leading-9 tracking-tight; }
   .nw-prose h3 { @apply mt-10 mb-4 text-[23px] font-semibold leading-8 tracking-tight; }
   .nw-prose h4 { @apply mt-7 mb-2 text-lg font-semibold; }
-  .nw-prose :is(h1, h2, h3, h4) { @apply text-foreground; font-family: var(--nw-font-serif); scroll-margin-top: 5.5rem; }
-  .nw-prose :is(h5, h6) { font-family: var(--font-sans); }
+  .nw-prose :is(h1, h2, h3, h4) { @apply text-foreground; scroll-margin-top: 5.5rem; }
+  /* 各级标题的中文和字母都用无衬线字，正文才用 Georgia。 */
+  .nw-prose :is(h1, h2, h3, h4, h5, h6) { font-family: var(--font-sans); }
   .nw-prose p { @apply my-6; }
   .nw-prose a { @apply font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent; }
   .nw-prose strong { @apply font-semibold text-foreground; }

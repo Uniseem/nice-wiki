@@ -191,7 +191,7 @@ function HomeTab({ config, onSaved }: TabProps) {
           <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl bg-background px-5 py-10 text-center">
             <div className="mb-8 flex w-full justify-end gap-4 text-xs text-muted">{form.headerLinks.map((link, index) => <span key={index}>{link.text}</span>)}</div>
             <p className="text-xs text-muted">{form.backgroundText}</p>
-            <p className="mt-3 font-medium text-foreground" style={{ fontFamily: 'var(--nw-font-serif)', fontSize: '1.75rem' }}>{form.mainTitle}</p>
+            <p className="mt-3 font-semibold text-foreground" style={{ fontSize: '1.75rem' }}>{form.mainTitle}</p>
             <p className="mt-2 text-sm text-muted">{form.subtitle}</p>
             <div className="my-6 w-full rounded-2xl border border-border bg-field px-4 py-6 text-start text-sm text-muted">{t('AI 问答')}</div>
             <span className="rounded-xl bg-accent px-5 py-2.5 text-sm text-accent-foreground">{t('进入 wiki')}</span>
