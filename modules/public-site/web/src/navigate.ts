@@ -48,14 +48,18 @@ function compatible(doc: Document): boolean {
 
 const headSelector = 'meta[name="description"], link[rel="canonical"], link[rel="alternate"], meta[property^="og:"], meta[name^="twitter:"], script[type="application/ld+json"]';
 
-function swap(doc: Document, enter: boolean) {
+// 换成新页面的标题、SEO 元信息和只有部分页面带的样式（比如代码高亮）；首页进问答的页内切换也用它。
+export function swapHead(doc: Document) {
   document.title = doc.title;
   document.head.querySelectorAll(headSelector).forEach((node) => node.remove());
   const anchor = document.head.querySelector('script');
   doc.head.querySelectorAll(headSelector).forEach((node) => document.head.insertBefore(document.importNode(node, true), anchor));
-  // 只有部分页面带的样式（比如代码高亮）缺了就补上。
   const styles = new Set(Array.from(document.head.querySelectorAll('style'), (style) => style.textContent));
   doc.head.querySelectorAll('style').forEach((style) => { if (!styles.has(style.textContent)) document.head.append(document.importNode(style, true)); });
+}
+
+function swap(doc: Document, enter: boolean) {
+  swapHead(doc);
 
   for (const id of ['nw-main', 'nw-toc']) {
     const next = doc.getElementById(id);

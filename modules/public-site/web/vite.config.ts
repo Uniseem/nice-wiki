@@ -31,6 +31,8 @@ export default defineConfig({
   base: './',
   publicDir: false,
   plugins: [react(), tailwindcss(), katexAssets()],
+  // 字母点阵的绘制线程（field.worker.ts）按 ES 模块输出，和 site.js 在同一个带版本的路径下。
+  worker: { format: 'es' },
   resolve: {
     alias: { '@ui': resolve(root, 'libs/platform/web/ui'), '@modules': resolve(root, 'modules') },
   },

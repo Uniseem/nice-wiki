@@ -83,7 +83,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
         intents.forEach((name) => button.removeEventListener(name, preload));
       }
     };
-  }, []);
+  }, [header]);
 
   // 首页主视觉在问答没开启时放一个搜索框（服务端输出），点开 ⌘K 搜索，指针移上去就预取搜索代码；非 Mac 上快捷键提示改成 Ctrl K。
   useEffect(() => {
@@ -94,7 +94,7 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
     for (const node of document.querySelectorAll('[data-open-search]')) bindings.push([node, 'click', search], [node, 'pointerenter', preloadSearch], [node, 'focus', preloadSearch]);
     bindings.forEach(([node, name, listener]) => node.addEventListener(name, listener));
     return () => bindings.forEach(([node, name, listener]) => node.removeEventListener(name, listener));
-  }, []);
+  }, [header]);
 
   const onAsk = () => {
     if (ask) ask.querySelector('textarea')?.focus();
@@ -113,17 +113,23 @@ function Islands({ header, ask }: { header: HTMLElement | null; ask: HTMLElement
   );
 }
 
-const header = document.getElementById('nw-header');
-const ask = document.getElementById('nw-ask');
-// 服务端放在这几处的是无脚本时的退路内容，由 React 接管后清掉。
-header?.replaceChildren();
-ask?.replaceChildren();
 const host = document.createElement('div');
 host.id = 'nw-qa-root';
 document.body.append(host);
-createRoot(host).render(<Islands ask={ask} header={header} />);
+const root = createRoot(host);
+// 服务端放在页头操作区和问答区的是无脚本时的退路内容，由 React 接管后清掉。
+const mount = () => {
+  const header = document.getElementById('nw-header');
+  const ask = document.getElementById('nw-ask');
+  header?.replaceChildren();
+  ask?.replaceChildren();
+  root.render(<Islands ask={ask} header={header} />);
+};
+mount();
+// 首页进 AI 问答是页内切换（welcome.ts）：换上问答页的页头和问答区后，交互岛重新接管。
+window.addEventListener('nw:page', mount);
 enhance(t);
-enhanceWelcome();
+enhanceWelcome(t);
 enhanceBackdrop();
 installExternalLinks();
 startNavigation(t);

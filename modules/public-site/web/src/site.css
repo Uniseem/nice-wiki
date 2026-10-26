@@ -368,8 +368,8 @@ body:not([data-page="home"]) .nw-brand > span { view-transition-name: nw-brand-n
   @view-transition { navigation: none; }
 }
 
-/* 字母点阵背景（field.ts 画在画布上，颜色取前景色）：铺满窗口、中间略淡；跨页面时原地交叉淡化，不随页面平移。 */
-.nw-field { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; color: var(--foreground); view-transition-name: nw-field; -webkit-mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); }
+/* 字母点阵背景（field.ts 交给 Web Worker 画，颜色取前景色）：铺满窗口、中间略淡、单独一个合成层；跨页面时原地交叉淡化，不随页面平移。 */
+.nw-field { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; color: var(--foreground); will-change: transform; view-transition-name: nw-field; -webkit-mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); }
 /* 文档页的问答浮窗与窄屏底部面板：磨砂玻璃（下面的正文模糊透出），细边浅影，与问答页一致。 */
 .nw-qa-window { background: color-mix(in srgb, var(--background) 76%, transparent); -webkit-backdrop-filter: blur(22px) saturate(120%); backdrop-filter: blur(22px) saturate(120%); box-shadow: 0 1px 2px rgb(5 5 5 / .04), 0 24px 60px -28px rgb(5 5 5 / .32); }
 /* 问答页的磨砂玻璃：盖在点阵上，模糊加底色，保证阅读。 */
