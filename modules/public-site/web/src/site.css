@@ -86,6 +86,14 @@
   .nw-header-language { height: 2rem; flex-shrink: 0; }
   .nw-header-language > span { max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nw-header-theme { width: 2rem; height: 2rem; flex-shrink: 0; }
+  /* 问答页和文档页左上角的“首页”按钮：细边胶囊，悬停时箭头往回挪一点；窄屏只留箭头。 */
+  .nw-back { display: inline-flex; flex-shrink: 0; align-items: center; gap: .25rem; height: 2rem; padding-inline: .45rem .75rem; margin-inline-end: .25rem; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--surface) 60%, transparent); font-size: .875rem; transition: background-color .2s, border-color .2s; }
+  .nw-back svg { width: 1rem; height: 1rem; transition: translate .25s cubic-bezier(.2,.8,.2,1); }
+  [dir="rtl"] .nw-back svg { transform: scaleX(-1); }
+  .nw-back:hover { background: var(--surface); border-color: color-mix(in srgb, var(--foreground) 25%, transparent); }
+  .nw-back:hover svg { translate: -3px 0; }
+  [dir="rtl"] .nw-back:hover svg { translate: 3px 0; }
+  @media (max-width: 639px) { .nw-back { padding-inline: .45rem; } }
   .nw-site-footer {
     background: var(--background);
   }
@@ -346,8 +354,13 @@ body[data-page="home"] .nw-site-header { border-color: transparent; }
   @view-transition { navigation: none; }
 }
 
-/* 首页点阵背景（field.ts 画在画布上，颜色取前景色）：四周渐隐，打开首页时慢慢浮现。 */
-.nw-field { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; pointer-events: none; color: var(--foreground); mask-image: radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%); animation: nw-fade-in 1.6s ease-out both; }
+/* 字母点阵背景（field.ts 画在画布上，颜色取前景色）：铺满窗口、中间略淡；跨页面时原地交叉淡化，不随页面平移。 */
+.nw-field { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; color: var(--foreground); view-transition-name: nw-field; -webkit-mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); mask-image: radial-gradient(ellipse 62% 52% at 50% 40%, rgb(0 0 0 / .42), #000 78%); }
+/* 问答页的磨砂玻璃：盖在点阵上，模糊加底色，保证阅读。 */
+@property --nw-glass-blur { syntax: "<length>"; inherits: false; initial-value: 6px; }
+.nw-glass { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: color-mix(in srgb, var(--background) 55%, transparent); -webkit-backdrop-filter: blur(var(--nw-glass-blur)) saturate(115%); backdrop-filter: blur(var(--nw-glass-blur)) saturate(115%); }
+body[data-page="ask"] .nw-agent-main { position: relative; z-index: 1; }
+body[data-page="ask"] .nw-site-header { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 @keyframes nw-fade-in { from { opacity: 0; } }
 
 /* 点阵加载：3×3 小方点按顺时针逐格跳亮，中心点慢闪。 */
@@ -506,7 +519,7 @@ body[data-page="doc"] .nw-document { animation: nw-enter .45s cubic-bezier(.2,.8
   .nw-qa-page[data-empty="true"] .nw-qa-scroll { padding-block: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .nw-welcome-name, .nw-welcome-choices, .nw-agent-main, body[data-page="doc"] .nw-document, .nw-field, .nw-qa-loading, .nw-qa-trace-label, .nw-qa-trace-item, .nw-qa-trace-node::after, .nw-qa-question, .nw-qa-empty > * { animation: none !important; }
+  .nw-welcome-name, .nw-welcome-choices, .nw-agent-main, body[data-page="doc"] .nw-document, .nw-qa-loading, .nw-qa-trace-label, .nw-qa-trace-item, .nw-qa-trace-node::after, .nw-qa-question, .nw-qa-empty > * { animation: none !important; }
   .nw-matrix i { animation: none; opacity: .45; }
   .nw-welcome-choice, .nw-welcome-arrow, .nw-qa-tool-collapse, .nw-qa-composer, .nw-qa-input textarea, .nw-qa-trace-chevron { transition: none; }
 }
