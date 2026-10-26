@@ -276,7 +276,7 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 		})
 		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		validate(validatedScope).ServeHTTP(recorder, r.WithContext(ctx))
-		audit.Record(op, r.Method, id, params, recorder.status)
+		audit.Record(config.Self, op, r.Method, id, params, recorder.status)
 	}), nil
 }
 

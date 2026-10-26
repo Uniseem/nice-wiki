@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -39,19 +40,83 @@ func RunService(spec platform.ServiceSpec) int {
 		fmt.Fprint(os.Stderr, configErrFormat)
 		return ExitBadConfig
 	}
+	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
+	return runComponent(ctx, stopSignals, spec, config)
+}
+
+// RunServices 是宿主进程模板：在同一进程内运行多个组件（每个组件仍是一个独立装配的 Application，
+// 各自监听、各自配置、各自服务身份）。参数只接受 --config-dir，组件配置取 <目录>/<模块>.json；
+// 不读环境变量覆盖，避免各组件互相覆盖监听地址。任一组件失败则整体停止，由进程守护重启。
+func RunServices(args []string, specs []platform.ServiceSpec) int {
+	dir := ""
+	for i := 0; i < len(args); i++ {
+		name, value, hasValue := splitFlag(args[i])
+		if name != "--config-dir" {
+			fmt.Fprint(os.Stderr, configErrFormat)
+			return ExitBadConfig
+		}
+		if !hasValue {
+			i++
+			if i >= len(args) {
+				fmt.Fprint(os.Stderr, configErrFormat)
+				return ExitBadConfig
+			}
+			value = args[i]
+		}
+		dir = value
+	}
+	if dir == "" || len(specs) == 0 {
+		fmt.Fprint(os.Stderr, configErrFormat)
+		return ExitBadConfig
+	}
+	configs := make([]platform.ServiceConfig, len(specs))
+	for i, spec := range specs {
+		if spec.BuildApplication == nil {
+			fmt.Fprint(os.Stderr, "装配回调缺失\n")
+			return ExitFailure
+		}
+		config, err := LoadServiceConfig([]string{"--config", filepath.Join(dir, spec.Module+".json")}, nil)
+		if err != nil || config.Module != spec.Module {
+			fmt.Fprintf(os.Stderr, "组件配置错误：%s\n", spec.Module)
+			return ExitBadConfig
+		}
+		configs[i] = config
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	codes := make(chan int, len(specs))
+	for i := range specs {
+		go func(spec platform.ServiceSpec, config platform.ServiceConfig) {
+			codes <- runComponent(ctx, stop, spec, config)
+		}(specs[i], configs[i])
+	}
+	worst := ExitOK
+	for range specs {
+		code := <-codes
+		if code != ExitOK {
+			stop()
+			if worst == ExitOK || code == ExitFailure {
+				worst = code
+			}
+		}
+	}
+	return worst
+}
+
+// runComponent 运行一个已加载配置的组件直到退出；stopSignals 在需要整体停止时调用。
+func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec platform.ServiceSpec, config platform.ServiceConfig) int {
 	if _, key, err := LoadServiceIdentity(config); err == nil {
 		audit.Install(config, key)
 	}
-	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stopSignals()
 	application, err := spec.BuildApplication(ctx, config)
-	// 站点还没初始化时，依赖站点身份的服务先等着（每 3 秒重试），初始化一完成就能起来，不必靠进程守护反复重启。
-	for err != nil && errorCodeOf(err) == platform.CodeNotFound && strings.Contains(messageOf(err), "尚未完成初始化") && ctx.Err() == nil {
+	// 依赖还没就绪（站点未初始化、依赖服务未启动）时每 3 秒重试，不必靠进程守护反复重启整个进程。
+	for err != nil && retryableStartup(err) && ctx.Err() == nil {
 		time.Sleep(3 * time.Second)
 		application, err = spec.BuildApplication(ctx, config)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "装配失败，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
+		fmt.Fprintf(os.Stderr, "装配失败 %s，errorCode=%s %s\n", config.Module, errorCodeOf(err), messageOf(err))
 		return ExitFailure
 	}
 	hosted, hasBackground := application.(platform.BackgroundApplication)
@@ -152,6 +217,17 @@ func RunService(spec platform.ServiceSpec) int {
 		fmt.Fprint(os.Stderr, "收到停止信号，开始安全关闭\n")
 		return finish(ExitOK)
 	}
+}
+
+// retryableStartup 判断装配失败是否只是依赖尚未就绪：站点未初始化，或依赖服务暂不可用。
+func retryableStartup(err error) bool {
+	switch errorCodeOf(err) {
+	case platform.CodeDependencyUnavailable:
+		return true
+	case platform.CodeNotFound:
+		return strings.Contains(messageOf(err), "尚未完成初始化")
+	}
+	return false
 }
 
 // shutdown 以30秒上限安全关闭；超时或失败由调用方决定退出码。

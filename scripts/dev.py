@@ -6,11 +6,32 @@
 import json, os, signal, socket, subprocess, sys, time, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEV = os.path.join(ROOT, ".local", "dev")
-PORTS = {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
+# NW_DEV_DIR / NW_DEV_PORT_OFFSET 让同一份脚本在别处（如 NL 测试机）跑隔离实例，不碰默认的 .local/dev。
+DEV = os.environ.get("NW_DEV_DIR") or os.path.join(ROOT, ".local", "dev")
+PORT_OFFSET = int(os.environ.get("NW_DEV_PORT_OFFSET", "0"))
+PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
-         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114}
-DEFAULT_UP = ["site-config", "identity", "jobs", "traffic-guard", "media", "localization", "content", "public-site", "model-gateway", "knowledge", "memory", "analytics", "data-protection", "agent", "qa", "portal"]
+         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114}.items()}
+# 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置；
+# portal、knowledge 暂时仍是各自独立的进程（分别由 Rust 的 edge、search 取代前保留）。
+HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
+         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "data-protection", "traffic-guard"]}
+STANDALONE = ["portal", "knowledge"]
+DEFAULT_UP = ["account", "ops", "content", "ai", "knowledge", "portal"]
+
+
+def components(proc):
+    return HOSTS.get(proc, [proc])
+
+
+def workdir(proc):
+    return os.path.join(ROOT, "services" if proc in HOSTS else "modules", proc)
+
+
+def command(proc):
+    if proc in HOSTS:
+        return [path("bin", proc), "--config-dir", path("config")]
+    return [path("bin", proc), "--config", path("config", proc + ".json")]
 
 
 def path(*parts):
@@ -22,6 +43,8 @@ def geoip():
     target = path("geoip", "dbip-country-lite.mmdb")
     if os.path.exists(target):
         return target
+    if os.environ.get("NW_DEV_NO_GEOIP"):
+        return None
     os.makedirs(path("geoip"), exist_ok=True)
     import datetime, gzip, urllib.request
     today = datetime.date.today()
@@ -93,9 +116,9 @@ def setup():
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
 
 
-def build(slugs):
-    for s in slugs:
-        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=os.path.join(ROOT, "modules", s))
+def build(procs):
+    for s in procs:
+        subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=workdir(s))
 
 
 def port_open(port):
@@ -124,29 +147,33 @@ def pidfile(s):
     return path("run", s + ".pid")
 
 
-def up(slugs):
+def proc_env():
+    return {**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")}
+
+
+def up(procs):
     setup()
-    build(slugs)
-    if "portal" in slugs or "agent" in slugs:
+    build(procs)
+    if "portal" in procs or "ai" in procs:
         build_web()
     os.makedirs(path("run"), exist_ok=True)
-    for s in slugs:
+    for s in procs:
         stop(s)
         log = open(path("logs", s + ".log"), "w")
-        p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True, cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")})
+        p = subprocess.Popen(command(s), stdout=log, stderr=log, start_new_session=True, cwd=workdir(s), env=proc_env())
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)
-            if p.poll() is not None or port_open(PORTS[s]):
+            if p.poll() is not None or all(port_open(PORTS[c]) for c in components(s)):
                 break
-        print(("运行中 " if p.poll() is None else "已退出 ") + s, f"(:{PORTS[s]})")
+        print(("运行中 " if p.poll() is None else "已退出 ") + s, " ".join(f"{c}:{PORTS[c]}" for c in components(s)))
     if not os.path.exists(path("run", "watch.pid")):
-        subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch", *slugs], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch", *procs], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def stop(slug):
-    """停掉该服务已有的进程（若有），避免新进程因端口占用而悄悄失败。"""
-    f = pidfile(slug)
+def stop(proc):
+    """停掉该进程已有的实例（若有），避免新进程因端口占用而悄悄失败。"""
+    f = pidfile(proc)
     if os.path.exists(f):
         try:
             os.killpg(int(open(f).read()), signal.SIGTERM)
@@ -154,15 +181,14 @@ def stop(slug):
             pass
         os.remove(f)
         for _ in range(50):
-            if not port_open(PORTS[slug]):
+            if not any(port_open(PORTS[c]) for c in components(proc)):
                 break
             time.sleep(0.1)
 
 
 def start_one(s):
     log = open(path("logs", s + ".log"), "a")
-    p = subprocess.Popen([path("bin", s), "--config", path("config", s + ".json")], stdout=log, stderr=log, start_new_session=True,
-                         cwd=os.path.join(ROOT, "modules", s), env={**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web")})
+    p = subprocess.Popen(command(s), stdout=log, stderr=log, start_new_session=True, cwd=workdir(s), env=proc_env())
     open(pidfile(s), "w").write(str(p.pid))
     return p
 
@@ -212,7 +238,7 @@ def down():
 
 
 def status():
-    for s in PORTS:
+    for s in DEFAULT_UP:
         f = pidfile(s)
         alive = False
         if os.path.exists(f):

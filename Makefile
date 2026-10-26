@@ -18,7 +18,7 @@ docs:
 gen:
 	$(PYTHON) scripts/gen_code.py
 
-GO_MODULES := libs/platform $(patsubst %/go.mod,%,$(wildcard modules/*/go.mod))
+GO_MODULES := libs/platform $(patsubst %/go.mod,%,$(wildcard modules/*/go.mod)) $(patsubst %/go.mod,%,$(wildcard services/*/go.mod))
 
 # 编译门槛（AGENTS“检查与记录”）：Go 代码记 implemented/verified 前必须通过。
 build:

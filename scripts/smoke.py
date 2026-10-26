@@ -6,7 +6,7 @@ import json, os, sys, urllib.request, urllib.error, uuid
 PORTAL = os.environ.get("NW_PORTAL", "http://127.0.0.1:8080")  # 对 docker 部署用 NW_PORTAL=https://localhost（自签证书，下面不校验）
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
-PUBLIC = "http://127.0.0.1:8081"
+PUBLIC = os.environ.get("NW_PUBLIC", "http://127.0.0.1:8081")
 ACCOUNT, PASSWORD = "admin", "Dev-Passw0rd-123456"
 state = {"cookie": "", "csrf": ""}
 

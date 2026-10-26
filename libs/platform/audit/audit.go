@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -50,7 +51,8 @@ type fact struct {
 	Body      json.RawMessage `json:"body"`
 }
 
-var current *emitter
+// emitters 按模块登记：宿主进程里多个组件各自以本组件身份交付审计。
+var emitters sync.Map // module -> *emitter
 
 // Install 在服务启动时装配并开始交付上次没送完的事实；没有 analytics 依赖或本服务就是 analytics 时不审计。
 func Install(config platform.ServiceConfig, key platform.SigningKey) {
@@ -63,16 +65,21 @@ func Install(config platform.ServiceConfig, key platform.SigningKey) {
 		debug("审计待交付目录不可用：%v", err)
 		return
 	}
-	current = &emitter{module: config.Module, base: base, spool: spool, wake: make(chan struct{}, 1),
+	e := &emitter{module: config.Module, base: base, spool: spool, wake: make(chan struct{}, 1),
 		client: &http.Client{Transport: serviceauth.SigningTransport(config.Module, "analytics", key, nil)}}
-	current.wake <- struct{}{} // 先送上次进程没送完的
-	go current.deliver()
+	emitters.Store(config.Module, e)
+	e.wake <- struct{}{} // 先送上次进程没送完的
+	go e.deliver()
 }
 
-// Record 在成功的后台写操作之后调用：仅当前服务已装配、操作者是后台账号且动作在合同枚举内才记。
-func Record(op platform.OperationContext, method, operationID string, params map[string]string, status int) {
-	e := current
-	if e == nil || status < 200 || status >= 300 || method == http.MethodGet || method == http.MethodHead || op.Actor.Kind != "admin" {
+// Record 在成功的后台写操作之后调用：仅该模块已装配、操作者是后台账号且动作在合同枚举内才记。
+func Record(module string, op platform.OperationContext, method, operationID string, params map[string]string, status int) {
+	value, ok := emitters.Load(module)
+	if !ok {
+		return
+	}
+	e := value.(*emitter)
+	if status < 200 || status >= 300 || method == http.MethodGet || method == http.MethodHead || op.Actor.Kind != "admin" {
 		return
 	}
 	action := e.module + "." + operationID
