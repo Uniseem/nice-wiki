@@ -120,6 +120,12 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 	}
 	var batch []gen.TranslationUnit
 	size := 0
+	// 表格按行交给模型、译完再拼回的整表单元，及其各行的临时单元 ID（即行的 rowId）。
+	type tableParts struct {
+		unit gen.TranslationUnit
+		rows []string
+	}
+	var tables []tableParts
 	flush := func() error {
 		if len(batch) == 0 {
 			return nil
@@ -130,6 +136,17 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 		}
 		translated = append(translated, done...)
 		batch, size = nil, 0
+		return nil
+	}
+	// 每批控制在约 1500 字节原文：日文等语言的译文词元多，批太大时一次回复要写很久，容易超出请求超时。
+	enqueue := func(unit gen.TranslationUnit, text string) error {
+		if size+len(text) > 1500 || len(batch) >= 12 {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+		batch = append(batch, unit)
+		size += len(text)
 		return nil
 	}
 	for i, unit := range split.Units {
@@ -186,17 +203,65 @@ func runTranslation(ctx context.Context, op OperationContext, translationID stri
 			translated = append(translated, unit)
 			continue
 		}
-		// 每批控制在约 1500 字节原文：日文等语言的译文词元多，批太大时一次回复要写很久，容易超出请求超时。
-		if size+len(text) > 1500 || len(batch) >= 12 {
-			if err := flush(); err != nil {
-				return err
+		// 表格按行交给模型：整表一起译时只要一个标签写错整表就退回原文，按行译出错只牵连那一行；各行译完再拼回整表单元。
+		if rows := split.Templates[i].Rows; len(rows) > 1 {
+			parts := tableParts{unit: unit}
+			for _, row := range rows {
+				slots := split.Templates[i].Slots[row.Start:row.End]
+				rowText := SlotText(slots)
+				part := unit
+				part.UnitId, part.SourceText, part.ParentBlockId = row.RowId, &rowText, &unit.UnitId
+				templates[row.RowId] = UnitTemplate{UnitId: row.RowId, ParentBlockId: unit.UnitId, Slots: slots}
+				parts.rows = append(parts.rows, row.RowId)
+				if VisibleCharacterCount(rowText) == 0 && strings.TrimSpace(inlineTokenPattern.ReplaceAllString(rowText, "")) == "" {
+					part.TargetText, part.TargetHash, part.Origin, part.Status = rowText, platform.HashBytes([]byte(rowText)), "machine", "normal"
+					translated = append(translated, part)
+					continue
+				}
+				if err := enqueue(part, rowText); err != nil {
+					return err
+				}
 			}
+			tables = append(tables, parts)
+			continue
 		}
-		batch = append(batch, unit)
-		size += len(text)
+		if err := enqueue(unit, text); err != nil {
+			return err
+		}
 	}
 	if err := flush(); err != nil {
 		return err
+	}
+	// 拼回整表：各行都译出才算译完；任一行仍不通过就整表先显示原文，交给之后的自动补译。
+	if len(tables) > 0 {
+		byID := make(map[string]gen.TranslationUnit, len(translated))
+		for _, unit := range translated {
+			byID[unit.UnitId] = unit
+		}
+		for _, table := range tables {
+			var text strings.Builder
+			complete := true
+			for _, id := range table.rows {
+				row := byID[id]
+				delete(byID, id)
+				complete = complete && row.Status == "normal"
+				text.WriteString(row.TargetText)
+			}
+			unit := table.unit
+			unit.TargetText, unit.Origin, unit.Status = text.String(), "machine", "normal"
+			if !complete {
+				unit.TargetText, unit.Status = *unit.SourceText, "fallback"
+			}
+			unit.TargetHash = platform.HashBytes([]byte(unit.TargetText))
+			byID[unit.UnitId] = unit
+		}
+		ordered := make([]gen.TranslationUnit, 0, len(split.Units))
+		for _, unit := range split.Units {
+			if done, found := byID[unit.UnitId]; found {
+				ordered = append(ordered, done)
+			}
+		}
+		translated = ordered
 	}
 	// 标题和搜索摘要合成一个小批次单独翻译；失败只是没有标题或摘要译文（公开页沿用原文），不影响正文译文交付。
 	title, description := "", ""
@@ -335,6 +400,12 @@ func translateUnits(ctx context.Context, op OperationContext, translationID, att
 		}
 		checked, err := ValidateTranslationOutput(ctx, op, ValidateTranslationOutputInput{SourceUnits: []gen.TranslationUnit{unit}, TranslatedUnits: []gen.TranslationUnit{{UnitId: unit.UnitId, TargetText: text}}, SourceLanguage: source.SourceLanguage})
 		if err != nil {
+			// 表格按行译时，整行是代码、数字或专名的常原样返回；整表一起译时这样的行本来就被接受，这里同样接受。
+			if ok && template.ParentBlockId != unit.UnitId && text == *unit.SourceText {
+				unit.TargetText, unit.TargetHash, unit.Origin, unit.Status = text, platform.HashBytes([]byte(text)), "machine", "normal"
+				done = append(done, unit)
+				continue
+			}
 			failed = append(failed, unit)
 			continue
 		}

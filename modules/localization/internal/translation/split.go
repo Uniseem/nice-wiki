@@ -21,9 +21,17 @@ type InlineSlot struct {
 	Fixed bool     `json:"fixed"`
 }
 type UnitTemplate struct {
-	UnitId        string       `json:"unitId"`
-	ParentBlockId string       `json:"parentBlockId"`
-	Slots         []InlineSlot `json:"slots"`
+	UnitId        string        `json:"unitId"`
+	ParentBlockId string        `json:"parentBlockId"`
+	Slots         []InlineSlot  `json:"slots"`
+	Rows          []TemplateRow `json:"rows,omitempty"`
+}
+
+// TemplateRow 是整表单元里一行占用的编号段 [Start, End)：整表仍存成一个单元（已有译文照常读取），翻译时按行分开交给模型。
+type TemplateRow struct {
+	RowId string `json:"rowId"`
+	Start int    `json:"start"`
+	End   int    `json:"end"`
 }
 type SplitTranslationUnitsInput struct {
 	Document       gen.PublishedRevisionRef `json:"document"`
@@ -128,11 +136,15 @@ func SplitTranslationUnits(ctx context.Context, op OperationContext, input Split
 			probe := []InlineSlot{}
 			var text strings.Builder
 			probeErr := CollectSlots(node, path, &probe, &text)
+			rows, _ := node["content"].([]any)
 			if probeErr == nil && utf8.RuneCountInString(text.String()) <= 65536 {
+				before := len(result.Templates)
 				_, err := addUnit(node, path, blockID, blockID)
+				if err == nil && len(result.Templates) > before && len(rows) > 1 {
+					result.Templates[before].Rows = tableRows(rows, path)
+				}
 				return err
 			}
-			rows, _ := node["content"].([]any)
 			for i, value := range rows {
 				row := value.(map[string]any)
 				rowAttrs, _ := row["attrs"].(map[string]any)
@@ -240,6 +252,38 @@ func AppendTextSlots(slots *[]InlineSlot, text *strings.Builder, path []string, 
 	}
 	return nil
 }
+
+// tableRows 按行数出整表编号段的分界；整表的编号段已收集成功，逐行再收一遍不会出错。
+func tableRows(rows []any, path []string) []TemplateRow {
+	result := make([]TemplateRow, 0, len(rows))
+	start := 0
+	for i, value := range rows {
+		row := value.(map[string]any)
+		attrs, _ := row["attrs"].(map[string]any)
+		id, _ := attrs["rowId"].(string)
+		slots := []InlineSlot{}
+		var text strings.Builder
+		_ = CollectSlots(row, AppendPath(path, "content", strconv.Itoa(i)), &slots, &text)
+		result = append(result, TemplateRow{RowId: id, Start: start, End: start + len(slots)})
+		start += len(slots)
+	}
+	return result
+}
+
+// SlotText 按编号段重建送给模型的原文，编码与 AppendSlot 一致。
+func SlotText(slots []InlineSlot) string {
+	var text strings.Builder
+	for _, slot := range slots {
+		number := strconv.Itoa(slot.Index)
+		if slot.Fixed {
+			text.WriteString("<v" + number + "/>")
+		} else {
+			text.WriteString("<i" + number + ">" + html.EscapeString(slot.Value) + "</i" + number + ">")
+		}
+	}
+	return text.String()
+}
+
 func AppendSlot(slots *[]InlineSlot, text *strings.Builder, path []string, value string, fixed bool) error {
 	index := len(*slots) + 1
 	number := strconv.Itoa(index)
