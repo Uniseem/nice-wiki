@@ -1,8 +1,8 @@
--- 基线迁移：由历史迁移重放得到的最终结构（0001_domain.sql 至 0009_job_context.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_baseline.sql 至 0001_baseline.sql）。
 CREATE TABLE events (
     event_id TEXT PRIMARY KEY,
     event_seq INTEGER NOT NULL UNIQUE,
-    envelope_json BLOB NOT NULL,
+    envelope_json TEXT NOT NULL,
     source_revision INTEGER NOT NULL CHECK (source_revision >= 0),
     data_epoch TEXT NOT NULL
 , producer TEXT NOT NULL DEFAULT '', event_type TEXT NOT NULL DEFAULT '', event_version INTEGER NOT NULL DEFAULT 0, subject_id TEXT NOT NULL DEFAULT '', envelope_hash TEXT NOT NULL DEFAULT '');
@@ -27,7 +27,7 @@ CREATE TABLE schedules (
 CREATE TABLE barriers (
     barrier_id TEXT PRIMARY KEY,
     state TEXT NOT NULL,
-    domain_status_json BLOB NOT NULL,
+    domain_status_json TEXT NOT NULL,
     data_epoch TEXT NOT NULL,
     deadline TEXT NOT NULL
 );
@@ -42,7 +42,7 @@ CREATE TABLE lease_operations (
     operation_kind TEXT NOT NULL CHECK (operation_kind IN ('claim', 'heartbeat', 'complete', 'fail', 'cancel')),
     operation_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     PRIMARY KEY (owner, data_epoch, operation_kind, operation_id)
 );
 CREATE TABLE "jobs" (
@@ -87,7 +87,7 @@ CREATE TABLE event_operations (
     operation_kind TEXT NOT NULL CHECK (operation_kind IN ('publish','ack','replay')),
     operation_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY(caller,data_epoch,operation_kind,operation_id)
 );
@@ -96,7 +96,7 @@ CREATE TABLE job_management_operations (
     data_epoch TEXT NOT NULL,
     operation_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY (caller, data_epoch, operation_id)
 );
@@ -105,7 +105,7 @@ CREATE TABLE schedule_operations (
     data_epoch TEXT NOT NULL,
     operation_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY (caller, data_epoch, operation_id)
 );
@@ -128,7 +128,7 @@ CREATE TABLE progress (
 CREATE TABLE job_results (
     job_id TEXT PRIMARY KEY REFERENCES jobs(job_id),
     result_ref TEXT NOT NULL,
-    paid_result_refs_json BLOB NOT NULL,
+    paid_result_refs_json TEXT NOT NULL,
     result_hash TEXT NOT NULL
 );
 CREATE TABLE job_outcomes (
@@ -137,7 +137,7 @@ CREATE TABLE job_outcomes (
     operation_kind TEXT NOT NULL CHECK (operation_kind IN ('complete', 'fail')),
     worker_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     PRIMARY KEY (job_id, fencing_token)
 );
 CREATE UNIQUE INDEX idx_progress_checkpoint ON progress(job_id, checkpoint_key) WHERE checkpoint_key <> '';

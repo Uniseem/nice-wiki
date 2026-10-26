@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -229,7 +230,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &conn{Conn: inner, owner: c}, nil
+	return &conn{Conn: inner, owner: c, described: map[string][]uint32{}}, nil
 }
 
 func (c *connector) Driver() driver.Driver { return Driver{} }
@@ -237,8 +238,9 @@ func (c *connector) Driver() driver.Driver { return Driver{} }
 // conn 包装 pgx 的 database/sql 连接：翻译语句、规整参数、写事务取建议锁。
 type conn struct {
 	driver.Conn
-	owner *connector
-	inTx  bool
+	owner     *connector
+	inTx      bool
+	described map[string][]uint32 // 语句文本 -> 服务端推断的参数类型
 }
 
 // txWrapper 在提交或回滚后清掉连接的“事务中”标记。
@@ -275,7 +277,86 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 	if len(statements) != 1 {
 		return nil, errors.New("pgdb: 预编译语句只能是单条")
 	}
-	return c.Conn.(driver.ConnPrepareContext).PrepareContext(ctx, statements[0])
+	stmt, err := c.Conn.(driver.ConnPrepareContext).PrepareContext(ctx, statements[0])
+	if err != nil {
+		return nil, mapError(err)
+	}
+	oids, err := c.paramTypes(ctx, statements[0])
+	if err != nil {
+		_ = stmt.Close()
+		return nil, mapError(err)
+	}
+	return &bytesStmt{Stmt: stmt, oids: oids}, nil
+}
+
+// paramTypes 让服务端描述语句，取得各参数的类型（每条连接上每个语句文本只描述一次，并作为命名预编译语句复用）。
+func (c *conn) paramTypes(ctx context.Context, statement string) ([]uint32, error) {
+	if oids, ok := c.described[statement]; ok {
+		return oids, nil
+	}
+	pgxConn := c.Conn.(*stdlib.Conn).Conn()
+	description, err := pgxConn.Prepare(ctx, statement, statement)
+	if err != nil {
+		return nil, err
+	}
+	c.described[statement] = description.ParamOIDs
+	return description.ParamOIDs, nil
+}
+
+// afterDDL 结构变更后丢弃本连接缓存的预编译语句，避免命中旧结构。
+func (c *conn) afterDDL(ctx context.Context, statement string) {
+	upper := strings.ToUpper(strings.TrimSpace(statement))
+	if strings.HasPrefix(upper, "CREATE") || strings.HasPrefix(upper, "ALTER") || strings.HasPrefix(upper, "DROP") {
+		_ = c.Conn.(*stdlib.Conn).Conn().DeallocateAll(ctx)
+		c.described = map[string][]uint32{}
+	}
+}
+
+// bytesRows 让名为 *_json 的文本列以字节返回：这些列在 SQLite 里是 BLOB，代码按 []byte / json.RawMessage 扫描。
+type bytesRows struct {
+	driver.Rows
+	cols []int
+	init bool
+}
+
+func (r *bytesRows) Next(dest []driver.Value) error {
+	if !r.init {
+		r.init = true
+		for i, name := range r.Rows.Columns() {
+			if name == "json" || strings.HasSuffix(name, "_json") {
+				r.cols = append(r.cols, i)
+			}
+		}
+	}
+	if err := r.Rows.Next(dest); err != nil {
+		return err
+	}
+	for _, i := range r.cols {
+		if text, ok := dest[i].(string); ok {
+			dest[i] = []byte(text)
+		}
+	}
+	return nil
+}
+
+type bytesStmt struct {
+	driver.Stmt
+	oids []uint32
+}
+
+func (s *bytesStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	coerceArgs(s.oids, args)
+	rows, err := s.Stmt.(driver.StmtQueryContext).QueryContext(ctx, args)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &bytesRows{Rows: rows}, nil
+}
+
+func (s *bytesStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	coerceArgs(s.oids, args)
+	result, err := s.Stmt.(driver.StmtExecContext).ExecContext(ctx, args)
+	return result, mapError(err)
 }
 
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
@@ -311,6 +392,14 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 		var bound []driver.NamedValue
 		if i == 0 && len(statements) == 1 {
 			bound = args
+			if len(bound) > 0 {
+				oids, perr := c.paramTypes(ctx, statement)
+				if perr != nil {
+					debugf(c.owner.module, perr, statement)
+					return nil, mapError(perr)
+				}
+				coerceArgs(oids, bound)
+			}
 		}
 		// SQLite 里单条语句失败不会让事务作废，代码常靠“先插入、遇唯一冲突当重复”来判断；
 		// PostgreSQL 会中止整个事务，所以事务内的普通 INSERT 用保存点隔离。
@@ -331,6 +420,7 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 			debugf(c.owner.module, err, statement)
 			return nil, mapError(err)
 		}
+		c.afterDDL(ctx, statement)
 	}
 	return result, nil
 }
@@ -344,11 +434,99 @@ func (c *conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	if len(statements) != 1 {
 		return nil, errors.New("pgdb: 查询只能是单条语句")
 	}
+	if len(args) > 0 {
+		oids, perr := c.paramTypes(ctx, statements[0])
+		if perr != nil {
+			debugf(c.owner.module, perr, statements[0])
+			return nil, mapError(perr)
+		}
+		coerceArgs(oids, args)
+	}
 	rows, err := c.Conn.(driver.QueryerContext).QueryContext(ctx, statements[0], args)
 	if err != nil {
 		debugf(c.owner.module, err, statements[0])
+		return nil, mapError(err)
 	}
-	return rows, mapError(err)
+	return &bytesRows{Rows: rows}, nil
+}
+
+// coerceArgs 按服务端推断的参数类型做宽松转换，模拟 SQLite 的动态类型：
+// 整数/布尔→文本，字符串→整数/布尔/浮点，字符串→字节（避免 bytea 转义格式误解反斜杠）。
+func coerceArgs(oids []uint32, args []driver.NamedValue) {
+	for i := range args {
+		if i >= len(oids) {
+			return
+		}
+		args[i].Value = coerce(oids[i], args[i].Value)
+	}
+}
+
+const (
+	oidBool    = 16
+	oidBytea   = 17
+	oidName    = 19
+	oidInt8    = 20
+	oidInt2    = 21
+	oidInt4    = 23
+	oidText    = 25
+	oidFloat4  = 700
+	oidFloat8  = 701
+	oidBpchar  = 1042
+	oidVarchar = 1043
+)
+
+func coerce(oid uint32, v driver.Value) driver.Value {
+	switch oid {
+	case oidText, oidVarchar, oidBpchar, oidName:
+		switch x := v.(type) {
+		case int64:
+			return strconv.FormatInt(x, 10)
+		case float64:
+			return strconv.FormatFloat(x, 'g', -1, 64)
+		case bool:
+			if x {
+				return "1"
+			}
+			return "0"
+		}
+	case oidInt8, oidInt4, oidInt2:
+		switch x := v.(type) {
+		case string:
+			if n, err := strconv.ParseInt(x, 10, 64); err == nil {
+				return n
+			}
+		case []byte:
+			if n, err := strconv.ParseInt(string(x), 10, 64); err == nil {
+				return n
+			}
+		case bool:
+			if x {
+				return int64(1)
+			}
+			return int64(0)
+		}
+	case oidBool:
+		switch x := v.(type) {
+		case int64:
+			return x != 0
+		case string:
+			return x == "1" || strings.EqualFold(x, "true")
+		}
+	case oidFloat8, oidFloat4:
+		switch x := v.(type) {
+		case string:
+			if f, err := strconv.ParseFloat(x, 64); err == nil {
+				return f
+			}
+		case int64:
+			return float64(x)
+		}
+	case oidBytea:
+		if x, ok := v.(string); ok {
+			return []byte(x)
+		}
+	}
+	return v
 }
 
 func isPlainInsert(statement string) bool {
@@ -369,23 +547,22 @@ func debugf(module string, err error, statement string) {
 }
 
 func (c *conn) CheckNamedValue(value *driver.NamedValue) error {
-	if _, ok := value.Value.(driver.Valuer); ok {
-		converted, err := driver.DefaultParameterConverter.ConvertValue(value.Value)
-		if err != nil {
-			return err
-		}
-		value.Value = converted
+	// 与 database/sql 默认的参数规整一致（int→int64、命名字节类型→[]byte、Valuer 取值），再补 PostgreSQL 需要的两项。
+	converted, err := driver.DefaultParameterConverter.ConvertValue(value.Value)
+	if err != nil {
+		return err
 	}
-	switch v := value.Value.(type) {
+	switch v := converted.(type) {
 	case bool:
 		if v {
-			value.Value = int64(1)
+			converted = int64(1)
 		} else {
-			value.Value = int64(0)
+			converted = int64(0)
 		}
 	case time.Time:
-		value.Value = v.UTC().Format(time.RFC3339Nano)
+		converted = v.UTC().Format(time.RFC3339Nano)
 	}
+	value.Value = converted
 	return nil
 }
 

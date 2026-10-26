@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（001_initial.sql 至 019_agent_only_tasks.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（001_baseline.sql 至 001_baseline.sql）。
 CREATE TABLE schema_migrations (
     version INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -19,8 +19,8 @@ CREATE TABLE providers (
     connect_timeout_ms INTEGER NOT NULL CHECK (connect_timeout_ms >= 0),
     request_timeout_ms INTEGER NOT NULL CHECK (request_timeout_ms >= 0),
     display_name TEXT NOT NULL,
-    extra_header_names_json BLOB NOT NULL,
-    extra_header_secret_refs_json BLOB NOT NULL,
+    extra_header_names_json TEXT NOT NULL,
+    extra_header_secret_refs_json TEXT NOT NULL,
     concurrency_limit INTEGER NOT NULL CHECK (concurrency_limit >= 0),
     stream_idle_timeout_ms INTEGER NOT NULL CHECK (stream_idle_timeout_ms >= 0),
     data_epoch TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE models (
     version INTEGER NOT NULL CHECK (version >= 1),
     provider_id TEXT NOT NULL REFERENCES providers(provider_id),
     provider_model_version TEXT NOT NULL,
-    capabilities_json BLOB NOT NULL,
+    capabilities_json TEXT NOT NULL,
     dimension INTEGER NOT NULL CHECK (dimension >= 0),
     preprocessor_version TEXT NOT NULL,
     max_input_tokens INTEGER NOT NULL CHECK (max_input_tokens >= 0),
@@ -48,7 +48,7 @@ CREATE TABLE operation_receipts (
     function_id TEXT NOT NULL,
     idempotency_key TEXT NOT NULL,
     input_hash TEXT NOT NULL,
-    result_json BLOB NOT NULL,
+    result_json TEXT NOT NULL,
     created_at TEXT NOT NULL, result_hash TEXT,
     PRIMARY KEY (site_id, actor_id, function_id, idempotency_key)
 );
@@ -59,10 +59,10 @@ CREATE TABLE invocations (
     cost_class TEXT NOT NULL,
     state TEXT NOT NULL,
     deadline TEXT NOT NULL,
-    price_snapshot_json BLOB NOT NULL,
+    price_snapshot_json TEXT NOT NULL,
     data_epoch TEXT NOT NULL,
     updated_at TEXT NOT NULL
-, owner_service TEXT, site_id TEXT, created_at TEXT, invocation_json BLOB, invocation_hash TEXT, request_json BLOB, operation_json BLOB, route_json BLOB, profile_json BLOB, fee_binding_json BLOB, active_attempt_id TEXT, lease_id TEXT NOT NULL DEFAULT '', lease_until_ns INTEGER NOT NULL DEFAULT 0, cancel_requested INTEGER NOT NULL DEFAULT 0, created_ns INTEGER, terminal_ns INTEGER NOT NULL DEFAULT 0, terminal_output_json BLOB, execution_hash TEXT, create_command_key TEXT);
+, owner_service TEXT, site_id TEXT, created_at TEXT, invocation_json TEXT, invocation_hash TEXT, request_json TEXT, operation_json TEXT, route_json TEXT, profile_json TEXT, fee_binding_json TEXT, active_attempt_id TEXT, lease_id TEXT NOT NULL DEFAULT '', lease_until_ns INTEGER NOT NULL DEFAULT 0, cancel_requested INTEGER NOT NULL DEFAULT 0, created_ns INTEGER, terminal_ns INTEGER NOT NULL DEFAULT 0, terminal_output_json TEXT, execution_hash TEXT, create_command_key TEXT);
 CREATE TABLE reservations (
     reservation_id TEXT PRIMARY KEY,
     invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),
@@ -85,12 +85,12 @@ CREATE TABLE ledger_entries (
     attempt_id TEXT NOT NULL,
     pricing_known INTEGER NOT NULL CHECK (pricing_known IN (0, 1)),
     usage_hash TEXT NOT NULL
-, supersedes_entry_id TEXT, price_snapshot_json BLOB);
+, supersedes_entry_id TEXT, price_snapshot_json TEXT);
 CREATE TABLE stream_events (
     invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),
     sequence INTEGER NOT NULL CHECK (sequence >= 0),
     event TEXT NOT NULL,
-    payload_json BLOB NOT NULL,
+    payload_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY (invocation_id, sequence)
 );
@@ -147,13 +147,13 @@ CREATE TABLE ledger_read_state (
 );
 CREATE TABLE invocation_attempts(
  attempt_id TEXT PRIMARY KEY,invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),ordinal INTEGER NOT NULL,
- attempt_json BLOB NOT NULL,model_json BLOB NOT NULL,provider_json BLOB NOT NULL,credential_version INTEGER NOT NULL,
- price_snapshot_json BLOB NOT NULL,lease_id TEXT NOT NULL DEFAULT '',lease_until_ns INTEGER NOT NULL DEFAULT 0,
+ attempt_json TEXT NOT NULL,model_json TEXT NOT NULL,provider_json TEXT NOT NULL,credential_version INTEGER NOT NULL,
+ price_snapshot_json TEXT NOT NULL,lease_id TEXT NOT NULL DEFAULT '',lease_until_ns INTEGER NOT NULL DEFAULT 0,
  dispatched_ns INTEGER NOT NULL DEFAULT 0,usage_hash TEXT,input_token_budget INTEGER NOT NULL,output_token_budget INTEGER NOT NULL,UNIQUE(invocation_id,ordinal)
 );
 CREATE TABLE invocation_usage(
  provider_id TEXT NOT NULL,provider_request_id TEXT NOT NULL,invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),
- attempt_id TEXT NOT NULL REFERENCES invocation_attempts(attempt_id),usage_hash TEXT NOT NULL,usage_json BLOB NOT NULL,
+ attempt_id TEXT NOT NULL REFERENCES invocation_attempts(attempt_id),usage_hash TEXT NOT NULL,usage_json TEXT NOT NULL,
  conflict_hash TEXT,created_ns INTEGER NOT NULL,PRIMARY KEY(provider_id,provider_request_id)
 );
 CREATE TABLE fee_commitments(
@@ -164,7 +164,7 @@ CREATE TABLE fee_commitments(
 );
 CREATE TABLE execution_receipts(
  site_id TEXT NOT NULL,data_epoch TEXT NOT NULL,owner_service TEXT NOT NULL,function_id TEXT NOT NULL,idempotency_key TEXT NOT NULL,
- input_hash TEXT NOT NULL,result_json BLOB NOT NULL,result_hash TEXT NOT NULL,created_ns INTEGER NOT NULL,
+ input_hash TEXT NOT NULL,result_json TEXT NOT NULL,result_hash TEXT NOT NULL,created_ns INTEGER NOT NULL,
  PRIMARY KEY(site_id,data_epoch,owner_service,function_id,idempotency_key)
 );
 CREATE TABLE provider_slots(
@@ -175,27 +175,27 @@ CREATE TABLE credential_references(
  attempt_id TEXT PRIMARY KEY REFERENCES invocation_attempts(attempt_id),provider_id TEXT NOT NULL,credential_version INTEGER NOT NULL,
  data_epoch TEXT NOT NULL,released INTEGER NOT NULL DEFAULT 0
 );
-CREATE TABLE reconciliation_proofs(attempt_id TEXT NOT NULL REFERENCES invocation_attempts(attempt_id),proof_hash TEXT NOT NULL,actor_id TEXT NOT NULL,proof_json BLOB NOT NULL,created_ns INTEGER NOT NULL,PRIMARY KEY(attempt_id,proof_hash));
+CREATE TABLE reconciliation_proofs(attempt_id TEXT NOT NULL REFERENCES invocation_attempts(attempt_id),proof_hash TEXT NOT NULL,actor_id TEXT NOT NULL,proof_json TEXT NOT NULL,created_ns INTEGER NOT NULL,PRIMARY KEY(attempt_id,proof_hash));
 CREATE TABLE ledger_voids(entry_id TEXT PRIMARY KEY REFERENCES ledger_entries(entry_id),proof_hash TEXT NOT NULL,actor_id TEXT NOT NULL,created_ns INTEGER NOT NULL);
 CREATE TABLE route_credential_refs(invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),provider_id TEXT NOT NULL,credential_version INTEGER NOT NULL,data_epoch TEXT NOT NULL,released INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(invocation_id,provider_id,credential_version));
 CREATE TABLE header_secrets(ref_id TEXT PRIMARY KEY,provider_id TEXT NOT NULL,provider_version INTEGER NOT NULL,header_name TEXT NOT NULL,data_epoch TEXT NOT NULL,nonce BLOB NOT NULL,ciphertext BLOB NOT NULL, destroyed_at TEXT);
 CREATE TABLE route_header_refs(invocation_id TEXT NOT NULL REFERENCES invocations(invocation_id),ref_id TEXT NOT NULL REFERENCES header_secrets(ref_id),released INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(invocation_id,ref_id));
 CREATE TABLE credential_tracking(singleton INTEGER PRIMARY KEY CHECK(singleton=1),enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN(0,1)));
-CREATE TABLE attempt_evidence(attempt_id TEXT PRIMARY KEY REFERENCES invocation_attempts(attempt_id),outcome_json BLOB NOT NULL,outcome_hash TEXT NOT NULL,recorded_ns INTEGER NOT NULL);
+CREATE TABLE attempt_evidence(attempt_id TEXT PRIMARY KEY REFERENCES invocation_attempts(attempt_id),outcome_json TEXT NOT NULL,outcome_hash TEXT NOT NULL,recorded_ns INTEGER NOT NULL);
 CREATE TABLE credential_retirements(provider_id TEXT NOT NULL,credential_version INTEGER NOT NULL,data_epoch TEXT NOT NULL,destroyed_at TEXT NOT NULL,PRIMARY KEY(provider_id,credential_version,data_epoch));
-CREATE TABLE model_catalog_downloads(version INTEGER PRIMARY KEY AUTOINCREMENT,data_epoch TEXT NOT NULL,source TEXT NOT NULL CHECK(source IN('remote','bundled')),source_hash TEXT NOT NULL,normalized_hash TEXT NOT NULL,normalized_json BLOB NOT NULL,downloaded_ns INTEGER NOT NULL);
+CREATE TABLE model_catalog_downloads(version INTEGER PRIMARY KEY AUTOINCREMENT,data_epoch TEXT NOT NULL,source TEXT NOT NULL CHECK(source IN('remote','bundled')),source_hash TEXT NOT NULL,normalized_hash TEXT NOT NULL,normalized_json TEXT NOT NULL,downloaded_ns INTEGER NOT NULL);
 CREATE TABLE model_catalog_bindings(model_id TEXT NOT NULL REFERENCES models(model_id),data_epoch TEXT NOT NULL,provider_id TEXT NOT NULL,source_model_id TEXT NOT NULL,source_hash TEXT NOT NULL,PRIMARY KEY(model_id,data_epoch));
 CREATE TABLE invocation_lookup_tracking(singleton INTEGER PRIMARY KEY CHECK(singleton=1),format_version INTEGER NOT NULL CHECK(format_version=1),data_epoch TEXT NOT NULL,proof_kind TEXT NOT NULL CHECK(proof_kind IN('fresh_activation','verified_restore')),proof_hash TEXT NOT NULL,created_at TEXT NOT NULL);
 CREATE TABLE usage_statistics_heads(entry_id TEXT PRIMARY KEY,revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=1));
-CREATE TABLE usage_statistics_changes(change_revision INTEGER PRIMARY KEY AUTOINCREMENT,entry_id TEXT NOT NULL,ledger_revision INTEGER NOT NULL,site_id TEXT,source_epoch TEXT,snapshot_json BLOB NOT NULL,observed_at TEXT NOT NULL,UNIQUE(entry_id,ledger_revision));
+CREATE TABLE usage_statistics_changes(change_revision INTEGER PRIMARY KEY AUTOINCREMENT,entry_id TEXT NOT NULL,ledger_revision INTEGER NOT NULL,site_id TEXT,source_epoch TEXT,snapshot_json TEXT NOT NULL,observed_at TEXT NOT NULL,UNIQUE(entry_id,ledger_revision));
 CREATE TABLE connection_probes(invocation_id TEXT PRIMARY KEY REFERENCES invocations(invocation_id) DEFERRABLE INITIALLY DEFERRED,provider_id TEXT NOT NULL,model_id TEXT NOT NULL,data_epoch TEXT NOT NULL,created_ns INTEGER NOT NULL);
-CREATE TABLE database_origin(singleton INTEGER PRIMARY KEY CHECK(singleton=1),proof_json BLOB NOT NULL,proof_hash TEXT NOT NULL);
-CREATE TABLE restored_epoch_manifests(manifest_hash TEXT PRIMARY KEY,manifest_json BLOB NOT NULL);
+CREATE TABLE database_origin(singleton INTEGER PRIMARY KEY CHECK(singleton=1),proof_json TEXT NOT NULL,proof_hash TEXT NOT NULL);
+CREATE TABLE restored_epoch_manifests(manifest_hash TEXT PRIMARY KEY,manifest_json TEXT NOT NULL);
 CREATE TABLE restored_epoch_sources(source_epoch TEXT NOT NULL,target_epoch TEXT NOT NULL,manifest_hash TEXT NOT NULL REFERENCES restored_epoch_manifests(manifest_hash),proof_hash TEXT NOT NULL,PRIMARY KEY(source_epoch,target_epoch));
 CREATE TABLE snapshot_material_redactions(kind TEXT NOT NULL CHECK(kind IN('credential','header')),record_key TEXT NOT NULL,source_database_hash TEXT NOT NULL,source_material_hash TEXT NOT NULL,PRIMARY KEY(kind,record_key));
 CREATE TABLE gateway_snapshot_state(singleton INTEGER PRIMARY KEY CHECK(singleton=1),revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=1));
 CREATE TABLE usage_observation_heads(kind TEXT NOT NULL,entity_id TEXT NOT NULL,revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=1),PRIMARY KEY(kind,entity_id));
-CREATE TABLE usage_observation_changes(revision INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,entity_id TEXT NOT NULL,entity_revision INTEGER NOT NULL,site_id TEXT,source_epoch TEXT,snapshot_json BLOB NOT NULL,deleted INTEGER NOT NULL CHECK(deleted IN(0,1)),observed_at TEXT NOT NULL,UNIQUE(kind,entity_id,entity_revision));
+CREATE TABLE usage_observation_changes(revision INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,entity_id TEXT NOT NULL,entity_revision INTEGER NOT NULL,site_id TEXT,source_epoch TEXT,snapshot_json TEXT NOT NULL,deleted INTEGER NOT NULL CHECK(deleted IN(0,1)),observed_at TEXT NOT NULL,UNIQUE(kind,entity_id,entity_revision));
 CREATE TABLE usage_statistics_timeline(sequence INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL CHECK(kind IN('ledger','observation')),source_revision INTEGER NOT NULL,UNIQUE(kind,source_revision));
 CREATE TABLE "task_assignments" (
     task_id TEXT PRIMARY KEY,
@@ -210,7 +210,7 @@ CREATE TABLE "profiles" (
     version INTEGER NOT NULL CHECK (version >= 1),
     cost_class TEXT NOT NULL CHECK (cost_class IN ('qa', 'background', 'admin-probe')),
     tier TEXT NOT NULL CHECK (tier IN ('fast', 'accurate', 'vision', 'embedding', 'rerank', 'decision')),
-    ordered_model_ids_json BLOB NOT NULL,
+    ordered_model_ids_json TEXT NOT NULL,
     maximum_cost_micro_usd INTEGER NOT NULL CHECK (maximum_cost_micro_usd >= 0),
     concurrency INTEGER NOT NULL CHECK (concurrency >= 0),
     daily_limit_cost_micro_usd INTEGER NOT NULL CHECK (daily_limit_cost_micro_usd >= 0),

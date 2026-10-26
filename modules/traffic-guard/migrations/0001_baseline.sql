@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（0001_domain.sql 至 0004_ip_bans.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_baseline.sql 至 0001_baseline.sql）。
 CREATE TABLE guard_policy (
     site_id     TEXT PRIMARY KEY,
     revision    INTEGER NOT NULL CHECK (revision >= 0),

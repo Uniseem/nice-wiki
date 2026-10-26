@@ -225,6 +225,20 @@ func rewrite(tokens []token, ddl bool) []token {
 				out = append(out, lit("ctid"))
 				continue
 			}
+			if lower == "where" {
+				// SQLite 允许整数当条件（WHERE 1）；PostgreSQL 要布尔。
+				if j := nextSig(tokens, i); j < len(tokens) && tokens[j].kind == tkNumber && (tokens[j].text == "1" || tokens[j].text == "0") {
+					if k := nextSig(tokens, j); k >= len(tokens) || (tokens[k].kind == tkWord && !tokens[k].is("IS")) || (tokens[k].kind == tkPunct && (tokens[k].text == ")" || tokens[k].text == ";")) {
+						value := "TRUE"
+						if tokens[j].text == "0" {
+							value = "FALSE"
+						}
+						out = append(out, t, token{tkSpace, " "}, lit(value))
+						i = j
+						continue
+					}
+				}
+			}
 			if lower == "limit" {
 				// SQLite 里负的 LIMIT 表示不限；PostgreSQL 里 LIMIT NULL 才是不限。
 				if j := nextSig(tokens, i); j < len(tokens) && tokens[j].kind == tkParam {

@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（0001_domain.sql 至 0011_library_groups.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_baseline.sql 至 0001_baseline.sql）。
 CREATE TABLE upload_sessions (
     upload_id      TEXT PRIMARY KEY,
     site_id        TEXT NOT NULL,

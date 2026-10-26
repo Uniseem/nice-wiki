@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（0001_control.sql 至 0001_control.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_baseline.sql 至 0001_baseline.sql）。
 CREATE TABLE control_state (
     id            INTEGER PRIMARY KEY CHECK (id = 1),
     barrier_state TEXT NOT NULL CHECK (barrier_state IN ('released', 'draining', 'safe', 'failed')),

@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（001_initial.sql 至 002_business.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（001_baseline.sql 至 001_baseline.sql）。
 CREATE TABLE memory_entries (
     site_id             TEXT NOT NULL,
     entry_id            TEXT NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE context_snapshots (
     manifest_hash   TEXT NOT NULL,
     body_hash       TEXT NOT NULL,
     byte_size       INTEGER NOT NULL CHECK (byte_size >= 0),
-    created_at      TEXT NOT NULL, manifest_json BLOB,
+    created_at      TEXT NOT NULL, manifest_json TEXT,
     PRIMARY KEY (site_id, snapshot_id)
 );
 CREATE TABLE assistant_runs (
@@ -86,7 +86,7 @@ CREATE TABLE proposals (
     payload_hash            TEXT NOT NULL,
     expected_entry_version  INTEGER,
     approved_by             TEXT,
-    approval_revision       INTEGER NOT NULL CHECK (approval_revision >= 0), payload_json BLOB, rejection_reason TEXT,
+    approval_revision       INTEGER NOT NULL CHECK (approval_revision >= 0), payload_json TEXT, rejection_reason TEXT,
     PRIMARY KEY (site_id, proposal_id)
 );
 CREATE TABLE proposal_commands (
@@ -95,7 +95,7 @@ CREATE TABLE proposal_commands (
     proposal_id           TEXT NOT NULL,
     payload_hash          TEXT NOT NULL,
     state                 TEXT NOT NULL CHECK (state IN ('pending', 'leased', 'applying', 'applied', 'rejected', 'failed')),
-    localization_receipt TEXT, command_json BLOB, lease_id TEXT NOT NULL DEFAULT '', lease_until TEXT NOT NULL DEFAULT '',
+    localization_receipt TEXT, command_json TEXT, lease_id TEXT NOT NULL DEFAULT '', lease_until TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (site_id, command_id),
     UNIQUE (site_id, proposal_id)
 );
@@ -135,7 +135,7 @@ CREATE TABLE schema_migrations (
 CREATE TABLE memory_receipts (
  site_id TEXT NOT NULL, actor_id TEXT NOT NULL, function_id TEXT NOT NULL,
  key_hash TEXT NOT NULL, data_epoch TEXT NOT NULL, input_hash TEXT NOT NULL,
- result_json BLOB NOT NULL, expires_at TEXT NOT NULL,
+ result_json TEXT NOT NULL, expires_at TEXT NOT NULL,
  PRIMARY KEY(site_id,actor_id,function_id,key_hash,data_epoch)
 );
 CREATE TABLE entry_commits (
@@ -144,8 +144,8 @@ CREATE TABLE entry_commits (
  PRIMARY KEY(site_id,entry_id,version)
 );
 CREATE TABLE assistant_inputs (
- run_id TEXT PRIMARY KEY,site_id TEXT NOT NULL,operation_json BLOB NOT NULL,
- snapshot_json BLOB NOT NULL,input_hash TEXT NOT NULL,data_epoch TEXT NOT NULL,
+ run_id TEXT PRIMARY KEY,site_id TEXT NOT NULL,operation_json TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL,input_hash TEXT NOT NULL,data_epoch TEXT NOT NULL,
  job_id TEXT,dispatch_state TEXT NOT NULL CHECK(dispatch_state IN ('pending','submitted','cancelled'))
 , cancel_delivered INTEGER NOT NULL DEFAULT 0 CHECK(cancel_delivered IN(0,1)));
 CREATE INDEX idx_memory_entries_current

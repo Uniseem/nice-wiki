@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（001_initial.sql 至 008_retire_answer_cache.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（001_baseline.sql 至 001_baseline.sql）。
 CREATE TABLE languages (
     language_tag                         TEXT PRIMARY KEY,
     version                              INTEGER NOT NULL CHECK (version >= 0),
@@ -101,7 +101,7 @@ CREATE TABLE operation_receipts (
     idempotency_key  TEXT NOT NULL,
     data_epoch       TEXT NOT NULL,
     input_hash       TEXT NOT NULL,
-    result_json      BLOB NOT NULL,
+    result_json      TEXT NOT NULL,
     created_at       TEXT NOT NULL,
     PRIMARY KEY (site_id, actor_id, function_id, idempotency_key)
 );
@@ -157,27 +157,27 @@ CREATE TABLE language_plans (
     data_epoch           TEXT NOT NULL,
     actor_id             TEXT NOT NULL,
     operation_id         TEXT NOT NULL,
-    snapshot_json        BLOB NOT NULL,
+    snapshot_json        TEXT NOT NULL,
     snapshot_hash        TEXT NOT NULL,
-    result_json          BLOB NOT NULL,
+    result_json          TEXT NOT NULL,
     quote_hash           TEXT NOT NULL,
     expires_at           TEXT NOT NULL,
     state                TEXT NOT NULL CHECK (state IN ('pending', 'approved', 'superseded')),
     approval_started_at  TEXT,
-    approval_operation_json BLOB,
+    approval_operation_json TEXT,
     approval_root_operation_id TEXT,
     approval_actor_id    TEXT,
     approval_deadline    TEXT,
     approved_at          TEXT,
     approved_by          TEXT,
-    approved_result_json BLOB,
+    approved_result_json TEXT,
     created_at           TEXT NOT NULL,
     updated_at           TEXT NOT NULL
 );
 CREATE TABLE language_plan_documents (
     plan_id         TEXT NOT NULL REFERENCES language_plans(plan_id) ON DELETE CASCADE,
     document_id     TEXT NOT NULL,
-    reference_json  BLOB NOT NULL,
+    reference_json  TEXT NOT NULL,
     reference_hash  TEXT NOT NULL,
     unit_count      INTEGER NOT NULL CHECK (unit_count >= 0),
     input_tokens    INTEGER NOT NULL CHECK (input_tokens >= 0),
@@ -187,9 +187,9 @@ CREATE TABLE language_plan_jobs (
     plan_id         TEXT NOT NULL REFERENCES language_plans(plan_id) ON DELETE CASCADE,
     kind            TEXT NOT NULL CHECK (kind IN ('document', 'ui')),
     document_id     TEXT NOT NULL,
-    input_ref_json  BLOB NOT NULL,
+    input_ref_json  TEXT NOT NULL,
     input_ref_hash  TEXT NOT NULL,
-    input_json      BLOB NOT NULL,
+    input_json      TEXT NOT NULL,
     input_hash      TEXT NOT NULL,
     dedupe_key      TEXT NOT NULL,
     state           TEXT NOT NULL CHECK (state IN ('pending', 'accepted')),

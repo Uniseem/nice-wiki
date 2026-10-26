@@ -1,4 +1,4 @@
--- 基线迁移：由历史迁移重放得到的最终结构（0001_domain.sql 至 0010_purged_reference_releases.sql）。
+-- 基线迁移：由历史迁移重放得到的最终结构（0001_baseline.sql 至 0001_baseline.sql）。
 CREATE TABLE schema_migrations (
     version INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
