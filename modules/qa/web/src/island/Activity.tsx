@@ -1,7 +1,7 @@
 // 时间线排布与折叠交互改编自 ZCode v3.16.2 ToolSummaryRow / ToolLayout（Apache-2.0）。
 // Copyright 2026 Z.AI Co., Ltd；来源 https://github.com/zai-org/ZCode/tree/main/packages/ui/src/ToolCallBlocks
 // 修改：接入本站只读文档工具事件，使用 HeroUI 主题；整段过程收进一个可折叠的标题行，步骤排成带节点的时间线。
-import { BookOpenIcon, ChevronRightIcon, CircleAlertIcon, CompassIcon, EllipsisIcon, FileTextIcon, SearchIcon, ShieldAlertIcon, SparklesIcon, SquareIcon, WrenchIcon } from 'lucide-react';
+import { BookOpenIcon, ChevronRightIcon, CircleAlertIcon, CompassIcon, FileTextIcon, SearchIcon, ShieldAlertIcon, SparklesIcon, SquareIcon, WrenchIcon } from 'lucide-react';
 import { cn } from '@heroui/react';
 import { memo, useId, useState } from 'react';
 import type { Step } from './client';
@@ -96,23 +96,18 @@ function ToolRow({ step, expanded, onToggle, t }: { step: StepView; expanded?: b
   </>;
 }
 
-// 进行中只露出最近几步，更早的收成一行，时间线不会随工具次数无限变长。
-const recent = 4;
-
 // 回答上方的过程：标题行在进行中显示当前动作（点阵加载和扫光文字），完成后概括为“思考过程 · 文档数 · 用时”。
-// 进行中默认展开，回答完成后自动收起；访客点过标题行就以访客为准。工具按调用顺序排成时间线，参数与结果逐行展开。
+// 始终展开、不自动收起，访客点标题行才收起。工具按调用顺序排成时间线，参数与结果逐行展开。
 export const Activity = memo(function Activity({ steps, status, reconnecting, answerText, t }: { steps: StepView[]; status: 'streaming' | 'done' | 'error' | 'cancelled'; reconnecting?: boolean; answerText?: string; t: Translate }) {
   const active = status === 'streaming';
   const [open, setOpen] = useState<boolean>();
-  const [all, setAll] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const panelId = useId();
   const answered = !!answerText?.trim();
   const rows = steps.map((step, index) => ({ step, id: step.id ?? `${step.key}.${index}` }))
     .filter(({ step }) => step.tool || (step.detail && step.status !== 'running' && step.detail.trim() !== answerText?.trim()));
   if (!active && !rows.length) return null;
-  const shown = open ?? (active || !answered);
-  const hidden = active && !all ? Math.max(0, rows.length - recent) : 0;
+  const shown = open ?? true;
   const current = active ? steps.findLast((step) => step.status === 'running') : undefined;
   const label = !active ? t('思考过程') : reconnecting ? t('正在重新连接…') : !current ? t('思考中…') : !current.tool && answered ? t('整理回答') : t(current.title);
   const documents = new Set(steps.filter((step) => step.tool === 'read_document').flatMap((step) => step.items ?? [])).size;
@@ -131,11 +126,7 @@ export const Activity = memo(function Activity({ steps, status, reconnecting, an
       </button>
       {!!rows.length && <div id={panelId} className="nw-qa-tool-collapse" data-open={shown} inert={!shown}><div className="overflow-hidden">
         <ol className="nw-qa-trace-list">
-          {hidden > 0 && <li className="nw-qa-trace-item">
-            <span className="nw-qa-trace-node"><EllipsisIcon aria-hidden /></span>
-            <button type="button" className="nw-qa-trace-more" onClick={() => setAll(true)}>+{hidden}</button>
-          </li>}
-          {rows.slice(hidden).map(({ step, id }) => (
+          {rows.map(({ step, id }) => (
             <li key={id} className="nw-qa-trace-item" data-status={step.status} data-live={active || undefined}>
               <span className="nw-qa-trace-node"><StepIcon step={step} /></span>
               <div className="min-w-0">

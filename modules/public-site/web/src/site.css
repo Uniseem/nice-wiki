@@ -389,8 +389,6 @@ body[data-page="home"] .nw-site-header { border-color: transparent; }
 .nw-qa-trace-item[data-status="failed"] .nw-qa-trace-node { color: var(--color-danger); box-shadow: inset 0 0 0 1px currentColor; }
 .nw-qa-trace-item[data-live] { animation: nw-trace-in .38s cubic-bezier(.2,.8,.2,1) both; }
 .nw-qa-trace-time { color: color-mix(in srgb, var(--muted) 70%, transparent); }
-.nw-qa-trace-more { align-self: flex-start; border-radius: .375rem; padding-inline: .25rem; font-variant-numeric: tabular-nums; transition: color .2s; }
-.nw-qa-trace-more:hover { color: var(--foreground); }
 .nw-qa-trace-thought { display: block; padding-block: .125rem; text-align: start; font-size: .875rem; line-height: 1.6; color: color-mix(in srgb, var(--foreground) 72%, transparent); white-space: pre-wrap; overflow-wrap: anywhere; }
 .nw-qa-trace-details { display: flex; flex-direction: column; gap: .5rem; padding: .375rem 0 .5rem; font-size: .8125rem; }
 @keyframes nw-trace-in { from { opacity: 0; translate: 0 -6px; } }
