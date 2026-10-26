@@ -6,6 +6,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/modules/localization/internal/gen"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -108,6 +109,53 @@ func ParseSlotValues(slots []InlineSlot, target string) ([]string, error) {
 	}
 	return result, nil
 }
+
+var textTagPattern = regexp.MustCompile(`</?i\d+/?>`)
+
+// RepairSlotText 在译文标签套不回原文时补救：语序和中文不同的语言（如德语）常把行内代码挪进句中，
+// 模型随之把文本标签嵌套错或写成空标签。只要每个固定值标签按原顺序恰好出现一次，就丢掉写乱的文本标签，
+// 以固定值为界把文字切回原来的文本段，重写成严格格式。两个固定值之间有多个文本段（例如先加粗再普通）
+// 分不出边界，固定值之外出现文本段装不下的文字，或文字里还剩别的标签，都不修，返回 false。
+func RepairSlotText(slots []InlineSlot, target string) (string, bool) {
+	rest := textTagPattern.ReplaceAllString(target, "")
+	var out strings.Builder
+	for i := 0; i < len(slots); i++ {
+		slot := slots[i]
+		number := strconv.Itoa(slot.Index)
+		if !slot.Fixed {
+			if i+1 < len(slots) && !slots[i+1].Fixed {
+				return "", false
+			}
+			end := len(rest)
+			if i+1 < len(slots) {
+				end = strings.Index(rest, "<v"+strconv.Itoa(slots[i+1].Index)+"/>")
+				if end < 0 {
+					return "", false
+				}
+			}
+			out.WriteString("<i" + number + ">" + rest[:end] + "</i" + number + ">")
+			rest = rest[end:]
+			continue
+		}
+		token := "<v" + number + "/>"
+		at := strings.Index(rest, token)
+		// 固定值前只允许空白（原文这里没有文本段可放）。
+		if at < 0 || strings.TrimSpace(rest[:at]) != "" {
+			return "", false
+		}
+		out.WriteString(token)
+		rest = rest[at+len(token):]
+	}
+	if strings.TrimSpace(rest) != "" {
+		return "", false
+	}
+	repaired := out.String()
+	if _, err := ParseSlotValues(slots, repaired); err != nil {
+		return "", false
+	}
+	return repaired, true
+}
+
 func ReplaceSourceText(root any, path []string, expected, replacement string) error {
 	if len(path) == 0 || (path[len(path)-1] != "text" && path[len(path)-1] != "alt") {
 		return platform.NewError(platform.CodeIntegrityError, false, "译文模板只能定位text或alt")

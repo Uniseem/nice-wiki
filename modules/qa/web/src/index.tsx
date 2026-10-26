@@ -105,7 +105,7 @@ function PolicyTab() {
 function TurnsTab() {
   const [cursor, setCursor] = useState('');
   const [filter, setFilter] = useState('all');
-  const turns = useLoad((signal) => api<{ items: Turn[]; pageInfo: { hasMore: boolean; nextCursor?: string } }>(`/v1/admin/turns?limit=30&filter=${filter}&cursor=${encodeURIComponent(cursor)}`, { signal }), [cursor, filter]);
+  const turns = useLoad((signal) => api<{ items: Turn[]; pageInfo: { hasMore: boolean; nextCursor?: string } }>(`/v1/admin/turns?limit=30&filter=${filter}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }), [cursor, filter]);
   const [selected, setSelected] = useState<{ question: string; answer: string; sources?: Citation[] } | null>(null);
   const { busy, run } = useAction();
   const open = (turn: Turn) => run(async () => setSelected(await api(`/v1/admin/turns/${turn.turnId}`)));

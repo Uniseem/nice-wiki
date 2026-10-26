@@ -323,7 +323,13 @@ func translateUnits(ctx context.Context, op OperationContext, translationID, att
 	var done, failed []gen.TranslationUnit
 	for _, unit := range batch {
 		text, found := answers[unit.UnitId]
-		if template, ok := templates[unit.UnitId]; !found || ok && !fitsTemplate(template, text) {
+		template, ok := templates[unit.UnitId]
+		if found && ok && !fitsTemplate(template, text) {
+			if repaired, fixed := RepairSlotText(template.Slots, text); fixed {
+				text = repaired
+			}
+		}
+		if !found || ok && !fitsTemplate(template, text) {
 			failed = append(failed, unit)
 			continue
 		}

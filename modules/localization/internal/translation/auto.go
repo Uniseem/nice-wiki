@@ -133,24 +133,33 @@ func missingDescription(ctx context.Context, op OperationContext, document local
 	return strings.TrimSpace(source.Description) != "", nil
 }
 
-// nextAttempt 判断这门语言是否该为这次发布修订（再）建译文：已有可用或在翻的译文就不用；
-// 失败或取消过的按次数退避（5 分钟起翻倍，最长 1 小时，换好密钥或模型后不用等太久）。返回第几次尝试，用于幂等键。
+// nextAttempt 判断这门语言是否该为这次发布修订（再）建译文：在排队、在翻或术语变更后待更新（stale）就不用；已完成且没有单元退回原文也不用。
+// 完成了但有单元退回原文（模型几次都没按格式译出）的，再建一份：已译单元沿用，只把退回的交给模型，同一修订最多补 3 次。
+// 失败、取消或补译都按次数退避（5 分钟起翻倍，最长 1 小时，换好密钥或模型后不用等太久）。
+// 返回本修订已有的译文份数作为本次尝试序号，用于幂等键（每建一份就加一，不会和之前的键重复）。
 func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionID, tag string) (int, bool, error) {
-	var live, failed int
-	var last sql.NullString
+	const scope = `target_language=? AND data_epoch=? AND json_extract(publication_ref,'$.documentId')=? AND json_extract(publication_ref,'$.publishedRevisionId')=?`
+	var total, busy, done, failed, fallback int
+	var lastDone, lastFailed sql.NullString
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
-		return language.StorageError(tx.QueryRowContext(ctx, `SELECT COUNT(CASE WHEN state NOT IN('failed','cancelled') THEN 1 END),COUNT(CASE WHEN state IN('failed','cancelled') THEN 1 END),MAX(CASE WHEN state IN('failed','cancelled') THEN updated_at END) FROM translation_manifests WHERE target_language=? AND data_epoch=? AND json_extract(publication_ref,'$.documentId')=? AND json_extract(publication_ref,'$.publishedRevisionId')=?`, tag, op.DataEpoch, documentID, revisionID).Scan(&live, &failed, &last))
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*),COUNT(CASE WHEN state NOT IN('ready','review','failed','cancelled') THEN 1 END),COUNT(CASE WHEN state IN('ready','review') THEN 1 END),COUNT(CASE WHEN state IN('failed','cancelled') THEN 1 END),MAX(CASE WHEN state IN('ready','review') THEN updated_at END),MAX(CASE WHEN state IN('failed','cancelled') THEN updated_at END) FROM translation_manifests WHERE `+scope, tag, op.DataEpoch, documentID, revisionID).Scan(&total, &busy, &done, &failed, &lastDone, &lastFailed); err != nil || done == 0 {
+			return language.StorageError(err)
+		}
+		return language.StorageError(tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM translation_units WHERE status='fallback' AND translation_id=(SELECT translation_id FROM translation_manifests WHERE state IN('ready','review') AND `+scope+` ORDER BY updated_at DESC LIMIT 1)`, tag, op.DataEpoch, documentID, revisionID).Scan(&fallback))
 	})
-	if err != nil || live > 0 {
+	if err != nil || busy > 0 || done > 0 && (fallback == 0 || done+failed > 3) {
 		return 0, false, err
 	}
-	if failed > 0 {
-		at, parseErr := time.Parse(time.RFC3339Nano, last.String)
-		if parseErr == nil && time.Since(at) < retryDelay(failed) {
-			return 0, false, nil
+	var last time.Time
+	for _, value := range []sql.NullString{lastDone, lastFailed} {
+		if at, parseErr := time.Parse(time.RFC3339Nano, value.String); parseErr == nil && at.After(last) {
+			last = at
 		}
 	}
-	return failed, true, nil
+	if done+failed > 0 && time.Since(last) < retryDelay(done+failed) {
+		return 0, false, nil
+	}
+	return total, true, nil
 }
 
 func retryDelay(failures int) time.Duration {

@@ -13,7 +13,7 @@ export default function Visitors() {
   const [cursor, setCursor] = useState('');
   const [selected, setSelected] = useState<Visitor | null>(null);
   const interval = useMemo(() => { const to = new Date(); return new URLSearchParams({ from: new Date(to.getTime() - Number(days) * 86400_000).toISOString(), to: to.toISOString() }).toString(); }, [days]);
-  const visitors = useLoad((signal) => api<Result>(`/v1/statistics/visitors?${interval}&limit=30&cursor=${encodeURIComponent(cursor)}`, { signal }), [interval, cursor]);
+  const visitors = useLoad((signal) => api<Result>(`/v1/statistics/visitors?${interval}&limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }), [interval, cursor]);
   return <div className="flex flex-col gap-5">
     <div className="flex flex-wrap items-end justify-between gap-3"><SelectInput label={t('时间范围')} value={days} onChange={(value) => { setDays(value); setCursor(''); }} options={[{ value: '1', label: t('近 24 小时') }, { value: '7', label: t('近 7 天') }, { value: '30', label: t('近 30 天') }]} /><Button variant="secondary" onPress={visitors.reload}>{t('刷新')}</Button></div>
     <p className="text-sm text-muted">{t('按站内访客标识去重，同一访客跨页面和跨天只计一次。活动、IP 和设备信息保留 30 天。')}</p>
@@ -36,7 +36,7 @@ export default function Visitors() {
 
 function VisitorDetails({ visitor, interval, onClose }: { visitor: Visitor; interval: string; onClose: () => void }) {
   const [cursor, setCursor] = useState('');
-  const activities = useLoad((signal) => api<Result>(`/v1/statistics/visitors?${interval}&visitorId=${encodeURIComponent(visitor.visitorId)}&limit=50&cursor=${encodeURIComponent(cursor)}`, { signal }), [visitor.visitorId, interval, cursor]);
+  const activities = useLoad((signal) => api<Result>(`/v1/statistics/visitors?${interval}&visitorId=${encodeURIComponent(visitor.visitorId)}&limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }), [visitor.visitorId, interval, cursor]);
   return <Drawer.Backdrop isOpen onOpenChange={(open) => { if (!open) onClose(); }}><Drawer.Content placement="right" className="w-full max-w-2xl"><Drawer.Dialog>
     <Drawer.CloseTrigger aria-label={t('关闭')} /><Drawer.Header><Drawer.Heading>{t('访客活动')}</Drawer.Heading></Drawer.Header><Drawer.Body className="flex flex-col gap-5">
       <Panel title={t('设备')}><dl className="space-y-2 text-sm"><div className="break-all font-mono">{visitor.visitorId}</div><div>IP: <span className="select-all">{visitor.ip}</span></div><div>{visitor.os} · {visitor.browser}</div><div className="break-all text-xs text-muted">{visitor.userAgent}</div><div>{t('首次活动')}: {fmtDateTime(visitor.firstSeen)}</div></dl></Panel>

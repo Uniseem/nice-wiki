@@ -825,6 +825,8 @@ func (s *localBlobStore) findReadyAsset(ctx context.Context, exec sqlExecer, sit
 
 func mapMediaDBError(err error, message string) error {
 	switch {
+	case err == nil:
+		return nil
 	case errors.Is(err, context.Canceled):
 		return platform.NewError(platform.CodeCancelled, true, "%s", message)
 	case errors.Is(err, context.DeadlineExceeded):

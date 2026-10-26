@@ -38,6 +38,11 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  /* 始终保留滚动条位置：同一页切换子界面时内容高低不同，鼠标用户的滚动条一出一没会让整页左右跳动（与公开站同一做法）。 */
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
   body {
     font-family: var(--font-sans);
   }
