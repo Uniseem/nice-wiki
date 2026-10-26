@@ -9,6 +9,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/gen"
 )
 
@@ -28,6 +29,8 @@ type Runtime struct {
 	ValidatePublicationResult   func(json.RawMessage) error
 	WriteWindow                 platform.WriteWindowConfig
 	MaximumEmbeddingInputTokens int
+	// Search 是 Rust 检索服务客户端；没配置时用进程内检索。
+	Search *searchclient.Client
 }
 type runtimeKey struct{}
 

@@ -164,4 +164,19 @@ var AdminRoutes = []AdminRouteEntry{
 	{Key: "backup", Path: "/admin/backup", Permissions: []string{
 		"backup.manage",
 	}, LabelZH: "备份恢复", LabelEN: "Backup", Navigation: true},
+	{Key: "sites", Path: "/admin/sites", Permissions: []string{
+		"account.self",
+	}, LabelZH: "我的站点", LabelEN: "My sites", Navigation: true},
+	{Key: "team", Path: "/admin/team", Permissions: []string{
+		"account.manage",
+	}, LabelZH: "团队与域名", LabelEN: "Team & domains", Navigation: true},
+	{Key: "myai", Path: "/admin/ai", Permissions: []string{
+		"account.self",
+	}, LabelZH: "AI 与额度", LabelEN: "AI & quota", Navigation: true},
+	{Key: "privateAccess", Path: "/admin/private-access", Permissions: []string{
+		"account.self",
+	}, LabelZH: "进入私有站点", LabelEN: "Open private site", Navigation: false},
+	{Key: "platform", Path: "/admin/platform", Permissions: []string{
+		"system.manage",
+	}, LabelZH: "平台管理", LabelEN: "Platform", Navigation: true},
 }

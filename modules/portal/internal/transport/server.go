@@ -36,6 +36,8 @@ const (
 )
 
 type Application struct {
+	tlsAllow           func(context.Context, string) (bool, error)
+	redeemPrivate      func(context.Context, platform.Identifier, string) error
 	hostMu             sync.Mutex
 	hostCache          map[string]hostEntry
 	resolveHost        func(context.Context, string) (HostSite, bool, error)
@@ -79,6 +81,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, err
 	}
 	mux.HandleFunc("/", application.proxyHandler)
+	mountReportPage(mux)
 	application.httpServer = &http.Server{
 		Addr: config.Listen, Handler: mux,
 		ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10,

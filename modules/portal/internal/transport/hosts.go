@@ -4,11 +4,14 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/serviceauth"
 )
 
 // HostSite 是域名解析出的站点信息（来自 identity:resolveHost）。
@@ -18,6 +21,7 @@ type HostSite struct {
 	Visibility   string
 	PrimaryHost  string
 	RedirectHost string
+	PlatformHost string
 }
 
 type hostEntry struct {
@@ -98,16 +102,128 @@ func (a *Application) siteGate(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 	if site.RedirectHost != "" && r.Method == http.MethodGet && !adminPath {
-		scheme := "https"
-		if proto := r.Header.Get("X-Forwarded-Proto"); proto == "http" {
-			scheme = "http"
-		}
+		scheme := requestScheme(r)
 		target := scheme + "://" + site.RedirectHost + r.URL.RequestURI()
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		http.Redirect(w, r, target, http.StatusMovedPermanently)
 		return true
 	}
+	if site.Visibility == "private" && !privateOpenPath(path) && !a.hasPrivateAccess(r, site.SiteID) && !hasSessionCookie(r) {
+		a.denyPrivate(w, r, site)
+		return true
+	}
 	return false
 }
 
+func requestScheme(r *http.Request) string {
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto == "http" || proto == "https" {
+		return proto
+	}
+	if r.TLS != nil {
+		return "https"
+	}
+	return "http"
+}
+
+func hasSessionCookie(r *http.Request) bool {
+	cookie, err := r.Cookie("nw_sid")
+	return err == nil && cookie.Value != ""
+}
+
+// privateOpenPath 是私有站点上不需要站点访问凭据的路径：后台页面与登录接口（登录本身要能打开）、静态资源、进入私有站点的入口。
+func privateOpenPath(path string) bool {
+	for _, prefix := range []string{"/admin", "/_admin/", "/_site/", "/_pv/", "/_tls/", "/_report", "/v1/sessions", "/v1/auth/", "/v1/oauth/", "/v1/users:", "/v1/registration", "/v1/challenges", "/v1/self", "/v1/initialization"} {
+		if path == prefix || strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+const privateCookie = "nw_pv"
+
+func privateScope(siteID platform.Identifier) string { return "private-site:" + string(siteID) }
+
+func (a *Application) hasPrivateAccess(r *http.Request, siteID platform.Identifier) bool {
+	cookie, err := r.Cookie(privateCookie)
+	if err != nil {
+		return false
+	}
+	payload, err := serviceauth.VerifyCursor(a.signingKey, privateScope(siteID), cookie.Value)
+	if err != nil {
+		return false
+	}
+	expires, err := strconv.ParseInt(string(payload), 10, 64)
+	return err == nil && time.Now().Unix() < expires
+}
+
+// denyPrivate：页面请求带去平台域名确认身份，其余请求直接 401。
+func (a *Application) denyPrivate(w http.ResponseWriter, r *http.Request, site HostSite) {
+	w.Header().Set("Cache-Control", "no-store")
+	accept := r.Header.Get("Accept")
+	if r.Method == http.MethodGet && strings.Contains(accept, "text/html") && site.PlatformHost != "" {
+		back := url.QueryEscape(r.URL.RequestURI())
+		target := requestScheme(r) + "://" + site.PlatformHost + "/admin/private-access?site=" + url.QueryEscape(string(site.SiteID)) + "&return=" + back
+		http.Redirect(w, r, target, http.StatusFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte("<!doctype html><meta charset=utf-8><title>私有站点</title><p>该站点仅限成员访问，请先登录。</p>"))
+}
+
+// SetPrivateRedeemer 登记兑换一次性码的函数（调身份服务）。
+func (a *Application) SetPrivateRedeemer(redeem func(ctx context.Context, siteID platform.Identifier, code string) error) {
+	a.redeemPrivate = redeem
+	mux := a.httpServer.Handler.(*http.ServeMux)
+	mux.HandleFunc("GET /_pv/accept", func(w http.ResponseWriter, r *http.Request) {
+		site, ok := a.hostSite(r)
+		code := r.URL.Query().Get("code")
+		back := r.URL.Query().Get("return")
+		if !ok || site.Visibility != "private" || code == "" || !strings.HasPrefix(back, "/") || strings.HasPrefix(back, "//") || strings.Contains(back, "\\") {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		if err := a.redeemPrivate(ctx, site.SiteID, code); err != nil {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		expires := time.Now().Add(12 * time.Hour)
+		token, err := serviceauth.SignCursor(a.signingKey, privateScope(site.SiteID), []byte(strconv.FormatInt(expires.Unix(), 10)))
+		if err != nil {
+			http.Error(w, "unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{Name: privateCookie, Value: token, Path: "/", Expires: expires, HttpOnly: true, Secure: requestScheme(r) == "https", SameSite: http.SameSiteLaxMode})
+		w.Header().Set("Cache-Control", "no-store")
+		http.Redirect(w, r, back, http.StatusFound)
+	})
+}
+
 var _ sync.Locker = (*sync.Mutex)(nil)
+
+// SetTLSAllow 登记“域名可否签证书”的询问函数，供入口前面的 Caddy（on-demand TLS）调用。
+func (a *Application) SetTLSAllow(allow func(context.Context, string) (bool, error)) {
+	a.tlsAllow = allow
+	mux := a.httpServer.Handler.(*http.ServeMux)
+	mux.HandleFunc("GET /_tls/allow", func(w http.ResponseWriter, r *http.Request) {
+		domain := strings.ToLower(strings.TrimSuffix(r.URL.Query().Get("domain"), "."))
+		if domain == "" || len(domain) > 253 {
+			http.Error(w, "bad domain", http.StatusBadRequest)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		ok, err := a.tlsAllow(ctx, domain)
+		switch {
+		case err != nil:
+			http.Error(w, "unavailable", http.StatusServiceUnavailable)
+		case ok:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, "not allowed", http.StatusForbidden)
+		}
+	})
+}

@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"nice-wiki/libs/platform/searchclient"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 	qaruntime "nice-wiki/modules/knowledge/internal/model"
 	"sort"
+	"strings"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -35,6 +37,15 @@ type SnapshotReader interface {
 	ReadActiveSnapshot(context.Context, OperationContext, gen.EmbeddingSpace) (Snapshot, error)
 }
 
+// RemoteStore 是配合 Rust 检索服务的读取方式：不再把整个活动索引载入内存，
+// 只读活动索引的摘要，命中的分块按需回库取。
+type RemoteStore interface {
+	ReadActiveHeader(context.Context, OperationContext, gen.EmbeddingSpace) (Snapshot, error)
+	ChunksOfHits(context.Context, OperationContext, gen.EmbeddingSpace, []searchclient.Hit) (map[string]gen.Chunk, error)
+	ChunksByID(context.Context, OperationContext, gen.EmbeddingSpace, []string) (map[string]gen.Chunk, error)
+	ChunksByDocument(context.Context, OperationContext, gen.EmbeddingSpace, []string) (map[string][]gen.Chunk, error)
+}
+
 // Runtime 只由服务装配传入，不能从 HTTP 输入建立。
 // Rerank 必须装配网关持久调用链，不能直接访问模型供应方。
 type Runtime struct {
@@ -46,7 +57,19 @@ type Runtime struct {
 	EmbeddingProfileID        string
 	RerankProfileID           string
 	RerankEnabled             bool
+	// Remote 配置后，词法与向量召回走 Rust 检索服务。
+	Remote *searchclient.Client
 }
+
+// remote 返回远程检索所需的对象；没配置检索服务（或存储不支持）时为 false，走进程内检索。
+func (runtime Runtime) remote() (*searchclient.Client, RemoteStore, bool) {
+	store, ok := runtime.Store.(RemoteStore)
+	if runtime.Remote == nil || !ok {
+		return nil, nil, false
+	}
+	return runtime.Remote, store, true
+}
+
 type runtimeKey struct{}
 type snapshotKey struct{}
 
@@ -76,7 +99,12 @@ func activeSnapshot(ctx context.Context, op OperationContext) (Snapshot, error) 
 	if err != nil {
 		return Snapshot{}, err
 	}
-	snapshot, err := runtime.Store.ReadActiveSnapshot(ctx, op, runtime.Space)
+	var snapshot Snapshot
+	if _, store, ok := runtime.remote(); ok {
+		snapshot, err = store.ReadActiveHeader(ctx, op, runtime.Space)
+	} else {
+		snapshot, err = runtime.Store.ReadActiveSnapshot(ctx, op, runtime.Space)
+	}
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -262,4 +290,142 @@ func (reader SQLSnapshotReader) ReadActiveSnapshot(ctx context.Context, op Opera
 	snapshot.VersionHash = platform.HashBytes(raw)
 	sortedSnapshotRows(snapshot.Rows)
 	return snapshot, nil
+}
+
+// ReadActiveHeader 只读活动索引的身份、语言和版本摘要，不读分块、词项和向量。
+func (reader SQLSnapshotReader) ReadActiveHeader(ctx context.Context, op OperationContext, requested gen.EmbeddingSpace) (Snapshot, error) {
+	tx, err := reader.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return Snapshot{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "活动索引读取失败")
+	}
+	defer tx.Rollback()
+	snapshot := Snapshot{Rows: make([]SnapshotRow, 0), Space: requested}
+	if err := tx.QueryRowContext(ctx, `SELECT site_id,data_epoch FROM index_identity WHERE singleton=1`).Scan(&snapshot.SiteID, &snapshot.DataEpoch); err != nil {
+		return Snapshot{}, platform.NewError(platform.CodeIntegrityError, false, "活动索引身份缺失")
+	}
+	if snapshot.SiteID != op.Actor.SiteID || snapshot.DataEpoch != op.DataEpoch {
+		return Snapshot{}, platform.NewError(platform.CodeStaleResult, false, "活动索引站点或代次已改变")
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT a.build_id,b.manifest_hash,b.language FROM active_indexes a JOIN builds b ON b.build_id=a.build_id WHERE a.site_id=? AND a.data_epoch=? AND a.space_id=? AND b.state='active' ORDER BY a.document_id`, snapshot.SiteID, snapshot.DataEpoch, requested.SpaceId)
+	if err != nil {
+		return Snapshot{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "活动代数读取失败")
+	}
+	manifest := []string{}
+	for rows.Next() {
+		var build, hash, language string
+		if err := rows.Scan(&build, &hash, &language); err != nil {
+			rows.Close()
+			return Snapshot{}, platform.NewError(platform.CodeInternal, false, "活动代数损坏")
+		}
+		if snapshot.Language != "" && snapshot.Language != language {
+			rows.Close()
+			return Snapshot{}, platform.NewError(platform.CodeIntegrityError, false, "活动代数基准语言不一致")
+		}
+		snapshot.Language = language
+		manifest = append(manifest, build+":"+hash)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return Snapshot{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "活动代数读取中断")
+	}
+	raw, _ := platform.CanonicalJSON(struct {
+		Space  gen.EmbeddingSpace
+		Builds []string
+	}{requested, manifest})
+	snapshot.VersionHash = platform.HashBytes(raw)
+	return snapshot, nil
+}
+
+func decodeChunk(raw []byte) (gen.Chunk, error) {
+	var chunk gen.Chunk
+	if json.Unmarshal(raw, &chunk) != nil || platform.HashBytes([]byte(chunk.Text)) != chunk.ChunkHash || len(chunk.SourceOffsets) != len(chunk.Text) {
+		return gen.Chunk{}, platform.NewError(platform.CodeIntegrityError, false, "持久分块损坏")
+	}
+	return chunk, nil
+}
+
+// ChunksOfHits 取检索服务命中的分块；构建已经不是活动构建（刚被替换或撤回）的命中直接丢掉。
+func (reader SQLSnapshotReader) ChunksOfHits(ctx context.Context, op OperationContext, space gen.EmbeddingSpace, hits []searchclient.Hit) (map[string]gen.Chunk, error) {
+	result := make(map[string]gen.Chunk, len(hits))
+	if len(hits) == 0 {
+		return result, nil
+	}
+	tx, err := reader.DB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "命中分块读取失败")
+	}
+	defer tx.Rollback()
+	for _, hit := range hits {
+		var raw []byte
+		err := tx.QueryRowContext(ctx, `SELECT c.chunk_json FROM chunks c JOIN active_indexes a ON a.build_id=c.build_id WHERE a.site_id=? AND a.data_epoch=? AND a.space_id=? AND c.build_id=? AND c.chunk_id=?`, op.Actor.SiteID, op.DataEpoch, space.SpaceId, hit.BuildID, hit.ChunkID).Scan(&raw)
+		if err == sql.ErrNoRows {
+			continue
+		}
+		if err != nil {
+			return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "命中分块读取失败")
+		}
+		chunk, err := decodeChunk(raw)
+		if err != nil {
+			return nil, err
+		}
+		result[chunk.ChunkId] = chunk
+	}
+	return result, nil
+}
+
+func placeholders(n int) string {
+	return strings.TrimSuffix(strings.Repeat("?,", n), ",")
+}
+
+func (reader SQLSnapshotReader) chunks(ctx context.Context, op OperationContext, space gen.EmbeddingSpace, column string, values []string) ([]gen.Chunk, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	args := []any{op.Actor.SiteID, op.DataEpoch, space.SpaceId}
+	for _, value := range values {
+		args = append(args, value)
+	}
+	rows, err := reader.DB.QueryContext(ctx, `SELECT c.chunk_json FROM chunks c JOIN active_indexes a ON a.build_id=c.build_id WHERE a.site_id=? AND a.data_epoch=? AND a.space_id=? AND `+column+` IN (`+placeholders(len(values))+`) ORDER BY c.ordinal`, args...)
+	if err != nil {
+		return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "分块读取失败")
+	}
+	defer rows.Close()
+	var result []gen.Chunk
+	for rows.Next() {
+		var raw []byte
+		if err := rows.Scan(&raw); err != nil {
+			return nil, platform.NormalizeIOError(err, platform.CodeInternal, false, "分块读取失败")
+		}
+		chunk, err := decodeChunk(raw)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, chunk)
+	}
+	return result, rows.Err()
+}
+
+func (reader SQLSnapshotReader) ChunksByID(ctx context.Context, op OperationContext, space gen.EmbeddingSpace, ids []string) (map[string]gen.Chunk, error) {
+	chunks, err := reader.chunks(ctx, op, space, "c.chunk_id", ids)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]gen.Chunk, len(chunks))
+	for _, chunk := range chunks {
+		result[chunk.ChunkId] = chunk
+	}
+	return result, nil
+}
+
+func (reader SQLSnapshotReader) ChunksByDocument(ctx context.Context, op OperationContext, space gen.EmbeddingSpace, documents []string) (map[string][]gen.Chunk, error) {
+	chunks, err := reader.chunks(ctx, op, space, "a.document_id", documents)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string][]gen.Chunk)
+	for _, chunk := range chunks {
+		result[chunk.Document.DocumentId] = append(result[chunk.Document.DocumentId], chunk)
+	}
+	return result, nil
 }

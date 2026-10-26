@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-const keys = { csrf: 'nw_csrf', grants: 'nw_grants', session: 'nw_session_id' };
+const keys = { csrf: 'nw_csrf', grants: 'nw_grants', session: 'nw_session_id', site: 'nw_site', siteGrants: 'nw_site_grants' };
 
 function read(key: string): string {
   try { return localStorage.getItem(key) ?? ''; } catch { return ''; }
@@ -33,6 +33,8 @@ export function storeSession(session: SessionReply | null): void {
     write(keys.csrf, null);
     write(keys.session, null);
     write(keys.grants, null);
+    write(keys.site, null);
+    write(keys.siteGrants, null);
   } else {
     if (session.csrfToken) write(keys.csrf, session.csrfToken);
     if (session.sessionId) write(keys.session, session.sessionId);
@@ -43,12 +45,32 @@ export function storeSession(session: SessionReply | null): void {
 }
 
 let grantsCache: string[] | null = null;
+// 授权项 = 登录会话带的（个人级，超管还有平台级） + 当前站点里按角色得到的。
 export function currentGrants(): string[] {
   if (!grantsCache) {
-    try { grantsCache = JSON.parse(read(keys.grants) || '[]') as string[]; } catch { grantsCache = []; }
+    try {
+      const own = JSON.parse(read(keys.grants) || '[]') as string[];
+      const inSite = JSON.parse(read(keys.siteGrants) || '[]') as string[];
+      grantsCache = [...new Set([...own, ...inSite])];
+    } catch { grantsCache = []; }
   }
   return grantsCache;
 }
+
+// 多站点：后台当前在操作哪个站点。选中后，除个人级接口外的请求都带上 X-Nw-Site，权限由服务端按成员角色判定。
+export function currentSite(): string {
+  return read(keys.site);
+}
+
+export function selectSite(site: { siteId: string; grants: string[] } | null): void {
+  write(keys.site, site?.siteId ?? null);
+  write(keys.siteGrants, site ? JSON.stringify(site.grants) : null);
+  grantsCache = null;
+  grantListeners.forEach((listener) => listener());
+}
+
+// 个人级接口（站点列表、个人 AI、平台管理、认证）不带站点头：它们不属于某个站点。
+const personalPath = /^\/v1\/(sites($|[/?])|auth\/|ai\/channels|me\/|users|platform\/|registration-invites|ai-invites|admin\/sites|reports|sessions|self|oauth\/|challenges|registration)/;
 
 // 其他标签页登录、刷新或退出：授权项跟着变；退出了就回登录页。
 if (typeof window !== 'undefined') {
@@ -131,6 +153,8 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
   if (options.backupDownloadToken) headers['X-Backup-Download-Token'] = options.backupDownloadToken;
   if (options.backupPassphrase) headers['X-Backup-Passphrase'] = options.backupPassphrase;
   const csrf = read(keys.csrf);
+  const site = read(keys.site);
+  if (site && !personalPath.test(path)) headers['X-Nw-Site'] = site;
   if (method !== 'GET') {
     headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
     headers['X-CSRF-Token'] = csrf;

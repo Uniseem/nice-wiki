@@ -53,6 +53,11 @@ func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.Si
 	} else if settings, err := loadSettings(ctx, q); err == nil {
 		s.VisitorQaDaily = settings.DefaultVisitorQaDaily
 	}
+	// 前端按它决定显示哪些页面；真正的权限仍由服务端按角色判定。
+	s.Grants, _ = roleGrants(role)
+	if s.Grants == nil {
+		s.Grants = []string{}
+	}
 	s.Status, s.Visibility, s.Role, s.CreatedAt = gen.SiteSummaryStatus(status), gen.SiteSummaryVisibility(visibility), gen.SiteSummaryRole(role), parseTS(createdAt)
 	return s, nil
 }
@@ -644,9 +649,95 @@ func ResolveHost(ctx context.Context, op OperationContext, input HostRef) (gen.R
 		return result, identityDBError()
 	}
 	result.Status, result.Visibility = gen.ResolveHostResultStatus(status), gen.ResolveHostResultVisibility(visibility)
+	if settings, err := loadSettings(ctx, store.db); err == nil {
+		result.PlatformHost = settings.PlatformHost
+	}
 	if !primary && result.PrimaryHost != "" && result.PrimaryHost != host {
 		redirect := result.PrimaryHost
 		result.RedirectHost = &redirect
 	}
 	return result, nil
+}
+
+// AllowTlsHost 回答入口 Caddy 的“按需证书”询问：只给平台域名和已验证的站点域名（含平台子域名）签证书，防止被人拿任意域名消耗签发额度。
+func AllowTlsHost(ctx context.Context, op OperationContext, input HostRef) (gen.TlsHostResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.TlsHostResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	host := strings.ToLower(strings.TrimSuffix(input.Host, "."))
+	settings, err := loadSettings(ctx, store.db)
+	if err != nil {
+		return gen.TlsHostResult{}, err
+	}
+	if settings.PlatformHost != "" && host == strings.ToLower(settings.PlatformHost) {
+		return gen.TlsHostResult{Allowed: true}, nil
+	}
+	var n int
+	if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM site_domains d JOIN sites s ON s.site_id=d.site_id WHERE d.host=? AND d.status='verified' AND s.status<>'deleted'`, host).Scan(&n); err != nil {
+		return gen.TlsHostResult{}, identityDBError()
+	}
+	return gen.TlsHostResult{Allowed: n > 0}, nil
+}
+
+// IssuePrivateAccess 给站点成员发一个 60 秒内有效的一次性码，由前端带去站点域名换取该站点专用的短期访问。
+func IssuePrivateAccess(ctx context.Context, op OperationContext, input SiteRef) (gen.PrivateAccessResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.PrivateAccessResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	if err := requireSiteScope(op, input.SiteID); err != nil {
+		return gen.PrivateAccessResult{}, err
+	}
+	if _, err := memberRole(ctx, store.db, op, input.SiteID); err != nil {
+		return gen.PrivateAccessResult{}, err
+	}
+	userID, err := userOfAccount(ctx, store.db, op.Actor.SubjectID)
+	if err != nil {
+		return gen.PrivateAccessResult{}, err
+	}
+	code := "nwp-" + randomCode(16)
+	expires := time.Now().UTC().Add(60 * time.Second).Format(time.RFC3339Nano)
+	if _, err := store.db.ExecContext(ctx, `DELETE FROM private_access_codes WHERE expires_at<?`, platform.Now()); err != nil {
+		return gen.PrivateAccessResult{}, identityDBError()
+	}
+	if _, err := store.db.ExecContext(ctx, `INSERT INTO private_access_codes(code_hash,site_id,user_id,expires_at) VALUES(?,?,?,?)`, hashCode(code), input.SiteID, userID, expires); err != nil {
+		return gen.PrivateAccessResult{}, identityDBError()
+	}
+	summary, err := siteSummary(ctx, store.db, input.SiteID, "")
+	if err != nil {
+		return gen.PrivateAccessResult{}, err
+	}
+	return gen.PrivateAccessResult{Code: code, Host: summary.PrimaryHost}, nil
+}
+
+// RedeemPrivateAccess 由入口在站点域名上调用：码有效、没过期、属于这个站点才换成短期访问，码只能用一次。
+func RedeemPrivateAccess(ctx context.Context, op OperationContext, input RedeemPrivateAccessCmd) (gen.PrivateAccessGrant, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return gen.PrivateAccessGrant{}, identityDBError()
+	}
+	defer tx.Rollback()
+	var siteID, expires string
+	err = tx.QueryRowContext(ctx, `SELECT site_id,expires_at FROM private_access_codes WHERE code_hash=?`, hashCode(input.Body.Code)).Scan(&siteID, &expires)
+	if errors.Is(err, sql.ErrNoRows) {
+		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
+	}
+	if err != nil {
+		return gen.PrivateAccessGrant{}, identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM private_access_codes WHERE code_hash=?`, hashCode(input.Body.Code)); err != nil {
+		return gen.PrivateAccessGrant{}, identityDBError()
+	}
+	if err := tx.Commit(); err != nil {
+		return gen.PrivateAccessGrant{}, identityDBError()
+	}
+	if siteID != input.SiteID || !parseTS(expires).After(time.Now().UTC()) {
+		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
+	}
+	return gen.PrivateAccessGrant{TtlSeconds: 12 * 3600}, nil
 }

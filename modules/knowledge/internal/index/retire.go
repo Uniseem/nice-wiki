@@ -140,6 +140,9 @@ func RetireDocumentIndex(ctx context.Context, op OperationContext, input RetireD
 		return RetireDocumentIndexResult{}, storageError(err)
 	}
 	cancel()
+	if runtime, runtimeErr := RuntimeFromContext(ctx); runtimeErr == nil && runtime.Search != nil {
+		_ = runtime.Search.DeleteDocument(ctx, op.Actor.SiteID, input.DocumentID) // 失败由对账循环补删
+	}
 	if err = CancelDocumentSideEffects(ctx, op, input.DocumentID); err != nil {
 		return RetireDocumentIndexResult{}, err
 	}

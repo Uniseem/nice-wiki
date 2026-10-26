@@ -27,6 +27,17 @@ func ReadSections(ctx context.Context, op OperationContext, input ReadSectionsIn
 		refs[publicationKey(ref)] = true
 	}
 	byID := make(map[string]gen.Chunk)
+	if runtime, rerr := searchRuntime(ctx); rerr == nil {
+		if _, store, ok := runtime.remote(); ok {
+			ids := make([]string, len(input.ChunkIds))
+			copy(ids, input.ChunkIds)
+			found, err := store.ChunksByID(ctx, op, snapshot.Space, ids)
+			if err != nil {
+				return ReadSectionsResult{}, err
+			}
+			byID = found
+		}
+	}
 	for _, row := range snapshot.Rows {
 		byID[row.Chunk.ChunkId] = row.Chunk
 	}
@@ -66,6 +77,17 @@ func ReadDocumentChunks(ctx context.Context, op OperationContext, input ReadDocu
 		return ReadDocumentChunksResult{}, err
 	}
 	byDocument := map[string][]gen.Chunk{}
+	if runtime, rerr := searchRuntime(ctx); rerr == nil {
+		if _, store, ok := runtime.remote(); ok {
+			ids := make([]string, len(input.DocumentIds))
+			copy(ids, input.DocumentIds)
+			found, err := store.ChunksByDocument(ctx, op, snapshot.Space, ids)
+			if err != nil {
+				return ReadDocumentChunksResult{}, err
+			}
+			byDocument = found
+		}
+	}
 	for _, row := range snapshot.Rows {
 		byDocument[row.Chunk.Document.DocumentId] = append(byDocument[row.Chunk.Document.DocumentId], row.Chunk)
 	}

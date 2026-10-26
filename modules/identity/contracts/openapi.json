@@ -6140,6 +6140,338 @@
         }
       }
     },
+    "/v1/sites/{siteId}/private-access": {
+      "post": {
+        "operationId": "issuePrivateAccess",
+        "summary": "取得进入私有站点的一次性码",
+        "description": "取得进入私有站点的一次性码",
+        "x-handler": "identity.IssuePrivateAccess",
+        "x-permission": "site.read",
+        "x-v2": true,
+        "security": [
+          {
+            "serviceAssertion": [],
+            "userDelegation": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "取得进入私有站点的一次性码的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "types.json#/$defs/PrivateAccessResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：对象不存在或不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：状态冲突、唯一约束冲突或版本已改变",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：频率或容量限制",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sites/{siteId}/private-access:redeem": {
+      "post": {
+        "operationId": "redeemPrivateAccess",
+        "summary": "站点域名入口兑换一次性码",
+        "description": "站点域名入口兑换一次性码",
+        "x-handler": "identity.RedeemPrivateAccess",
+        "x-permission": "service",
+        "x-v2": true,
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "站点域名入口兑换一次性码的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "types.json#/$defs/PrivateAccessGrant"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：对象不存在或不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：状态冲突、唯一约束冲突或版本已改变",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：频率或容量限制",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "types.json#/$defs/RedeemPrivateAccessInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tls/hosts/{host}": {
+      "get": {
+        "operationId": "allowTlsHost",
+        "summary": "域名是否可以签发证书",
+        "description": "域名是否可以签发证书",
+        "x-handler": "identity.AllowTlsHost",
+        "x-permission": "service",
+        "x-v2": true,
+        "security": [
+          {
+            "serviceAssertion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "域名是否可以签发证书的成功回执",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "types.json#/$defs/TlsHostResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND：对象不存在或不可见",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT：状态冲突、唯一约束冲突或版本已改变",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED：频率或容量限制",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/sites/{siteId}/visitor-qa-cap": {
       "post": {
         "operationId": "noteVisitorQaCap",

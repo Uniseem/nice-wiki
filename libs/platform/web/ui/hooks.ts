@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type DependencyList } from 'react';
-import { currentGrants, errorText, subscribeGrants } from './api';
+import { currentGrants, currentSite, errorText, subscribeGrants } from './api';
 import { notify } from './feedback';
 
 export type Loaded<T> = {
@@ -52,6 +52,11 @@ export function useAction() {
 // 当前会话的授权项（登录、刷新、改口令后会变化）。只决定显示什么，真正的权限在服务端校验。
 export function useGrants(): string[] {
   return useSyncExternalStore(subscribeGrants, currentGrants);
+}
+
+// 后台当前选中的站点（多站点）；切换站点时授权项也跟着变。
+export function useCurrentSite(): string {
+  return useSyncExternalStore(subscribeGrants, currentSite);
 }
 
 export function useHasGrant(...grants: string[]): boolean {

@@ -710,7 +710,9 @@ type ServiceConfig struct {
 	DelegationKeyRef  string            `json:"delegationKeyRef,omitempty"`
 	MasterKeyRef      string            `json:"masterKeyRef,omitempty"`
 	// DatabaseRef 是存放 PostgreSQL 连接串的私有文件路径（连接串含口令，不写进配置本身）。
-	DatabaseRef       string            `json:"databaseRef,omitempty"`
+	DatabaseRef string `json:"databaseRef,omitempty"`
+	// SearchSecretRef 是与 Rust 检索服务共享的 HMAC 密钥文件路径（knowledge 用）；缺省时知识库仍用进程内检索。
+	SearchSecretRef   string            `json:"searchSecretRef,omitempty"`
 	BudgetKeyRef      string            `json:"budgetKeyRef,omitempty"`
 	Dependencies      map[string]string `json:"dependencies"`
 	PublicBaseURL     string            `json:"publicBaseURL,omitempty"`

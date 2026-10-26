@@ -3,7 +3,7 @@
 
 用法：python3 scripts/dev.py up [服务...] | down | reset（清空数据）| status | logs <服务>
 """
-import json, os, signal, socket, subprocess, sys, time, glob
+import json, os, shutil, signal, socket, subprocess, sys, time, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # NW_DEV_DIR / NW_DEV_PORT_OFFSET 让同一份脚本在别处（如 NL 测试机）跑隔离实例，不碰默认的 .local/dev。
@@ -19,18 +19,26 @@ PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "i
 HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
          "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "data-protection", "traffic-guard"]}
 STANDALONE = ["portal", "knowledge"]
-DEFAULT_UP = ["account", "ops", "content", "ai", "knowledge", "portal"]
+# Rust 检索服务（rust/search）：独立进程，没有 cargo 或设置了 NW_DEV_NO_SEARCH 时不启动，知识库退回进程内检索。
+SEARCH_PORT = 8120 + PORT_OFFSET
+USE_SEARCH = shutil.which("cargo") is not None and not os.environ.get("NW_DEV_NO_SEARCH")
+DEFAULT_UP = (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai", "knowledge", "portal"]
+LISTEN_PORTS = {**PORTS, "search": SEARCH_PORT}
 
 
 def components(proc):
-    return HOSTS.get(proc, [proc])
+    return ["search"] if proc == "search" else HOSTS.get(proc, [proc])
 
 
 def workdir(proc):
+    if proc == "search":
+        return os.path.join(ROOT, "rust")
     return os.path.join(ROOT, "services" if proc in HOSTS else "modules", proc)
 
 
 def command(proc):
+    if proc == "search":
+        return [path("bin", "search"), path("config", "search.json")]
     if proc in HOSTS:
         return [path("bin", proc), "--config-dir", path("config")]
     return [path("bin", proc), "--config", path("config", proc + ".json")]
@@ -123,11 +131,34 @@ def setup():
         os.chmod(dsn_file, 0o600)
         cfg["databaseRef"] = dsn_file
         os.makedirs(cfg["dataRoot"], exist_ok=True, mode=0o700)
+        if slug == "knowledge" and USE_SEARCH:
+            cfg["dependencies"]["search"] = f"http://127.0.0.1:{SEARCH_PORT}"
+            cfg["searchSecretRef"] = path("secrets", "search", "secret")
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
+    if USE_SEARCH:
+        # 检索服务：与 knowledge 共用一个 HMAC 密钥；索引放自己的目录，向量放同一个 PostgreSQL 的 search 模式。
+        os.makedirs(path("secrets", "search"), exist_ok=True, mode=0o700)
+        secret = path("secrets", "search", "secret")
+        if not os.path.exists(secret):
+            with open(secret, "w") as f:
+                f.write(os.urandom(32).hex())
+            os.chmod(secret, 0o600)
+        dsn_file = path("secrets", "search", "database-url")
+        with open(dsn_file, "w") as f:
+            f.write(DATABASE_URL)
+        os.chmod(dsn_file, 0o600)
+        os.makedirs(path("data", "search"), exist_ok=True, mode=0o700)
+        json.dump({"listen": f"127.0.0.1:{SEARCH_PORT}", "dataDir": path("data", "search", "index"), "secretFile": secret, "databaseUrlFile": dsn_file},
+                  open(path("config", "search.json"), "w"), indent=2)
 
 
 def build(procs):
     for s in procs:
+        if s == "search":
+            subprocess.check_call(["cargo", "build", "--release", "-p", "nw-search"], cwd=workdir(s))
+            target = os.environ.get("CARGO_TARGET_DIR") or os.path.join(workdir(s), "target")
+            shutil.copy(os.path.join(target, "release", "nw-search"), path("bin", "search"))
+            continue
         subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=workdir(s))
 
 
@@ -174,9 +205,9 @@ def up(procs):
         open(pidfile(s), "w").write(str(p.pid))
         for _ in range(100):
             time.sleep(0.1)
-            if p.poll() is not None or all(port_open(PORTS[c]) for c in components(s)):
+            if p.poll() is not None or all(port_open(LISTEN_PORTS[c]) for c in components(s)):
                 break
-        print(("运行中 " if p.poll() is None else "已退出 ") + s, " ".join(f"{c}:{PORTS[c]}" for c in components(s)))
+        print(("运行中 " if p.poll() is None else "已退出 ") + s, " ".join(f"{c}:{LISTEN_PORTS[c]}" for c in components(s)))
     if not os.path.exists(path("run", "watch.pid")):
         subprocess.Popen([sys.executable, os.path.abspath(__file__), "watch", *procs], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -191,7 +222,7 @@ def stop(proc):
             pass
         os.remove(f)
         for _ in range(50):
-            if not any(port_open(PORTS[c]) for c in components(proc)):
+            if not any(port_open(LISTEN_PORTS[c]) for c in components(proc)):
                 break
             time.sleep(0.1)
 

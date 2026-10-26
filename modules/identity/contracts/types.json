@@ -2570,6 +2570,14 @@
         "qaPausedOn": {
           "type": "string",
           "maxLength": 10
+        },
+        "grants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 1000
         }
       },
       "required": [
@@ -2582,7 +2590,8 @@
         "primaryHost",
         "createdAt",
         "visitorQaDaily",
-        "qaPausedOn"
+        "qaPausedOn",
+        "grants"
       ],
       "x-v2": true
     },
@@ -2933,6 +2942,10 @@
         "redirectHost": {
           "type": "string",
           "maxLength": 253
+        },
+        "platformHost": {
+          "type": "string",
+          "maxLength": 253
         }
       },
       "required": [
@@ -2940,7 +2953,8 @@
         "slug",
         "status",
         "visibility",
-        "primaryHost"
+        "primaryHost",
+        "platformHost"
       ],
       "x-v2": true
     },
@@ -3914,6 +3928,71 @@
       },
       "required": [
         "ok"
+      ],
+      "x-v2": true
+    },
+    "PrivateAccessResult": {
+      "type": "object",
+      "description": "协作者进入私有站点用的一次性码（60 秒内有效）与站点主地址",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 253
+        }
+      },
+      "required": [
+        "code",
+        "host"
+      ],
+      "x-v2": true
+    },
+    "RedeemPrivateAccessInput": {
+      "type": "object",
+      "description": "站点域名上的入口用一次性码换取站点专用短期访问",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "x-v2": true
+    },
+    "PrivateAccessGrant": {
+      "type": "object",
+      "description": "换取成功后站点专用访问的有效秒数",
+      "additionalProperties": false,
+      "properties": {
+        "ttlSeconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "ttlSeconds"
+      ],
+      "x-v2": true
+    },
+    "TlsHostResult": {
+      "type": "object",
+      "description": "入口 Caddy 按需签证书前问：这个域名是不是平台认可的（平台域名、已验证的站点域名）",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allowed"
       ],
       "x-v2": true
     }

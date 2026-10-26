@@ -1,0 +1,16 @@
+[package]
+name = "nw-edge"
+version = "0.1.0"
+edition = "2021"
+description = "nice-wiki 公开入口：按站点缓存公开页、限流、流式透传"
+license = "AGPL-3.0-only"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "time", "sync", "io-util"] }
+hyper = { version = "1", features = ["http1", "server", "client"] }
+hyper-util = { version = "0.1", features = ["tokio", "server", "client-legacy", "http1"] }
+http-body-util = "0.1"
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"

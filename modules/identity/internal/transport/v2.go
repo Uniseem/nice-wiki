@@ -81,6 +81,11 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	handlers["setPrimaryDomain"] = v2Operation(a, identity.SetPrimaryDomain, siteHost)
 	handlers["removeSiteDomain"] = v2Operation(a, identity.RemoveSiteDomain, siteHost)
 	handlers["resolveHost"] = v2Operation(a, identity.ResolveHost, func(_ none, r *http.Request) identity.HostRef { return identity.HostRef{Host: r.PathValue("host")} })
+	handlers["issuePrivateAccess"] = v2Operation(a, identity.IssuePrivateAccess, site)
+	handlers["redeemPrivateAccess"] = v2Operation(a, identity.RedeemPrivateAccess, func(b gen.RedeemPrivateAccessInput, r *http.Request) identity.RedeemPrivateAccessCmd {
+		return identity.RedeemPrivateAccessCmd{SiteID: r.PathValue("siteId"), Body: b}
+	})
+	handlers["allowTlsHost"] = v2Operation(a, identity.AllowTlsHost, func(_ none, r *http.Request) identity.HostRef { return identity.HostRef{Host: r.PathValue("host")} })
 	handlers["readPlatformSettings"] = jsonOperation(a, identity.ReadPlatformSettings)
 	handlers["updatePlatformSettings"] = jsonOperation(a, identity.UpdatePlatformSettings)
 	handlers["createRegistrationInvite"] = jsonOperation(a, identity.CreateRegistrationInvite)

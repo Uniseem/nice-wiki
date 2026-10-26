@@ -949,7 +949,7 @@ func LoadBootstrap(ctx context.Context, op OperationContext, input LoadBootstrap
 - 授权：portal.use；匿名静态入口及初始化状态按 route catalog 白名单开放
 - 并发：只返回同一个 siteId 和 permissionRevision；结果期限 5 秒
 - 幂等：读操作
-- 依赖：`identity:readSelf`、`site-config:readSiteConfig`、`portal.BuildCapabilities`、`portal.BuildNavigation`、`identity:resolveHost`
+- 依赖：`identity:readSelf`、`site-config:readSiteConfig`、`portal.BuildCapabilities`、`portal.BuildNavigation`、`identity:resolveHost`、`identity:allowTlsHost`、`identity:redeemPrivateAccess`
 
 ## portal.BuildCapabilities
 

@@ -48,6 +48,7 @@
   <div class="nw-footer-bottom mx-auto flex w-full flex-col items-center justify-between gap-3 text-sm text-muted sm:flex-row {{if and .AIEnabled (ne .Kind "ask")}}pb-24{{else}}pb-8{{end}}">
     <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:justify-start [&_a]:hover:text-foreground [&_a]:hover:underline">{{.Footer}}</div>
     <a class="inline-flex items-center gap-1.5 hover:text-foreground" href="{{.SourceURL}}" target="_blank" rel="noopener noreferrer">{{template "icon-code"}}{{.T "源代码"}}</a>
+    <a class="inline-flex items-center gap-1.5 hover:text-foreground" href="/_report" rel="nofollow">{{.T "举报此站点"}}</a>
   </div>
 </footer>{{end}}
 <div id="nw-islands" hidden data-config="{{.Config}}"></div>

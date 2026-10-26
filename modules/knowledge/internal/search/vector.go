@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/gen"
 )
 
@@ -67,6 +68,25 @@ func SearchVector(ctx context.Context, op OperationContext, input SearchVectorIn
 	query, nonzero := unitVector(input.Vector)
 	if !nonzero {
 		return result, nil
+	}
+	if runtime, err := searchRuntime(ctx); err == nil {
+		if client, store, ok := runtime.remote(); ok {
+			vector := make([]float32, len(query))
+			for i, value := range query {
+				vector[i] = float32(value)
+			}
+			documents := make([]string, 0, len(input.Documents))
+			for id := range input.Documents {
+				documents = append(documents, id)
+			}
+			sort.Strings(documents)
+			found, err := client.Search(ctx, op.Actor.SiteID, searchclient.Query{SpaceID: snapshot.Space.SpaceId, Vector: vector, Documents: documents, Limit: min(80, max(input.Limit, 0))})
+			if err != nil {
+				return SearchVectorResult{}, err
+			}
+			remote, err := remoteCandidates(ctx, op, store, snapshot.Space, found.Vector, false)
+			return SearchVectorResult{Candidates: remote.Candidates}, err
+		}
 	}
 	type ranked struct {
 		chunk gen.Chunk

@@ -54,7 +54,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 	if err != nil || time.Since(observed) > time.Second || observed.After(time.Now()) || record.ManifestHash == "" || string(record.Build.State) != "validating" {
 		return ActivateBuildResult{}, platform.NewError(platform.CodeStaleResult, false, "构建缺少一秒内有效的权威证明")
 	}
-	_, hash, err := indexer.ReadGeneration(work, tx, record)
+	entries, hash, err := indexer.ReadGeneration(work, tx, record)
 	if err != nil {
 		return ActivateBuildResult{}, err
 	}
@@ -104,6 +104,10 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 	}
 	if err := tx.Commit(); err != nil {
 		return ActivateBuildResult{}, platform.NormalizeIOError(err, platform.CodeInternal, false, "构建激活提交失败")
+	}
+	// 即时推给检索服务；失败不影响激活，由对账循环补推。
+	if string(record.Build.State) == "active" {
+		_ = indexer.PushBuild(ctx, runtime, op.Actor.SiteID, record, entries)
 	}
 	return ActivateBuildResult{Build: record.Build}, nil
 }

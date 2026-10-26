@@ -99,12 +99,14 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		callers[id] = []string{"data-protection"}
 	}
 	callers["resolveHost"] = []string{"portal", "public-site", "content", "qa", "traffic-guard"}
+	callers["allowTlsHost"] = []string{"portal"}
+	callers["redeemPrivateAccess"] = []string{"portal"}
 	callers["readSiteAiPolicy"] = []string{"model-gateway", "qa"}
 	callers["noteVisitorQaCap"] = []string{"qa"}
 	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
 	serviceCallers := map[string][]string{
-		"resolveHost":      {"portal", "public-site", "content", "qa", "traffic-guard"},
-		"readSiteAiPolicy": {"model-gateway", "qa"}, "noteVisitorQaCap": {"qa"},
+		"resolveHost":  {"portal", "public-site", "content", "qa", "traffic-guard"},
+		"allowTlsHost": {"portal"}, "redeemPrivateAccess": {"portal"}, "readSiteAiPolicy": {"model-gateway", "qa"}, "noteVisitorQaCap": {"qa"},
 		"acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"},
 		"exportSnapshot": {"data-protection"}, "stageSnapshot": {"data-protection"},
 		"discardSnapshot": {"data-protection"},

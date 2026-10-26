@@ -42,3 +42,7 @@ type ResolveReportCmd struct {
 	ReportID string
 	Body     gen.ResolveReportInput
 }
+type RedeemPrivateAccessCmd struct {
+	SiteID string
+	Body   gen.RedeemPrivateAccessInput
+}

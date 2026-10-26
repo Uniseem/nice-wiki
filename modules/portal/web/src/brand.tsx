@@ -1,5 +1,5 @@
 import { cn } from '@heroui/react';
-import { api, assetURL } from '@ui';
+import { api, assetURL, useCurrentSite } from '@ui';
 import markSVG from '@ui/mark.svg?raw';
 import { useEffect, useState } from 'react';
 
@@ -14,8 +14,13 @@ const validColor = (color?: string) => (color && /^#[0-9A-Fa-f]{6}$/.test(color)
 // 后台标签页的图标跟站点一致：上传了图标就用它，否则用按主题色着色的默认标志。
 export function useSiteBrand(): Brand {
   const [brand, setBrand] = useState<Brand>({ name: '' });
+  const site = useCurrentSite();
   useEffect(() => {
-    api<{ siteName: string; branding?: { logo?: Asset | null; favicon?: Asset | null; themeColor?: string } }>('/v1/home/public')
+    // 选中了站点：读这个站点自己的配置；没选（登录页、个人页）读平台默认站点的公开首页。
+    const load = site
+      ? api<{ config: { name: string; logo?: Asset | null; favicon?: Asset | null; themeColor?: string } }>('/v1/config').then((result) => ({ siteName: result.config.name, branding: result.config }))
+      : api<{ siteName: string; branding?: { logo?: Asset | null; favicon?: Asset | null; themeColor?: string } }>('/v1/home/public');
+    load
       .then((result) => {
         const branding = result.branding ?? {};
         setBrand({ name: result.siteName, logo: branding.logo, themeColor: validColor(branding.themeColor) });
@@ -28,7 +33,7 @@ export function useSiteBrand(): Brand {
         link.href = branding.favicon ? assetURL(branding.favicon) : markURL(validColor(branding.themeColor));
       })
       .catch(() => setBrand({ name: '', themeColor: '#171717' }));
-  }, []);
+  }, [site]);
   return brand;
 }
 

@@ -8,7 +8,8 @@ import { SiteMark, useSiteBrand } from './brand';
 
 // 进入后台的向导。首次进站：选语言 → 注册唯一的超级管理员 → 填站点名完成初始化；所选语言既是站点基准语言，也是后台界面语言。
 // 已有账号 → 登录；登录后站点还没初始化 → 继续选语言和填站点名。
-type Step = 'loading' | 'language' | 'register' | 'login' | 'site';
+type Step = 'loading' | 'language' | 'register' | 'login' | 'signup' | 'site';
+type Options = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; providers: { provider: string; label: string }[] };
 type SessionReply = { session: { csrfToken: string; sessionId: string; auth?: { grants?: string[] } }; account?: Account };
 
 // 登录设备列表里显示的说明，如“Chrome · macOS”；只取浏览器和系统名，不带版本号。
@@ -28,6 +29,9 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  const [options, setOptions] = useState<Options | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const brand = useSiteBrand();
 
   // 站点还没初始化时，没选过语言就先选语言（选完整页刷新，界面换成该语言）。
@@ -44,6 +48,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
         // 只有创建第一个管理员时预填 admin；登录页留空，子账号不用先删掉它。
         if (state.registrationOpen) setAccountName('admin');
         setStep(state.registrationOpen ? setupStep('register') : 'login');
+        if (!state.registrationOpen) void api<Options>('/v1/auth/options').then(setOptions).catch(() => {});
       })
       .catch((problem) => { setError(errorText(problem)); setStep('login'); });
   }, [pending]);
@@ -57,6 +62,8 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
   async function afterLogin(result: SessionReply) {
     storeSession(result.session);
     const signedIn = result.account ?? (await api<{ account: Account }>('/v1/self')).account;
+    // 普通用户的家账户不属于任何站点，没有“站点初始化”这一步；站主账号才可能需要初始化平台自己的站点。
+    if (signedIn.siteId?.startsWith('home:')) { await onSignedIn(signedIn); return; }
     const init = await api<{ initialized: boolean }>('/v1/initialization');
     if (init.initialized) await onSignedIn(signedIn);
     else { setAccount(signedIn); setStep(setupStep('site')); }
@@ -66,8 +73,11 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
     if (step === 'register') {
       if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
       await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation } }));
+    } else if (step === 'signup') {
+      if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
+      await afterLogin(await api<SessionReply>('/v1/users:register', { method: 'POST', body: { email: accountName.trim(), password, passwordConfirmation: confirmation, displayName: displayName.trim() || accountName.split('@')[0], ...(inviteCode.trim() ? { inviteCode: inviteCode.trim() } : {}) } }));
     } else if (step === 'login') {
-      const body = { accountName, password, deviceLabel: deviceLabel() };
+      const body = { accountName: accountName.trim(), password, deviceLabel: deviceLabel() };
       try {
         await afterLogin(await api<SessionReply>('/v1/sessions', { method: 'POST', body }));
       } catch (problem) {
@@ -88,14 +98,15 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
     loading: ['', ''],
     language: ['', ''],
     register: [t('创建管理员账号'), t('这是站点的第一个账号，将成为唯一的超级管理员。')],
-    login: [t('登录后台'), t('使用管理员分配的账号和口令登录。')],
+    login: [t('登录'), t('使用邮箱和口令登录，或用第三方账号登录。')],
+    signup: [t('注册'), options?.inviteRequired ? t('需要邀请码。邮箱不会验证，请确认填写正确。') : t('邮箱不会验证，请确认填写正确。')],
     site: [t('初始化站点'), t('给站点起个名字。初始化不调用模型。')],
   };
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10">
       {/* 登录页可以切换界面语言；初始化流程里语言就是站点基准语言，在选语言页和站点页换。 */}
-      <div className="absolute end-4 top-4 flex items-center gap-1">{step === 'login' && <LanguageMenu />}<ThemeMenu /></div>
+      <div className="absolute end-4 top-4 flex items-center gap-1">{(step === 'login' || step === 'signup') && <LanguageMenu />}<ThemeMenu /></div>
       <div className="mb-8 flex items-center gap-3">
         <SiteMark brand={brand} className="size-10 shrink-0 rounded-xl text-lg" />
         <div>
@@ -129,28 +140,47 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
                 </>
               ) : (
                 <>
+                  {step === 'signup' && <TextInput label={t('昵称')} maxLength={100} value={displayName} onChange={setDisplayName} />}
                   <IconField icon={<Person />}>
-                    <TextInput isRequired autoComplete="username" label={t('账号名')} value={accountName} onChange={setAccountName} />
+                    <TextInput isRequired autoComplete="username" label={step === 'login' || step === 'signup' ? t('邮箱') : t('账号名')} value={accountName} onChange={setAccountName} />
                   </IconField>
                   <IconField icon={<Lock />}>
-                    <TextInput isRequired autoComplete={step === 'register' ? 'new-password' : 'current-password'} label={t('口令')} minLength={step === 'register' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' ? t('至少 8 位，建议使用密码管理器生成。') : undefined} />
+                    <TextInput isRequired autoComplete={step === 'register' || step === 'signup' ? 'new-password' : 'current-password'} label={t('口令')} minLength={step === 'register' || step === 'signup' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' || step === 'signup' ? t('至少 8 位，建议使用密码管理器生成。') : undefined} />
                   </IconField>
-                  {step === 'register' && (
+                  {(step === 'register' || step === 'signup') && (
                     <TextInput isRequired autoComplete="new-password" label={t('确认口令')} type="password" value={confirmation} onChange={setConfirmation} error={confirmation && confirmation !== password ? t('两次输入的口令不一致') : null} />
                   )}
+                  {step === 'signup' && options?.inviteRequired && <TextInput isRequired label={t('邀请码')} placeholder="nwr-…" value={inviteCode} onChange={setInviteCode} />}
                 </>
               )}
               {error && <Notice status="danger">{error}</Notice>}
               <Button fullWidth isPending={busy} size="lg" type="submit">
                 {busy ? <Spinner color="current" size="sm" /> : step === 'site' ? <Globe /> : null}
-                {step === 'register' ? t('创建并继续') : step === 'login' ? t('登录') : t('完成初始化')}
+                {step === 'register' ? t('创建并继续') : step === 'login' ? t('登录') : step === 'signup' ? t('注册并登录') : t('完成初始化')}
                 {!busy && step !== 'site' && <ArrowRight className="rtl:-scale-x-100" />}
               </Button>
             </Form>
           </>
         )}
       </Card>
-      {step === 'login' && <p className="mt-6 text-xs text-muted">{t('忘记口令请联系超级管理员重置。')}</p>}
+      {(step === 'login' || step === 'signup') && (
+        <div className="mt-5 flex w-full max-w-sm flex-col items-center gap-3">
+          {options?.providers.length ? (
+            <div className="flex w-full flex-col gap-2">
+              {options.providers.map((item) => (
+                <Button key={item.provider} fullWidth isDisabled={busy} variant="secondary" onPress={() => void run(async () => {
+                  const started = await api<{ authorizeUrl: string }>(`/v1/oauth/${item.provider}:start`, { method: 'POST', body: { redirectUri: `${location.origin}/admin/oauth/${item.provider}` } });
+                  location.assign(started.authorizeUrl);
+                })}>{t('用 {0} 登录', item.label)}</Button>
+              ))}
+            </div>
+          ) : null}
+          {options && options.emailRegistration && (
+            <Button size="sm" variant="ghost" onPress={() => { setError(''); setStep(step === 'login' ? 'signup' : 'login'); }}>{step === 'login' ? t('没有账号？注册') : t('已有账号？登录')}</Button>
+          )}
+          {step === 'login' && <p className="text-xs text-muted">{t('忘记口令请联系站主重置。')}</p>}
+        </div>
+      )}
     </div>
   );
 }

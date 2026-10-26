@@ -27,3 +27,4 @@
 # scripts/release.sh 的中间产物与发布包
 /release/
 /pkg/
+/rust/target/

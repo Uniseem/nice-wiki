@@ -88,6 +88,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	})
 	if identityClient != nil {
 		application.SetHostResolver(hostResolver(identityClient, view.DataEpoch))
+		application.SetTLSAllow(tlsAllower(identityClient, view.DataEpoch))
+		application.SetPrivateRedeemer(privateRedeemer(identityClient, view.DataEpoch))
 	}
 	budgetKey, err := lifecycle.LoadBudgetKey(config)
 	if err != nil {
@@ -277,10 +279,46 @@ func hostResolver(client *gen.IdentityClient, epoch platform.Identifier) func(co
 			Visibility   string `json:"visibility"`
 			PrimaryHost  string `json:"primaryHost"`
 			RedirectHost string `json:"redirectHost"`
+			PlatformHost string `json:"platformHost"`
 		}
 		if json.Unmarshal(raw, &body) != nil || body.SiteID == "" {
 			return transport.HostSite{}, false, nil
 		}
-		return transport.HostSite{SiteID: body.SiteID, Status: body.Status, Visibility: body.Visibility, PrimaryHost: body.PrimaryHost, RedirectHost: body.RedirectHost}, true, nil
+		return transport.HostSite{SiteID: body.SiteID, Status: body.Status, Visibility: body.Visibility, PrimaryHost: body.PrimaryHost, RedirectHost: body.RedirectHost, PlatformHost: body.PlatformHost}, true, nil
+	}
+}
+
+// tlsAllower 问身份服务：这个域名能不能签证书（平台域名、已验证的站点域名）。
+func tlsAllower(client *gen.IdentityClient, epoch platform.Identifier) func(context.Context, string) (bool, error) {
+	return func(ctx context.Context, host string) (bool, error) {
+		deadline := platform.Timestamp(time.Now().UTC().Add(5 * time.Second).Format(time.RFC3339Nano))
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline, DataEpoch: epoch,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline, Grants: []string{}}}
+		raw, err := client.AllowTlsHost(platform.WithPortalProof(platform.WithOperationContext(ctx, op), ""), host)
+		if err != nil {
+			return false, err
+		}
+		var body struct {
+			Allowed bool `json:"allowed"`
+		}
+		if json.Unmarshal(raw, &body) != nil {
+			return false, nil
+		}
+		return body.Allowed, nil
+	}
+}
+
+// privateRedeemer 在站点域名上把协作者带来的一次性码交给身份服务核对。
+func privateRedeemer(client *gen.IdentityClient, epoch platform.Identifier) func(context.Context, platform.Identifier, string) error {
+	return func(ctx context.Context, siteID platform.Identifier, code string) error {
+		deadline := platform.Timestamp(time.Now().UTC().Add(5 * time.Second).Format(time.RFC3339Nano))
+		id := platform.NewIdentifier()
+		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline, DataEpoch: epoch,
+			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: siteID, ExpiresAt: deadline, Grants: []string{}}}
+		_, err := client.RedeemPrivateAccess(platform.WithPortalProof(platform.WithOperationContext(ctx, op), ""), string(siteID), struct {
+			Code string `json:"code"`
+		}{code})
+		return err
 	}
 }

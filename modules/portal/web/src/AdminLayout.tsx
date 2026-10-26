@@ -1,7 +1,8 @@
-import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, LayoutSideContentLeft, Person } from '@gravity-ui/icons';
+import { ArrowRightFromSquare, ArrowUpRightFromSquare, Bars, ChevronsExpandVertical, LayoutSideContentLeft, Person } from '@gravity-ui/icons';
 import { Button, buttonVariants, cn, Drawer, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { CenteredSpinner, ErrorBlock, HeaderSlotContext, LanguageMenu, navigate, Notice, ResizeHandle, ThemeMenu, useGrants, usePath, useResizablePane, useStoredState, t } from '@ui';
+import { api, CenteredSpinner, currentSite, ErrorBlock, HeaderSlotContext, LanguageMenu, navigate, Notice, ResizeHandle, selectSite, ThemeMenu, useCurrentSite, useGrants, useLoad, usePath, useResizablePane, useStoredState, t } from '@ui';
+import { openSite, type Site } from '@modules/identity/web/src/MySites';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
@@ -17,7 +18,11 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const brand = useSiteBrand();
 
   // 必须先改口令的子账号只开放个人设置；其余按授权项显示（只是少展示，权限仍在服务端校验）。
-  const visible = useMemo(() => account.mustChangePassword ? pages.filter((page) => page.key === 'me') : pages.filter((page) => canOpen(page, grants)), [account.mustChangePassword, grants]);
+  const site = useCurrentSite();
+  const sites = useLoad((signal) => api<{ sites: Site[] }>('/v1/sites', { signal }).then((result) => result.sites.filter((item) => item.status !== 'deleted')), []);
+  const currentSiteInfo = sites.data?.find((item) => item.siteId === site);
+  // 个人级页面（站点列表、AI 额度、平台管理）随时可用；其余页面在选中的站点里工作，先选站点才显示。
+  const visible = useMemo(() => account.mustChangePassword ? pages.filter((page) => page.key === 'me') : pages.filter((page) => canOpen(page, grants) && (page.personal || !!site)), [account.mustChangePassword, grants, site]);
   const current = pageFor(path);
   const page = current && visible.includes(current) ? current : undefined;
 
@@ -48,6 +53,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
       <div className="flex min-h-dvh bg-background">
         <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-separator bg-surface lg:flex', !sidebar.dragging && 'transition-[width] duration-200')} style={{ width: sidebar.width }}>
           <Brand brand={brand} compact={rail} />
+          {!account.mustChangePassword && <SiteSwitcher compact={rail} sites={sites.data} />}
           <ScrollShadow className={cn('flex-1 pb-4', rail ? 'px-2' : 'px-3')} hideScrollBar>
             <Navigation compact={rail} pages={visible} current={page} onNavigate={() => setNavOpen(false)} />
           </ScrollShadow>
@@ -59,6 +65,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
           <Drawer.Content placement="left">
             <Drawer.Dialog aria-label={t('后台导航')} className="flex h-full w-72 max-w-[85vw] flex-col p-0">
               <Brand brand={brand} />
+              {!account.mustChangePassword && <SiteSwitcher sites={sites.data} onPicked={() => setNavOpen(false)} />}
               <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
               <AccountBox account={account} onSignOut={onSignOut} />
             </Drawer.Dialog>
@@ -79,7 +86,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
             <div ref={setSlotElement} className={cn('@container min-w-0 items-center gap-2', claims ? 'flex flex-1' : 'hidden')} />
             {claims > 0 && <span className="mx-1 h-5 w-px shrink-0 bg-separator" />}
             <div className={cn('flex items-center gap-1', !claims && 'ms-auto')}>
-              <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href="/" rel="noopener" target="_blank">
+              <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href={currentSiteInfo?.primaryHost ? `${location.protocol}//${currentSiteInfo.primaryHost}/` : '/'} rel="noopener" target="_blank">
                 <ArrowUpRightFromSquare />
                 <span className="hidden sm:inline">{t('查看站点')}</span>
               </a>
@@ -105,9 +112,41 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   );
 }
 
+// 站点切换：后台其余页面都在选中的站点里工作。列表里的站点也用来刷新当前站点的授权项（角色可能被改过）。
+function SiteSwitcher({ compact = false, sites, onPicked }: { compact?: boolean; sites: Site[] | undefined; onPicked?: () => void }) {
+  const site = useCurrentSite();
+  const current = sites?.find((item) => item.siteId === site);
+  useEffect(() => {
+    if (!sites || !currentSite()) return;
+    if (current) selectSite({ siteId: current.siteId, grants: current.grants });
+    else selectSite(null);
+  }, [sites, current]);
+  return (
+    <div className={cn('shrink-0 pb-2', compact ? 'px-2' : 'px-3')}>
+      <Dropdown>
+        <Button aria-label={t('切换站点')} className={cn('h-auto w-full gap-2 py-2', compact ? 'justify-center px-0' : 'justify-start px-3')} variant="secondary">
+          <ChevronsExpandVertical className="size-4 shrink-0 text-muted" />
+          <span className={cn('min-w-0 flex-1 truncate text-start text-sm', compact && 'hidden')}>{current?.name ?? t('选择站点')}</span>
+        </Button>
+        <Dropdown.Popover className="min-w-56" placement="bottom start">
+          <Dropdown.Menu onAction={(key: Key) => {
+            onPicked?.();
+            if (key === 'all') { navigate('/admin/sites'); return; }
+            const picked = sites?.find((item) => item.siteId === key);
+            if (picked) openSite(picked);
+          }}>
+            {(sites ?? []).map((item) => <Dropdown.Item key={item.siteId} id={item.siteId} textValue={item.name}><Label>{item.name}</Label></Dropdown.Item>)}
+            <Dropdown.Item id="all" textValue={t('管理我的站点')}><Label>{t('管理我的站点…')}</Label></Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown.Popover>
+      </Dropdown>
+    </div>
+  );
+}
+
 function Brand({ brand, compact = false }: { brand: ReturnType<typeof useSiteBrand>; compact?: boolean }) {
   return (
-    <a className={cn('flex h-14 shrink-0 items-center gap-2.5', compact ? 'justify-center px-0' : 'px-5')} href="/admin/dashboard" title={compact ? brand.name || 'nice-wiki' : undefined} onClick={(event) => { event.preventDefault(); navigate('/admin/dashboard'); }}>
+    <a className={cn('flex h-14 shrink-0 items-center gap-2.5', compact ? 'justify-center px-0' : 'px-5')} href="/admin/sites" title={compact ? brand.name || 'nice-wiki' : undefined} onClick={(event) => { event.preventDefault(); navigate(currentSite() ? '/admin/dashboard' : '/admin/sites'); }}>
       <SiteMark brand={brand} className="size-8 shrink-0 rounded-lg text-sm" />
       <span className={cn('min-w-0', compact && 'hidden')}>
         <span className="block truncate text-sm font-semibold text-foreground">{brand.name || 'nice-wiki'}</span>
@@ -168,7 +207,7 @@ function AccountBox({ account, compact = false, onSignOut }: { account: Account;
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-default text-sm font-semibold text-foreground">{account.accountName.slice(0, 1).toUpperCase()}</span>
           <span className={cn('min-w-0 text-start', compact && 'hidden')}>
             <span className="block truncate text-sm font-medium text-foreground">{account.accountName}</span>
-            <span className="block text-xs font-normal text-muted">{account.isSuperadmin ? t('超级管理员') : t('子账号')}</span>
+            <span className="block text-xs font-normal text-muted">{account.isSuperadmin ? t('站主') : account.siteId?.startsWith('home:') ? t('用户') : t('子账号')}</span>
           </span>
         </Button>
         <Dropdown.Popover className="min-w-52" placement="top start">

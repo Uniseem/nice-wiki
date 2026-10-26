@@ -1,0 +1,20 @@
+[package]
+name = "nw-search"
+version = "0.1.0"
+edition = "2021"
+description = "nice-wiki 检索服务：全文（tantivy）+ 向量（pgvector），所有查询必须带站点"
+license = "AGPL-3.0-only"
+
+[dependencies]
+axum = { version = "0.7", default-features = false, features = ["http1", "json", "tokio", "query", "matched-path"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "time", "sync"] }
+tantivy = { version = "0.22", default-features = false, features = ["mmap"] }
+tokio-postgres = "0.7"
+deadpool-postgres = { version = "0.14", features = ["rt_tokio_1"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+subtle = "2"
+anyhow = "1"

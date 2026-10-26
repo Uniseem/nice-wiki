@@ -256,6 +256,11 @@
       "labelZH": "备份恢复",
       "labelEN": "Backup",
       "navigation": true
-    }
+    },
+    {"key": "sites", "path": "/admin/sites", "permissions": ["account.self"], "labelZH": "我的站点", "labelEN": "My sites", "navigation": true},
+    {"key": "team", "path": "/admin/team", "permissions": ["account.manage"], "labelZH": "团队与域名", "labelEN": "Team & domains", "navigation": true},
+    {"key": "myai", "path": "/admin/ai", "permissions": ["account.self"], "labelZH": "AI 与额度", "labelEN": "AI & quota", "navigation": true},
+    {"key": "privateAccess", "path": "/admin/private-access", "permissions": ["account.self"], "labelZH": "进入私有站点", "labelEN": "Open private site", "navigation": false},
+    {"key": "platform", "path": "/admin/platform", "permissions": ["system.manage"], "labelZH": "平台管理", "labelEN": "Platform", "navigation": true}
   ]
 }

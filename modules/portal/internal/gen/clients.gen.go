@@ -287,6 +287,11 @@ func NewIdentityClient(baseURL, issuer string, key platform.SigningKey) *Identit
 	return &IdentityClient{newProducerClient("identity", baseURL, issuer, key)}
 }
 
+// AllowTlsHost GET /v1/tls/hosts/{host}（identity:allowTlsHost）。
+func (c *IdentityClient) AllowTlsHost(ctx context.Context, host string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/tls/hosts/"+url.PathEscape(host)+"", nil, "")
+}
+
 // CheckAuthorization POST /v1/authorizations/check（identity:checkAuthorization）。
 func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
@@ -300,6 +305,11 @@ func (c *IdentityClient) ReadPreferences(ctx context.Context) (json.RawMessage, 
 // ReadSelf GET /v1/self（identity:readSelf）。
 func (c *IdentityClient) ReadSelf(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/self", nil, "")
+}
+
+// RedeemPrivateAccess POST /v1/sites/{siteId}/private-access:redeem（identity:redeemPrivateAccess）。
+func (c *IdentityClient) RedeemPrivateAccess(ctx context.Context, siteId string, body any) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodPost, "/v1/sites/"+url.PathEscape(siteId)+"/private-access:redeem", body, "")
 }
 
 // ResolveHost GET /v1/hosts/{host}（identity:resolveHost）。
@@ -441,4 +451,19 @@ var AdminRoutes = []AdminRouteEntry{
 	{Key: "backup", Path: "/admin/backup", Permissions: []string{
 		"backup.manage",
 	}, LabelZH: "备份恢复", LabelEN: "Backup", Navigation: true},
+	{Key: "sites", Path: "/admin/sites", Permissions: []string{
+		"account.self",
+	}, LabelZH: "我的站点", LabelEN: "My sites", Navigation: true},
+	{Key: "team", Path: "/admin/team", Permissions: []string{
+		"account.manage",
+	}, LabelZH: "团队与域名", LabelEN: "Team & domains", Navigation: true},
+	{Key: "myai", Path: "/admin/ai", Permissions: []string{
+		"account.self",
+	}, LabelZH: "AI 与额度", LabelEN: "AI & quota", Navigation: true},
+	{Key: "privateAccess", Path: "/admin/private-access", Permissions: []string{
+		"account.self",
+	}, LabelZH: "进入私有站点", LabelEN: "Open private site", Navigation: false},
+	{Key: "platform", Path: "/admin/platform", Permissions: []string{
+		"system.manage",
+	}, LabelZH: "平台管理", LabelEN: "Platform", Navigation: true},
 }

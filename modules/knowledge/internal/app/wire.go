@@ -9,6 +9,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/admin"
 	"nice-wiki/modules/knowledge/internal/build"
 	"nice-wiki/modules/knowledge/internal/events"
@@ -125,7 +126,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	indexes, err := indexer.NewIndexRuntime(indexer.Runtime{DB: db, DataRoot: config.DataRoot, Gateway: gateway, InferenceClient: model.Gateway, Memory: gen.NewMemoryClient(config.Dependencies["memory"], ModuleSlug, key), Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Media: gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key), Content: gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), BaseLanguage: site.Config.BaseLanguage, WriteWindow: window})
+	var searchService *searchclient.Client
+	if base := config.Dependencies["search"]; base != "" && config.SearchSecretRef != "" {
+		if searchService, err = searchclient.New(base, config.SearchSecretRef); err != nil {
+			return nil, err
+		}
+	}
+	indexes, err := indexer.NewIndexRuntime(indexer.Runtime{Search: searchService, DB: db, DataRoot: config.DataRoot, Gateway: gateway, InferenceClient: model.Gateway, Memory: gen.NewMemoryClient(config.Dependencies["memory"], ModuleSlug, key), Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Media: gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key), Content: gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), BaseLanguage: site.Config.BaseLanguage, WriteWindow: window})
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +201,7 @@ func bindSearchRuntime(ctx context.Context, db *sql.DB, indexes indexer.Runtime)
 	if err != nil || !config.Enabled {
 		return ctx
 	}
-	runtime := search.Runtime{Store: search.SQLSnapshotReader{DB: db}, Content: indexes.Content, Space: config.Space, Language: config.Language, EmbeddingProfileID: config.EmbeddingProfileId, RerankEnabled: true}
+	runtime := search.Runtime{Remote: indexes.Search, Store: search.SQLSnapshotReader{DB: db}, Content: indexes.Content, Space: config.Space, Language: config.Language, EmbeddingProfileID: config.EmbeddingProfileId, RerankEnabled: true}
 	if config.RerankProfileId != nil {
 		runtime.RerankProfileID = *config.RerankProfileId
 	}
@@ -251,6 +258,10 @@ func assembleBackgroundTasks(bind func(context.Context) context.Context, db *sql
 				return err
 			}
 			return build.RetryFailedBuilds(ctx, op)
+		}),
+		// 配置了 Rust 检索服务时，每 30 秒把它的内容和活动索引对齐。
+		loop("knowledge.search-sync", 30000, true, func(ctx context.Context, op platform.OperationContext) error {
+			return indexer.ReconcileSearch(ctx, op)
 		}),
 		batch("knowledge.gc", 60000, func(ctx context.Context, op platform.OperationContext) error {
 			if time.Now().Before(nextGC) {

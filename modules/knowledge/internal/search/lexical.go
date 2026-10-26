@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/gen"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 )
@@ -33,6 +34,25 @@ func SearchLexical(ctx context.Context, op OperationContext, input SearchLexical
 	queryTerms := make(map[string]bool)
 	for _, term := range indexer.TokenizeText(input.Normalized) {
 		queryTerms[term] = true
+	}
+	if runtime, err := searchRuntime(ctx); err == nil {
+		if client, store, ok := runtime.remote(); ok {
+			terms := make([]string, 0, len(queryTerms))
+			for term := range queryTerms {
+				terms = append(terms, term)
+			}
+			sort.Strings(terms)
+			documents := make([]string, 0, len(input.Documents))
+			for id := range input.Documents {
+				documents = append(documents, id)
+			}
+			sort.Strings(documents)
+			found, err := client.Search(ctx, op.Actor.SiteID, searchclient.Query{SpaceID: snapshot.Space.SpaceId, Terms: terms, Documents: documents, Limit: min(80, max(input.Limit, 0))})
+			if err != nil {
+				return SearchLexicalResult{}, err
+			}
+			return remoteCandidates(ctx, op, store, snapshot.Space, found.Lexical, true)
+		}
 	}
 	frequency := make(map[string]int)
 	totalLength := 0
@@ -80,6 +100,31 @@ func SearchLexical(ctx context.Context, op OperationContext, input SearchLexical
 	for rank, row := range ranks[:min(len(ranks), min(80, max(input.Limit, 0)))] {
 		row.candidate.LexicalRank = rank + 1
 		result.Candidates = append(result.Candidates, row.candidate)
+	}
+	return result, nil
+}
+
+// remoteCandidates 把检索服务命中的 (构建, 分块) 还原成带正文的候选，名次沿用服务给的顺序。
+func remoteCandidates(ctx context.Context, op OperationContext, store RemoteStore, space gen.EmbeddingSpace, hits []searchclient.Hit, lexical bool) (SearchLexicalResult, error) {
+	chunks, err := store.ChunksOfHits(ctx, op, space, hits)
+	if err != nil {
+		return SearchLexicalResult{}, err
+	}
+	result := SearchLexicalResult{Candidates: make([]gen.Candidate, 0, len(hits))}
+	rank := 0
+	for _, hit := range hits {
+		chunk, ok := chunks[hit.ChunkID]
+		if !ok {
+			continue
+		}
+		rank++
+		candidate := gen.Candidate{Chunk: chunk}
+		if lexical {
+			candidate.LexicalRank = rank
+		} else {
+			candidate.VectorRank = rank
+		}
+		result.Candidates = append(result.Candidates, candidate)
 	}
 	return result, nil
 }

@@ -8,7 +8,7 @@
     "OauthStartResult": {"description": "授权跳转地址与一次性状态", "props": {"authorizeUrl": "string:2048", "state": "string:256"}},
     "OauthLoginInput": {"description": "第三方登录回调：用授权码换身份，首次登录自动建号", "props": {"code": "string:2048:1", "state": "string:256:1", "redirectUri": "string:512:1", "inviteCode": "string:128?"}},
     "UserLimits": {"description": "当前用户的站点与存储额度", "props": {"maxSites": "int:0", "siteCount": "int:0", "storageBytes": "int:0", "storageUsed": "int:0"}},
-    "SiteSummary": {"description": "站点摘要（含当前用户在该站的角色）", "props": {"siteId": "id", "slug": "string:63", "name": "string:100", "status": "enum:active|suspended|deleted", "role": "enum:owner|editor|viewer", "visibility": "enum:public|private", "primaryHost": "string:253", "createdAt": "ts", "visitorQaDaily": "int:0", "qaPausedOn": "string:10"}},
+    "SiteSummary": {"description": "站点摘要（含当前用户在该站的角色）", "props": {"siteId": "id", "slug": "string:63", "name": "string:100", "status": "enum:active|suspended|deleted", "role": "enum:owner|editor|viewer", "visibility": "enum:public|private", "primaryHost": "string:253", "createdAt": "ts", "visitorQaDaily": "int:0", "qaPausedOn": "string:10", "grants": "[string:64]"}},
     "ListMySitesResult": {"description": "我能访问的站点", "props": {"sites": "[SiteSummary]", "limits": "UserLimits"}},
     "CreateSiteInput": {"description": "创建站点并成为所有者", "props": {"slug": "string:63:3", "name": "string:100:1", "baseLanguage": "string:35?"}},
     "SiteResult": {"description": "单个站点", "props": {"site": "SiteSummary"}},
@@ -23,7 +23,7 @@
     "ListSiteDomainsResult": {"description": "站点域名列表", "props": {"domains": "[SiteDomain]"}},
     "AddSiteDomainInput": {"description": "绑定自定义域名", "props": {"host": "string:253:3"}},
     "SiteDomainResult": {"description": "单个域名", "props": {"domain": "SiteDomain"}},
-    "ResolveHostResult": {"description": "域名对应的站点；只给入口与公开站使用", "props": {"siteId": "id", "slug": "string:63", "status": "enum:active|suspended|deleted", "visibility": "enum:public|private", "primaryHost": "string:253", "redirectHost": "string:253?"}},
+    "ResolveHostResult": {"description": "域名对应的站点；只给入口与公开站使用", "props": {"siteId": "id", "slug": "string:63", "status": "enum:active|suspended|deleted", "visibility": "enum:public|private", "primaryHost": "string:253", "redirectHost": "string:253?", "platformHost": "string:253"}},
     "ProviderConfig": {"description": "第三方登录配置（不含密钥）", "props": {"provider": "enum:github|google|linuxdo", "enabled": "bool", "clientId": "string:256", "clientSecretSet": "bool"}},
     "PlatformSettings": {"description": "平台设置", "props": {"registrationOpen": "bool", "emailRegistration": "bool", "inviteRequired": "bool", "defaultMaxSites": "int:0:1000", "defaultStorageBytes": "int:0", "defaultVisitorQaDaily": "int:0:1000000", "platformHost": "string:253", "sitesDomain": "string:253", "providers": "[ProviderConfig]"}},
     "ProviderUpdate": {"description": "第三方登录配置更新；clientSecret 省略表示不改", "props": {"provider": "enum:github|google|linuxdo", "enabled": "bool", "clientId": "string:256", "clientSecret": "string:512?"}},
@@ -56,7 +56,11 @@
     "MyAi": {"description": "当前用户的平台 AI 权益（已用额度在 model-gateway 的 /v1/ai/usage）", "props": {"entitled": "bool", "capMicros": "int:0", "period": "enum:once|monthly?", "tasks": "[string:64]", "redeemedAt": "ts?", "periodStart": "ts?"}},
     "MyAiResult": {"description": "当前用户的平台 AI 权益", "props": {"ai": "MyAi"}},
     "SiteAiPolicy": {"description": "站点的 AI 策略：谁付费、额度、哪些任务可用平台渠道、访客每日提问上限；只给 model-gateway 与 qa", "props": {"siteId": "id", "ownerUserId": "id", "platformOwner": "bool", "platformAllowed": "bool", "capMicros": "int:0", "periodStartNs": "int:0", "tasks": "[string:64]", "siteIds": "[id]", "visitorQaDaily": "int:0"}},
-    "OkResult": {"description": "无返回内容的确认", "props": {"ok": "bool"}}
+    "OkResult": {"description": "无返回内容的确认", "props": {"ok": "bool"}},
+    "PrivateAccessResult": {"description": "协作者进入私有站点用的一次性码（60 秒内有效）与站点主地址", "props": {"code": "string:128", "host": "string:253"}},
+    "RedeemPrivateAccessInput": {"description": "站点域名上的入口用一次性码换取站点专用短期访问", "props": {"code": "string:128:1"}},
+    "PrivateAccessGrant": {"description": "换取成功后站点专用访问的有效秒数", "props": {"ttlSeconds": "int:1"}},
+    "TlsHostResult": {"description": "入口 Caddy 按需签证书前问：这个域名是不是平台认可的（平台域名、已验证的站点域名）", "props": {"allowed": "bool"}}
   },
   "ops": [
     {"id": "readAuthOptions", "method": "get", "path": "/v1/auth/options", "perm": "anonymous", "summary": "读取登录页选项", "out": "ReadAuthOptionsResult"},
@@ -96,6 +100,9 @@
     {"id": "redeemAiCode", "method": "post", "path": "/v1/me/ai:redeem", "perm": "account.self", "summary": "兑换 AI 邀请码", "in": "RedeemAiCodeInput", "out": "MyAiResult"},
     {"id": "readMyAi", "method": "get", "path": "/v1/me/ai", "perm": "account.self", "summary": "读取自己的平台 AI 权益", "out": "MyAiResult"},
     {"id": "readSiteAiPolicy", "method": "get", "path": "/v1/sites/{siteId}/ai-policy", "perm": "service", "summary": "读取站点 AI 策略", "path_params": ["siteId"], "out": "SiteAiPolicy"},
+    {"id": "issuePrivateAccess", "method": "post", "path": "/v1/sites/{siteId}/private-access", "perm": "site.read", "summary": "取得进入私有站点的一次性码", "path_params": ["siteId"], "out": "PrivateAccessResult"},
+    {"id": "redeemPrivateAccess", "method": "post", "path": "/v1/sites/{siteId}/private-access:redeem", "perm": "service", "summary": "站点域名入口兑换一次性码", "path_params": ["siteId"], "in": "RedeemPrivateAccessInput", "out": "PrivateAccessGrant"},
+    {"id": "allowTlsHost", "method": "get", "path": "/v1/tls/hosts/{host}", "perm": "service", "summary": "域名是否可以签发证书", "path_params": ["host"], "out": "TlsHostResult"},
     {"id": "noteVisitorQaCap", "method": "post", "path": "/v1/sites/{siteId}/visitor-qa-cap", "perm": "service", "summary": "记录站点当天访客提问已达上限", "path_params": ["siteId"], "out": "OkResult"}
   ]
 }

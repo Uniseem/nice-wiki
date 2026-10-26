@@ -71,6 +71,9 @@
 | POST `/v1/me/ai:redeem` | `redeemAiCode` | `identity.RedeemAiCode` | `account.self` | `RedeemAiCodeInput` → 200 `MyAiResult` | 兑换 AI 邀请码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/me/ai` | `readMyAi` | `identity.ReadMyAi` | `account.self` | `—` → 200 `MyAiResult` | 读取自己的平台 AI 权益 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/sites/{siteId}/ai-policy` | `readSiteAiPolicy` | `identity.ReadSiteAiPolicy` | `service` | `—` → 200 `SiteAiPolicy` | 读取站点 AI 策略 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/sites/{siteId}/private-access` | `issuePrivateAccess` | `identity.IssuePrivateAccess` | `site.read` | `—` → 200 `PrivateAccessResult` | 取得进入私有站点的一次性码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/sites/{siteId}/private-access:redeem` | `redeemPrivateAccess` | `identity.RedeemPrivateAccess` | `service` | `RedeemPrivateAccessInput` → 200 `PrivateAccessGrant` | 站点域名入口兑换一次性码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/tls/hosts/{host}` | `allowTlsHost` | `identity.AllowTlsHost` | `service` | `—` → 200 `TlsHostResult` | 域名是否可以签发证书 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/sites/{siteId}/visitor-qa-cap` | `noteVisitorQaCap` | `identity.NoteVisitorQaCap` | `service` | `—` → 200 `OkResult` | 记录站点当天访客提问已达上限 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 

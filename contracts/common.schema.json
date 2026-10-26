@@ -1404,7 +1404,12 @@
         "analytics",
         "settings",
         "accounts",
-        "backup"
+        "backup",
+        "sites",
+        "team",
+        "myai",
+        "privateAccess",
+        "platform"
       ],
       "default": "dashboard"
     },

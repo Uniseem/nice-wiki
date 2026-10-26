@@ -1488,7 +1488,9 @@
             "site-config:readSiteConfig",
             "portal.BuildCapabilities",
             "portal.BuildNavigation",
-            "identity:resolveHost"
+            "identity:resolveHost",
+            "identity:allowTlsHost",
+            "identity:redeemPrivateAccess"
           ],
           "resources": [],
           "contract": "binding"

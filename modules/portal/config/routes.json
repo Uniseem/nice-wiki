@@ -2622,6 +2622,16 @@
       "streaming": false
     },
     {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/private-access",
+      "owner": "identity",
+      "operationId": "issuePrivateAccess",
+      "permission": "site.read",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "GET",
       "path": "/v1/statistics/content-gaps",
       "owner": "analytics",
