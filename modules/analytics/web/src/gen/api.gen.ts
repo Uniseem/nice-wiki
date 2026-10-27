@@ -188,66 +188,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/barriers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 进入analytics一致屏障
-         * @description 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点
-         */
-        post: operations["acquireBarrier"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/barriers/{barrierId}:release": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 解除统计维护
-         * @description 仅全域恢复完成或commit前全部abort确认后释放
-         */
-        post: operations["releaseBarrier"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots:export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 导出统计快照
-         * @description 公共SnapshotExportRequest→SnapshotExportResult；必须safe
-         */
-        post: operations["exportSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -276,46 +216,6 @@ export interface paths {
         get: operations["ready"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots:stage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 暂存本域恢复归档，不改active目录
-         * @description 暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准
-         */
-        post: operations["stageSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots:discard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 删除恢复暂存或换出的旧数据目录
-         * @description 删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准
-         */
-        post: operations["discardSnapshot"];
         delete?: never;
         options?: never;
         head?: never;
@@ -394,23 +294,6 @@ export interface paths {
          * @description 核存储kind、原actor/site/epoch、24h到期、完整hash；流式32MiB上限。
          */
         get: operations["downloadAuditExport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots/{snapshotId}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 受控读取已完成域快照归档 */
-        get: operations["readSnapshotArchive"];
         put?: never;
         post?: never;
         delete?: never;
@@ -634,7 +517,7 @@ export interface components {
          * @description 固定producer.operationId审计动作；只追加历史动作，不因接口退休删除旧记录含义。
          * @enum {string}
          */
-        AuditAction: "analytics.acquireBarrier" | "analytics.appendAudit" | "analytics.createExport" | "analytics.discardSnapshot" | "analytics.exportSnapshot" | "analytics.ingestBeacon" | "analytics.reconcileUsage" | "analytics.recordCrawlerAccess" | "analytics.releaseBarrier" | "analytics.retention" | "analytics.stageSnapshot" | "content.acquireBarrier" | "content.acquireEditLock" | "content.createDocument" | "content.createPreviewGrant" | "content.diffRevisions" | "content.discardSnapshot" | "content.exportSnapshot" | "content.forceReleaseEditLock" | "content.moveDocument" | "content.publishDocument" | "content.purgeDocuments" | "content.releaseBarrier" | "content.releaseEditLock" | "content.renewEditLock" | "content.reorderChildren" | "content.restoreDocument" | "content.rollbackPublishedRevision" | "content.saveDraft" | "content.stageSnapshot" | "content.trashDocument" | "content.updateDocumentMetadata" | "content.validatePreviewGrant" | "content.validatePublications" | "content.withdrawDocument" | "data-protection.abortRestore" | "data-protection.acquireBarrier" | "data-protection.authorizeBackupDownload" | "data-protection.buildMirror" | "data-protection.cleanupRestore" | "data-protection.configureRemote" | "data-protection.continueRestore" | "data-protection.createBackup" | "data-protection.createRestore" | "data-protection.discardSnapshot" | "data-protection.exportSnapshot" | "data-protection.importPortableBackup" | "data-protection.releaseBarrier" | "data-protection.restoreDuringSetup" | "data-protection.scheduleLocalBackup" | "data-protection.stageSnapshot" | "data-protection.syncMirror" | "data-protection.validateRestore" | "identity.acquireBarrier" | "identity.changePassword" | "identity.checkAuthorization" | "identity.createAccount" | "identity.createSession" | "identity.discardSnapshot" | "identity.exportSnapshot" | "identity.refreshSession" | "identity.registerFirstSuperadmin" | "identity.releaseBarrier" | "identity.resetAccountPassword" | "identity.revokeSession" | "identity.setAccountPermissions" | "identity.setAccountStatus" | "identity.stageSnapshot" | "identity.updatePreferences" | "identity.verifySessionCSRF" | "jobs.acknowledgeEvent" | "jobs.acquireBarrier" | "jobs.cancelJob" | "jobs.claimJob" | "jobs.completeJob" | "jobs.coordinateBarrier" | "jobs.createJob" | "jobs.createSchedule" | "jobs.discardSnapshot" | "jobs.exportSnapshot" | "jobs.failJob" | "jobs.heartbeatJob" | "jobs.publishEvent" | "jobs.releaseBarrier" | "jobs.replayDelivery" | "jobs.retryJob" | "jobs.stageSnapshot" | "jobs.startJob" | "jobs.updateSchedule" | "knowledge.acquireBarrier" | "knowledge.approveRebuildPlan" | "knowledge.cancelBuild" | "knowledge.createBuild" | "knowledge.createQueryEmbedding" | "knowledge.discardSnapshot" | "knowledge.estimateRebuildPlan" | "knowledge.exportSnapshot" | "knowledge.inspectEvidence" | "knowledge.putIndexConfig" | "knowledge.readSections" | "knowledge.releaseBarrier" | "knowledge.searchKnowledge" | "knowledge.stageSnapshot" | "localization.acquireBarrier" | "localization.applyApprovedGlossaryProposal" | "localization.approveLanguagePlan" | "localization.cancelTranslation" | "localization.createTranslation" | "localization.deleteGlossaryTerm" | "localization.discardSnapshot" | "localization.editTranslationUnit" | "localization.estimateLanguagePlan" | "localization.exportSnapshot" | "localization.putGlossaryTerm" | "localization.putInterfaceString" | "localization.putLanguage" | "localization.readTranslation" | "localization.releaseBarrier" | "localization.requestInterfaceTranslation" | "localization.rollbackAutomaticGlossaryBatch" | "localization.saveLanguagePreference" | "localization.setLanguageEnabled" | "localization.setUnitProtection" | "localization.stageSnapshot" | "localization.suggestLanguage" | "localization.translateCachedAnswer" | "media.abortUpload" | "media.acquireBarrier" | "media.acquireResourceReferences" | "media.attachImageVariants" | "media.beginUpload" | "media.buildDeliveryManifest" | "media.cancelManualCleanup" | "media.completeUpload" | "media.confirmManualCleanup" | "media.confirmResourceReferences" | "media.discardSnapshot" | "media.exportSnapshot" | "media.proposeManualCleanup" | "media.putUploadChunk" | "media.readVideoMetadata" | "media.releaseBarrier" | "media.releaseResourceReferences" | "media.stageSnapshot" | "memory.acquireBarrier" | "memory.appendAssistantMessage" | "memory.approveProposal" | "memory.archiveEntry" | "memory.cancelAssistantRun" | "memory.createAssistantRun" | "memory.createEntry" | "memory.deleteAssistantConversation" | "memory.discardSnapshot" | "memory.exportSnapshot" | "memory.putMapping" | "memory.putTaskBudget" | "memory.rejectProposal" | "memory.releaseBarrier" | "memory.removeMapping" | "memory.reorderMappings" | "memory.resolveContext" | "memory.restoreEntry" | "memory.stageSnapshot" | "memory.updateEntry" | "model-gateway.acquireBarrier" | "model-gateway.cancelInference" | "model-gateway.createConnectionProbe" | "model-gateway.createInference" | "model-gateway.discardSnapshot" | "model-gateway.estimateTokens" | "model-gateway.exportSnapshot" | "model-gateway.putCredential" | "model-gateway.putFeeBudgetPolicy" | "model-gateway.putModel" | "model-gateway.putProfile" | "model-gateway.putProvider" | "model-gateway.putTaskAssignment" | "model-gateway.quoteCost" | "model-gateway.readTaskAvailability" | "model-gateway.reconcileCharge" | "model-gateway.refreshModelCatalog" | "model-gateway.releaseBarrier" | "model-gateway.rotateCredential" | "model-gateway.stageSnapshot" | "portal.access" | "portal.acquireBarrier" | "portal.releaseBarrier" | "portal.updatePreferences" | "public-site.acquireBarrier" | "public-site.discardSnapshot" | "public-site.exportSnapshot" | "public-site.issuePreviewToken" | "public-site.releaseBarrier" | "public-site.resolvePublishedLink" | "public-site.stageSnapshot" | "qa.acquireBarrier" | "qa.approveCacheEntry" | "qa.cancelTurn" | "qa.createConversation" | "qa.createDebugTurn" | "qa.deleteConversation" | "qa.disableCacheEntry" | "qa.discardSnapshot" | "qa.exportSnapshot" | "qa.proposeCacheEntry" | "qa.putQaPolicy" | "qa.recordFeedback" | "qa.releaseBarrier" | "qa.stageSnapshot" | "qa.startTurn" | "site-config.abortInitialization" | "site-config.acquireBarrier" | "site-config.discardSnapshot" | "site-config.exportSnapshot" | "site-config.initializeSite" | "site-config.registerActivation" | "site-config.releaseBarrier" | "site-config.restoreConfigRevision" | "site-config.resumeInitialization" | "site-config.stageSnapshot" | "site-config.transitionRuntimeState" | "site-config.updateBanner" | "site-config.updateBranding" | "site-config.updateFooter" | "site-config.updateHome" | "site-config.updateSiteConfig" | "traffic-guard.acquireBarrier" | "traffic-guard.beginLoginAttempt" | "traffic-guard.consumeAdmission" | "traffic-guard.createAdmission" | "traffic-guard.createBan" | "traffic-guard.discardSnapshot" | "traffic-guard.exportSnapshot" | "traffic-guard.finishLoginAttempt" | "traffic-guard.issueChallenge" | "traffic-guard.queueSessionAdmission" | "traffic-guard.releaseAdmission" | "traffic-guard.releaseBarrier" | "traffic-guard.renewAdmission" | "traffic-guard.reportModelRisk" | "traffic-guard.revokeBan" | "traffic-guard.stageSnapshot" | "traffic-guard.updatePolicy" | "traffic-guard.verifyAdmission" | "traffic-guard.verifyChallenge";
+        AuditAction: "analytics.appendAudit" | "analytics.createExport" | "analytics.ingestBeacon" | "analytics.reconcileUsage" | "analytics.recordCrawlerAccess" | "analytics.retention" | "content.acquireEditLock" | "content.createDocument" | "content.createPreviewGrant" | "content.diffRevisions" | "content.forceReleaseEditLock" | "content.moveDocument" | "content.publishDocument" | "content.purgeDocuments" | "content.releaseEditLock" | "content.renewEditLock" | "content.reorderChildren" | "content.restoreDocument" | "content.rollbackPublishedRevision" | "content.saveDraft" | "content.trashDocument" | "content.updateDocumentMetadata" | "content.validatePreviewGrant" | "content.validatePublications" | "content.withdrawDocument" | "identity.changePassword" | "identity.checkAuthorization" | "identity.createAccount" | "identity.createSession" | "identity.refreshSession" | "identity.registerFirstSuperadmin" | "identity.resetAccountPassword" | "identity.revokeSession" | "identity.setAccountPermissions" | "identity.setAccountStatus" | "identity.updatePreferences" | "identity.verifySessionCSRF" | "jobs.acknowledgeEvent" | "jobs.cancelJob" | "jobs.claimJob" | "jobs.completeJob" | "jobs.createJob" | "jobs.createSchedule" | "jobs.failJob" | "jobs.heartbeatJob" | "jobs.publishEvent" | "jobs.replayDelivery" | "jobs.retryJob" | "jobs.startJob" | "jobs.updateSchedule" | "knowledge.approveRebuildPlan" | "knowledge.cancelBuild" | "knowledge.createBuild" | "knowledge.createQueryEmbedding" | "knowledge.estimateRebuildPlan" | "knowledge.inspectEvidence" | "knowledge.putIndexConfig" | "knowledge.readSections" | "knowledge.searchKnowledge" | "localization.applyApprovedGlossaryProposal" | "localization.approveLanguagePlan" | "localization.cancelTranslation" | "localization.createTranslation" | "localization.deleteGlossaryTerm" | "localization.editTranslationUnit" | "localization.estimateLanguagePlan" | "localization.putGlossaryTerm" | "localization.putInterfaceString" | "localization.putLanguage" | "localization.readTranslation" | "localization.requestInterfaceTranslation" | "localization.rollbackAutomaticGlossaryBatch" | "localization.saveLanguagePreference" | "localization.setLanguageEnabled" | "localization.setUnitProtection" | "localization.suggestLanguage" | "localization.translateCachedAnswer" | "media.abortUpload" | "media.acquireResourceReferences" | "media.attachImageVariants" | "media.beginUpload" | "media.buildDeliveryManifest" | "media.cancelManualCleanup" | "media.completeUpload" | "media.confirmManualCleanup" | "media.confirmResourceReferences" | "media.proposeManualCleanup" | "media.putUploadChunk" | "media.readVideoMetadata" | "media.releaseResourceReferences" | "memory.appendAssistantMessage" | "memory.approveProposal" | "memory.archiveEntry" | "memory.cancelAssistantRun" | "memory.createAssistantRun" | "memory.createEntry" | "memory.deleteAssistantConversation" | "memory.putMapping" | "memory.putTaskBudget" | "memory.rejectProposal" | "memory.removeMapping" | "memory.reorderMappings" | "memory.resolveContext" | "memory.restoreEntry" | "memory.updateEntry" | "model-gateway.cancelInference" | "model-gateway.createConnectionProbe" | "model-gateway.createInference" | "model-gateway.estimateTokens" | "model-gateway.putCredential" | "model-gateway.putFeeBudgetPolicy" | "model-gateway.putModel" | "model-gateway.putProfile" | "model-gateway.putProvider" | "model-gateway.putTaskAssignment" | "model-gateway.quoteCost" | "model-gateway.readTaskAvailability" | "model-gateway.reconcileCharge" | "model-gateway.refreshModelCatalog" | "model-gateway.rotateCredential" | "portal.access" | "portal.updatePreferences" | "public-site.issuePreviewToken" | "public-site.resolvePublishedLink" | "qa.approveCacheEntry" | "qa.cancelTurn" | "qa.createConversation" | "qa.createDebugTurn" | "qa.deleteConversation" | "qa.disableCacheEntry" | "qa.proposeCacheEntry" | "qa.putQaPolicy" | "qa.recordFeedback" | "qa.startTurn" | "site-config.abortInitialization" | "site-config.initializeSite" | "site-config.restoreConfigRevision" | "site-config.resumeInitialization" | "site-config.updateBanner" | "site-config.updateBranding" | "site-config.updateFooter" | "site-config.updateHome" | "site-config.updateSiteConfig" | "traffic-guard.beginLoginAttempt" | "traffic-guard.consumeAdmission" | "traffic-guard.createAdmission" | "traffic-guard.createBan" | "traffic-guard.finishLoginAttempt" | "traffic-guard.issueChallenge" | "traffic-guard.queueSessionAdmission" | "traffic-guard.releaseAdmission" | "traffic-guard.renewAdmission" | "traffic-guard.reportModelRisk" | "traffic-guard.revokeBan" | "traffic-guard.updatePolicy" | "traffic-guard.verifyAdmission" | "traffic-guard.verifyChallenge";
         /** @description 新V2成功标准OK；兼容旧HTTP SUCCESS输入并标准化，不改V1原链。 */
         AuditResultCode: ("OK" | "SUCCESS") | components["schemas"]["ErrorCode"];
         /** @description 固定生产者写命令：历史三字段同现时纯服务签原提交事实并显式原actorId；旧实时分支actorId只能为当前可信主体，不接受服务身份冒充原用户。 */
@@ -680,7 +563,7 @@ export interface components {
             schemaVersion?: 1 | 2;
             siteId?: components["schemas"]["Identifier"];
             /** @enum {string} */
-            producer?: "analytics" | "content" | "data-protection" | "identity" | "jobs" | "knowledge" | "localization" | "media" | "memory" | "model-gateway" | "portal" | "public-site" | "qa" | "site-config" | "traffic-guard";
+            producer?: "analytics" | "content" | "identity" | "jobs" | "knowledge" | "localization" | "media" | "memory" | "model-gateway" | "portal" | "public-site" | "qa" | "site-config" | "traffic-guard";
             /** @enum {string} */
             actorKind?: "admin" | "visitor" | "service";
             sourceOperationId?: components["schemas"]["Identifier"];
@@ -786,138 +669,6 @@ export interface components {
             fromUTC?: components["schemas"]["Timestamp"];
             toUTC?: components["schemas"]["Timestamp"];
         };
-        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
-        SnapshotWorkState: {
-            outboxRevision: number;
-            workRevision: number;
-            pendingOutbox: number;
-            pendingWork: number;
-        };
-        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
-        SnapshotBarrierObservation: {
-            owner: string;
-            activityRevision: number;
-            work: components["schemas"]["SnapshotWorkState"];
-            revisionWatermark: number;
-            business: number;
-            cleanup: number;
-            fileOps: number;
-            drainCallbacks: number;
-        };
-        /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
-        BarrierStatus: {
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 对象唯一所属模块slug */
-            owner: string;
-            /**
-             * @description 精确枚举状态，未知值拒绝
-             * @enum {unknown}
-             */
-            state: "draining" | "safe" | "released" | "failed";
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
-            revisionWatermark: components["schemas"]["Revision"];
-            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
-            sealProofHash?: components["schemas"]["Hash"];
-            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
-            observation?: components["schemas"]["SnapshotBarrierObservation"];
-        };
-        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
-        SnapshotBrokerObservation: {
-            revision: number;
-            pendingDeliveries: number;
-            activeLeases: number;
-        };
-        SnapshotSealReceipt: {
-            owner: string;
-            sealProofHash: components["schemas"]["Hash"];
-        };
-        /** @description 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
-        SnapshotSealProof: {
-            barrierId: components["schemas"]["Identifier"];
-            dataEpoch: components["schemas"]["Identifier"];
-            observations: components["schemas"]["SnapshotBarrierObservation"][];
-            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
-            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
-            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
-            nonJobsProofHash?: components["schemas"]["Hash"];
-        };
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
-        BarrierRequest: {
-            /** @description 可恢复操作ID */
-            operationId: components["schemas"]["Identifier"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /**
-             * @description BarrierRequest.mode；按类型、枚举及required约束使用
-             * @enum {unknown}
-             */
-            mode: "backup" | "restore";
-            /** @description 全链路截止；与本地取消取较早值 */
-            deadline: components["schemas"]["Timestamp"];
-            /**
-             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
-             * @default prepare
-             * @enum {string}
-             */
-            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
-            sealProof?: components["schemas"]["SnapshotSealProof"];
-            /** @description resume-drain绑定原真实seal，不打开新业务。 */
-            expectedSealHash?: components["schemas"]["Hash"];
-        } & ({
-            /** @enum {unknown} */
-            step?: "prepare" | "drain" | "observe";
-        } | {
-            /** @enum {unknown} */
-            step: "seal";
-        } | {
-            /** @enum {unknown} */
-            step: "resume-drain";
-        });
-        /** @description 解除统计维护成功结果；失败不返回半成功结果 */
-        ReleaseBarrierResult: {
-            /** @description 公共 BarrierStatus 合同，遵守其字段和空值规则 */
-            status: components["schemas"]["BarrierStatus"];
-        };
-        /** @description 仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
-        ReleaseBarrierRequestBody: Record<string, never>;
-        /** @description 本域不可变快照描述，包含schema、哈希、大小与数据代次 */
-        SnapshotRef: {
-            /** @description 不可变本域快照ID */
-            snapshotId: components["schemas"]["Identifier"];
-            /** @description 对象唯一所属模块slug */
-            owner: string;
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description SnapshotRef.dataSchemaVersion；按类型、枚举及required约束使用 */
-            dataSchemaVersion: number;
-            /** @description SnapshotRef.revisionWatermark；按类型、枚举及required约束使用 */
-            revisionWatermark: components["schemas"]["Revision"];
-            /** @description SnapshotRef.object；按类型、枚举及required约束使用 */
-            object: components["schemas"]["ObjectRef"];
-            /** @description SnapshotRef.containsSecrets；按类型、枚举及required约束使用 */
-            containsSecrets: boolean;
-        };
-        /** @description 已经导出并验证的本域快照引用 */
-        SnapshotExportResult: {
-            /** @description 被校验或恢复的快照引用 */
-            snapshot: components["schemas"]["SnapshotRef"];
-            /** @description SnapshotExportResult.checksum；按类型、枚举及required约束使用 */
-            checksum: components["schemas"]["Hash"];
-        };
-        /** @description 指定屏障和是否含秘密的快照导出请求 */
-        SnapshotExportRequest: {
-            /** @description SnapshotExportRequest.backupId；按类型、枚举及required约束使用 */
-            backupId: components["schemas"]["Identifier"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description 超管明确选择是否导出密钥 */
-            includeSecrets: boolean;
-        };
         /** @description 服务版本、存活/就绪与能力状态，输出脱敏说明 */
         HealthStatus: {
             /** @description HealthStatus.module；按类型、枚举及required约束使用 */
@@ -948,60 +699,6 @@ export interface components {
             journalRecovered: boolean;
             /** @description 恢复/备份协调实际安全点，不能仅等任务调度暂停 */
             safePoint: boolean;
-        };
-        /** @description 本域暂存回执；live数据未变，切换在进程重启时完成 */
-        SnapshotStageResult: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /** @description 暂存所属模块slug */
-            owner: string;
-            /** @description 已暂存快照ID */
-            snapshotId: components["schemas"]["Identifier"];
-            /** @description 恢复后目标代次 */
-            targetDataEpoch: components["schemas"]["Identifier"];
-            /** @description 已校验的归档SHA-256 */
-            checksum: components["schemas"]["Hash"];
-            /** @description 暂存目录已fsync并登记 */
-            staged: boolean;
-            /** @description 新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。 */
-            stageId?: string;
-            /** @description 新版生产方必给：迁移后完整目标普通文件与目录树canonical指纹；源域manifest hash和完整tar checksum分别保留，不混用。旧回执缺失不能激活。 */
-            manifestHash?: components["schemas"]["Hash"];
-        };
-        /** @description 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003） */
-        SnapshotStageRequest: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /** @description 被暂存的本域快照引用 */
-            snapshot: components["schemas"]["SnapshotRef"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 恢复后目标代次 */
-            targetDataEpoch: components["schemas"]["Identifier"];
-            /** @description 本域归档SHA-256，暂存后必须一致 */
-            checksum: components["schemas"]["Hash"];
-        };
-        /** @description 丢弃结果；目录不存在视为已删除 */
-        SnapshotDiscardResult: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /**
-             * @description 已处理的目录类别
-             * @enum {unknown}
-             */
-            scope: "staged" | "before";
-            /** @description 本次是否实际删除了目录 */
-            removed: boolean;
-        };
-        /** @description 删除某次恢复的暂存目录或换出的旧数据目录 */
-        SnapshotDiscardRequest: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /**
-             * @description staged=未换入的暂存；before=恢复完成后换出的旧active
-             * @enum {unknown}
-             */
-            scope: "staged" | "before";
         };
         /** @description 匿名HTTP接收输入；未标可选字段均必填，空集合用[]，不传null */
         IngestBeaconInput: {
@@ -1043,7 +740,7 @@ export interface components {
         OwnerRecoveryRequest: {
             jobId: components["schemas"]["Identifier"];
             /** @enum {string} */
-            owner: "memory" | "qa" | "knowledge" | "public-site" | "data-protection" | "localization" | "analytics" | "media";
+            owner: "memory" | "qa" | "knowledge" | "public-site" | "localization" | "analytics" | "media";
             type: string;
             inputRef: components["schemas"]["ObjectRef"];
             rootOperationId: components["schemas"]["Identifier"];
@@ -2126,132 +1823,6 @@ export interface operations {
             };
         };
     };
-    acquireBarrier: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
-                "X-Request-Id"?: components["schemas"]["Identifier"];
-                /** @description 本操作幂等键，同键不同规范body hash返回409 */
-                "Idempotency-Key": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BarrierRequest"];
-            };
-        };
-        responses: {
-            /** @description 公共BarrierRequest→BarrierStatus；持久draining/safe，等待本域实际安全点 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BarrierStatus"];
-                };
-            };
-            /** @description 公共错误；DEADLINE_EXCEEDED */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    releaseBarrier: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
-                "X-Request-Id"?: components["schemas"]["Identifier"];
-                /** @description 本操作幂等键，同键不同规范body hash返回409 */
-                "Idempotency-Key": components["schemas"]["Identifier"];
-            };
-            path: {
-                /** @description 路径值由HTTP绑定器填入函数Input，正文不得声明冲突值 */
-                barrierId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReleaseBarrierRequestBody"];
-            };
-        };
-        responses: {
-            /** @description 仅全域恢复完成或commit前全部abort确认后释放 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReleaseBarrierResult"];
-                };
-            };
-            /** @description 公共错误；LOCKED */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    exportSnapshot: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
-                "X-Request-Id"?: components["schemas"]["Identifier"];
-                /** @description 本操作幂等键，同键不同规范body hash返回409 */
-                "Idempotency-Key": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotExportRequest"];
-            };
-        };
-        responses: {
-            /** @description 公共SnapshotExportRequest→SnapshotExportResult；必须safe */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotExportResult"];
-                };
-            };
-            /** @description 公共错误；LOCKED */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共错误；INTERNAL */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     health: {
         parameters: {
             query?: never;
@@ -2301,118 +1872,6 @@ export interface operations {
             };
             /** @description 关键依赖或epoch/journal未ready */
             503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    stageSnapshot: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
-                "X-Request-Id"?: components["schemas"]["Identifier"];
-                /** @description 本操作幂等键，同键不同规范body hash返回409 */
-                "Idempotency-Key": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotStageRequest"];
-            };
-        };
-        responses: {
-            /** @description 暂存本域恢复归档，不改active目录的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotStageResult"];
-                };
-            };
-            /** @description FORBIDDEN：调用方不是data-protection或缺superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：runtime阶段或restoreId不符，或本域屏障未safe；CONFLICT：同restoreId已暂存不同checksum */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description INTEGRITY_ERROR：归档hash、owner或manifest不一致；临时目录已删除；UNSUPPORTED_SCHEMA：快照schema高于本版本可迁移范围 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEPENDENCY_UNAVAILABLE：拉取归档失败或磁盘空间不足；临时目录已删除 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    discardSnapshot: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
-                "X-Request-Id"?: components["schemas"]["Identifier"];
-                /** @description 本操作幂等键，同键不同规范body hash返回409 */
-                "Idempotency-Key": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotDiscardRequest"];
-            };
-        };
-        responses: {
-            /** @description 删除恢复暂存或换出的旧数据目录的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotDiscardResult"];
-                };
-            };
-            /** @description FORBIDDEN：调用方不是data-protection或缺superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：当前恢复阶段不允许删除该目录 */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2705,52 +2164,6 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
-            };
-        };
-    };
-    readSnapshotArchive: {
-        parameters: {
-            query: {
-                sha256: components["schemas"]["Hash"];
-                byteSize: number;
-            };
-            header?: never;
-            path: {
-                snapshotId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 完整已完成USTAR归档，接收方仍核引用hash/长度/EOF */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/x-tar": string;
-                };
-            };
-            /** @description 缺data-protection服务及superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 完成归档引用或维护绑定不一致 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 完成归档或控制状态尚未可证明 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

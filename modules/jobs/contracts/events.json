@@ -27,18 +27,6 @@
       "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
     },
     {
-      "name": "jobs.barrier-state-changed.v1",
-      "version": 1,
-      "direction": "publish",
-      "payloadSchema": {
-        "$ref": "./types.json#/$defs/EventJobsBarrierStateChangedPayload"
-      },
-      "purpose": "维护屏障协调状态",
-      "delivery": "at-least-once",
-      "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
-      "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
-    },
-    {
       "name": "jobs.schedule-changed.v1",
       "version": 1,
       "direction": "publish",

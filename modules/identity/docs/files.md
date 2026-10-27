@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 38 个：手写 22、UI 1、生成 4、配置 6、迁移 5。函数 152 个：约束 31，参考 121。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 34 个：手写 18、UI 1、生成 4、配置 6、迁移 5。函数 111 个：约束 25，参考 86。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -19,15 +19,12 @@
 | `modules/identity/internal/server_recovery.go` | 手写 | 服务器运维查明文账号索引，并消费固定超管重置文件 | `identity.ReadServerAccountIndex`（参考）、`identity.WriteAccountIndex`（参考）、`identity.ObserveSuperadminResetFile`（参考）、`identity.ApplySuperadminReset`（参考）、`identity.readSuperadminResetFile`（参考）、`identity.readUniqueSuperadmin`（参考）、`identity.consumeSuperadminResetFile`（参考）、`identity.readAccountAuthorityQuery`（参考）、`identity.encodeAccountIndex`（参考）、`identity.NewBackgroundTasks`（参考）、`identity.runSuperadminResetObserver`（参考）、`identity.runOutboxRelay`（参考）、`identity.waitForIdentitySite`（参考）、`identity.identityBackgroundOperation`（参考） |
 | `modules/identity/internal/operation_repository.go` | 手写 | 装配受信私有存储上下文与既有仓库调用前置 | `identity.WithIdentityStore`（参考）、`identity.identityStoreFromContext`（参考）、`identity.checkIdentityRepositoryContext`（参考） |
 | `modules/identity/internal/outbox_repository.go` | 手写 | 与身份提交原子登记事件并装配可靠转发循环 | `identity.PublishIdentityEvent`（参考）、`identity.RelayOutbox`、`identity.WithRelayRuntime`（参考） |
-| `modules/identity/internal/restore_security.go` | 手写 | 恢复数据后使备份登录失效 | `identity.InvalidateRestoredSessions`（参考）、`identity.WithIdentityRestoreID`（参考） |
-| `modules/identity/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `identity.AcquireBarrier`、`identity.ReleaseBarrier`、`identity.requireProtectionService`（参考）、`identity.barrierMode`（参考）、`identity.snapshotSealProof`（参考）、`identity.barrierStatus`（参考）、`identity.barrierStatusValue`（参考） |
-| `modules/identity/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `identity.ExportSnapshot`、`identity.StageSnapshot`、`identity.DiscardSnapshot`、`identity.WithSnapshotManager`（参考）、`identity.WithSnapshotRuntime`（参考）、`identity.WithRestoreArchiveClient`（参考）、`identity.snapshotManagerFromContext`（参考）、`identity.snapshotRuntimeFromContext`（参考）、`identity.restoreArchiveClientFromContext`（参考）、`identity.snapshotRefToLifecycle`（参考）、`identity.snapshotRefFromLifecycle`（参考）、`identity.NewSnapshotManager`（参考）、`identity.beginIdentityDrain`（参考）、`identity.drainIdentityWork`（参考）、`identity.observeIdentityWork`（参考）、`identity.readIdentityWorkRevision`（参考）、`identity.readIdentityPendingWorkQuery`（参考）、`identity.identityWatermark`（参考）、`identity.sealIdentityWork`（参考）、`identity.resumeIdentityWork`（参考）、`identity.captureIdentitySnapshot`（参考）、`identity.validateIdentitySnapshotManifest`（参考）、`identity.identityStageBudget`（参考）、`identity.migrateIdentityStage`（参考）、`identity.validateIdentityStaged`（参考）、`identity.openIdentitySnapshotDB`（参考）、`identity.migrateIdentitySnapshotDB`（参考）、`identity.validateIdentitySnapshotDatabase`（参考） |
 | `modules/identity/internal/storage.go` | 手写 | 打开active区业务库（WAL/foreign_keys/busy_timeout=3000ms）、执行只追加迁移并恢复control区决定日志 | `identity.OpenDatabase`（参考）、`identity.RunMigrations`（参考）、`identity.RecoverJournal`（参考）、`identity.openIdentityControl`（参考）、`identity.AppendDecision`（参考）、`identity.CompleteDecision`（参考）、`identity.readJournal`（参考）、`identity.EnsureOutbox`（参考） |
 | `modules/identity/migrations/migrations.go` | 手写 | 内嵌本域只追加SQL迁移（ADR0005），校验编号从1起连续 | `identity.All`（参考）、`identity.ControlSchema`（参考） |
 | `modules/identity/migrations/0001_domain.sql` | 迁移 | 初始权威表：accounts（唯一超管部分唯一索引）、credentials、account_permissions、sessions、preferences、operation_receipts、schema_migrations；nw_outbox/nw_inbox由平台EnsureSchema创建不在此登记 | 无 |
 | `modules/identity/cmd/identity/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `identity.main` |
-| `modules/identity/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `identity.BuildApplication`、`identity.restoreIdentityAfterSwap`（参考） |
-| `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、后台任务、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready`、`identity.NewApplication`（参考）、`identity.identityContext`（参考）、`identity.authorizeOperation`（参考）、`identity.operationHandlers`（参考）、`identity.SnapshotManager`（参考）、`identity.BackgroundTasks`（参考）、`identity.InstallBackgroundTasks`（参考）、`identity.jsonOperation`（参考） |
+| `modules/identity/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `identity.BuildApplication` |
+| `modules/identity/internal/transport/server.go` | 手写 | HTTP/worker生命周期、后台任务、优雅关闭、匿名健康与就绪 | `identity.Serve`、`identity.Shutdown`、`identity.Health`、`identity.Ready`、`identity.NewApplication`（参考）、`identity.identityContext`（参考）、`identity.authorizeOperation`（参考）、`identity.operationHandlers`（参考）、`identity.BackgroundTasks`（参考）、`identity.InstallBackgroundTasks`（参考）、`identity.jsonOperation`（参考） |
 | `modules/identity/go.mod` | 配置 | 独立module nice-wiki/modules/identity；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/identity/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/identity/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/identity；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -42,5 +39,4 @@
 | `modules/identity/migrations/0003_session_tokens.sql` | 迁移 | 只追加认证代次、会话族及已消费refresh摘要权威表，旧会话不生成可用凭据 | 无 |
 | `modules/identity/migrations/0004_private_operation_receipts.sql` | 迁移 | 追加私有口令操作HMAC keyId，不保存普通口令SHA或raw cookie | 无 |
 | `modules/identity/migrations/control/0001_bootstrap.sql` | 迁移 | 独立control schema1与不可逆bootstrap决定；不随active恢复替换 | 无 |
-| `modules/identity/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `identity.ReadSnapshotArchive`、`identity.validSuperadminDelegation`（参考） |
 | `modules/identity/web/src/index.tsx` | UI | 账号与权限：子账号的新建、功能权限、停用/恢复/删除、重置口令 | `identity.AccountsPage` |

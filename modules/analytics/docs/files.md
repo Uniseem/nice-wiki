@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 64 个：手写 51、UI 1、生成 4、配置 6、迁移 2。函数 128 个：约束 35，参考 93。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 64 个：手写 51、UI 1、生成 4、配置 6、迁移 2。函数 121 个：约束 29，参考 92。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -25,9 +25,9 @@
 | `modules/analytics/internal/csv.go` | 手写 | 安全CSV单元格；同文件职责限本域以下登记函数 | `analytics.ValidateCSVCell`（参考） |
 | `modules/analytics/internal/retention.go` | 手写 | 清理短期匿名行；同文件职责限本域以下登记函数 | `analytics.PurgeBeacons`（参考）、`analytics.PurgeAuditHistory`（参考）、`analytics.PruneDaySalts`（参考） |
 | `modules/analytics/internal/outbox.go` | 手写 | 派生事件outbox派发；同文件职责限本域以下登记函数 | `analytics.PublishAggregateEvents` |
-| `modules/analytics/internal/barrier.go` | 手写 | 进入analytics一致屏障；同文件职责限本域以下登记函数 | `analytics.EnterBarrier`、`analytics.ReleaseBarrier` |
-| `modules/analytics/internal/snapshot.go` | 手写 | 导出统计快照；同文件职责限本域以下登记函数 | `analytics.CreateSnapshot` |
-| `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | `analytics.StageSnapshot`、`analytics.DiscardSnapshot` |
+| `modules/analytics/internal/barrier.go` | 手写 | 进入analytics一致屏障；同文件职责限本域以下登记函数 | 无 |
+| `modules/analytics/internal/snapshot.go` | 手写 | 导出统计快照；同文件职责限本域以下登记函数 | 无 |
+| `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | 无 |
 | `modules/analytics/internal/crawler.go` | 手写 | 内存识别已知爬虫；同文件职责限本域以下登记函数 | `analytics.ClassifyCrawler`（参考） |
 | `modules/analytics/internal/geoip.go` | 手写 | 离线GeoIP国家；同文件职责限本域以下登记函数 | `analytics.LookupCountry`（参考）、`analytics.trustedPeer`（参考） |
 | `modules/analytics/internal/crawler_store.go` | 手写 | AI Markdown访问独立计数；同文件职责限本域以下登记函数 | `analytics.RecordCrawlerAccess`、`analytics.readReceipt`（参考）、`analytics.saveReceipt`（参考） |
@@ -36,7 +36,7 @@
 | `modules/analytics/migrations/0001_domain.sql` | 迁移 | 创建data.md登记私有SQLite表/索引/版本；迁移通过隔离验证后升级，失败不切活跃指针 | 无 |
 | `modules/analytics/cmd/analytics/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `analytics.main` |
 | `modules/analytics/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `analytics.BuildApplication`、`analytics.NewRuntimeClient`（参考）、`analytics.readSiteIdentity`（参考） |
-| `modules/analytics/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `analytics.Serve`、`analytics.Shutdown`、`analytics.Health`、`analytics.Ready`、`analytics.NewApplication`（参考）、`analytics.server.QueryAudits`（参考）、`analytics.server.ReadAudit`（参考）、`analytics.server.QueryPageStatistics`（参考）、`analytics.server.AppendAudit`（参考）、`analytics.server.IngestTrustedBeacon`（参考）、`analytics.server.RecordCrawlerAccess`（参考）、`analytics.server.QueryContentGaps`（参考）、`analytics.server.QueryUsageStatistics`（参考）、`analytics.server.CreateExport`（参考）、`analytics.server.CreateAuditExport`（参考）、`analytics.server.createExport`（参考）、`analytics.server.DownloadStatisticsExport`（参考）、`analytics.server.DownloadAuditExport`（参考）、`analytics.server.downloadExport`（参考）、`analytics.server.ReadSnapshotArchive`（参考） |
+| `modules/analytics/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `analytics.Serve`、`analytics.Shutdown`、`analytics.Health`、`analytics.Ready`、`analytics.NewApplication`（参考）、`analytics.server.QueryAudits`（参考）、`analytics.server.ReadAudit`（参考）、`analytics.server.QueryPageStatistics`（参考）、`analytics.server.AppendAudit`（参考）、`analytics.server.IngestTrustedBeacon`（参考）、`analytics.server.RecordCrawlerAccess`（参考）、`analytics.server.QueryContentGaps`（参考）、`analytics.server.QueryUsageStatistics`（参考）、`analytics.server.CreateExport`（参考）、`analytics.server.CreateAuditExport`（参考）、`analytics.server.createExport`（参考）、`analytics.server.DownloadStatisticsExport`（参考）、`analytics.server.DownloadAuditExport`（参考）、`analytics.server.downloadExport`（参考） |
 | `modules/analytics/go.mod` | 配置 | 独立module nice-wiki/modules/analytics；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/analytics/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
 | `modules/analytics/Dockerfile` | 配置 | 本域多阶段独立镜像：按go.mod工具链构建./cmd/analytics；如有UI根先pnpm frozen-lockfile构建dist；运行只带server/config/dist，以非root用户挂本域独占data卷，HTTP由反代提供HTTPS | 无 |
@@ -62,7 +62,7 @@
 | `modules/analytics/internal/usage_queries.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.QueryUsageStatistics` |
 | `modules/analytics/internal/export_recovery.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.PurgeExports`（参考）、`analytics.RecoverExports`（参考）、`analytics.ExportKind`（参考）、`analytics.exportObjectNameValid`（参考） |
 | `modules/analytics/migrations/0005_export_journal.sql` | 手写 | V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移 | 无 |
-| `modules/analytics/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `analytics.ReadSnapshotArchive` |
+| `modules/analytics/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/analytics/internal/usage_gateway_types.go` | 手写 | model-gateway V2安全统计页、完整范围和可信注入窄接口的本域无损类型；HTTP机器来源仍引用生产方types | 无 |
 | `modules/analytics/internal/usage_events.go` | 手写 | 费用事件原引用解析与权威页绑定；不接受事件金额或修订为账项真相 | `analytics.parseUsageEventReference`（参考）、`analytics.validateUsageEventReference`（参考） |
 | `modules/analytics/internal/usage_models.go` | 手写 | model-gateway V2费用账项、观察和投影输入的单一本域无损事实模型 | 无 |

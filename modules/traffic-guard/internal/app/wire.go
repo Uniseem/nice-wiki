@@ -49,13 +49,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障与暂存函数")
-	}
 	store, err := trafficguard.OpenPolicyStore(config.DataRoot, view.DataEpoch)
 	if err != nil {
 		return nil, err
@@ -88,10 +81,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	runtimeReader := func(work context.Context) (platform.RuntimeView, error) {
 		return lifecycle.ReadRuntime(work, runtimeAuthority)
 	}
-	snapshotManager, err := trafficguard.NewTrafficSnapshotManager(store, config.DataRoot, view.DataEpoch, runtimeAuthority)
-	if err != nil {
-		return nil, err
-	}
 	budgetKey, err := lifecycle.LoadBudgetKey(config)
 	if err != nil {
 		return nil, err
@@ -101,8 +90,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Store:                 store,
 		Identity:              identityClient,
 		Runtime:               runtimeReader,
-		WriteWindow:           platform.WriteWindowConfig{Runtime: runtimeReader, WriteWindow: snapshotManager.WriteWindow},
-		Snapshot:              snapshotManager,
+		WriteWindow:           platform.WriteWindowConfig{Runtime: runtimeReader, WriteWindow: lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState)},
 		SigningKey:            key,
 		Anchors:               anchors,
 		Jobs:                  gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
@@ -113,7 +101,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		Anchors:         anchors,
 		Runtime:         runtimeReader,
 		OpenedDataEpoch: view.DataEpoch,
-		AdmitBusiness:   snapshotManager.AdmitBusiness,
+		AdmitBusiness:   lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, view.DataEpoch),
 		AllowedCallers: map[string][]string{
 			"beginLoginAttempt":     {"identity"},
 			"finishLoginAttempt":    {"identity"},
@@ -132,12 +120,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"verifyAdmission":       {"qa"},
 			"issueChallenge":        {"portal"},
 			"verifyChallenge":       {"portal"},
-			"readSnapshotArchive":   {"data-protection"},
 		},
-		ServiceActorCallers:   map[string][]string{"getPolicy": {"traffic-guard"}},
-		ControllerOperations:  map[string]bool{"readSnapshotArchive": true},
-		MaintenanceOperations: map[string]bool{"readSnapshotArchive": true},
-		Authorize:             apivalidate.NewIdentityAuthorizer(identityClient),
+		ServiceActorCallers: map[string][]string{"getPolicy": {"traffic-guard"}},
+		Authorize:           apivalidate.NewIdentityAuthorizer(identityClient),
 	}, trafficguard.NewGuardHandlers(guardRuntime))
 	if err != nil {
 		return nil, err
@@ -189,7 +174,7 @@ func validateConfig(config platform.ServiceConfig) error {
 }
 
 func ensureDataLayout(dataRoot string) error {
-	for _, name := range [...]string{"active", "control", "restore"} {
+	for _, name := range [...]string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
 		}

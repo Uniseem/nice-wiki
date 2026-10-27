@@ -88,46 +88,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/barriers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 取得入口维护屏障
-         * @description 调用函数 portal.AcquireBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        post: operations["acquireBarrier"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/barriers/{barrierId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 释放入口屏障
-         * @description 调用函数 portal.ReleaseBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        delete: operations["releaseBarrier"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -445,112 +405,6 @@ export interface components {
             /** @description ReadinessReport */
             report: components["schemas"]["ReadinessReport"];
         };
-        /** @description SHA-256 小写十六进制 */
-        Hash: string;
-        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
-        SnapshotWorkState: {
-            outboxRevision: number;
-            workRevision: number;
-            pendingOutbox: number;
-            pendingWork: number;
-        };
-        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
-        SnapshotBarrierObservation: {
-            owner: string;
-            activityRevision: number;
-            work: components["schemas"]["SnapshotWorkState"];
-            revisionWatermark: number;
-            business: number;
-            cleanup: number;
-            fileOps: number;
-            drainCallbacks: number;
-        };
-        /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
-        "common.schema_BarrierStatus": {
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 对象唯一所属模块slug */
-            owner: string;
-            /**
-             * @description 精确枚举状态，未知值拒绝
-             * @enum {unknown}
-             */
-            state: "draining" | "safe" | "released" | "failed";
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
-            revisionWatermark: components["schemas"]["Revision"];
-            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
-            sealProofHash?: components["schemas"]["Hash"];
-            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
-            observation?: components["schemas"]["SnapshotBarrierObservation"];
-        };
-        /** @description BarrierStatus */
-        BarrierStatus: components["schemas"]["common.schema_BarrierStatus"];
-        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
-        SnapshotBrokerObservation: {
-            revision: number;
-            pendingDeliveries: number;
-            activeLeases: number;
-        };
-        SnapshotSealReceipt: {
-            owner: string;
-            sealProofHash: components["schemas"]["Hash"];
-        };
-        /** @description 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
-        SnapshotSealProof: {
-            barrierId: components["schemas"]["Identifier"];
-            dataEpoch: components["schemas"]["Identifier"];
-            observations: components["schemas"]["SnapshotBarrierObservation"][];
-            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
-            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
-            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
-            nonJobsProofHash?: components["schemas"]["Hash"];
-        };
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
-        "common.schema_BarrierRequest": {
-            /** @description 可恢复操作ID */
-            operationId: components["schemas"]["Identifier"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /**
-             * @description BarrierRequest.mode；按类型、枚举及required约束使用
-             * @enum {unknown}
-             */
-            mode: "backup" | "restore";
-            /** @description 全链路截止；与本地取消取较早值 */
-            deadline: components["schemas"]["Timestamp"];
-            /**
-             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
-             * @default prepare
-             * @enum {string}
-             */
-            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
-            sealProof?: components["schemas"]["SnapshotSealProof"];
-            /** @description resume-drain绑定原真实seal，不打开新业务。 */
-            expectedSealHash?: components["schemas"]["Hash"];
-        } & ({
-            /** @enum {unknown} */
-            step?: "prepare" | "drain" | "observe";
-        } | {
-            /** @enum {unknown} */
-            step: "seal";
-        } | {
-            /** @enum {unknown} */
-            step: "resume-drain";
-        });
-        /** @description BarrierRequest */
-        BarrierRequest: components["schemas"]["common.schema_BarrierRequest"];
-        /** @description 按权威状态恢复业务入口的结果 */
-        ReleaseBarrierResult: {
-            /** @description BarrierStatus */
-            status: components["schemas"]["common.schema_BarrierStatus"];
-        };
-        /** @description 释放入口屏障请求体 */
-        releaseBarrierRequest: {
-            /** @description 全部域已切换完成的 epoch */
-            expectedEpoch: components["schemas"]["Identifier"];
-        };
         /** @description 服务版本、存活/就绪与能力状态，输出脱敏说明 */
         HealthStatus: {
             /** @description HealthStatus.module；按类型、枚举及required约束使用 */
@@ -702,6 +556,8 @@ export interface components {
             /** @description CAS */
             expectedCredentialRevision: components["schemas"]["Revision"];
         };
+        /** @description SHA-256 小写十六进制 */
+        Hash: string;
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
@@ -1177,102 +1033,6 @@ export interface operations {
             };
             /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
             400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    acquireBarrier: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BarrierRequest"];
-            };
-        };
-        responses: {
-            /** @description 取得入口维护屏障的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BarrierStatus"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    releaseBarrier: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 路径中的barrierId；合并到 handler input，不能跨站点 */
-                barrierId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["releaseBarrierRequest"];
-            };
-        };
-        responses: {
-            /** @description 释放入口屏障的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReleaseBarrierResult"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变 */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };

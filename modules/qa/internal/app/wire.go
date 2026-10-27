@@ -39,7 +39,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	if config.Module != ModuleSlug || !filepath.IsAbs(config.DataRoot) || config.Listen == "" {
 		return nil, platform.NewError(platform.CodeValidation, false, "本域配置不合法")
 	}
-	for _, name := range []string{"active", "control", "restore"} {
+	for _, name := range []string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(config.DataRoot, name), 0o700); err != nil {
 			return nil, platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
 		}
@@ -55,13 +55,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	view, err := lifecycle.ReadRuntime(ctx, runtimeAuthority)
 	if err != nil {
 		return nil, err
-	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执尚未装配")
 	}
 	db, err := openDatabase(config.DataRoot)
 	if err != nil {
@@ -219,8 +212,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 // callers 为规格里每个业务接口指定调用方：访客与后台操作都经 portal，其余服务接口固定到对应服务。
 func callers(spec *openapi3.T) map[string][]string {
 	special := map[string][]string{
-		"acquireBarrier": {"data-protection"}, "releaseBarrier": {"data-protection"}, "exportSnapshot": {"data-protection"},
-		"stageSnapshot": {"data-protection"}, "discardSnapshot": {"data-protection"}, "readSnapshotArchive": {"data-protection"},
 		"readPublicCapability": {"portal", "public-site", "site-config"}, "readCacheTranslationSource": {"localization"},
 	}
 	result := map[string][]string{}

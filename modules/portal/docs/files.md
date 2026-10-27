@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 27 个：手写 15、UI 1、生成 5、配置 6。函数 51 个：约束 15，参考 36。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 27 个：手写 15、UI 1、生成 5、配置 6。函数 49 个：约束 13，参考 36。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -17,7 +17,7 @@
 | `modules/portal/internal/health_service.go` | 手写 | 输出入口自身及必要依赖可用性 | `portal.CollectReadiness` |
 | `modules/portal/internal/audit_redaction.go` | 手写 | 生成不会泄漏密码、token 或正文的访问日志字段 | `portal.RedactRequest`（参考）、`portal.EmitAccessAudit`（参考） |
 | `modules/portal/internal/runtime_state_client.go` | 手写 | 读取唯一权威运行状态 | `portal.ReadRuntimeState`（参考） |
-| `modules/portal/internal/maintenance_gate.go` | 手写 | 对维护和恢复 epoch 实施入口屏障 | `portal.CheckEntranceGate`（参考）、`portal.AcquireBarrier`、`portal.ReleaseBarrier` |
+| `modules/portal/internal/maintenance_gate.go` | 手写 | 对维护和恢复 epoch 实施入口屏障 | `portal.CheckEntranceGate`（参考） |
 | `modules/portal/cmd/portal/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `portal.main` |
 | `modules/portal/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `portal.BuildApplication`、`portal.readSiteIdentity`（参考） |
 | `modules/portal/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `portal.Serve`、`portal.Shutdown`、`portal.Health`、`portal.Ready`、`portal.NewApplication`（参考）、`portal.registerLocalRoutes`（参考）、`portal.proxyHandler`（参考） |

@@ -101,13 +101,6 @@
       "root": "modules/analytics"
     },
     {
-      "id": "M15",
-      "slug": "data-protection",
-      "name": "数据保护",
-      "scope": "一致备份、恢复、版本镜像与 data git 同步",
-      "root": "modules/data-protection"
-    },
-    {
       "id": "M16",
       "slug": "agent",
       "name": "原生 Agent",

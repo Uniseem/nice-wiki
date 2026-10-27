@@ -86,7 +86,7 @@ func ListResourceReferences(ctx context.Context, op OperationContext, input List
 		return ListResourceReferencesResult{}, err
 	}
 	if op.Actor.Kind == "service" {
-		if op.Actor.SubjectID != op.CallerService || !slices.Contains([]string{"media", "site-config", "data-protection"}, op.CallerService) {
+		if op.Actor.SubjectID != op.CallerService || !slices.Contains([]string{"media", "site-config"}, op.CallerService) {
 			return ListResourceReferencesResult{}, platform.NewError(platform.CodeForbidden, false, "此服务不能读取文档资源来源")
 		}
 	} else {

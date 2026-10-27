@@ -56,25 +56,9 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
       "description": "ObjectRef"
     },
-    "BarrierRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
-      "description": "BarrierRequest"
-    },
-    "BarrierStatus": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-      "description": "BarrierStatus"
-    },
     "SnapshotRef": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
       "description": "SnapshotRef"
-    },
-    "SnapshotExportRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
-      "description": "SnapshotExportRequest"
-    },
-    "SnapshotExportResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
-      "description": "SnapshotExportResult"
     },
     "SnapshotStageResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
@@ -425,8 +409,7 @@
             "memory",
             "traffic-guard",
             "jobs",
-            "analytics",
-            "data-protection"
+            "analytics"
           ]
         },
         "stageId": {
@@ -1243,20 +1226,6 @@
         "state"
       ]
     },
-    "TransitionRuntimeStateResult": {
-      "type": "object",
-      "description": "按CAS切换epoch与维护阶段的结果",
-      "additionalProperties": false,
-      "properties": {
-        "state": {
-          "$ref": "#/$defs/RuntimeState",
-          "description": "RuntimeState"
-        }
-      },
-      "required": [
-        "state"
-      ]
-    },
     "ValidateRuntimeTransitionInput": {
       "type": "object",
       "description": "验证维护与恢复状态迁移矩阵的输入",
@@ -1288,44 +1257,6 @@
       },
       "required": [
         "valid"
-      ]
-    },
-    "RegisterActivationInput": {
-      "type": "object",
-      "description": "登记域恢复切换/换回回执的输入",
-      "additionalProperties": false,
-      "properties": {
-        "receipt": {
-          "$ref": "#/$defs/ActivationReceipt",
-          "description": "ActivationReceipt"
-        },
-        "expectedRevision": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "CAS"
-        },
-        "restoreId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "恢复"
-        }
-      },
-      "required": [
-        "receipt",
-        "expectedRevision",
-        "restoreId"
-      ]
-    },
-    "RegisterActivationResult": {
-      "type": "object",
-      "description": "登记域恢复切换/换回回执的结果",
-      "additionalProperties": false,
-      "properties": {
-        "state": {
-          "$ref": "#/$defs/RuntimeState",
-          "description": "RuntimeState"
-        }
-      },
-      "required": [
-        "state"
       ]
     },
     "CheckWriteEpochInput": {
@@ -1903,20 +1834,6 @@
       "required": [
         "barrierId",
         "expectedEpoch"
-      ]
-    },
-    "ReleaseBarrierResult": {
-      "type": "object",
-      "description": "释放已协调完成的屏障的结果",
-      "additionalProperties": false,
-      "properties": {
-        "status": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-          "description": "BarrierStatus"
-        }
-      },
-      "required": [
-        "status"
       ]
     },
     "LinkTarget": {
@@ -2757,20 +2674,6 @@
         "quarantined"
       ]
     },
-    "releaseBarrierRequest": {
-      "type": "object",
-      "description": "释放屏障请求体",
-      "additionalProperties": false,
-      "properties": {
-        "expectedEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "活动 epoch"
-        }
-      },
-      "required": [
-        "expectedEpoch"
-      ]
-    },
     "restoreConfigRevisionRequest": {
       "type": "object",
       "description": "回滚站点设置请求体",
@@ -2855,8 +2758,7 @@
                   "memory",
                   "traffic-guard",
                   "jobs",
-                  "analytics",
-                  "data-protection"
+                  "analytics"
                 ],
                 "description": "生产方服务slug"
               },

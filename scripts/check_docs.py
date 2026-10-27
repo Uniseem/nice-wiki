@@ -554,8 +554,8 @@ def main():
         check_wiring(modules, shared)
         check_rendered()
         check_go_modules()
-        if len(modules) != 16:
-            fail('模块清单', '服务数必须为已登记16域')
+        if len(modules) != 15:
+            fail('模块清单', '服务数必须为已登记15域')
         for name in ('check_docs.py', 'render_docs.py'):
             ast.parse((ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     if ISSUES:

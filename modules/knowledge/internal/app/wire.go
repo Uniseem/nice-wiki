@@ -52,7 +52,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "本域必需权威地址未配置")
 		}
 	}
-	for _, name := range []string{"active", "control", "restore"} {
+	for _, name := range []string{"active", "control"} {
 		path := filepath.Join(config.DataRoot, name)
 		if err = lifecycle.ValidatePrivatePath(path, "directory", true); err != nil {
 			return nil, err
@@ -68,13 +68,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	view, err := lifecycle.ReadRuntime(ctx, authority)
 	if err != nil {
 		return nil, err
-	}
-	swapped, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swapped.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeLocked, false, "本域换目录后须先完成真实恢复激活回执")
 	}
 	operation := serviceOperation(ctx, "system", view.DataEpoch)
 	siteClient := gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key)

@@ -18,7 +18,6 @@ import (
 	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/jobs/internal/gen"
 	jobsmigrations "nice-wiki/modules/jobs/migrations"
@@ -89,9 +88,7 @@ type Store struct {
 	eventStreams         map[string]int
 	backgroundAdmit      platform.WorkAdmission
 	backgroundEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)
-	snapshotManager      *lifecycle.SnapshotManager
 	journalRecovered     bool
-	dataProtection       *gen.DataProtectionClient
 }
 
 var activeQueue struct {

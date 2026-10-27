@@ -1,2 +1,0 @@
--- 下载授权只存签名安全载荷与token hash；实际流开始前必须单用CAS消费。
-CREATE TABLE backup_download_grants(grant_id TEXT PRIMARY KEY,subject_id TEXT NOT NULL,operation_id TEXT NOT NULL,backup_id TEXT NOT NULL REFERENCES backup_runs(backup_id),input_hash TEXT NOT NULL,claims_json TEXT NOT NULL,token_hash TEXT NOT NULL UNIQUE,signing_key_id TEXT NOT NULL,expires_at TEXT NOT NULL,consumed_at TEXT,revoked_at TEXT,UNIQUE(subject_id,operation_id));

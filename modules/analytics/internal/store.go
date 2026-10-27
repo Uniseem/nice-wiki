@@ -68,7 +68,7 @@ func WithRuntime(ctx context.Context, runtime *Runtime) context.Context {
 
 // OpenStore连续事务迁移本域私有库；控制屏障不放active，盐不进业务快照。
 func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.SigningKey) (*Runtime, error) {
-	for _, name := range []string{"active", "control", "restore", "active/exports"} {
+	for _, name := range []string{"active", "control", "active/exports"} {
 		path := filepath.Join(root, name)
 		if err := lifecycle.ValidatePrivatePath(path, "directory", true); err != nil {
 			return nil, err

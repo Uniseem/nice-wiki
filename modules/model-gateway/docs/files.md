@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 87 个：手写 72、UI 1、生成 4、配置 6、迁移 4。函数 250 个：约束 45，参考 205。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 86 个：手写 71、UI 1、生成 4、配置 6、迁移 4。函数 233 个：约束 39，参考 194。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -28,7 +28,7 @@
 | `modules/model-gateway/internal/events/outbox.go` | 手写 | 原子记录业务事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.PublishOutbox` |
 | `modules/model-gateway/internal/admin/read.go` | 手写 | 真实安全目录读取与费用策略；账本/价格及space/最近探测分支按台账未完成。 | `model-gateway.GetLedger`、`model-gateway.GetPriceBook`、`model-gateway.ReadModels`、`model-gateway.ReadProfiles`、`model-gateway.ReadFeeBudgetPolicy`、`model-gateway.PutFeeBudgetPolicy`、`model-gateway.ReadAdminCatalog`、`model-gateway.requireCatalogReader`（参考）、`model-gateway.beginAdminSnapshot`（参考）、`model-gateway.readCatalogModels`（参考）、`model-gateway.readCatalogProfiles`（参考）、`model-gateway.readCatalogProviders`（参考）、`model-gateway.readCatalogAssignments`（参考）、`model-gateway.requireFeePolicyActor`（参考）、`model-gateway.readFeePolicy`（参考）、`model-gateway.readFeePolicyReceipt`（参考）、`model-gateway.adminStorageError`（参考）、`model-gateway.NewAdminHandlers`（参考） |
 | `modules/model-gateway/internal/admin/usage.go` | 手写 | 跨服务读取权威费用状态所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.QueryUsage`、`model-gateway.ledgerRuntime`（参考）、`model-gateway.validateLedgerCoverage`（参考）、`model-gateway.readLedgerRevision`（参考）、`model-gateway.readLedgerMetadata`（参考）、`model-gateway.readLedgerEntries`（参考）、`model-gateway.readLedgerPage`（参考）、`model-gateway.readRootMetadata`（参考）、`model-gateway.sumLedgerMoney`（参考）、`model-gateway.NewLedgerHandlers`（参考） |
-| `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.AcquireBarrier`、`model-gateway.ReleaseBarrier`、`model-gateway.ExportSnapshot`、`model-gateway.StageSnapshot`、`model-gateway.DiscardSnapshot` |
+| `modules/model-gateway/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
 | `modules/model-gateway/internal/catalog/task.go` | 手写 | 任务分配配置读写与QA免费可用性读取；真实本域SQL、权限、CAS、回执和平台outbox，不调用供应方。 | `model-gateway.PutTaskAssignment`、`model-gateway.ReadTaskAssignments`、`model-gateway.ReadTaskAvailability`、`model-gateway.beginAvailabilitySnapshot`（参考）、`model-gateway.readAvailabilityTask`（参考）、`model-gateway.readAvailabilityCandidate`（参考）、`model-gateway.availabilityReadError`（参考）、`model-gateway.NewTaskAvailabilityHandlers`（参考）、`model-gateway.readTaskAssignmentReceipt`（参考）、`model-gateway.validateTaskOverride`（参考） |
 | `modules/model-gateway/internal/catalog/refresh.go` | 手写 | 刷新公开模型目录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.RefreshModelCatalog`、`model-gateway.DownloadModelCatalog`（参考）、`model-gateway.NormalizeModelCatalog`（参考）、`model-gateway.ApplyCatalogSnapshot`（参考）、`model-gateway.SaveCatalogPrice`（参考）、`model-gateway.NewCatalogRefreshHandlers`（参考）、`model-gateway.ReadCatalogSource`（参考） |
 | `modules/model-gateway/internal/admin/probe.go` | 手写 | 显式测试连接所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `model-gateway.CreateConnectionProbe`、`model-gateway.ReadLatestProbes`（参考）、`model-gateway.FeeProbeLimit`（参考） |
@@ -75,7 +75,7 @@
 | `modules/model-gateway/migrations/010_model_catalog.sql` | 手写 | 明确源身份的公开目录实际更新，manualOverride优先，不猜接口/凭据/空间。 | 无 |
 | `modules/model-gateway/internal/invocation/lookup.go` | 手写 | 原完整请求纯读查找与完整tracking证明 | `model-gateway.RequireInvocationLookupTracking`（参考）、`model-gateway.LookupInvocation` |
 | `modules/model-gateway/migrations/011_invocation_lookup.sql` | 手写 | 创建键投影及不自动生产的tracking来源 | 无 |
-| `modules/model-gateway/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `model-gateway.ReadSnapshotArchive` |
+| `modules/model-gateway/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/model-gateway/internal/admin/statistics.go` | 手写 | 固定历史水位安全posted账本变更页 | `model-gateway.ReadUsageStatisticsPage`、`model-gateway.readStatisticsLineage`（参考）、`model-gateway.validateUsageChange`（参考） |
 | `modules/model-gateway/migrations/012_usage_statistics.sql` | 手写 | 只追加安全账项真实变更历史及entry修订；同原账本/void事务完整捕获，未知legacy不补造来源；修正原读水位遗漏void变化 | 无 |
 | `modules/model-gateway/internal/catalog/bundled/catalog.go` | 手写 | 已批准MIT models.dev固定公开数据嵌入，不含外部业务代码 | `model-gateway.ReadSnapshot`（参考） |
@@ -85,7 +85,6 @@
 | `modules/model-gateway/internal/invocation/probe.go` | 手写 | 后台单次真实连接探测及安全结果投影 | `model-gateway.CreateProbeInvocation`（参考） |
 | `modules/model-gateway/migrations/013_admin_probe.sql` | 手写 | 独立probe日限默认0不限及真实探测原调用来源，不修改历史付费事实 | 无 |
 | `modules/model-gateway/internal/runtime/restore_projection.go` | 手写 | 真实首次创建来源/完整typed SQL快照与原费用target认证投影 | `model-gateway.IsRestoredEpoch`（参考）、`model-gateway.IsRedactedMaterial`（参考）、`model-gateway.CheckProviderMaterial`（参考） |
-| `modules/model-gateway/internal/protection/snapshot.go` | 手写 | 真实首次创建来源/完整typed SQL快照与原费用target认证投影 | `model-gateway.GatewaySnapshotConfig`（参考）、`model-gateway.GatewayWatermark`（参考）、`model-gateway.CaptureGatewaySnapshot`（参考）、`model-gateway.GatewaySnapshotInventory`（参考）、`model-gateway.OpenGatewaySnapshotDB`（参考）、`model-gateway.GatewaySnapshotFile`（参考）、`model-gateway.RedactGatewaySnapshot`（参考）、`model-gateway.GatewayStageBudget`（参考）、`model-gateway.MigrateGatewayStage`（参考）、`model-gateway.ValidateGatewayStage`（参考）、`model-gateway.ValidateGatewayDatabase`（参考） |
 | `modules/model-gateway/migrations/014_snapshot_authority.sql` | 手写 | 真实首次创建来源/完整typed SQL快照与原费用target认证投影 | 无 |
 | `modules/model-gateway/migrations/015_snapshot_watermark.sql` | 手写 | 真实首次创建来源/完整typed SQL快照与原费用target认证投影 | 无 |
 | `modules/model-gateway/migrations/016_usage_observations.sql` | 手写 | 真实安全ledger+invocation/attempt/reservation同一全局变化时间线上界及不可变观察闭包 | 无 |

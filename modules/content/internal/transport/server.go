@@ -273,8 +273,8 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 		}),
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch),
-		AllowedCallers:        map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection", "portal"}, "readReferenceDecision": {"media"}},
-		ServiceActorCallers:   map[string][]string{"listResourceReferences": {"media", "site-config", "data-protection"}},
+		AllowedCallers:        map[string][]string{"listResourceReferences": {"media", "site-config", "portal"}, "readReferenceDecision": {"media"}},
+		ServiceActorCallers:   map[string][]string{"listResourceReferences": {"media", "site-config"}},
 		MaintenanceOperations: map[string]bool{"listResourceReferences": true, "readReferenceDecision": true}}, handlers)
 	if err != nil {
 		return err

@@ -13,11 +13,11 @@ PORT_OFFSET = int(os.environ.get("NW_DEV_PORT_OFFSET", "0"))
 DATABASE_URL = os.environ.get("NW_DEV_DATABASE_URL", "")
 PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
-         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114}.items()}
+         "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114}.items()}
 # 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置；
 # portal、knowledge 暂时仍是各自独立的进程（分别由 Rust 的 edge、search 取代前保留）。
 HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
-         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "data-protection", "traffic-guard"]}
+         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "traffic-guard"]}
 STANDALONE = ["portal", "knowledge"]
 # Rust 检索服务（rust/search）：独立进程，没有 cargo 或设置了 NW_DEV_NO_SEARCH 时不启动，知识库退回进程内检索。
 SEARCH_PORT = 8120 + PORT_OFFSET
@@ -97,7 +97,7 @@ def setup():
                "signingKeyRef": os.path.join(sec, "signing-key.json"),
                "dependencies": {s: f"http://127.0.0.1:{p}" for s, p in PORTS.items() if s != slug},
                "allowLocalHTTP": True}
-        if slug in ("model-gateway", "data-protection", "identity", "content"):
+        if slug in ("model-gateway", "identity", "content"):
             master = os.path.join(sec, "master-key")
             if not os.path.exists(master):
                 with open(master, "wb") as f:
@@ -106,9 +106,6 @@ def setup():
             cfg["masterKeyRef"] = master
         if slug in ("portal", "traffic-guard"):
             cfg["budgetKeyRef"] = path("secrets", "budget", "budget-key.json")
-        if slug == "data-protection":
-            cfg["backupSources"] = {m: path("data", m) for m in PORTS if m != slug}
-            cfg["backupSecretsDir"] = path("secrets")
         if slug == "analytics":
             cfg["reportingTimeZone"] = "Asia/Shanghai"
         if slug == "site-config":

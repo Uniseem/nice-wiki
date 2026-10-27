@@ -5,7 +5,6 @@ go 1.25.0
 require (
 	nice-wiki/libs/platform v0.0.0
 	nice-wiki/modules/analytics v0.0.0
-	nice-wiki/modules/data-protection v0.0.0
 	nice-wiki/modules/jobs v0.0.0
 	nice-wiki/modules/traffic-guard v0.0.0
 )
@@ -42,6 +41,5 @@ replace nice-wiki/modules/jobs => ../../modules/jobs
 
 replace nice-wiki/modules/analytics => ../../modules/analytics
 
-replace nice-wiki/modules/data-protection => ../../modules/data-protection
 
 replace nice-wiki/modules/traffic-guard => ../../modules/traffic-guard

@@ -10,8 +10,7 @@
     "media": "http://127.0.0.1:8104",
     "jobs": "http://127.0.0.1:8111",
     "public-site": "http://127.0.0.1:8081",
-    "qa": "http://127.0.0.1:8107",
-    "data-protection": "http://127.0.0.1:8113"
+    "qa": "http://127.0.0.1:8107"
   },
   "publicBaseURL": "",
   "allowLocalHTTP": false

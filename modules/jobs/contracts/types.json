@@ -2196,83 +2196,6 @@
         "request"
       ]
     },
-    "BarrierObserveEvidence": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "协调器持久选择的稳定零broker基础proof；只由step=observe返回，不能使用BarrierStatus.sealProofHash替代；owners必须覆盖已登记14个有状态域",
-      "properties": {
-        "barrierId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "基础proof绑定的屏障ID"
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "基础proof绑定的业务代次"
-        },
-        "phase": {
-          "type": "string",
-          "enum": [
-            "backup_barrier",
-            "restore_staging"
-          ],
-          "description": "协调器已持久确认的运行阶段"
-        },
-        "revisionWatermark": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "基础proof选择时的本域持久水位"
-        },
-        "selectedProofHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "协调器选择的完整基础proof canonical hash"
-        },
-        "owners": {
-          "type": "array",
-          "minItems": 14,
-          "maxItems": 14,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
-          },
-          "description": "完整基础proof覆盖的14个有状态域；调用服务必须在此集合内"
-        },
-        "brokerBefore": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotBrokerObservation",
-          "description": "持久选择的broker基础观察"
-        },
-        "brokerAfter": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotBrokerObservation",
-          "description": "持久选择的broker基础观察复核值"
-        }
-      },
-      "required": [
-        "barrierId",
-        "dataEpoch",
-        "phase",
-        "revisionWatermark",
-        "selectedProofHash",
-        "owners",
-        "brokerBefore",
-        "brokerAfter"
-      ]
-    },
-    "CoordinateBarrierResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "全域屏障结果；observe成功必须携带明确的selectedProof，变更步骤只返回本域状态",
-      "properties": {
-        "status": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-          "description": "公共 BarrierStatus 合同，遵守其字段和空值规则"
-        },
-        "selectedProof": {
-          "$ref": "#/$defs/BarrierObserveEvidence",
-          "description": "仅step=observe返回的协调器基础proof；不填充为本域safe封口hash"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
     "ReleaseBarrierInput": {
       "type": "object",
       "additionalProperties": false,
@@ -2292,20 +2215,6 @@
       "required": [
         "barrierId",
         "dataEpoch"
-      ]
-    },
-    "ReleaseBarrierResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "解除全域任务暂停成功结果；失败不返回半成功结果",
-      "properties": {
-        "status": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-          "description": "公共 BarrierStatus 合同，遵守其字段和空值规则"
-        }
-      },
-      "required": [
-        "status"
       ]
     },
     "PurgeExpiredHistoryInput": {
@@ -2593,34 +2502,6 @@
         "phase",
         "completedUnits",
         "totalUnits"
-      ]
-    },
-    "EventJobsBarrierStateChangedPayload": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "维护屏障协调状态；实际envelope见公共EventEnvelope，payload严格字段，无null/任意对象",
-      "properties": {
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "state": {
-          "type": "string",
-          "description": "state；UTF-8；不得为 null",
-          "maxLength": 2048,
-          "minLength": 1
-        },
-        "watermark": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
-          "description": "watermark 非负 int64；不用浮点数"
-        }
-      },
-      "required": [
-        "barrierId",
-        "state",
-        "watermark"
       ]
     },
     "EventJobsScheduleChangedPayload": {
@@ -2993,20 +2874,6 @@
         "enabled"
       ]
     },
-    "CoordinateBarrierRequestBody": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "prepare/drain/seal/resume-drain只允许data-protection既有变更授权；step=observe允许已登记13个非jobs有状态域服务身份只读已持久基础proof，调用服务必须属于proof owners；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
-      "properties": {
-        "request": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
-          "description": "公共 BarrierRequest 合同，遵守其字段和空值规则"
-        }
-      },
-      "required": [
-        "request"
-      ]
-    },
     "StartJobRequestBody": {
       "type": "object",
       "additionalProperties": false,
@@ -3027,13 +2894,6 @@
         "workerId",
         "fencingToken"
       ]
-    },
-    "ReleaseBarrierRequestBody": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
-      "properties": {},
-      "required": []
     },
     "ServiceConfig": {
       "type": "object",
@@ -3105,8 +2965,7 @@
                   "memory",
                   "traffic-guard",
                   "jobs",
-                  "analytics",
-                  "data-protection"
+                  "analytics"
                 ],
                 "description": "生产方服务slug"
               },

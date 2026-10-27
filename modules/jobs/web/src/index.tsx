@@ -19,7 +19,7 @@ const states: Record<string, { label: string; tone: 'default' | 'accent' | 'succ
 const categories = [{ value: 'all', label: t('全部') }, { value: 'localization', label: t('翻译') }, { value: 'knowledge', label: t('知识索引') }, { value: 'media', label: t('资源') }, { value: 'memory', label: t('长期记忆') }, { value: 'analytics', label: t('统计') }, { value: 'data-protection', label: t('备份') }, { value: 'content', label: t('文档') }, { value: 'public-site', label: t('公开站') }, { value: 'qa', label: t('问答记录') }];
 const jobNames: Record<string, string> = {
  'analytics.aggregate-daily': t('按天统计'), 'analytics.aggregate-hourly': t('按小时统计'), 'analytics.aggregate-usage': t('用量统计'), 'analytics.reconcile-usage': t('用量对账'),
- 'data-protection.backup': t('创建备份'), 'data-protection.restore': t('恢复'), 'knowledge.build': t('建立知识索引'), 'knowledge.extract': t('附件提取'),
+ 'knowledge.build': t('建立知识索引'), 'knowledge.extract': t('附件提取'),
  'localization.document': t('文档翻译'), 'localization.ui': t('界面翻译'), 'media.cleanup': t('资源清理'), 'memory.assistant': t('记忆助手'), 'memory.overview': t('全站概括'),
  'public-site.render-publication': t('发布页面'), 'qa.compact': t('长对话压缩'), 'qa.turn': t('访客问答'),
 };

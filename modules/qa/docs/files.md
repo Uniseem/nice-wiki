@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 57 个：手写 44、UI 2、生成 4、配置 6、迁移 1。函数 97 个：约束 34，参考 63。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 57 个：手写 44、UI 2、生成 4、配置 6、迁移 1。函数 91 个：约束 28，参考 63。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -34,7 +34,7 @@
 | `modules/qa/internal/runtime/recovery.go` | 手写 | 恢复崩溃问答所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.RecoverTurns`（参考） |
 | `modules/qa/internal/events/outbox.go` | 手写 | 发布问答脱敏事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PublishOutbox` |
 | `modules/qa/internal/runtime/prune.go` | 手写 | 清理到期记录所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.PruneExpiredRecords`（参考）、`qa.RedactConversation`（参考） |
-| `modules/qa/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.AcquireBarrier`、`qa.ReleaseBarrier`、`qa.ExportSnapshot`、`qa.StageSnapshot`、`qa.DiscardSnapshot` |
+| `modules/qa/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
 | `modules/qa/internal/context/page.go` | 手写 | 验证当前页面上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.ResolveCurrentPageHint`（参考） |
 | `modules/qa/internal/answer/inspect.go` | 手写 | 快速检索员有限核查所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `qa.InspectEvidence`（参考） |
 | `modules/qa/internal/cache/localized.go` | 手写 | 保存缓存的多语言回答所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
@@ -58,7 +58,7 @@
 | `modules/qa/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/qa/internal/admin/records.go` | 手写 | 浏览与筛选问答记录 | `qa.ListTurnRecords`、`qa.ReadTurnRecord` |
 | `modules/qa/internal/admin/policy.go` | 手写 | 读取问答策略 | `qa.ReadQaPolicy`、`qa.ReadPublicCapability` |
-| `modules/qa/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `qa.ReadSnapshotArchive` |
+| `modules/qa/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/qa/web/src/index.tsx` | UI | 问答管理：策略、问答记录与精选、答案缓存、调试台 | `qa.QaPage` |
 | `modules/qa/web/src/island/index.tsx` | UI | 公开页问答岛：文档页右下角的问答面板，独立问答页用同一会话的内嵌形态（QaInline） | `qa.QaFloating` |
 | `modules/qa/internal/answer/query-embedding.go` | 手写 | Agent和站点搜索的查询向量，仅复用单次请求幂等结果，不缓存答案 | `qa.AcquireQueryEmbedding`（参考） |

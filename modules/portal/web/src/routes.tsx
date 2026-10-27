@@ -43,7 +43,7 @@ const ui: Record<string, Omit<Page, 'key' | 'path' | 'label' | 'permissions' | '
   analytics: { section: t('系统'), icon: ChartColumn, component: lazy(() => import('@modules/analytics/web/src')) },
   jobs: { section: t('系统'), icon: ListCheck, component: lazy(() => import('@modules/jobs/web/src')) },
   guard: { section: t('系统'), icon: Shield, component: lazy(() => import('@modules/traffic-guard/web/src')) },
-  backup: { section: t('系统'), icon: Archive, component: lazy(() => import('@modules/data-protection/web/src')) },
+  backup: { section: t('系统'), icon: Archive, component: lazy(() => import('@modules/content/web/src/data')) },
 };
 
 const order = ['sites', 'myai', 'platform', 'privateAccess', 'dashboard', 'content', 'media', 'settings', 'localization', 'models', 'knowledge', 'memory', 'qa', 'team', 'accounts', 'analytics', 'jobs', 'guard', 'backup', 'me'];
@@ -58,7 +58,7 @@ export const sections = ['', t('平台'), t('内容'), t('站点'), 'AI', t('系
 // 旧版后台按服务名的地址，打开时换成登记的新地址。
 const legacy: Record<string, string> = {
   '/admin/site-config': '/admin/site', '/admin/identity': '/admin/accounts', '/admin/model-gateway': '/admin/models',
-  '/admin/traffic-guard': '/admin/guard', '/admin/data-protection': '/admin/backup',
+  '/admin/traffic-guard': '/admin/guard',
 };
 
 export function legacyPath(path: string): string | null {

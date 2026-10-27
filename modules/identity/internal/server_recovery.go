@@ -964,32 +964,30 @@ func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error {
 	return nil
 }
 
-// NewBackgroundTasks 只返回具有真实运行权威和SnapshotManager scope的入口。
-// 完整启动装配在保护接口冻结后调用；缺任一依赖时不登记后台任务。
-func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
-	if store == nil || store.db == nil || siteConfig == nil || snapshot == nil || publisher == nil || !platform.ValidIdentifier(dataEpoch) {
+// NewBackgroundTasks 只返回具有真实运行权威的后台入口；缺任一依赖时不登记后台任务。
+func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
+	if store == nil || store.db == nil || siteConfig == nil || publisher == nil || !platform.ValidIdentifier(dataEpoch) {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "身份后台任务真实运行依赖尚未装配")
 	}
 	return []platform.BackgroundTask{
 		{
 			Name: "identity.superadmin-reset",
 			Run: func(ctx context.Context) error {
-				return runSuperadminResetObserver(ctx, store, siteConfig, snapshot, dataEpoch)
+				return runSuperadminResetObserver(ctx, store, siteConfig, dataEpoch)
 			},
 		},
 		{
 			Name: "identity.outbox",
 			Run: func(ctx context.Context) error {
-				return runOutboxRelay(ctx, store, siteConfig, snapshot, publisher, dataEpoch)
+				return runOutboxRelay(ctx, store, siteConfig, publisher, dataEpoch)
 			},
 		},
 	}, nil
 }
 
 // runSuperadminResetObserver 先用只读发现取得唯一超管所属站点，再把真实
-// identity 操作放入公共恢复循环；业务文件读取和凭据写入只在Manager
-// AdmitBusiness与WriteWindow同时允许时执行。
-func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, dataEpoch platform.Identifier) error {
+// identity 操作放入公共恢复循环；业务文件读取和凭据写入只在准入与写窗口同时允许时执行。
+func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) error {
 	siteID, err := waitForIdentitySite(ctx, store, superadminResetInterval)
 	if err != nil {
 		return err
@@ -999,10 +997,10 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 	}
 	op := identityBackgroundOperation(siteID, dataEpoch, time.Now().UTC().Add(time.Minute))
 	return lifecycle.RunRecoveryLoop(platform.WithOperationContext(ctx, op), platform.RecoveryLoopConfig{
-		AdmitBatch:  snapshot.AdmitBusiness,
+		AdmitBatch:  lifecycle.SimpleAdmission(siteConfig.ReadRuntimeState, dataEpoch),
 		PollMillis:  int(superadminResetInterval / time.Millisecond),
 		Runtime:     siteConfig.ReadRuntimeState,
-		WriteWindow: snapshot.WriteWindow,
+		WriteWindow: lifecycle.SimpleWriteWindow(siteConfig.ReadRuntimeState),
 		Recover: func(work context.Context) error {
 			op, ok := platform.OperationContextFrom(work)
 			if !ok {
@@ -1016,8 +1014,8 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 }
 
 // runOutboxRelay 只负责把单批RelayOutbox交给公共恢复循环调度；
-// 轮询、Manager准入、运行权威与写窗口均由platform实现。
-func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) error {
+// 轮询、准入、运行权威与写窗口均由platform实现。
+func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) error {
 	siteID, err := waitForIdentitySite(ctx, store, outboxRelayInterval)
 	if err != nil {
 		return err
@@ -1027,16 +1025,16 @@ func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteC
 	}
 	op := identityBackgroundOperation(siteID, dataEpoch, time.Now().UTC().Add(time.Minute))
 	return lifecycle.RunRecoveryLoop(platform.WithOperationContext(ctx, op), platform.RecoveryLoopConfig{
-		AdmitBatch:  snapshot.AdmitEventBatch,
+		AdmitBatch:  lifecycle.SimpleAdmission(siteConfig.ReadRuntimeState, dataEpoch),
 		PollMillis:  int(outboxRelayInterval / time.Millisecond),
 		Runtime:     siteConfig.ReadRuntimeState,
-		WriteWindow: snapshot.WriteWindow,
+		WriteWindow: lifecycle.SimpleWriteWindow(siteConfig.ReadRuntimeState),
 		Recover: func(work context.Context) error {
 			op, ok := platform.OperationContextFrom(work)
 			if !ok {
 				return platform.NewError(platform.CodeDependencyUnavailable, true, "outbox后台缺少受信操作上下文")
 			}
-			relayCtx := WithRelayRuntime(work, store, publisher, snapshot, siteConfig)
+			relayCtx := WithRelayRuntime(work, store, publisher, siteConfig)
 			_, err := RelayOutbox(relayCtx, op, RelayOutboxInput{BatchLimit: outboxRelayBatchLimit})
 			return err
 		},

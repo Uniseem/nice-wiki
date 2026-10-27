@@ -1,7 +1,13 @@
 {
   "slug": "jobs",
   "image": "nice-wiki-jobs",
-  "command": ["/jobs", "--config", "/config/defaults.json", "--listen", "0.0.0.0:8111"],
+  "command": [
+    "/jobs",
+    "--config",
+    "/config/defaults.json",
+    "--listen",
+    "0.0.0.0:8111"
+  ],
   "httpPort": 8111,
   "dataVolume": "/data/jobs",
   "secrets": [
@@ -24,11 +30,6 @@
       "module": "identity",
       "endpoint": "http://identity:8101",
       "env": "NW_DEP_IDENTITY"
-    },
-    {
-      "module": "data-protection",
-      "endpoint": "http://data-protection:8113",
-      "env": "NW_DEP_DATA_PROTECTION"
     },
     {
       "module": "content",

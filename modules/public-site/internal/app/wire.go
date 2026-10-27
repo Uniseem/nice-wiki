@@ -48,13 +48,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录后的回执与journal尚未装配")
-	}
 	clients := assembleClients(config, key)
 	if err = clients.ready(); err != nil {
 		return nil, err
@@ -86,29 +79,25 @@ func newRuntimeClient(config platform.ServiceConfig, key platform.SigningKey) (p
 }
 
 type domainClients struct {
-	content        *gen.ContentClient
-	siteConfig     *gen.SiteConfigClient
-	localization   *gen.LocalizationClient
-	identity       *gen.IdentityClient
-	media          *gen.MediaClient
-	jobs           *gen.JobsClient
-	dataProtection *gen.DataProtectionClient
-	analytics      *gen.AnalyticsClient
-	qaBase         string
-	qaKey          platform.SigningKey
+	content      *gen.ContentClient
+	siteConfig   *gen.SiteConfigClient
+	localization *gen.LocalizationClient
+	identity     *gen.IdentityClient
+	media        *gen.MediaClient
+	analytics    *gen.AnalyticsClient
+	qaBase       string
+	qaKey        platform.SigningKey
 }
 
 func assembleClients(config platform.ServiceConfig, key platform.SigningKey) domainClients {
 	clients := domainClients{
-		content:        gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key),
-		siteConfig:     gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key),
-		localization:   gen.NewLocalizationClient(config.Dependencies["localization"], ModuleSlug, key),
-		identity:       gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key),
-		media:          gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key),
-		jobs:           gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
-		dataProtection: gen.NewDataProtectionClient(config.Dependencies["data-protection"], ModuleSlug, key),
-		qaBase:         config.Dependencies["qa"],
-		qaKey:          key,
+		content:      gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key),
+		siteConfig:   gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key),
+		localization: gen.NewLocalizationClient(config.Dependencies["localization"], ModuleSlug, key),
+		identity:     gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key),
+		media:        gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key),
+		qaBase:       config.Dependencies["qa"],
+		qaKey:        key,
 	}
 	if config.Dependencies["analytics"] != "" {
 		clients.analytics = gen.NewAnalyticsClient(config.Dependencies["analytics"], ModuleSlug, key)
@@ -117,7 +106,7 @@ func assembleClients(config platform.ServiceConfig, key platform.SigningKey) dom
 }
 
 func (c domainClients) ready() error {
-	if c.content == nil || c.siteConfig == nil || c.localization == nil || c.identity == nil || c.media == nil || c.jobs == nil || c.dataProtection == nil {
+	if c.content == nil || c.siteConfig == nil || c.localization == nil || c.identity == nil || c.media == nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "权威依赖客户端未装配")
 	}
 	// analytics 是可选依赖，允许保持 nil；读取只为保留装配结果。
@@ -153,7 +142,7 @@ func validateConfig(config platform.ServiceConfig) error {
 }
 
 func requireEndpoints(config platform.ServiceConfig) error {
-	required := []string{"content", "site-config", "localization", "identity", "media", "jobs", "data-protection"}
+	required := []string{"content", "site-config", "localization", "identity", "media"}
 	for _, name := range required {
 		if err := requireEndpoint(config.Dependencies[name]); err != nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, true, "缺少%s依赖地址", name)
@@ -176,7 +165,7 @@ func requireEndpoint(raw string) error {
 }
 
 func ensureDataLayout(dataRoot string) error {
-	for _, name := range []string{"active", "control", "restore"} {
+	for _, name := range []string{"active", "control"} {
 		path := filepath.Join(dataRoot, name)
 		if err := lifecycle.ValidatePrivatePath(path, "directory", true); err != nil {
 			return err

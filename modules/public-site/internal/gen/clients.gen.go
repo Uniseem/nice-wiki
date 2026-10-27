@@ -331,18 +331,6 @@ func (c *ContentClient) ValidatePublications(ctx context.Context, body any) (jso
 	return c.do(ctx, http.MethodPost, "/v1/publications:validate", body, "")
 }
 
-// DataProtectionClient 调用data-protection服务（自动附服务断言）。
-type DataProtectionClient struct{ *producerClient }
-
-func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *DataProtectionClient {
-	return &DataProtectionClient{newProducerClient("data-protection", baseURL, issuer, key)}
-}
-
-// ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
-	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
-}
-
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 
@@ -400,14 +388,6 @@ func (c *JobsClient) CompleteJob(ctx context.Context, jobId string, body any, id
 		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
 	}
 	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":complete", body, idempotencyKey)
-}
-
-// CoordinateBarrier POST /v1/barriers:coordinate（jobs:coordinateBarrier）。
-func (c *JobsClient) CoordinateBarrier(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/barriers:coordinate", body, idempotencyKey)
 }
 
 // CreateJob POST /v1/jobs（jobs:createJob）。
@@ -560,17 +540,7 @@ func (c *SiteConfigClient) ReadConfigObject(ctx context.Context, objectId string
 	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
 }
 
-// ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
-func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
-}
-
 // ReadSiteConfig GET /v1/config（site-config:readSiteConfig）。
 func (c *SiteConfigClient) ReadSiteConfig(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/config", nil, "")
-}
-
-// RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
-func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }

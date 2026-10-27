@@ -72,7 +72,6 @@
   "rule": "只有旧10项功能开关；技术grants由identity派生，浏览器不能自选。超管拥有全部登记管理权限；后台服务必须验证委托者实际技术权限。job.manage由本域任务owner业务权限派生，仅允许管理获授权业务任务，不能以此操作任意任务或系统任务。media.read用于管理对象，公开资源通过发布引用门禁。 job.manage只是入口粗能力，按jobManagementGrants中任一当前技术权限派生；jobs必须再按持久任务type/owner对应managementPermission核对最新业务授权，系统类型用system.manage。",
   "jobManagementGrants": [
     "system.manage",
-    "backup.manage",
     "knowledge.manage",
     "localization.manage",
     "media.manage",
@@ -96,8 +95,7 @@
     "memory": "memory.manage",
     "traffic-guard": "guard.manage",
     "jobs": "system.manage",
-    "analytics": "system.manage",
-    "data-protection": "backup.manage"
+    "analytics": "system.manage"
   },
   "interfaceLocales": [
     "zh-Hans",
@@ -257,10 +255,55 @@
       "labelEN": "Data & sync",
       "navigation": true
     },
-    {"key": "sites", "path": "/admin/sites", "permissions": ["account.self"], "labelZH": "我的站点", "labelEN": "My sites", "navigation": true},
-    {"key": "team", "path": "/admin/team", "permissions": ["account.manage"], "labelZH": "团队与域名", "labelEN": "Team & domains", "navigation": true},
-    {"key": "myai", "path": "/admin/ai", "permissions": ["account.self"], "labelZH": "AI 与额度", "labelEN": "AI & quota", "navigation": true},
-    {"key": "privateAccess", "path": "/admin/private-access", "permissions": ["account.self"], "labelZH": "进入私有站点", "labelEN": "Open private site", "navigation": false},
-    {"key": "platform", "path": "/admin/platform", "permissions": ["system.manage"], "labelZH": "平台管理", "labelEN": "Platform", "navigation": true}
+    {
+      "key": "sites",
+      "path": "/admin/sites",
+      "permissions": [
+        "account.self"
+      ],
+      "labelZH": "我的站点",
+      "labelEN": "My sites",
+      "navigation": true
+    },
+    {
+      "key": "team",
+      "path": "/admin/team",
+      "permissions": [
+        "account.manage"
+      ],
+      "labelZH": "团队与域名",
+      "labelEN": "Team & domains",
+      "navigation": true
+    },
+    {
+      "key": "myai",
+      "path": "/admin/ai",
+      "permissions": [
+        "account.self"
+      ],
+      "labelZH": "AI 与额度",
+      "labelEN": "AI & quota",
+      "navigation": true
+    },
+    {
+      "key": "privateAccess",
+      "path": "/admin/private-access",
+      "permissions": [
+        "account.self"
+      ],
+      "labelZH": "进入私有站点",
+      "labelEN": "Open private site",
+      "navigation": false
+    },
+    {
+      "key": "platform",
+      "path": "/admin/platform",
+      "permissions": [
+        "system.manage"
+      ],
+      "labelZH": "平台管理",
+      "labelEN": "Platform",
+      "navigation": true
+    }
   ]
 }

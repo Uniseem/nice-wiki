@@ -25,7 +25,6 @@
 @source "../../../traffic-guard/web/src";
 @source "../../../jobs/web/src";
 @source "../../../analytics/web/src";
-@source "../../../data-protection/web/src";
 @source "../../../../libs/platform/web/ui";
 
 @theme {

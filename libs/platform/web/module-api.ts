@@ -7,7 +7,7 @@ export interface ModuleAPIRequest {
   idempotencyKey?: string;
   // 仅供 media 上传分块：portal 只把它们映射成 X-Upload-Offset / X-Chunk-SHA256 / If-Match。
   uploadChunk?: { offset: number; sha256: string; revision: number };
-  // 只由portal映射至data-protection对应固定操作的单个头；不开放任意headers。
+  // 只由portal映射至固定操作的单个头；不开放任意headers。
   restoreProgressToken?: string;
   restoreControlGrant?: string;
   backupDownloadToken?: string;

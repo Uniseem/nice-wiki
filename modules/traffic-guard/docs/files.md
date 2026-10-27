@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 49 个：手写 36、UI 1、生成 4、配置 6、迁移 2。函数 94 个：约束 33，参考 61。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 48 个：手写 35、UI 1、生成 4、配置 6、迁移 2。函数 84 个：约束 27，参考 57。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -26,9 +26,9 @@
 | `modules/traffic-guard/internal/events.go` | 手写 | 处理权限撤销通知；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeIdentityEvent`、`traffic-guard.ConsumeEvents` |
 | `modules/traffic-guard/internal/outbox.go` | 手写 | 可靠派发风控引用事件；同文件职责限本域以下登记函数 | `traffic-guard.PublishGuardEvents` |
 | `modules/traffic-guard/internal/retention.go` | 手写 | 清理匿名风控状态；同文件职责限本域以下登记函数 | `traffic-guard.PurgeAnonymousSignals`（参考） |
-| `modules/traffic-guard/internal/barrier.go` | 手写 | 停止准入并等安全点；同文件职责限本域以下登记函数 | `traffic-guard.EnterBarrier`、`traffic-guard.ReleaseBarrier` |
-| `modules/traffic-guard/internal/snapshot.go` | 手写 | 导出风控一致快照；同文件职责限本域以下登记函数 | `traffic-guard.CreateSnapshot` |
-| `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | `traffic-guard.StageSnapshot`、`traffic-guard.DiscardSnapshot` |
+| `modules/traffic-guard/internal/barrier.go` | 手写 | 停止准入并等安全点；同文件职责限本域以下登记函数 | 无 |
+| `modules/traffic-guard/internal/snapshot.go` | 手写 | 导出风控一致快照；同文件职责限本域以下登记函数 | 无 |
+| `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | 无 |
 | `modules/traffic-guard/internal/question_signals.go` | 手写 | 接收qa已有检测信号；同文件职责限本域以下登记函数 | `traffic-guard.ReportQuestionSignals` |
 | `modules/traffic-guard/internal/session_queue.go` | 手写 | 每会话1并发其余排队；同文件职责限本域以下登记函数 | `traffic-guard.QueueSessionAdmission` |
 | `modules/traffic-guard/internal/admission_consumption.go` | 手写 | QA绑定准入使用权；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeAdmission` |
@@ -50,8 +50,7 @@
 | `modules/traffic-guard/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/traffic-guard/internal/queries.go` | 手写 | 查看最近可疑事件 | `traffic-guard.ListRiskEvents` |
 | `modules/traffic-guard/migrations/0002_login_protection.sql` | 迁移 | 只追加匿名登录attempt、网络关联、滚动失败、固定锁和Finish幂等回执；既有策略/回执不变 | 无 |
-| `modules/traffic-guard/internal/guard_runtime.go` | 手写 | 本域可信装配与组合短事务、原安全回执和outbox边界 | `traffic-guard.WithGuardRuntime`（参考）、`traffic-guard.beginGuardTransaction`（参考）、`traffic-guard.guardTransaction.close`（参考）、`traffic-guard.guardTransaction.commit`（参考）、`traffic-guard.authorizeGuardManagement`（参考）、`traffic-guard.readGuardReceipt`（参考）、`traffic-guard.saveGuardReceipt`（参考）、`traffic-guard.enqueueGuardEvent`（参考）、`traffic-guard.readGuardPolicy`（参考）、`traffic-guard.registerGuardWorkTables`（参考）、`traffic-guard.ObserveWork`（参考）、`traffic-guard.SealWork`（参考）、`traffic-guard.ResumeWork`（参考）、`traffic-guard.NewTrafficSnapshotManager`（参考） |
+| `modules/traffic-guard/internal/guard_runtime.go` | 手写 | 本域可信装配与组合短事务、原安全回执和outbox边界 | `traffic-guard.WithGuardRuntime`（参考）、`traffic-guard.beginGuardTransaction`（参考）、`traffic-guard.guardTransaction.close`（参考）、`traffic-guard.guardTransaction.commit`（参考）、`traffic-guard.authorizeGuardManagement`（参考）、`traffic-guard.readGuardReceipt`（参考）、`traffic-guard.saveGuardReceipt`（参考）、`traffic-guard.enqueueGuardEvent`（参考）、`traffic-guard.readGuardPolicy`（参考）、`traffic-guard.registerGuardWorkTables`（参考） |
 | `modules/traffic-guard/migrations/0003_guard_runtime.sql` | 手写 | 只追加匿名作用域、桶、租约、挑战、禁令与安全回执；不持久token/原IP/正文 | 无 |
 | `modules/traffic-guard/internal/http_management.go` | 手写 | 只供统一服务边界绑定已完成管理/匿名信号API；内部marker复用该次即时授权 | `traffic-guard.NewGuardHandlers`（参考） |
-| `modules/traffic-guard/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `traffic-guard.ReadSnapshotArchive` |
 | `modules/traffic-guard/web/src/index.tsx` | UI | 防滥用：访客提问准入策略、禁令、可疑事件与一键封禁 | `traffic-guard.GuardPage` |

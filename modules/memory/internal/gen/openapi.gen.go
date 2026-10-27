@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -99,15 +98,6 @@ const (
 	Conflicted MemoryProposalState = "conflicted"
 	Pending    MemoryProposalState = "pending"
 	Rejected   MemoryProposalState = "rejected"
-)
-
-// Defines values for CommonSchemaBarrierRequestStep.
-const (
-	Drain       CommonSchemaBarrierRequestStep = "drain"
-	Observe     CommonSchemaBarrierRequestStep = "observe"
-	Prepare     CommonSchemaBarrierRequestStep = "prepare"
-	ResumeDrain CommonSchemaBarrierRequestStep = "resume-drain"
-	Seal        CommonSchemaBarrierRequestStep = "seal"
 )
 
 // AppendAssistantMessageInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
@@ -226,12 +216,6 @@ type AssistantRun struct {
 
 // AssistantRunState 状态
 type AssistantRunState string
-
-// BarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。
-type BarrierRequest = CommonSchemaBarrierRequest
-
-// BarrierStatus 屏障状态及安全点；未到安全点不能导出完整快照
-type BarrierStatus = CommonSchemaBarrierStatus
 
 // CancelAssistantRunInput 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type CancelAssistantRunInput struct {
@@ -755,159 +739,6 @@ type ServiceReadiness struct {
 	SafePoint bool `json:"safePoint"`
 }
 
-// SnapshotBarrierObservation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
-type SnapshotBarrierObservation struct {
-	ActivityRevision  int    `json:"activityRevision"`
-	Business          int    `json:"business"`
-	Cleanup           int    `json:"cleanup"`
-	DrainCallbacks    int    `json:"drainCallbacks"`
-	FileOps           int    `json:"fileOps"`
-	Owner             string `json:"owner"`
-	RevisionWatermark int    `json:"revisionWatermark"`
-
-	// Work 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
-	Work SnapshotWorkState `json:"work"`
-}
-
-// SnapshotBrokerObservation 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
-type SnapshotBrokerObservation struct {
-	ActiveLeases      int `json:"activeLeases"`
-	PendingDeliveries int `json:"pendingDeliveries"`
-	Revision          int `json:"revision"`
-}
-
-// SnapshotDiscardRequest 删除某次恢复的暂存目录或换出的旧数据目录
-type SnapshotDiscardRequest struct {
-	// RestoreId 系统生成的不透明 ID，不含个人信息
-	RestoreId Identifier `json:"restoreId"`
-
-	// Scope staged=未换入的暂存；before=恢复完成后换出的旧active
-	Scope interface{} `json:"scope"`
-}
-
-// SnapshotDiscardResult 丢弃结果；目录不存在视为已删除
-type SnapshotDiscardResult struct {
-	// Removed 本次是否实际删除了目录
-	Removed bool `json:"removed"`
-
-	// RestoreId 系统生成的不透明 ID，不含个人信息
-	RestoreId Identifier `json:"restoreId"`
-
-	// Scope 已处理的目录类别
-	Scope interface{} `json:"scope"`
-}
-
-// SnapshotExportRequest 指定屏障和是否含秘密的快照导出请求
-type SnapshotExportRequest = CommonSchemaSnapshotExportRequest
-
-// SnapshotExportResult 已经导出并验证的本域快照引用
-type SnapshotExportResult = CommonSchemaSnapshotExportResult
-
-// SnapshotRef 本域不可变快照描述，包含schema、哈希、大小与数据代次
-type SnapshotRef struct {
-	// ContainsSecrets SnapshotRef.containsSecrets；按类型、枚举及required约束使用
-	ContainsSecrets bool `json:"containsSecrets"`
-
-	// DataEpoch 系统生成的不透明 ID，不含个人信息
-	DataEpoch Identifier `json:"dataEpoch"`
-
-	// DataSchemaVersion SnapshotRef.dataSchemaVersion；按类型、枚举及required约束使用
-	DataSchemaVersion int `json:"dataSchemaVersion"`
-
-	// Object 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
-	Object ObjectRef `json:"object"`
-
-	// Owner 对象唯一所属模块slug
-	Owner string `json:"owner"`
-
-	// RevisionWatermark 对象单调修订号
-	RevisionWatermark Revision `json:"revisionWatermark"`
-
-	// SnapshotId 系统生成的不透明 ID，不含个人信息
-	SnapshotId Identifier `json:"snapshotId"`
-}
-
-// SnapshotSealProof 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
-type SnapshotSealProof struct {
-	// BarrierId 系统生成的不透明 ID，不含个人信息
-	BarrierId Identifier `json:"barrierId"`
-
-	// BrokerAfter 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
-	BrokerAfter SnapshotBrokerObservation `json:"brokerAfter"`
-
-	// BrokerBefore 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。
-	BrokerBefore SnapshotBrokerObservation `json:"brokerBefore"`
-
-	// DataEpoch 系统生成的不透明 ID，不含个人信息
-	DataEpoch Identifier `json:"dataEpoch"`
-
-	// NonJobsProofHash SHA-256 小写十六进制
-	NonJobsProofHash *Hash                        `json:"nonJobsProofHash,omitempty"`
-	NonJobsSeals     *[]SnapshotSealReceipt       `json:"nonJobsSeals,omitempty"`
-	Observations     []SnapshotBarrierObservation `json:"observations"`
-}
-
-// SnapshotSealReceipt defines model for SnapshotSealReceipt.
-type SnapshotSealReceipt struct {
-	Owner string `json:"owner"`
-
-	// SealProofHash SHA-256 小写十六进制
-	SealProofHash Hash `json:"sealProofHash"`
-}
-
-// SnapshotStageRequest 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003）
-type SnapshotStageRequest struct {
-	// BarrierId 系统生成的不透明 ID，不含个人信息
-	BarrierId Identifier `json:"barrierId"`
-
-	// Checksum SHA-256 小写十六进制
-	Checksum Hash `json:"checksum"`
-
-	// RestoreId 系统生成的不透明 ID，不含个人信息
-	RestoreId Identifier `json:"restoreId"`
-
-	// Snapshot 本域不可变快照描述，包含schema、哈希、大小与数据代次
-	Snapshot SnapshotRef `json:"snapshot"`
-
-	// TargetDataEpoch 系统生成的不透明 ID，不含个人信息
-	TargetDataEpoch Identifier `json:"targetDataEpoch"`
-}
-
-// SnapshotStageResult 本域暂存回执；live数据未变，切换在进程重启时完成
-type SnapshotStageResult struct {
-	// Checksum SHA-256 小写十六进制
-	Checksum Hash `json:"checksum"`
-
-	// ManifestHash SHA-256 小写十六进制
-	ManifestHash *Hash `json:"manifestHash,omitempty"`
-
-	// Owner 暂存所属模块slug
-	Owner string `json:"owner"`
-
-	// RestoreId 系统生成的不透明 ID，不含个人信息
-	RestoreId Identifier `json:"restoreId"`
-
-	// SnapshotId 系统生成的不透明 ID，不含个人信息
-	SnapshotId Identifier `json:"snapshotId"`
-
-	// StageId 新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。
-	StageId *string `json:"stageId,omitempty"`
-
-	// Staged 暂存目录已fsync并登记
-	Staged bool `json:"staged"`
-
-	// TargetDataEpoch 系统生成的不透明 ID，不含个人信息
-	TargetDataEpoch Identifier `json:"targetDataEpoch"`
-}
-
-// SnapshotWorkState 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。
-type SnapshotWorkState struct {
-	OutboxRevision int `json:"outboxRevision"`
-	PendingOutbox  int `json:"pendingOutbox"`
-	PendingWork    int `json:"pendingWork"`
-	WorkRevision   int `json:"workRevision"`
-}
-
 // TaskBudget 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。
 type TaskBudget struct {
 	// MaximumBytes 默认5120范围1024..65536
@@ -968,73 +799,6 @@ type UpdateEntryResult struct {
 	Entry MemoryEntry `json:"entry"`
 }
 
-// CommonSchemaBarrierRequest 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。
-type CommonSchemaBarrierRequest struct {
-	// BarrierId 系统生成的不透明 ID，不含个人信息
-	BarrierId Identifier `json:"barrierId"`
-
-	// Deadline RFC3339 UTC 时间
-	Deadline Timestamp `json:"deadline"`
-
-	// ExpectedSealHash SHA-256 小写十六进制
-	ExpectedSealHash *Hash `json:"expectedSealHash,omitempty"`
-
-	// Mode BarrierRequest.mode；按类型、枚举及required约束使用
-	Mode interface{} `json:"mode"`
-
-	// OperationId 系统生成的不透明 ID，不含个人信息
-	OperationId Identifier `json:"operationId"`
-
-	// SealProof 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。
-	SealProof *SnapshotSealProof `json:"sealProof,omitempty"`
-
-	// Step 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
-	Step  *CommonSchemaBarrierRequestStep `json:"step,omitempty"`
-	union json.RawMessage
-}
-
-// CommonSchemaBarrierRequestStep 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
-type CommonSchemaBarrierRequestStep string
-
-// CommonSchemaBarrierRequest0 defines model for .
-type CommonSchemaBarrierRequest0 struct {
-	Step interface{} `json:"step,omitempty"`
-}
-
-// CommonSchemaBarrierRequest1 defines model for .
-type CommonSchemaBarrierRequest1 struct {
-	Step interface{} `json:"step"`
-}
-
-// CommonSchemaBarrierRequest2 defines model for .
-type CommonSchemaBarrierRequest2 struct {
-	Step interface{} `json:"step"`
-}
-
-// CommonSchemaBarrierStatus 屏障状态及安全点；未到安全点不能导出完整快照
-type CommonSchemaBarrierStatus struct {
-	// BarrierId 系统生成的不透明 ID，不含个人信息
-	BarrierId Identifier `json:"barrierId"`
-
-	// DataEpoch 系统生成的不透明 ID，不含个人信息
-	DataEpoch Identifier `json:"dataEpoch"`
-
-	// Observation 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。
-	Observation *SnapshotBarrierObservation `json:"observation,omitempty"`
-
-	// Owner 对象唯一所属模块slug
-	Owner string `json:"owner"`
-
-	// RevisionWatermark 对象单调修订号
-	RevisionWatermark Revision `json:"revisionWatermark"`
-
-	// SealProofHash SHA-256 小写十六进制
-	SealProofHash *Hash `json:"sealProofHash,omitempty"`
-
-	// State 精确枚举状态，未知值拒绝
-	State interface{} `json:"state"`
-}
-
 // CommonSchemaMemoryContext 单任务/语言组装后的记忆文本及版本，UTF8字节预算由memory负责
 type CommonSchemaMemoryContext struct {
 	// ByteSize 完整渲染注入text的UTF8字节数，包含条目说明与分隔，不含JSON元数据；空记忆为0
@@ -1055,33 +819,6 @@ type CommonSchemaMemoryContext struct {
 	// VersionHash SHA-256 小写十六进制
 	VersionHash Hash `json:"versionHash"`
 }
-
-// CommonSchemaSnapshotExportRequest 指定屏障和是否含秘密的快照导出请求
-type CommonSchemaSnapshotExportRequest struct {
-	// BackupId 系统生成的不透明 ID，不含个人信息
-	BackupId Identifier `json:"backupId"`
-
-	// BarrierId 系统生成的不透明 ID，不含个人信息
-	BarrierId Identifier `json:"barrierId"`
-
-	// DataEpoch 系统生成的不透明 ID，不含个人信息
-	DataEpoch Identifier `json:"dataEpoch"`
-
-	// IncludeSecrets 超管明确选择是否导出密钥
-	IncludeSecrets bool `json:"includeSecrets"`
-}
-
-// CommonSchemaSnapshotExportResult 已经导出并验证的本域快照引用
-type CommonSchemaSnapshotExportResult struct {
-	// Checksum SHA-256 小写十六进制
-	Checksum Hash `json:"checksum"`
-
-	// Snapshot 本域不可变快照描述，包含schema、哈希、大小与数据代次
-	Snapshot SnapshotRef `json:"snapshot"`
-}
-
-// TypesIdentifier 系统生成的不透明 ID，不含个人信息
-type TypesIdentifier = Identifier
 
 // DeleteAssistantConversationParams defines parameters for DeleteAssistantConversation.
 type DeleteAssistantConversationParams struct {
@@ -1130,24 +867,6 @@ type ReadAssistantRunParams struct {
 
 // CancelAssistantRunParams defines parameters for CancelAssistantRun.
 type CancelAssistantRunParams struct {
-	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
-	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
-
-	// XRequestId 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。
-	XRequestId Identifier `json:"X-Request-Id"`
-}
-
-// AcquireBarrierParams defines parameters for AcquireBarrier.
-type AcquireBarrierParams struct {
-	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
-	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
-
-	// XRequestId 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。
-	XRequestId Identifier `json:"X-Request-Id"`
-}
-
-// ReleaseBarrierParams defines parameters for ReleaseBarrier.
-type ReleaseBarrierParams struct {
 	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
 	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
 
@@ -1281,39 +1000,6 @@ type RejectProposalParams struct {
 	XRequestId Identifier `json:"X-Request-Id"`
 }
 
-// ReadSnapshotArchiveParams defines parameters for ReadSnapshotArchive.
-type ReadSnapshotArchiveParams struct {
-	Sha256   Hash `form:"sha256" json:"sha256"`
-	ByteSize int  `form:"byteSize" json:"byteSize"`
-}
-
-// DiscardSnapshotParams defines parameters for DiscardSnapshot.
-type DiscardSnapshotParams struct {
-	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
-	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
-
-	// XRequestId 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。
-	XRequestId Identifier `json:"X-Request-Id"`
-}
-
-// ExportSnapshotParams defines parameters for ExportSnapshot.
-type ExportSnapshotParams struct {
-	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
-	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
-
-	// XRequestId 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。
-	XRequestId Identifier `json:"X-Request-Id"`
-}
-
-// StageSnapshotParams defines parameters for StageSnapshot.
-type StageSnapshotParams struct {
-	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
-	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
-
-	// XRequestId 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。
-	XRequestId Identifier `json:"X-Request-Id"`
-}
-
 // PutTaskBudgetParams defines parameters for PutTaskBudget.
 type PutTaskBudgetParams struct {
 	// IdempotencyKey 若输入schema含idempotencyKey必须一致；同键不同hash为409。
@@ -1331,12 +1017,6 @@ type CreateAssistantRunJSONRequestBody = CreateAssistantRunInput
 
 // CancelAssistantRunJSONRequestBody defines body for CancelAssistantRun for application/json ContentType.
 type CancelAssistantRunJSONRequestBody = CancelAssistantRunInput
-
-// AcquireBarrierJSONRequestBody defines body for AcquireBarrier for application/json ContentType.
-type AcquireBarrierJSONRequestBody = BarrierRequest
-
-// ReleaseBarrierJSONRequestBody defines body for ReleaseBarrier for application/json ContentType.
-type ReleaseBarrierJSONRequestBody = BarrierRequest
 
 // ResolveContextJSONRequestBody defines body for ResolveContext for application/json ContentType.
 type ResolveContextJSONRequestBody = ResolveContextInput
@@ -1365,215 +1045,8 @@ type ApproveProposalJSONRequestBody = ApproveProposalInput
 // RejectProposalJSONRequestBody defines body for RejectProposal for application/json ContentType.
 type RejectProposalJSONRequestBody = RejectProposalInput
 
-// DiscardSnapshotJSONRequestBody defines body for DiscardSnapshot for application/json ContentType.
-type DiscardSnapshotJSONRequestBody = SnapshotDiscardRequest
-
-// ExportSnapshotJSONRequestBody defines body for ExportSnapshot for application/json ContentType.
-type ExportSnapshotJSONRequestBody = SnapshotExportRequest
-
-// StageSnapshotJSONRequestBody defines body for StageSnapshot for application/json ContentType.
-type StageSnapshotJSONRequestBody = SnapshotStageRequest
-
 // PutTaskBudgetJSONRequestBody defines body for PutTaskBudget for application/json ContentType.
 type PutTaskBudgetJSONRequestBody = PutTaskBudgetInput
-
-// AsCommonSchemaBarrierRequest0 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest0
-func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest0() (CommonSchemaBarrierRequest0, error) {
-	var body CommonSchemaBarrierRequest0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCommonSchemaBarrierRequest0 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest0
-func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest0(v CommonSchemaBarrierRequest0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCommonSchemaBarrierRequest0 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest0
-func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest0(v CommonSchemaBarrierRequest0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsCommonSchemaBarrierRequest1 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest1
-func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest1() (CommonSchemaBarrierRequest1, error) {
-	var body CommonSchemaBarrierRequest1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCommonSchemaBarrierRequest1 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest1
-func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest1(v CommonSchemaBarrierRequest1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCommonSchemaBarrierRequest1 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest1
-func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest1(v CommonSchemaBarrierRequest1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsCommonSchemaBarrierRequest2 returns the union data inside the CommonSchemaBarrierRequest as a CommonSchemaBarrierRequest2
-func (t CommonSchemaBarrierRequest) AsCommonSchemaBarrierRequest2() (CommonSchemaBarrierRequest2, error) {
-	var body CommonSchemaBarrierRequest2
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCommonSchemaBarrierRequest2 overwrites any union data inside the CommonSchemaBarrierRequest as the provided CommonSchemaBarrierRequest2
-func (t *CommonSchemaBarrierRequest) FromCommonSchemaBarrierRequest2(v CommonSchemaBarrierRequest2) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCommonSchemaBarrierRequest2 performs a merge with any union data inside the CommonSchemaBarrierRequest, using the provided CommonSchemaBarrierRequest2
-func (t *CommonSchemaBarrierRequest) MergeCommonSchemaBarrierRequest2(v CommonSchemaBarrierRequest2) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t CommonSchemaBarrierRequest) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	object := make(map[string]json.RawMessage)
-	if t.union != nil {
-		err = json.Unmarshal(b, &object)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	object["barrierId"], err = json.Marshal(t.BarrierId)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'barrierId': %w", err)
-	}
-
-	object["deadline"], err = json.Marshal(t.Deadline)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'deadline': %w", err)
-	}
-
-	if t.ExpectedSealHash != nil {
-		object["expectedSealHash"], err = json.Marshal(t.ExpectedSealHash)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'expectedSealHash': %w", err)
-		}
-	}
-
-	object["mode"], err = json.Marshal(t.Mode)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'mode': %w", err)
-	}
-
-	object["operationId"], err = json.Marshal(t.OperationId)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'operationId': %w", err)
-	}
-
-	if t.SealProof != nil {
-		object["sealProof"], err = json.Marshal(t.SealProof)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'sealProof': %w", err)
-		}
-	}
-
-	if t.Step != nil {
-		object["step"], err = json.Marshal(t.Step)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'step': %w", err)
-		}
-	}
-	b, err = json.Marshal(object)
-	return b, err
-}
-
-func (t *CommonSchemaBarrierRequest) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-	object := make(map[string]json.RawMessage)
-	err = json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["barrierId"]; found {
-		err = json.Unmarshal(raw, &t.BarrierId)
-		if err != nil {
-			return fmt.Errorf("error reading 'barrierId': %w", err)
-		}
-	}
-
-	if raw, found := object["deadline"]; found {
-		err = json.Unmarshal(raw, &t.Deadline)
-		if err != nil {
-			return fmt.Errorf("error reading 'deadline': %w", err)
-		}
-	}
-
-	if raw, found := object["expectedSealHash"]; found {
-		err = json.Unmarshal(raw, &t.ExpectedSealHash)
-		if err != nil {
-			return fmt.Errorf("error reading 'expectedSealHash': %w", err)
-		}
-	}
-
-	if raw, found := object["mode"]; found {
-		err = json.Unmarshal(raw, &t.Mode)
-		if err != nil {
-			return fmt.Errorf("error reading 'mode': %w", err)
-		}
-	}
-
-	if raw, found := object["operationId"]; found {
-		err = json.Unmarshal(raw, &t.OperationId)
-		if err != nil {
-			return fmt.Errorf("error reading 'operationId': %w", err)
-		}
-	}
-
-	if raw, found := object["sealProof"]; found {
-		err = json.Unmarshal(raw, &t.SealProof)
-		if err != nil {
-			return fmt.Errorf("error reading 'sealProof': %w", err)
-		}
-	}
-
-	if raw, found := object["step"]; found {
-		err = json.Unmarshal(raw, &t.Step)
-		if err != nil {
-			return fmt.Errorf("error reading 'step': %w", err)
-		}
-	}
-
-	return err
-}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1601,12 +1074,6 @@ type ServerInterface interface {
 	// 取消未完成助手调用
 	// (POST /v1/assistant-runs/{runId}/cancel)
 	CancelAssistantRun(w http.ResponseWriter, r *http.Request, runId Identifier, params CancelAssistantRunParams)
-	// 取得本地维护屏障
-	// (POST /v1/barriers)
-	AcquireBarrier(w http.ResponseWriter, r *http.Request, params AcquireBarrierParams)
-	// 释放已授权维护屏障
-	// (POST /v1/barriers/{barrierId}:release)
-	ReleaseBarrier(w http.ResponseWriter, r *http.Request, barrierId TypesIdentifier, params ReleaseBarrierParams)
 	// 查看上下文版本清单
 	// (GET /v1/context-manifests/{versionHash})
 	ReadContextManifest(w http.ResponseWriter, r *http.Request, versionHash string)
@@ -1652,18 +1119,6 @@ type ServerInterface interface {
 	// 人工拒绝未应用候选
 	// (POST /v1/proposals/{proposalId}/reject)
 	RejectProposal(w http.ResponseWriter, r *http.Request, proposalId Identifier, params RejectProposalParams)
-	// 受控读取已完成域快照归档
-	// (GET /v1/snapshots/{snapshotId}/archive)
-	ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams)
-	// 删除恢复暂存或换出的旧数据目录
-	// (POST /v1/snapshots:discard)
-	DiscardSnapshot(w http.ResponseWriter, r *http.Request, params DiscardSnapshotParams)
-	// 导出安全watermark快照
-	// (POST /v1/snapshots:export)
-	ExportSnapshot(w http.ResponseWriter, r *http.Request, params ExportSnapshotParams)
-	// 暂存本域恢复归档，不改active目录
-	// (POST /v1/snapshots:stage)
-	StageSnapshot(w http.ResponseWriter, r *http.Request, params StageSnapshotParams)
 	// 读取各任务记忆注入预算
 	// (GET /v1/task-budgets)
 	ListTaskBudgets(w http.ResponseWriter, r *http.Request)
@@ -2151,153 +1606,6 @@ func (siw *ServerInterfaceWrapper) CancelAssistantRun(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CancelAssistantRun(w, r, runId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// AcquireBarrier operation middleware
-func (siw *ServerInterfaceWrapper) AcquireBarrier(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params AcquireBarrierParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = &IdempotencyKey
-
-	}
-
-	// ------------- Required header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = XRequestId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-Request-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Request-Id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AcquireBarrier(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// ReleaseBarrier operation middleware
-func (siw *ServerInterfaceWrapper) ReleaseBarrier(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "barrierId" -------------
-	var barrierId TypesIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "barrierId", r.PathValue("barrierId"), &barrierId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "barrierId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ReleaseBarrierParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = &IdempotencyKey
-
-	}
-
-	// ------------- Required header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = XRequestId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-Request-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Request-Id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ReleaseBarrier(w, r, barrierId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3353,271 +2661,6 @@ func (siw *ServerInterfaceWrapper) RejectProposal(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
-// ReadSnapshotArchive operation middleware
-func (siw *ServerInterfaceWrapper) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "snapshotId" -------------
-	var snapshotId Identifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "snapshotId", r.PathValue("snapshotId"), &snapshotId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "snapshotId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ReadSnapshotArchiveParams
-
-	// ------------- Required query parameter "sha256" -------------
-
-	if paramValue := r.URL.Query().Get("sha256"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sha256"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "sha256", r.URL.Query(), &params.Sha256)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sha256", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "byteSize" -------------
-
-	if paramValue := r.URL.Query().Get("byteSize"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "byteSize"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "byteSize", r.URL.Query(), &params.ByteSize)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "byteSize", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ReadSnapshotArchive(w, r, snapshotId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DiscardSnapshot operation middleware
-func (siw *ServerInterfaceWrapper) DiscardSnapshot(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params DiscardSnapshotParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = &IdempotencyKey
-
-	}
-
-	// ------------- Required header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = XRequestId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-Request-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Request-Id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DiscardSnapshot(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// ExportSnapshot operation middleware
-func (siw *ServerInterfaceWrapper) ExportSnapshot(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ExportSnapshotParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = &IdempotencyKey
-
-	}
-
-	// ------------- Required header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = XRequestId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-Request-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Request-Id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ExportSnapshot(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// StageSnapshot operation middleware
-func (siw *ServerInterfaceWrapper) StageSnapshot(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params StageSnapshotParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = &IdempotencyKey
-
-	}
-
-	// ------------- Required header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = XRequestId
-
-	} else {
-		err := fmt.Errorf("Header parameter X-Request-Id is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Request-Id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.StageSnapshot(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // ListTaskBudgets operation middleware
 func (siw *ServerInterfaceWrapper) ListTaskBudgets(w http.ResponseWriter, r *http.Request) {
 
@@ -3848,8 +2891,6 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/v1/assistant-runs", wrapper.CreateAssistantRun)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/assistant-runs/{runId}", wrapper.ReadAssistantRun)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/assistant-runs/{runId}/cancel", wrapper.CancelAssistantRun)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/barriers", wrapper.AcquireBarrier)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/barriers/{barrierId}:release", wrapper.ReleaseBarrier)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/context-manifests/{versionHash}", wrapper.ReadContextManifest)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/context:resolve", wrapper.ResolveContext)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/entries", wrapper.ListEntries)
@@ -3865,10 +2906,6 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/mappings:reorder", wrapper.ReorderMappings)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/proposals/{proposalId}/approve", wrapper.ApproveProposal)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/proposals/{proposalId}/reject", wrapper.RejectProposal)
-	m.HandleFunc("GET "+options.BaseURL+"/v1/snapshots/{snapshotId}/archive", wrapper.ReadSnapshotArchive)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:discard", wrapper.DiscardSnapshot)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:export", wrapper.ExportSnapshot)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/snapshots:stage", wrapper.StageSnapshot)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/task-budgets", wrapper.ListTaskBudgets)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/task-budgets/{taskId}", wrapper.PutTaskBudget)
 
@@ -4424,175 +3461,6 @@ type CancelAssistantRundefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response CancelAssistantRundefaultApplicationProblemPlusJSONResponse) VisitCancelAssistantRunResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type AcquireBarrierRequestObject struct {
-	Params AcquireBarrierParams
-	Body   *AcquireBarrierJSONRequestBody
-}
-
-type AcquireBarrierResponseObject interface {
-	VisitAcquireBarrierResponse(w http.ResponseWriter) error
-}
-
-type AcquireBarrier200JSONResponse BarrierStatus
-
-func (response AcquireBarrier200JSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier401ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier401ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier403ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier403ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier409ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier409ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier422ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier422ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier500ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier500ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrier504ApplicationProblemPlusJSONResponse Problem
-
-func (response AcquireBarrier504ApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(504)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type AcquireBarrierdefaultApplicationProblemPlusJSONResponse struct {
-	Body       Problem
-	StatusCode int
-}
-
-func (response AcquireBarrierdefaultApplicationProblemPlusJSONResponse) VisitAcquireBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type ReleaseBarrierRequestObject struct {
-	BarrierId TypesIdentifier `json:"barrierId"`
-	Params    ReleaseBarrierParams
-	Body      *ReleaseBarrierJSONRequestBody
-}
-
-type ReleaseBarrierResponseObject interface {
-	VisitReleaseBarrierResponse(w http.ResponseWriter) error
-}
-
-type ReleaseBarrier200JSONResponse BarrierStatus
-
-func (response ReleaseBarrier200JSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier401ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier401ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier403ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier403ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier409ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier409ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier422ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier422ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier500ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier500ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrier504ApplicationProblemPlusJSONResponse Problem
-
-func (response ReleaseBarrier504ApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(504)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ReleaseBarrierdefaultApplicationProblemPlusJSONResponse struct {
-	Body       Problem
-	StatusCode int
-}
-
-func (response ReleaseBarrierdefaultApplicationProblemPlusJSONResponse) VisitReleaseBarrierResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(response.StatusCode)
 
@@ -5707,232 +4575,6 @@ func (response RejectProposaldefaultApplicationProblemPlusJSONResponse) VisitRej
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type ReadSnapshotArchiveRequestObject struct {
-	SnapshotId Identifier `json:"snapshotId"`
-	Params     ReadSnapshotArchiveParams
-}
-
-type ReadSnapshotArchiveResponseObject interface {
-	VisitReadSnapshotArchiveResponse(w http.ResponseWriter) error
-}
-
-type ReadSnapshotArchive200ApplicationxTarResponse struct {
-	Body          io.Reader
-	ContentLength int64
-}
-
-func (response ReadSnapshotArchive200ApplicationxTarResponse) VisitReadSnapshotArchiveResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/x-tar")
-	if response.ContentLength != 0 {
-		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
-	}
-	w.WriteHeader(200)
-
-	if closer, ok := response.Body.(io.ReadCloser); ok {
-		defer closer.Close()
-	}
-	_, err := io.Copy(w, response.Body)
-	return err
-}
-
-type ReadSnapshotArchive403Response struct {
-}
-
-func (response ReadSnapshotArchive403Response) VisitReadSnapshotArchiveResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type ReadSnapshotArchive409Response struct {
-}
-
-func (response ReadSnapshotArchive409Response) VisitReadSnapshotArchiveResponse(w http.ResponseWriter) error {
-	w.WriteHeader(409)
-	return nil
-}
-
-type ReadSnapshotArchive503Response struct {
-}
-
-func (response ReadSnapshotArchive503Response) VisitReadSnapshotArchiveResponse(w http.ResponseWriter) error {
-	w.WriteHeader(503)
-	return nil
-}
-
-type DiscardSnapshotRequestObject struct {
-	Params DiscardSnapshotParams
-	Body   *DiscardSnapshotJSONRequestBody
-}
-
-type DiscardSnapshotResponseObject interface {
-	VisitDiscardSnapshotResponse(w http.ResponseWriter) error
-}
-
-type DiscardSnapshot200JSONResponse SnapshotDiscardResult
-
-func (response DiscardSnapshot200JSONResponse) VisitDiscardSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DiscardSnapshot403ApplicationProblemPlusJSONResponse Problem
-
-func (response DiscardSnapshot403ApplicationProblemPlusJSONResponse) VisitDiscardSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DiscardSnapshot409ApplicationProblemPlusJSONResponse Problem
-
-func (response DiscardSnapshot409ApplicationProblemPlusJSONResponse) VisitDiscardSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshotRequestObject struct {
-	Params ExportSnapshotParams
-	Body   *ExportSnapshotJSONRequestBody
-}
-
-type ExportSnapshotResponseObject interface {
-	VisitExportSnapshotResponse(w http.ResponseWriter) error
-}
-
-type ExportSnapshot200JSONResponse SnapshotExportResult
-
-func (response ExportSnapshot200JSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot401ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot401ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot403ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot403ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot409ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot409ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot422ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot422ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot500ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot500ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshot504ApplicationProblemPlusJSONResponse Problem
-
-func (response ExportSnapshot504ApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(504)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ExportSnapshotdefaultApplicationProblemPlusJSONResponse struct {
-	Body       Problem
-	StatusCode int
-}
-
-func (response ExportSnapshotdefaultApplicationProblemPlusJSONResponse) VisitExportSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type StageSnapshotRequestObject struct {
-	Params StageSnapshotParams
-	Body   *StageSnapshotJSONRequestBody
-}
-
-type StageSnapshotResponseObject interface {
-	VisitStageSnapshotResponse(w http.ResponseWriter) error
-}
-
-type StageSnapshot200JSONResponse SnapshotStageResult
-
-func (response StageSnapshot200JSONResponse) VisitStageSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StageSnapshot403ApplicationProblemPlusJSONResponse Problem
-
-func (response StageSnapshot403ApplicationProblemPlusJSONResponse) VisitStageSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StageSnapshot409ApplicationProblemPlusJSONResponse Problem
-
-func (response StageSnapshot409ApplicationProblemPlusJSONResponse) VisitStageSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StageSnapshot422ApplicationProblemPlusJSONResponse Problem
-
-func (response StageSnapshot422ApplicationProblemPlusJSONResponse) VisitStageSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StageSnapshot503ApplicationProblemPlusJSONResponse Problem
-
-func (response StageSnapshot503ApplicationProblemPlusJSONResponse) VisitStageSnapshotResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(503)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type ListTaskBudgetsRequestObject struct {
 }
 
@@ -6069,12 +4711,6 @@ type StrictServerInterface interface {
 	// 取消未完成助手调用
 	// (POST /v1/assistant-runs/{runId}/cancel)
 	CancelAssistantRun(ctx context.Context, request CancelAssistantRunRequestObject) (CancelAssistantRunResponseObject, error)
-	// 取得本地维护屏障
-	// (POST /v1/barriers)
-	AcquireBarrier(ctx context.Context, request AcquireBarrierRequestObject) (AcquireBarrierResponseObject, error)
-	// 释放已授权维护屏障
-	// (POST /v1/barriers/{barrierId}:release)
-	ReleaseBarrier(ctx context.Context, request ReleaseBarrierRequestObject) (ReleaseBarrierResponseObject, error)
 	// 查看上下文版本清单
 	// (GET /v1/context-manifests/{versionHash})
 	ReadContextManifest(ctx context.Context, request ReadContextManifestRequestObject) (ReadContextManifestResponseObject, error)
@@ -6120,18 +4756,6 @@ type StrictServerInterface interface {
 	// 人工拒绝未应用候选
 	// (POST /v1/proposals/{proposalId}/reject)
 	RejectProposal(ctx context.Context, request RejectProposalRequestObject) (RejectProposalResponseObject, error)
-	// 受控读取已完成域快照归档
-	// (GET /v1/snapshots/{snapshotId}/archive)
-	ReadSnapshotArchive(ctx context.Context, request ReadSnapshotArchiveRequestObject) (ReadSnapshotArchiveResponseObject, error)
-	// 删除恢复暂存或换出的旧数据目录
-	// (POST /v1/snapshots:discard)
-	DiscardSnapshot(ctx context.Context, request DiscardSnapshotRequestObject) (DiscardSnapshotResponseObject, error)
-	// 导出安全watermark快照
-	// (POST /v1/snapshots:export)
-	ExportSnapshot(ctx context.Context, request ExportSnapshotRequestObject) (ExportSnapshotResponseObject, error)
-	// 暂存本域恢复归档，不改active目录
-	// (POST /v1/snapshots:stage)
-	StageSnapshot(ctx context.Context, request StageSnapshotRequestObject) (StageSnapshotResponseObject, error)
 	// 读取各任务记忆注入预算
 	// (GET /v1/task-budgets)
 	ListTaskBudgets(ctx context.Context, request ListTaskBudgetsRequestObject) (ListTaskBudgetsResponseObject, error)
@@ -6391,73 +5015,6 @@ func (sh *strictHandler) CancelAssistantRun(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CancelAssistantRunResponseObject); ok {
 		if err := validResponse.VisitCancelAssistantRunResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// AcquireBarrier operation middleware
-func (sh *strictHandler) AcquireBarrier(w http.ResponseWriter, r *http.Request, params AcquireBarrierParams) {
-	var request AcquireBarrierRequestObject
-
-	request.Params = params
-
-	var body AcquireBarrierJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.AcquireBarrier(ctx, request.(AcquireBarrierRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AcquireBarrier")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(AcquireBarrierResponseObject); ok {
-		if err := validResponse.VisitAcquireBarrierResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ReleaseBarrier operation middleware
-func (sh *strictHandler) ReleaseBarrier(w http.ResponseWriter, r *http.Request, barrierId TypesIdentifier, params ReleaseBarrierParams) {
-	var request ReleaseBarrierRequestObject
-
-	request.BarrierId = barrierId
-	request.Params = params
-
-	var body ReleaseBarrierJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ReleaseBarrier(ctx, request.(ReleaseBarrierRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ReleaseBarrier")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ReleaseBarrierResponseObject); ok {
-		if err := validResponse.VisitReleaseBarrierResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -6924,132 +5481,6 @@ func (sh *strictHandler) RejectProposal(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// ReadSnapshotArchive operation middleware
-func (sh *strictHandler) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotId Identifier, params ReadSnapshotArchiveParams) {
-	var request ReadSnapshotArchiveRequestObject
-
-	request.SnapshotId = snapshotId
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ReadSnapshotArchive(ctx, request.(ReadSnapshotArchiveRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ReadSnapshotArchive")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ReadSnapshotArchiveResponseObject); ok {
-		if err := validResponse.VisitReadSnapshotArchiveResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DiscardSnapshot operation middleware
-func (sh *strictHandler) DiscardSnapshot(w http.ResponseWriter, r *http.Request, params DiscardSnapshotParams) {
-	var request DiscardSnapshotRequestObject
-
-	request.Params = params
-
-	var body DiscardSnapshotJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DiscardSnapshot(ctx, request.(DiscardSnapshotRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DiscardSnapshot")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DiscardSnapshotResponseObject); ok {
-		if err := validResponse.VisitDiscardSnapshotResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ExportSnapshot operation middleware
-func (sh *strictHandler) ExportSnapshot(w http.ResponseWriter, r *http.Request, params ExportSnapshotParams) {
-	var request ExportSnapshotRequestObject
-
-	request.Params = params
-
-	var body ExportSnapshotJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ExportSnapshot(ctx, request.(ExportSnapshotRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ExportSnapshot")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ExportSnapshotResponseObject); ok {
-		if err := validResponse.VisitExportSnapshotResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// StageSnapshot operation middleware
-func (sh *strictHandler) StageSnapshot(w http.ResponseWriter, r *http.Request, params StageSnapshotParams) {
-	var request StageSnapshotRequestObject
-
-	request.Params = params
-
-	var body StageSnapshotJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.StageSnapshot(ctx, request.(StageSnapshotRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "StageSnapshot")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(StageSnapshotResponseObject); ok {
-		if err := validResponse.VisitStageSnapshotResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // ListTaskBudgets operation middleware
 func (sh *strictHandler) ListTaskBudgets(w http.ResponseWriter, r *http.Request) {
 	var request ListTaskBudgetsRequestObject
@@ -7111,214 +5542,155 @@ func (sh *strictHandler) PutTaskBudget(w http.ResponseWriter, r *http.Request, t
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"0NbFMA/drpIvfnn6/wIAAP//e/o7sfarAQA=",
+	"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",
+	"tvxUsflNAQA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

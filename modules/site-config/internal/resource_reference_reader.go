@@ -233,7 +233,7 @@ func ListResourceReferences(ctx context.Context, op platform.OperationContext, i
 
 func authorizeResourceReferenceRead(op platform.OperationContext) error {
 	if op.Actor.Kind == "service" {
-		if slices.Contains([]string{"media", "data-protection"}, op.CallerService) && op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
+		if slices.Contains([]string{"media"}, op.CallerService) && op.Actor.SiteID != "" && op.Actor.SiteID != "system" {
 			return nil
 		}
 	} else if op.Actor.Kind == "admin" && op.Actor.SessionID != "" && op.Actor.SiteID != "" && op.Actor.SubjectID != "" &&

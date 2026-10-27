@@ -254,18 +254,6 @@ func problemToError(raw []byte) error {
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
 
-// DataProtectionClient 调用data-protection服务（自动附服务断言）。
-type DataProtectionClient struct{ *producerClient }
-
-func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *DataProtectionClient {
-	return &DataProtectionClient{newProducerClient("data-protection", baseURL, issuer, key)}
-}
-
-// ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
-	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
-}
-
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 

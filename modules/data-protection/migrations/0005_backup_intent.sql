@@ -1,2 +1,0 @@
--- controller任务输入字节及原回执不随active恢复；不是第二个任务队列。
-CREATE TABLE backup_jobs(backup_id TEXT PRIMARY KEY REFERENCES backup_runs(backup_id),subject_id TEXT NOT NULL,operation_id TEXT NOT NULL,root_operation_id TEXT NOT NULL,site_id TEXT NOT NULL,source_epoch TEXT NOT NULL,input_hash TEXT NOT NULL,input_object_id TEXT NOT NULL UNIQUE,input_ref_json TEXT NOT NULL,input_json TEXT NOT NULL,job_id TEXT NOT NULL DEFAULT '',job_result_json TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,UNIQUE(subject_id,operation_id));

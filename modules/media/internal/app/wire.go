@@ -63,13 +63,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖后续屏障工作包")
-	}
 
 	if err := mediaDomain.InstallLocalBlobStore(config.DataRoot, view.DataEpoch); err != nil {
 		return nil, err
@@ -168,7 +161,7 @@ func ensureDataLayout(dataRoot string) error {
 	if !filepath.IsAbs(dataRoot) {
 		return platform.NewError(platform.CodeValidation, false, "数据根必须为绝对路径")
 	}
-	for _, name := range [...]string{"active", "control", "restore"} {
+	for _, name := range [...]string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
 		}

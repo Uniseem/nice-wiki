@@ -18,8 +18,7 @@
     "memory": "http://ai:8109",
     "traffic-guard": "http://ops:8110",
     "jobs": "http://ops:8111",
-    "analytics": "http://ops:8112",
-    "data-protection": "http://ops:8113"
+    "analytics": "http://ops:8112"
   },
   "databaseRef": "/run/secrets/database-url"
 }

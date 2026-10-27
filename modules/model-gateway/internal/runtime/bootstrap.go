@@ -89,7 +89,7 @@ func OpenDatabase(dataDirectory string) (*Store, error) {
 	if err != nil {
 		return nil, platform.NewError(platform.CodeValidation, false, "模型网关数据目录不合法")
 	}
-	for _, child := range []string{"active", "control", "restore"} {
+	for _, child := range []string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(cleanRoot, child), 0o700); err != nil {
 			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "模型网关数据目录不可用")
 		}

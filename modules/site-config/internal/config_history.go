@@ -32,11 +32,11 @@ type historyCursor struct {
 }
 
 type historyRevision struct {
-	AuthorAccountId gen.Identifier     `json:"authorAccountId"`
-	ConfigRevision  gen.Revision       `json:"configRevision"`
-	CreatedAt       gen.Timestamp      `json:"createdAt"`
-	Object          gen.TypesObjectRef `json:"object"`
-	RevisionId      gen.Identifier     `json:"revisionId"`
+	AuthorAccountId gen.Identifier `json:"authorAccountId"`
+	ConfigRevision  gen.Revision   `json:"configRevision"`
+	CreatedAt       gen.Timestamp  `json:"createdAt"`
+	Object          gen.ObjectRef  `json:"object"`
+	RevisionId      gen.Identifier `json:"revisionId"`
 }
 
 func (s *ActiveStore) ConfigureCursorKey(key platform.SigningKey) {
@@ -207,19 +207,19 @@ func ReadConfigHistory(ctx context.Context, op platform.OperationContext, input 
 	}
 	page := selected[:end]
 	result := gen.ReadConfigHistoryResult{Revisions: make([]struct {
-		AuthorAccountId gen.Identifier     `json:"authorAccountId"`
-		ConfigRevision  gen.Revision       `json:"configRevision"`
-		CreatedAt       gen.Timestamp      `json:"createdAt"`
-		Object          gen.TypesObjectRef `json:"object"`
-		RevisionId      gen.Identifier     `json:"revisionId"`
+		AuthorAccountId gen.Identifier `json:"authorAccountId"`
+		ConfigRevision  gen.Revision   `json:"configRevision"`
+		CreatedAt       gen.Timestamp  `json:"createdAt"`
+		Object          gen.ObjectRef  `json:"object"`
+		RevisionId      gen.Identifier `json:"revisionId"`
 	}, 0, len(page)), PageInfo: gen.PageInfo{HasMore: end < len(selected)}}
 	for _, revision := range page {
 		result.Revisions = append(result.Revisions, struct {
-			AuthorAccountId gen.Identifier     `json:"authorAccountId"`
-			ConfigRevision  gen.Revision       `json:"configRevision"`
-			CreatedAt       gen.Timestamp      `json:"createdAt"`
-			Object          gen.TypesObjectRef `json:"object"`
-			RevisionId      gen.Identifier     `json:"revisionId"`
+			AuthorAccountId gen.Identifier `json:"authorAccountId"`
+			ConfigRevision  gen.Revision   `json:"configRevision"`
+			CreatedAt       gen.Timestamp  `json:"createdAt"`
+			Object          gen.ObjectRef  `json:"object"`
+			RevisionId      gen.Identifier `json:"revisionId"`
 		}{AuthorAccountId: revision.AuthorAccountId, ConfigRevision: revision.ConfigRevision, CreatedAt: revision.CreatedAt, Object: revision.Object, RevisionId: revision.RevisionId})
 	}
 	if result.PageInfo.HasMore {

@@ -18,17 +18,11 @@
 | PUT `/v1/admin/policy` | `putQaPolicy` | `qa.PutQaPolicy` | `qa.manage` | `PutQaPolicyInput` → 200 `PutQaPolicyResult` | 管理公开问答策略 | `HTTP 400`、`HTTP 409`、`HTTP 401`、`HTTP 403`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | POST `/v1/admin/debug-turns` | `createDebugTurn` | `qa.CreateDebugTurn` | `qa.debug` | `CreateDebugTurnInput` → 202 `CreateDebugTurnResult` | 隔离管理诊断 | `HTTP 403`、`HTTP 503`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 | GET `/v1/admin/debug-turns/{debugId}` | `readDebugTurn` | `qa.ReadDebugTurn` | `qa.debug` | `—` → 200 `ReadDebugTurnResult` | 读取管理诊断 | `HTTP 403`、`HTTP 404`、`HTTP 401`、`HTTP 409`、`HTTP 504`、`HTTP 500`、`HTTP default`、`GONE` |
-| POST `/v1/barriers` | `acquireBarrier` | `qa.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得本地维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `qa.ReleaseBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 释放已授权维护屏障 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `qa.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出安全watermark快照 | `HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 504`、`HTTP 401`、`HTTP 500`、`HTTP default` |
 | GET `/healthz` | `health` | `qa.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `qa.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `qa.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `qa.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/admin/turns` | `listTurnRecords` | `qa.ListTurnRecords` | `qa.manage` | `—` → 200 `ListTurnRecordsResult` | 浏览与筛选问答记录 | `FORBIDDEN` |
 | GET `/v1/admin/turns/{turnId}` | `readTurnRecord` | `qa.ReadTurnRecord` | `qa.manage` | `—` → 200 `ReadTurnRecordResult` | 查看问答记录 | `FORBIDDEN`、`NOT_FOUND`、`GONE` |
 | GET `/v1/public-capabilities` | `readPublicCapability` | `qa.ReadPublicCapability` | `service` | `—` → 200 `ReadPublicCapabilityResult` | 免费读取公开问答入口配置能力 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP default` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `qa.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/search` | `searchDocuments` | `qa.SearchDocuments` | `anonymous` | `SearchDocumentsInput` → 200 `SearchDocumentsResult` | 访客全文搜索（关键词与向量混合检索） | `HTTP 429`、`HTTP 403`、`HTTP 409`、`HTTP 400`、`HTTP 401`、`HTTP 504`、`HTTP 500`、`HTTP default` |
 <!-- openapi:end -->
 

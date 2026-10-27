@@ -9,17 +9,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PORTS = {  # 组件: 端口
     "portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103, "media": 8104,
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
-    "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "data-protection": 8113, "agent": 8114,
+    "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114,
 }
 # 宿主进程 → 组件（同一进程里运行多个组件，各自监听、各自配置）；portal、knowledge 是独立进程。
 HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
-         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "data-protection", "traffic-guard"]}
+         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "traffic-guard"]}
 PROCESSES = list(HOSTS) + ["portal", "knowledge"]
 PROCESS_OF = {c: p for p, comps in HOSTS.items() for c in comps}
 PROCESS_OF.update({"portal": "portal", "knowledge": "knowledge"})
 SEARCH_PORT, EDGE_PORT = 8120, 8090
-WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "data-protection", "public-site"]
-MASTER_KEY_COMPONENTS = ["identity", "model-gateway", "data-protection", "content"]  # 需要主密钥（加密保存第三方凭据、自带密钥、备份凭据）
+WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "public-site"]
+MASTER_KEY_COMPONENTS = ["identity", "model-gateway", "content"]  # 需要主密钥（加密保存第三方凭据、自带密钥、备份凭据）
 SUBNET = "10.231.97.0/24"  # 内部桥接网络：用私有网段（服务器防火墙通常只给私有网段放行转发，文档保留段的容器出不了网），避开 Docker 默认地址池
 IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程推送的镜像：{IMAGES}-{进程}:{版本}
 UIDS = {name: 10000 + i for i, name in enumerate(PROCESSES + ["search", "edge"])}
@@ -146,8 +146,6 @@ def component_config(slug):
         cfg["reportingTimeZone"] = "Asia/Shanghai"
     if slug in MASTER_KEY_COMPONENTS:
         cfg["masterKeyRef"] = "/run/secrets/master-key"
-    if slug == "data-protection":
-        cfg["backupSources"] = {}
     if slug == "knowledge":
         cfg["dependencies"]["search"] = f"http://search:{SEARCH_PORT}"
         cfg["searchSecretRef"] = "/run/secrets/search-secret"

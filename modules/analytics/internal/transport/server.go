@@ -76,11 +76,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			}
 		}
 	}
-	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot"} {
-		callers[id] = []string{"data-protection"}
-		services[id] = []string{"data-protection"}
-		maintenance[id] = true
-	}
 	callers["ingestTrustedBeacon"] = []string{"portal"}
 	services["ingestTrustedBeacon"] = callers["ingestTrustedBeacon"]
 	callers["readJobRecovery"] = []string{"jobs"}
@@ -88,7 +83,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	maintenance["readJobRecovery"] = true
 	callers["recordCrawlerAccess"] = []string{"public-site"}
 	services["recordCrawlerAccess"] = callers["recordCrawlerAccess"]
-	callers["appendAudit"] = []string{"identity", "site-config", "jobs", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "analytics", "data-protection", "portal"}
+	callers["appendAudit"] = []string{"identity", "site-config", "jobs", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "analytics", "portal"}
 	services["appendAudit"] = callers["appendAudit"]
 	for _, id := range []string{"queryPageStatistics", "queryUsageStatistics", "queryAudits", "readAudit", "queryContentGaps", "downloadStatisticsExport", "downloadAuditExport"} {
 		maintenance[id] = true
@@ -314,14 +309,6 @@ func (s *server) ReadAudit(w http.ResponseWriter, r *http.Request, auditID strin
 	_ = json.NewEncoder(w).Encode(result)
 }
 
-func (s *server) AcquireBarrier(w http.ResponseWriter, r *http.Request, params gen.AcquireBarrierParams) {
-	writeUnavailable(w, r)
-}
-
-func (s *server) ReleaseBarrier(w http.ResponseWriter, r *http.Request, barrierID string, params gen.ReleaseBarrierParams) {
-	writeUnavailable(w, r)
-}
-
 func (s *server) IngestBeacon(w http.ResponseWriter, r *http.Request, params gen.IngestBeaconParams) {
 	writeUnavailable(w, r)
 }
@@ -388,18 +375,6 @@ func (s *server) ReadJobRecovery(w http.ResponseWriter, r *http.Request, jobId g
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(result)
-}
-
-func (s *server) DiscardSnapshot(w http.ResponseWriter, r *http.Request, params gen.DiscardSnapshotParams) {
-	writeUnavailable(w, r)
-}
-
-func (s *server) ExportSnapshot(w http.ResponseWriter, r *http.Request, params gen.ExportSnapshotParams) {
-	writeUnavailable(w, r)
-}
-
-func (s *server) StageSnapshot(w http.ResponseWriter, r *http.Request, params gen.StageSnapshotParams) {
-	writeUnavailable(w, r)
 }
 
 func (s *server) QueryContentGaps(w http.ResponseWriter, r *http.Request, params gen.QueryContentGapsParams) {
@@ -536,11 +511,6 @@ func writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 		requestID = platform.NewIdentifier()
 	}
 	_ = problem.WriteProblem(w, problem.FromError(err, requestID))
-}
-
-// ReadSnapshotArchive 等待真实归档manager，明确失败关闭。
-func (s *server) ReadSnapshotArchive(w http.ResponseWriter, r *http.Request, snapshotID gen.Identifier, params gen.ReadSnapshotArchiveParams) {
-	writeUnavailable(w, r)
 }
 
 // ListVisitors 仅经当前stats.read授权的后台读取访客活动。

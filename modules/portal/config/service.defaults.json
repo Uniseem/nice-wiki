@@ -17,8 +17,7 @@
     "memory": "http://127.0.0.1:8109",
     "jobs": "http://127.0.0.1:8111",
     "traffic-guard": "http://127.0.0.1:8110",
-    "analytics": "http://127.0.0.1:8112",
-    "data-protection": "http://127.0.0.1:8113"
+    "analytics": "http://127.0.0.1:8112"
   },
   "delegationKeyRef": "/run/secrets/portal-delegation-key.json",
   "publicBaseURL": "",

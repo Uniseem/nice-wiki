@@ -10,7 +10,6 @@
     "content": "http://127.0.0.1:8103",
     "model-gateway": "http://127.0.0.1:8105",
     "memory": "http://127.0.0.1:8109",
-    "jobs": "http://127.0.0.1:8111",
-    "data-protection": "http://127.0.0.1:8113"
+    "jobs": "http://127.0.0.1:8111"
   }
 }

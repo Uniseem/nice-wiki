@@ -290,18 +290,6 @@ func (c *ContentClient) ValidatePublications(ctx context.Context, body any) (jso
 	return c.do(ctx, http.MethodPost, "/v1/publications:validate", body, "")
 }
 
-// DataProtectionClient 调用data-protection服务（自动附服务断言）。
-type DataProtectionClient struct{ *producerClient }
-
-func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *DataProtectionClient {
-	return &DataProtectionClient{newProducerClient("data-protection", baseURL, issuer, key)}
-}
-
-// ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
-	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
-}
-
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 
@@ -511,21 +499,4 @@ func (c *ModelGatewayClient) ResumeInference(ctx context.Context, invocationId s
 		return nil, err
 	}
 	return modelEventStream{r: reader}, nil
-}
-
-// SiteConfigClient 调用site-config服务（自动附服务断言）。
-type SiteConfigClient struct{ *producerClient }
-
-func NewSiteConfigClient(baseURL, issuer string, key platform.SigningKey) *SiteConfigClient {
-	return &SiteConfigClient{newProducerClient("site-config", baseURL, issuer, key)}
-}
-
-// ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
-func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
-}
-
-// RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
-func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }

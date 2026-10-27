@@ -61,23 +61,6 @@ func LoadServiceConfig(args []string, env []string) (platform.ServiceConfig, err
 			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "报表时区必须为有效IANA名称")
 		}
 	}
-	if len(config.GitCredentialRefs) > 64 || (len(config.GitCredentialRefs) > 0 && config.Module != "data-protection") {
-		return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git凭据索引只能由数据保护可信配置提供")
-	}
-	for id, ref := range config.GitCredentialRefs {
-		if !platform.ValidIdentifier(id) || !filepath.IsAbs(ref) || filepath.Clean(ref) != ref {
-			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git凭据索引必须绑定标识符与规范绝对私有路径")
-		}
-	}
-	if len(config.AllowedGitHosts) > 64 || (len(config.AllowedGitHosts) > 0 && config.Module != "data-protection") {
-		return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git主机allowlist只能由数据保护可信配置提供")
-	}
-	for _, host := range config.AllowedGitHosts {
-		normalized, err := idna.Lookup.ToASCII(host)
-		if err != nil || normalized != strings.ToLower(host) || host == "" || strings.ContainsAny(host, "/\\:@*?#[ ]\r\n\t") {
-			return platform.ServiceConfig{}, platform.NewError(platform.CodeValidation, false, "Git主机allowlist须为规范小写主机名")
-		}
-	}
 	if config.PublicBaseURL != "" {
 		config.PublicBaseURL, err = NormalizePublicURL(config.PublicBaseURL, config.AllowLocalHTTP)
 		if err != nil {
@@ -398,4 +381,8 @@ func splitListen(listen string) (int, error) {
 		return 0, platform.NewError(platform.CodeValidation, false, "监听端口不合法")
 	}
 	return port, nil
+}
+
+func integrity(message string) error {
+	return platform.NewError(platform.CodeIntegrityError, false, "%s", message)
 }

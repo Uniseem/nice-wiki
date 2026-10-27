@@ -176,18 +176,17 @@ type AuthContext struct {
 
 // OperationContext 服务间可信操作元数据。
 type OperationContext struct {
-	CleanupScope        *CleanupScope `json:"-"`
-	RequestID           Identifier    `json:"requestId"`
-	OperationID         Identifier    `json:"operationId"`
-	RootOperationID     Identifier    `json:"rootOperationId"`
-	CallerService       string        `json:"callerService"`
-	Actor               AuthContext   `json:"actor"`
-	Deadline            Timestamp     `json:"deadline"`
-	DataEpoch           Identifier    `json:"dataEpoch"`
-	CostClass           string        `json:"costClass,omitempty"`
-	CancellationID      Identifier    `json:"cancellationId,omitempty"`
-	LoginNetworkScopes  []Hash        `json:"-"`
-	NetworkBudgetScopes []Hash        `json:"-"`
+	RequestID           Identifier  `json:"requestId"`
+	OperationID         Identifier  `json:"operationId"`
+	RootOperationID     Identifier  `json:"rootOperationId"`
+	CallerService       string      `json:"callerService"`
+	Actor               AuthContext `json:"actor"`
+	Deadline            Timestamp   `json:"deadline"`
+	DataEpoch           Identifier  `json:"dataEpoch"`
+	CostClass           string      `json:"costClass,omitempty"`
+	CancellationID      Identifier  `json:"cancellationId,omitempty"`
+	LoginNetworkScopes  []Hash      `json:"-"`
+	NetworkBudgetScopes []Hash      `json:"-"`
 }
 
 // EventEnvelope 持久至少一次事件信封；载荷须符合生产方events.json。
@@ -238,18 +237,17 @@ type SessionSecrets struct {
 
 // AssertionClaims 服务断言声明；expiresAt与issuedAt相差≤60秒。
 type AssertionClaims struct {
-	CleanupScope        *CleanupScope `json:"cleanupScope,omitempty"`
-	Issuer              string        `json:"iss"`
-	Audience            string        `json:"aud"`
-	Method              string        `json:"method"`
-	Path                string        `json:"path"`
-	BodyHash            Hash          `json:"bodyHash"`
-	IssuedAt            Timestamp     `json:"issuedAt"`
-	ExpiresAt           Timestamp     `json:"expiresAt"`
-	JTI                 Identifier    `json:"jti"`
-	LoginNetworkScopes  []Hash        `json:"loginNetworkScopes,omitempty"`
-	NetworkBudgetScopes []Hash        `json:"networkBudgetScopes,omitempty"`
-	SiteID              Identifier    `json:"siteId,omitempty"`
+	Issuer              string     `json:"iss"`
+	Audience            string     `json:"aud"`
+	Method              string     `json:"method"`
+	Path                string     `json:"path"`
+	BodyHash            Hash       `json:"bodyHash"`
+	IssuedAt            Timestamp  `json:"issuedAt"`
+	ExpiresAt           Timestamp  `json:"expiresAt"`
+	JTI                 Identifier `json:"jti"`
+	LoginNetworkScopes  []Hash     `json:"loginNetworkScopes,omitempty"`
+	NetworkBudgetScopes []Hash     `json:"networkBudgetScopes,omitempty"`
+	SiteID              Identifier `json:"siteId,omitempty"`
 }
 
 // AssertionExpectation 验证断言时的期望值。
@@ -406,11 +404,7 @@ type WorkerConfig struct {
 
 // ServiceBoundaryConfig 只由服务启动时从合同装配，不接受请求自报策略。
 type ServiceBoundaryConfig struct {
-	CleanupOperations     map[string]CleanupOperationPolicy
-	AuthorizeCleanup      func(context.Context, OperationContext, CleanupScope, string) error
-	AdmitCleanup          func(context.Context, OperationContext, CleanupScope) (context.Context, func(), error)
 	AdmitBusiness         WorkAdmission
-	ControllerOperations  map[string]bool
 	Self                  string
 	Anchors               TrustAnchors
 	Runtime               func(context.Context) (RuntimeView, error)
@@ -699,16 +693,14 @@ type InvokeModelOutcome struct {
 
 // ServiceConfig 通用服务配置；secret只保存引用路径。
 type ServiceConfig struct {
-	ReportingTimeZone string            `json:"reportingTimeZone,omitempty"`
-	GitCredentialRefs map[string]string `json:"gitCredentialRefs,omitempty"`
-	AllowedGitHosts   []string          `json:"allowedGitHosts,omitempty"`
-	Module            string            `json:"module"`
-	Listen            string            `json:"listen"`
-	DataRoot          string            `json:"dataRoot"`
-	TrustAnchorRef    string            `json:"trustAnchorRef"`
-	SigningKeyRef     string            `json:"signingKeyRef"`
-	DelegationKeyRef  string            `json:"delegationKeyRef,omitempty"`
-	MasterKeyRef      string            `json:"masterKeyRef,omitempty"`
+	ReportingTimeZone string `json:"reportingTimeZone,omitempty"`
+	Module            string `json:"module"`
+	Listen            string `json:"listen"`
+	DataRoot          string `json:"dataRoot"`
+	TrustAnchorRef    string `json:"trustAnchorRef"`
+	SigningKeyRef     string `json:"signingKeyRef"`
+	DelegationKeyRef  string `json:"delegationKeyRef,omitempty"`
+	MasterKeyRef      string `json:"masterKeyRef,omitempty"`
 	// DatabaseRef 是存放 PostgreSQL 连接串的私有文件路径（连接串含口令，不写进配置本身）。
 	DatabaseRef string `json:"databaseRef,omitempty"`
 	// SearchSecretRef 是与 Rust 检索服务共享的 HMAC 密钥文件路径（knowledge 用）；缺省时知识库仍用进程内检索。
@@ -720,24 +712,7 @@ type ServiceConfig struct {
 	TrustedProxyCIDRs []string          `json:"trustedProxyCIDRs,omitempty"`
 	// GeoIPCountryDBRef 仅 portal 使用：离线 IP 国家库（MaxMind 格式，如 DB-IP Lite Country）的路径；缺省时不提供国家信号。
 	GeoIPCountryDBRef string `json:"geoipCountryDBRef,omitempty"`
-	// BackupSources 仅 data-protection 使用：服务 slug → 该服务数据目录（只读挂载），简易备份据此打包。
-	BackupSources map[string]string `json:"backupSources,omitempty"`
-	// BackupSecretsDir 仅 data-protection 使用：各服务密钥所在目录；超管勾选“包含密钥”时才会打进备份。
-	BackupSecretsDir string `json:"backupSecretsDir,omitempty"`
 }
-
-// SwapResult 启动时换目录结果。
-type SwapResult struct {
-	Action    string     `json:"action"`
-	RestoreID Identifier `json:"restoreId,omitempty"`
-}
-
-// 换目录动作。
-const (
-	SwapNone       = "none"
-	SwapSwitched   = "switched"
-	SwapRolledBack = "rolled-back"
-)
 
 // ClaimedJob jobs领取结果中的单个任务。
 type ClaimedJob struct {
@@ -987,7 +962,7 @@ type BackgroundApplication interface {
 // ServiceSpec 各服务main传入的装配说明。
 type ServiceSpec struct {
 	Module string
-	// BuildApplication 装配本域应用；其中先ApplyRestoreSwap再打开入口。
+	// BuildApplication 装配本域应用。
 	BuildApplication func(ctx context.Context, cfg ServiceConfig) (Application, error)
 	// RuntimeClient 构造site-config运行状态客户端；无依赖域可为nil。
 	RuntimeClient func(cfg ServiceConfig) (SiteConfigClient, error)

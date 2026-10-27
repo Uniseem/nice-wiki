@@ -9,9 +9,6 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| POST `/v1/barriers` | `acquireBarrier` | `content.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得可恢复的数据屏障 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `content.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出屏障水位的一致快照 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `content.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | GET `/v1/documents` | `listDocuments` | `content.ListDocuments` | `content.read` | `—` → 200 `ListDocumentsResult` | 文档及回收站分页列表 | `VALIDATION`、`FORBIDDEN`、`HTTP 401`、`HTTP 404`、`HTTP 409`、`HTTP 422`、`HTTP 503` |
 | POST `/v1/documents` | `createDocument` | `content.CreateDocument` | `content.edit` | `CreateDocumentInput` → 200 `CreateDocumentResult` | 新建共享草稿文档 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`LOCKED`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR` |
 | GET `/v1/tree` | `readDocumentTree` | `content.ReadDocumentTree` | `content.read` | `—` → 200 `ReadDocumentTreeResult` | 后台读取整站文档树 | `FORBIDDEN`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`HTTP 400`、`HTTP 401`、`HTTP 404`、`HTTP 409` |
@@ -39,15 +36,11 @@
 | POST `/v1/previews` | `createPreviewGrant` | `content.CreatePreviewGrant` | `content.read` | `CreatePreviewGrantInput` → 200 `CreatePreviewGrantResult` | 管理员预览草稿公开样式 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/previews:validate` | `validatePreviewGrant` | `content.ValidatePreviewGrant` | `service` | `ValidatePreviewGrantInput` → 200 `ValidatePreviewGrantResult` | 只向对应管理员验证草稿预览 | `UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/resource-references` | `listResourceReferences` | `content.ListResourceReferences` | `service` | `—` → 200 `ListResourceReferencesResult` | 向资源库列出哪些文档引用文件 | `FORBIDDEN`、`HTTP 503`、`HTTP 400`、`HTTP 401`、`HTTP 409`、`HTTP 422` |
-| GET `/v1/objects/{objectId}` | `readContentObject` | `content.ReadContentObject` | `service` | `—` → 200 `ReadContentObjectResult` | 经对象API读取私有文件而不共享目录 | `FORBIDDEN`、`NOT_FOUND`、`INTEGRITY_ERROR` |
 | GET `/v1/public-tree` | `readPublicTree` | `content.ReadPublicTree` | `anonymous` | `—` → 200 `ReadPublicTreeResult` | 读取公开导航 | `INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/public-path:resolve` | `resolvePublicPath` | `content.ResolvePublicPath` | `anonymous` | `—` → 200 `ResolvePublicPathResult` | 解析301/410公开路径 | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/healthz` | `health` | `content.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `content.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `content.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `content.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | GET `/v1/reference-decisions/{sourceOperationId}` | `readReferenceDecision` | `content.ReadReferenceDecision` | `service` | `—` → 200 `ReadReferenceDecisionResult` | 读取资源引用源持久提交决定 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 409`、`HTTP 422`、`HTTP 503`、`HTTP 404` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `content.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/site-import` | `importSite` | `content.ImportSite` | `content.edit` | `application/octet-stream` → 200 `ImportSiteResult` | 把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/site-export` | `exportSite` | `content.ExportSite` | `backup.manage` | `—` → 200 `application/zip` | 导出整站（文档、块 JSON、媒体）为压缩包 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/backup-targets` | `listBackupTargets` | `content.ListBackupTargets` | `backup.manage` | `—` → 200 `ListBackupTargetsResult` | 列出本站的备份目标 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |

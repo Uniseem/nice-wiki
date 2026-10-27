@@ -54,13 +54,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执尚未装配")
-	}
 	routes, err := loadRouteRegistry()
 	if err != nil {
 		return nil, err
@@ -223,7 +216,7 @@ func loadRouteRegistry() (portal.RouteRegistry, error) {
 }
 
 func ensureDataLayout(dataRoot string) error {
-	for _, name := range []string{"active", "control", "restore"} {
+	for _, name := range []string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立portal数据布局失败")
 		}

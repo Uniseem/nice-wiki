@@ -17,20 +17,18 @@ import (
 	"nice-wiki/libs/platform/pgdb"
 )
 
-// 退出码语义：0正常、1失败、2配置错误、75恢复重启。
+// 退出码语义：0正常、1失败、2配置错误。
 const (
 	ExitOK          = 0
 	ExitFailure     = 1
 	ExitBadConfig   = 2
-	ExitForRestore  = 75
 	shutdownGrace   = 30 * time.Second
 	configErrFormat = "配置错误：输出errorCode后退出\n"
 )
 
 // RunService 是各服务main的通用进程模板：
 // 加载配置（错误返回2）→注册SIGINT/SIGTERM→BuildApplication
-// （其中先ApplyRestoreSwap）→运行Serve与WatchRuntime；收到信号或
-// 恢复切换时以30秒上限Shutdown；不能安全关闭返回1并保留journal。
+// →运行Serve；收到信号时以30秒上限Shutdown；不能安全关闭返回1并保留journal。
 func RunService(spec platform.ServiceSpec) int {
 	if spec.BuildApplication == nil {
 		fmt.Fprint(os.Stderr, "装配回调缺失\n")
@@ -196,17 +194,6 @@ func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec plat
 	}
 	serveDone := make(chan error, 1)
 	go func() { serveDone <- application.Serve(ctx) }()
-	restart := make(chan error, 1)
-	if spec.RuntimeClient != nil {
-		go func() {
-			client, err := spec.RuntimeClient(config)
-			if err != nil {
-				restart <- err
-				return
-			}
-			restart <- WatchRuntime(ctx, client, config.DataRoot)
-		}()
-	}
 	select {
 	case err := <-serveDone:
 		if ctx.Err() != nil {
@@ -216,24 +203,9 @@ func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec plat
 			fmt.Fprintf(os.Stderr, "运行失败，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		}
 		return finish(ExitFailure)
-	case err := <-restart:
-		if ctx.Err() != nil {
-			return finish(ExitOK)
-		}
-		if errors.Is(err, ErrRestartForRestore) {
-			fmt.Fprint(os.Stderr, "恢复切换，安全退出并由进程守护拉起\n")
-			return finish(ExitForRestore)
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "运行状态监视失败，errorCode=%s\n", errorCodeOf(err))
-		}
-		return finish(ExitFailure)
 	case err := <-backgroundDone:
 		if ctx.Err() != nil {
 			return finish(ExitOK)
-		}
-		if errors.Is(err, ErrRestartForRestore) {
-			return finish(ExitForRestore)
 		}
 		fmt.Fprintf(os.Stderr, "后台入口提前结束，errorCode=%s %s\n", errorCodeOf(err), messageOf(err))
 		return finish(ExitFailure)

@@ -23,7 +23,6 @@ import (
 	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/migrations"
@@ -47,17 +46,13 @@ var requiredRuntimeModules = []string{
 	"traffic-guard",
 	"jobs",
 	"analytics",
-	"data-protection",
 }
 
 // RuntimeStore 是本域控制库句柄；同一进程仅允许一个活动实例。
 type RuntimeStore struct {
-	db                      *sql.DB
-	activationMu            sync.RWMutex
-	activationAnchors       platform.TrustAnchors
-	activationVerifierReady bool
-	closeOnce               sync.Once
-	closeErr                error
+	db        *sql.DB
+	closeOnce sync.Once
+	closeErr  error
 }
 
 var activeStore struct {
@@ -77,8 +72,6 @@ var activeBusinessStore struct {
 type ActiveStore struct {
 	db               *sql.DB
 	activeRoot       string
-	barrierMu        sync.RWMutex
-	barrierReader    snapshotBarrierStatusReader
 	configMu         sync.Mutex
 	settingsMu       sync.Mutex
 	initializationMu sync.Mutex
@@ -150,33 +143,6 @@ func OpenRuntimeStore(ctx context.Context, dataRoot string) (*RuntimeStore, erro
 	activeStore.store = store
 	activeStore.Unlock()
 	return store, nil
-}
-
-// ConfigureActivationVerifier 只由BuildApplication装配已加载的信任锚；HTTP输入不携带锚。
-func ConfigureActivationVerifier(anchors platform.TrustAnchors) error {
-	store := activeRuntimeStore()
-	if store == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "运行控制库不可用")
-	}
-	store.ConfigureActivationVerifier(anchors)
-	return nil
-}
-
-// ConfigureActivationVerifier 只由BuildApplication装配已加载的信任锚；HTTP输入不携带锚。
-func (s *RuntimeStore) ConfigureActivationVerifier(anchors platform.TrustAnchors) {
-	s.activationMu.Lock()
-	s.activationAnchors = anchors
-	s.activationVerifierReady = true
-	s.activationMu.Unlock()
-}
-
-func (s *RuntimeStore) activationVerifierAnchors() (platform.TrustAnchors, error) {
-	s.activationMu.RLock()
-	defer s.activationMu.RUnlock()
-	if !s.activationVerifierReady || len(s.activationAnchors.Services) == 0 {
-		return platform.TrustAnchors{}, platform.NewError(platform.CodeDependencyUnavailable, true, "激活回执验签锚未装配")
-	}
-	return s.activationAnchors, nil
 }
 
 // OpenActiveStore 打开 active/site-config.db，执行只追加迁移并校验活动
@@ -285,23 +251,6 @@ func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error {
 		}
 	}
 	return nil
-}
-
-func (s *ActiveStore) configureSnapshotBarrier(reader snapshotBarrierStatusReader) {
-	s.barrierMu.Lock()
-	s.barrierReader = reader
-	s.barrierMu.Unlock()
-}
-
-func (s *ActiveStore) readSnapshotBarrierStatus() (*lifecycle.SnapshotBarrierStatus, time.Time, bool) {
-	s.barrierMu.RLock()
-	reader := s.barrierReader
-	s.barrierMu.RUnlock()
-	if reader == nil {
-		return nil, time.Time{}, false
-	}
-	status, changedAt := reader.ReadBarrierStatus()
-	return status, changedAt, true
 }
 
 func (s *ActiveStore) runActiveMigrations(ctx context.Context) error {
@@ -918,7 +867,7 @@ func (s *RuntimeStore) writeOperation(ctx context.Context, tx *sql.Tx, operation
 
 func validateRequiredModules(modules []string) error {
 	if len(modules) != len(requiredRuntimeModules) {
-		return platform.NewError(platform.CodeIntegrityError, false, "requiredModules数量不符合14个有状态域")
+		return platform.NewError(platform.CodeIntegrityError, false, "requiredModules数量不符合13个有状态域")
 	}
 	for i, module := range modules {
 		if module != requiredRuntimeModules[i] {
@@ -1007,4 +956,19 @@ func stringContains(value, fragment string) bool {
 		}
 	}
 	return false
+}
+
+func boolInt(value bool) int64 {
+	if value {
+		return 1
+	}
+	return 0
+}
+
+func hashInput(input any) (string, error) {
+	raw, err := json.Marshal(input)
+	if err != nil {
+		return "", platform.NewError(platform.CodeValidation, false, "运行操作参数不可编码")
+	}
+	return string(platform.HashBytes(raw)), nil
 }

@@ -24,15 +24,9 @@
 | GET `/{locale}/llms-full.txt` | `handleLLMsFull` | `public-site.HandleLLMsFull` | `anonymous` | `—` → 200 `string` | 输出合并正文或分片索引 | `DEPENDENCY_UNAVAILABLE`、`VERSION_MISMATCH` |
 | GET `/{locale}/ask` | `handleAskShell` | `public-site.HandleAskShell` | `anonymous` | `—` → 200 `HandleAskShellResult` | 独立问答页面外壳 | `DEPENDENCY_UNAVAILABLE` |
 | GET `/{locale}/sitemap.xml` | `handleLanguageSitemap` | `public-site.HandleLanguageSitemap` | `anonymous` | `—` → 200 `string` | 每语言sitemap | `DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/barriers` | `acquireBarrier` | `public-site.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 公开渲染域进入安全屏障 | `DEADLINE_EXCEEDED` |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `public-site.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 释放公开渲染维护 | `LOCKED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `public-site.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 创建本域一致快照 | `LOCKED`、`INTERNAL` |
 | GET `/healthz` | `health` | `public-site.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `public-site.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `public-site.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `public-site.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | POST `/v1/public-links:resolve` | `resolvePublishedLink` | `public-site.ResolvePublishedLink` | `service` | `ResolvePublishedLinkInput` → 200 `ResolvePublishedLinkResult` | 按文档及块ID解析当前安全公开链接 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`VERSION_MISMATCH`、`STALE_RESULT`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `public-site.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 <!-- openapi:end -->
 
 | GET `/robots.txt` | `handleRobots` | `public-site.HandleRobots` | `anonymous` | 站点级索引策略，不输出私有地址 |

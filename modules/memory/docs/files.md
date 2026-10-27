@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 58 个：手写 45、UI 1、生成 4、配置 6、迁移 2。函数 113 个：约束 43，参考 70。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 58 个：手写 45、UI 1、生成 4、配置 6、迁移 2。函数 107 个：约束 37，参考 70。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -34,7 +34,7 @@
 | `modules/memory/internal/runtime/recovery.go` | 手写 | 恢复助手执行与批准命令所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.RecoverAssistantLeases`（参考） |
 | `modules/memory/internal/events/outbox.go` | 手写 | 发布记忆引用式事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PublishOutbox` |
 | `modules/memory/internal/runtime/prune.go` | 手写 | 回收无引用派生注入清单所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.PruneContextSnapshots`（参考） |
-| `modules/memory/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AcquireBarrier`、`memory.ReleaseBarrier`、`memory.ExportSnapshot`、`memory.StageSnapshot`、`memory.DiscardSnapshot` |
+| `modules/memory/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
 | `modules/memory/internal/context/preflight.go` | 手写 | 保存前完整投影注入预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.ValidateProjectedBudgets`（参考）、`memory.joinTaskIDs`（参考）、`memory.EmitContextChanged`（参考） |
 | `modules/memory/internal/assistant/overview.go` | 手写 | 自动维护项目概述并保护人工修改所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.UpdateProjectOverview` |
 | `modules/memory/internal/assistant/conversation.go` | 手写 | 保存可连续的记忆助手对话所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `memory.AppendAssistantMessage`、`memory.ReadAssistantConversation`、`memory.DeleteAssistantConversation`、`memory.readConversation`（参考） |
@@ -62,5 +62,5 @@
 | `modules/memory/internal/runtime/tasks.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.ConfigureAssistantClients`（参考）、`memory.SelectAssistantProfile`（参考）、`memory.SaveAssistantInput`（参考）、`memory.ReadAssistantInput`（参考）、`memory.DispatchAssistantInputs`（参考）、`memory.AssistantInput`（参考）、`memory.ReplayReceipt`（参考）、`memory.ValidateForeign`（参考）、`memory.ConfigureValidators`（参考）、`memory.CurrentAssistantState`（参考）、`memory.DispatchAssistantCancellations`（参考） |
 | `modules/memory/internal/transport/business.go` | 手写 | 本域实际业务实现与受信装配辅助；仅访问本域私有数据。 | `memory.operationHandlers`（参考）、`memory.jsonOperation`（参考）、`memory.respond`（参考）、`memory.matchPath`（参考）、`memory.optionalString`（参考）、`memory.optionalInt`（参考）、`memory.queryLimit`（参考） |
 | `modules/memory/migrations/002_business.sql` | 手写 | 业务回执、提交manifest、派生清单及助手固定输入的只追加迁移。 | 无 |
-| `modules/memory/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `memory.ReadSnapshotArchive` |
+| `modules/memory/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/memory/web/src/index.tsx` | UI | 长期记忆：记忆条目的新建、编辑、归档与恢复 | `memory.MemoryPage` |

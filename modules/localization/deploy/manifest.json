@@ -1,7 +1,11 @@
 {
   "slug": "localization",
   "image": "nice-wiki-localization",
-  "command": ["/localization", "--config", "/config/service.config.json"],
+  "command": [
+    "/localization",
+    "--config",
+    "/config/service.config.json"
+  ],
   "httpPort": 8108,
   "dataVolume": "/data/localization",
   "secrets": [
@@ -44,11 +48,6 @@
       "module": "jobs",
       "endpoint": "http://jobs:8111",
       "env": "NW_DEP_JOBS"
-    },
-    {
-      "module": "data-protection",
-      "endpoint": "http://data-protection:8113",
-      "env": "NW_DEP_DATA_PROTECTION"
     }
   ],
   "probes": {

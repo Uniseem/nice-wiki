@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 85 个：手写 72、UI 1、生成 4、配置 6、迁移 2。函数 157 个：约束 46，参考 111。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 85 个：手写 72、UI 1、生成 4、配置 6、迁移 2。函数 151 个：约束 40，参考 111。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -41,7 +41,7 @@
 | `modules/localization/internal/events/withdraw.go` | 手写 | 处理源撤回所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.InvalidateDocumentTranslations` |
 | `modules/localization/internal/runtime/recovery.go` | 手写 | 恢复翻译任务所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RecoverTranslationLeases`（参考） |
 | `modules/localization/internal/events/outbox.go` | 手写 | 持久发布翻译事件所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.PublishOutbox` |
-| `modules/localization/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.AcquireBarrier`、`localization.ReleaseBarrier`、`localization.ExportSnapshot`、`localization.StageSnapshot`、`localization.DiscardSnapshot` |
+| `modules/localization/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
 | `modules/localization/internal/translation/tm.go` | 手写 | 精确翻译记忆复用所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ReuseTranslationMemory`（参考）、`localization.ReuseInSnapshot`（参考） |
 | `modules/localization/internal/glossary/extract.go` | 手写 | 首次翻译直接抽取入术语表所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.ExtractAutomaticGlossary`（参考） |
 | `modules/localization/internal/glossary/rollback.go` | 手写 | 整批撤销自动术语所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `localization.RollbackAutomaticGlossaryBatch` |
@@ -89,5 +89,5 @@
 | `modules/localization/internal/language/suggestion_policy.go` | 手写 | 管理员明确开启的付费建议批准与网关只读核验 | `localization.ReadLanguageSuggestionPolicy`、`localization.PutLanguageSuggestionPolicy`、`localization.ReadLanguageSuggestionApproval`、`localization.readSuggestionPolicy`（参考）、`localization.NewSuggestionPolicyHandlers`（参考） |
 | `modules/localization/migrations/005_suggestion_policy.sql` | 手写 | 只追加付费建议当前指针与不可变审批历史，不种默认允许 | 无 |
 | `modules/localization/migrations/006_language_plan.sql` | 手写 | 只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图 | 无 |
-| `modules/localization/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `localization.ReadSnapshotArchive` |
+| `modules/localization/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/localization/web/src/index.tsx` | UI | 多语言：添加/启用语言、自动翻译、界面文字翻译、文档译文进度与取消 | `localization.LanguagesPage` |

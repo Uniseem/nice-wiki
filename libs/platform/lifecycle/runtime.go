@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -24,10 +23,6 @@ const (
 	runtimeCacheTTL   = time.Second
 	watchInterval     = 5 * time.Second
 )
-
-// ErrRestartForRestore 运行中发现恢复切换；调用方以30秒上限Shutdown
-// 并以退出码75退出，由进程守护重启后换入目录。
-var ErrRestartForRestore = errors.New("恢复切换请求安全退出")
 
 type cacheEntry struct {
 	view   platform.RuntimeView
@@ -59,9 +54,9 @@ func NewWriteContext(ctx context.Context, config platform.WriteWindowConfig) (co
 		cancel()
 		return nil, view, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "运行权威数据代次未知")
 	}
-	if view.Phase != platform.PhaseRunning && view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging {
+	if view.Phase != platform.PhaseRunning {
 		cancel()
-		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "当前恢复阶段不接受后台写入")
+		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "当前运行阶段不接受后台写入")
 	}
 	if (view.Maintenance && deadline.IsZero()) || (!deadline.IsZero() && !deadline.After(time.Now())) {
 		cancel()
@@ -108,11 +103,8 @@ func RunRecoveryLoop(ctx context.Context, config platform.RecoveryLoopConfig) er
 		if ctx.Err() != nil {
 			return nil
 		}
-		// 恢复切换和数据代次变化要重启进程；其他错误只影响这一批，记下来下一轮再试，
+		// 数据代次变化要重启进程；其他错误只影响这一批，记下来下一轮再试，
 		// 不让一条处理不了的记录（或一次被拒的调用）拖垮整个服务。
-		if errors.Is(err, ErrRestartForRestore) {
-			return err
-		}
 		var failure *platform.Error
 		if errors.As(err, &failure) && failure.Code == platform.CodeVersionMismatch {
 			return err
@@ -153,52 +145,6 @@ func ReadRuntime(ctx context.Context, client platform.SiteConfigClient) (platfor
 	}
 	runtimeCache.Store(client, cacheEntry{view: view, readAt: time.Now()})
 	return view, nil
-}
-
-// WatchRuntime 每5秒读取运行状态；发现恢复切换或整体换回且本域
-// 存在对应staged或已换入目录时返回ErrRestartForRestore。
-// site-config短时不可达继续轮询，不触发退出。
-func WatchRuntime(ctx context.Context, client platform.SiteConfigClient, dataRoot string) error {
-	if dataRoot == "" {
-		return platform.NewError(platform.CodeValidation, false, "数据根缺失")
-	}
-	ticker := time.NewTicker(watchInterval)
-	defer ticker.Stop()
-	for {
-		view, err := ReadRuntime(ctx, client)
-		if err == nil && needsRestartForRestore(view, dataRoot) {
-			return ErrRestartForRestore
-		}
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-		}
-	}
-}
-
-// needsRestartForRestore 判断当前阶段与本域目录是否要求重启换入。
-func needsRestartForRestore(view platform.RuntimeView, dataRoot string) bool {
-	if view.RestoreID == "" {
-		return false
-	}
-	restoreDir := filepath.Join(dataRoot, "restore", view.RestoreID)
-	switch view.Phase {
-	case platform.PhaseRestoreSwitching:
-		if dirExists(filepath.Join(restoreDir, "staged")) {
-			return true
-		}
-		// 已换入（重启后再次轮询）：换入标记存在即视为完成，不再要求退出。
-		return dirExists(filepath.Join(restoreDir, "switched"))
-	case platform.PhaseRestoreRollingBack:
-		return dirExists(filepath.Join(restoreDir, "before"))
-	}
-	return false
-}
-
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.IsDir()
 }
 
 // runtimeStatePath 是 site-config:readRuntimeState 的接口路径。

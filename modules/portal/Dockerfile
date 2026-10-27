@@ -21,7 +21,6 @@ COPY modules/qa/web/ modules/qa/web/
 COPY modules/traffic-guard/web/ modules/traffic-guard/web/
 COPY modules/jobs/web/ modules/jobs/web/
 COPY modules/analytics/web/ modules/analytics/web/
-COPY modules/data-protection/web/ modules/data-protection/web/
 COPY modules/public-site/web/ modules/public-site/web/
 COPY modules/public-site/internal/ modules/public-site/internal/
 RUN NW_WEB_OUT=/out/web pnpm build:web

@@ -107,16 +107,13 @@ services:
     volumes:
       - ./config/jobs.json:/config/jobs.json:ro
       - ./config/analytics.json:/config/analytics.json:ro
-      - ./config/data-protection.json:/config/data-protection.json:ro
       - ./config/traffic-guard.json:/config/traffic-guard.json:ro
       - ./secrets/jobs:/run/secrets/jobs:ro
       - ./secrets/analytics:/run/secrets/analytics:ro
-      - ./secrets/data-protection:/run/secrets/data-protection:ro
       - ./secrets/traffic-guard:/run/secrets/traffic-guard:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - ./secrets/database-url:/run/secrets/database-url:ro
       - ops-data:/data
-      - ./secrets/master-key:/run/secrets/master-key:ro
       - ./secrets/budget:/run/secrets/budget:ro
     depends_on:
       postgres: {condition: service_healthy}

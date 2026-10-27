@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"nice-wiki/libs/platform"
-	"nice-wiki/modules/analytics/internal/gen"
 )
 
 // 领域输入输出与 types.json 一致；HTTP 结构仍由生成代码校验。
@@ -359,15 +358,6 @@ type PublishAggregateEventsInput struct {
 
 type PublishAggregateEventsResult struct {
 	Sent int64 `json:"sent"`
-}
-
-type ReleaseBarrierInput struct {
-	BarrierID string              `json:"barrierId"`
-	DataEpoch platform.Identifier `json:"dataEpoch"`
-}
-
-type ReleaseBarrierResult struct {
-	Status gen.BarrierStatus `json:"status"`
 }
 
 type ClassifyCrawlerInput struct {

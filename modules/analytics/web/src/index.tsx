@@ -50,7 +50,6 @@ const actionLabels: Record<string, string> = {
   'site-config.updateBanner': t('修改公告横幅'),
   'site-config.updateFooter': t('修改页脚'),
   'localization.putLanguage': t('修改语言设置'),
-  'data-protection.createBackup': t('创建备份'),
   'memory.createEntry': t('新建长期记忆'),
   'memory.updateEntry': t('修改长期记忆'),
   'memory.archiveEntry': t('归档长期记忆'),

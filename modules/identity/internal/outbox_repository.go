@@ -30,25 +30,24 @@ type relayRuntimeContextKey struct{}
 type relayRuntime struct {
 	store      platform.OutboxStore
 	publisher  platform.EventPublisher
-	snapshot   *lifecycle.SnapshotManager
 	siteConfig platform.SiteConfigClient
 }
 
-// WithRelayRuntime 由本域启动装配注入真实存储、jobs客户端、运行权威和快照
-// scope。这里只保存进程内句柄，不允许网络输入提供这些依赖。
-func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, snapshot *lifecycle.SnapshotManager, siteConfig platform.SiteConfigClient) context.Context {
+// WithRelayRuntime 由本域启动装配注入真实存储、jobs客户端和运行权威。
+// 这里只保存进程内句柄，不允许网络输入提供这些依赖。
+func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, siteConfig platform.SiteConfigClient) context.Context {
 	var outboxStore platform.OutboxStore
 	if store != nil && store.db != nil {
 		outboxStore = outbox.NewStore(store.db)
 	}
 	return context.WithValue(ctx, relayRuntimeContextKey{}, relayRuntime{
-		store: outboxStore, publisher: publisher, snapshot: snapshot, siteConfig: siteConfig,
+		store: outboxStore, publisher: publisher, siteConfig: siteConfig,
 	})
 }
 
 func relayRuntimeFromContext(ctx context.Context) (relayRuntime, bool) {
 	runtime, ok := ctx.Value(relayRuntimeContextKey{}).(relayRuntime)
-	return runtime, ok && runtime.store != nil && runtime.publisher != nil && runtime.snapshot != nil && runtime.siteConfig != nil
+	return runtime, ok && runtime.store != nil && runtime.publisher != nil && runtime.siteConfig != nil
 }
 
 // IdentityChanged 是身份撤销事件载荷；不包含口令、IP或正文。
@@ -194,7 +193,7 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 	return PublishIdentityEventResult{Queued: true}, nil
 }
 
-// RelayOutbox 只装配本域持久outbox、jobs发布端口与SnapshotManager真实scope，
+// RelayOutbox 只装配本域持久outbox与jobs发布端口，
 // 单批领取、重试、隔离和旧代次处理由平台统一实现。
 func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error) {
 	if input.BatchLimit < 1 || input.BatchLimit > 100 {
@@ -220,12 +219,11 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 	}
 
 	result, err := outbox.RunRelayBatch(relayCtx, runtime.store, runtime.publisher, platform.RelayConfig{
-		BatchLimit:     input.BatchLimit,
-		PollMillis:     1000,
-		AdmitBatch:     runtime.snapshot.AdmitEventBatch,
-		BindEventScope: runtime.snapshot.BindOutboxEventScope,
-		Runtime:        runtime.siteConfig.ReadRuntimeState,
-		WriteWindow:    runtime.snapshot.WriteWindow,
+		BatchLimit:  input.BatchLimit,
+		PollMillis:  1000,
+		AdmitBatch:  lifecycle.SimpleAdmission(runtime.siteConfig.ReadRuntimeState, op.DataEpoch),
+		Runtime:     runtime.siteConfig.ReadRuntimeState,
+		WriteWindow: lifecycle.SimpleWriteWindow(runtime.siteConfig.ReadRuntimeState),
 	})
 	if err != nil {
 		return RelayOutboxResult{}, err
@@ -282,4 +280,14 @@ func stringsContains(value, fragment string) bool {
 		}
 	}
 	return false
+}
+
+func identityContextError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return platform.NewError(platform.CodeDeadlineExceeded, true, "身份操作已超过期限")
+	}
+	if errors.Is(err, context.Canceled) {
+		return platform.NewError(platform.CodeCancelled, true, "身份操作已取消")
+	}
+	return platform.NewError(platform.CodeDependencyUnavailable, true, "身份操作上下文不可用")
 }

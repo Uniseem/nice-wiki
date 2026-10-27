@@ -100,13 +100,6 @@
       "secretsDir": "deploy/secrets/analytics"
     },
     {
-      "slug": "data-protection",
-      "url": "http://ops:8113",
-      "port": 8113,
-      "dataVolume": "/data/data-protection",
-      "secretsDir": "deploy/secrets/data-protection"
-    },
-    {
       "slug": "agent",
       "url": "http://ai:8114",
       "port": 8114,

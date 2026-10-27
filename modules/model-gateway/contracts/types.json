@@ -949,20 +949,8 @@
     "SnapshotRef": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
     },
-    "SnapshotExportRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest"
-    },
-    "SnapshotExportResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult"
-    },
     "SnapshotStageResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
-    },
-    "BarrierRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest"
-    },
-    "BarrierStatus": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus"
     },
     "ServiceDependencies": {
       "type": "object",
@@ -4027,8 +4015,7 @@
                   "memory",
                   "traffic-guard",
                   "jobs",
-                  "analytics",
-                  "data-protection"
+                  "analytics"
                 ],
                 "description": "生产方服务slug"
               },

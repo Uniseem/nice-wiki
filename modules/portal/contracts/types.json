@@ -56,14 +56,6 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
       "description": "ObjectRef"
     },
-    "BarrierRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierRequest",
-      "description": "BarrierRequest"
-    },
-    "BarrierStatus": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-      "description": "BarrierStatus"
-    },
     "SnapshotRef": {
       "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
       "description": "SnapshotRef"
@@ -169,8 +161,7 @@
             "memory",
             "traffic-guard",
             "jobs",
-            "analytics",
-            "data-protection"
+            "analytics"
           ]
         },
         "upstreamOperationId": {
@@ -3209,34 +3200,6 @@
         "expectedEpoch"
       ]
     },
-    "ReleaseBarrierResult": {
-      "type": "object",
-      "description": "按权威状态恢复业务入口的结果",
-      "additionalProperties": false,
-      "properties": {
-        "status": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-          "description": "BarrierStatus"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
-    "releaseBarrierRequest": {
-      "type": "object",
-      "description": "释放入口屏障请求体",
-      "additionalProperties": false,
-      "properties": {
-        "expectedEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "全部域已切换完成的 epoch"
-        }
-      },
-      "required": [
-        "expectedEpoch"
-      ]
-    },
     "ServiceConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -3307,8 +3270,7 @@
                   "memory",
                   "traffic-guard",
                   "jobs",
-                  "analytics",
-                  "data-protection"
+                  "analytics"
                 ],
                 "description": "生产方服务slug"
               },

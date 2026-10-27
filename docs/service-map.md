@@ -16,6 +16,5 @@
 | M12 | [流量风控](../modules/traffic-guard/README.md) | 机器人刷流、频率、并发、验证与封禁 |
 | M13 | [任务与事件](../modules/jobs/README.md) | 队列、事件、租约、重试、进度与定时 |
 | M14 | [统计与审计](../modules/analytics/README.md) | 匿名访问、操作审计与用量汇总 |
-| M15 | [数据保护](../modules/data-protection/README.md) | 一致备份、恢复、版本镜像与 data git 同步 |
 
 模块间调用的唯一来源是各域 OpenAPI；函数依赖用 module:operationId 或本域函数 ID，不用文件路径猜测 API。

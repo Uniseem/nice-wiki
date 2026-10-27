@@ -351,22 +351,6 @@
   "id": "Tutup",
   "ar": "إغلاق"
  },
- "创建备份": {
-  "zh-Hant": "建立備份",
-  "en": "Create backup",
-  "ja": "バックアップを作成",
-  "ko": "백업 만들기",
-  "fr": "Créer une sauvegarde",
-  "de": "Sicherung erstellen",
-  "es": "Crear copia",
-  "pt": "Criar backup",
-  "ru": "Создать резервную копию",
-  "it": "Crea backup",
-  "vi": "Tạo bản sao lưu",
-  "th": "สร้างข้อมูลสำรอง",
-  "id": "Buat cadangan",
-  "ar": "إنشاء نسخة احتياطية"
- },
  "动作": {
   "zh-Hant": "動作",
   "en": "Action",

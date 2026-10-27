@@ -30,20 +30,6 @@
       "managementPermission": "system.manage"
     },
     {
-      "type": "data-protection.backup",
-      "owner": "data-protection",
-      "executor": "data-protection.ExecuteBackup",
-      "schedule": null,
-      "managementPermission": "backup.manage"
-    },
-    {
-      "type": "data-protection.restore",
-      "owner": "data-protection",
-      "executor": "data-protection.ExecuteRestore",
-      "schedule": null,
-      "managementPermission": "backup.manage"
-    },
-    {
       "type": "knowledge.build",
       "owner": "knowledge",
       "executor": "knowledge.ExecuteBuild",

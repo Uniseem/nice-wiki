@@ -2657,20 +2657,6 @@
         "dataEpoch"
       ]
     },
-    "ReleaseBarrierResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "释放公开渲染维护成功结果；失败不返回半成功结果",
-      "properties": {
-        "status": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/BarrierStatus",
-          "description": "公共 BarrierStatus 合同，遵守其字段和空值规则"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
     "LoadPreviewInput": {
       "type": "object",
       "additionalProperties": false,
@@ -3520,13 +3506,6 @@
         "draftRevisionId"
       ]
     },
-    "ReleaseBarrierRequestBody": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "仅全域恢复完成或commit前全部abort确认后释放；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明",
-      "properties": {},
-      "required": []
-    },
     "ServiceConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -3597,8 +3576,7 @@
                   "memory",
                   "traffic-guard",
                   "jobs",
-                  "analytics",
-                  "data-protection"
+                  "analytics"
                 ],
                 "description": "生产方服务slug"
               },

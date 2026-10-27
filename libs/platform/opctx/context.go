@@ -97,14 +97,6 @@ func BuildOperationContext(r *http.Request, anchors platform.TrustAnchors, self 
 			op.Actor.SiteID = claims.SiteID
 		}
 	}
-	if scope := claims.CleanupScope; scope != nil {
-		until, _ := platform.ParseTimestamp(scope.Deadline)
-		actual, _ := platform.ParseTimestamp(op.Deadline)
-		if r.Header.Get(platform.HeaderPortalProof) != "" || scope.QueryHash != platform.HashBytes([]byte(r.URL.RawQuery)) || scope.DataEpoch != op.DataEpoch || scope.SiteID != op.Actor.SiteID || scope.RootOperationID != op.RootOperationID || scope.CostClass != op.CostClass || actual.After(until) {
-			return platform.OperationContext{}, platform.NewError(platform.CodeForbidden, false, "清理作用域与原根、站点、代次或请求不符")
-		}
-		op.CleanupScope = scope
-	}
 	return op, nil
 }
 

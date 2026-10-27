@@ -1087,22 +1087,6 @@
   "id": "Kategori",
   "ar": "الفئة"
  },
- "创建备份": {
-  "zh-Hant": "建立備份",
-  "en": "Create backup",
-  "ja": "バックアップを作成",
-  "ko": "백업 만들기",
-  "fr": "Créer une sauvegarde",
-  "de": "Sicherung erstellen",
-  "es": "Crear copia",
-  "pt": "Criar backup",
-  "ru": "Создать резервную копию",
-  "it": "Crea backup",
-  "vi": "Tạo bản sao lưu",
-  "th": "สร้างข้อมูลสำรอง",
-  "id": "Buat cadangan",
-  "ar": "إنشاء نسخة احتياطية"
- },
  "发布页面": {
   "zh-Hant": "發佈頁面",
   "en": "Publish page",
@@ -1150,22 +1134,6 @@
   "th": "สร้างดัชนีความรู้",
   "id": "Buat indeks pengetahuan",
   "ar": "إنشاء فهرس المعرفة"
- },
- "恢复": {
-  "zh-Hant": "恢復",
-  "en": "Restore",
-  "ja": "復元",
-  "ko": "복원",
-  "fr": "Restaurer",
-  "de": "Wiederherstellen",
-  "es": "Restaurar",
-  "pt": "Restaurar",
-  "ru": "Восстановить",
-  "it": "Ripristina",
-  "vi": "Khôi phục",
-  "th": "กู้คืน",
-  "id": "Pulihkan",
-  "ar": "استعادة"
  },
  "按天统计": {
   "zh-Hant": "按天統計",

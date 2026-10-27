@@ -9,9 +9,6 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| POST `/v1/barriers` | `acquireBarrier` | `media.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得可恢复的数据屏障 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `media.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出屏障水位的一致快照 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `media.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | POST `/v1/uploads` | `beginUpload` | `media.BeginUpload` | `media.upload` | `BeginUploadInput` → 200 `BeginUploadResult` | 开始内容寻址可续传上传 | `VALIDATION`、`FORBIDDEN`、`NOT_FOUND`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`LOCKED` |
 | GET `/v1/uploads/{uploadId}` | `readUpload` | `media.ReadUpload` | `media.upload` | `—` → 200 `ReadUploadResult` | 查询续传offset | `FORBIDDEN`、`NOT_FOUND` |
 | DELETE `/v1/uploads/{uploadId}` | `abortUpload` | `media.AbortUpload` | `media.upload` | `abortUploadRequest` → 200 `AbortUploadResult` | 取消未完成上传释放配额 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT` |
@@ -35,9 +32,6 @@
 | POST `/v1/videos/metadata` | `readVideoMetadata` | `media.ReadVideoMetadata` | `media.upload` | `ReadVideoMetadataInput` → 200 `ReadVideoMetadataResult` | 插入时一次获取平台公开信息并本地封面 | `VALIDATION`、`UNSUPPORTED_CAPABILITY`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/healthz` | `health` | `media.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `media.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `media.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `media.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `media.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/jobs/{jobId}/recovery` | `readJobRecovery` | `media.ReadJobRecovery` | `service` | `ReadJobRecoveryInput` → 200 `ReadJobRecoveryResult` | 读取原资源清理任务恢复证明 | `HTTP default` |
 | GET `/v1/asset-groups` | `listAssetGroups` | `media.ListAssetGroups` | `media.read` | `—` → 200 `ListAssetGroupsResult` | 读取资源分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |
 | POST `/v1/asset-groups` | `createAssetGroup` | `media.CreateAssetGroup` | `media.manage` | `CreateAssetGroupInput` → 200 `CreateAssetGroupResult` | 新建资源分组 | `FORBIDDEN`、`NOT_FOUND`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR`、`VERSION_MISMATCH` |

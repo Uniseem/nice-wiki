@@ -254,18 +254,6 @@ func problemToError(raw []byte) error {
 	return platform.NewError(code, retryable, "%s", problem.Detail)
 }
 
-// DataProtectionClient 调用data-protection服务（自动附服务断言）。
-type DataProtectionClient struct{ *producerClient }
-
-func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *DataProtectionClient {
-	return &DataProtectionClient{newProducerClient("data-protection", baseURL, issuer, key)}
-}
-
-// ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
-	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
-}
-
 // JobsClient 调用jobs服务（自动附服务断言）。
 type JobsClient struct{ *producerClient }
 
@@ -296,11 +284,6 @@ func (c *SiteConfigClient) ReadInitializationStatus(ctx context.Context) (json.R
 // ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
 func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
-}
-
-// RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
-func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }
 
 // TrafficGuardClient 调用traffic-guard服务（自动附服务断言）。

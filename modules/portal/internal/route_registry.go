@@ -23,7 +23,7 @@ var allowedOwners = map[string]bool{
 	"identity": true, "site-config": true, "content": true, "media": true,
 	"public-site": true, "model-gateway": true, "knowledge": true,
 	"qa": true, "localization": true, "memory": true, "traffic-guard": true,
-	"jobs": true, "analytics": true, "data-protection": true,
+	"jobs": true, "analytics": true,
 }
 
 // CompileRouteRegistry 校验并固定入口路由表。输出按最具体优先排序，

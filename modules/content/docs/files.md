@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 60 个：手写 49、UI 1、生成 4、配置 6。函数 255 个：约束 45，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 60 个：手写 49、UI 1、生成 4、配置 6。函数 248 个：约束 38，参考 210。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -30,10 +30,10 @@
 | `modules/content/internal/history_service.go` | 手写 | 查看署名发布/git版本历史 | `content.ReadRevisionHistory`、`content.DiffRevisions`、`content.ReadHistoricalRevision`、`content.RollbackPublishedRevision`、`content.readHistoricalBody`（参考）、`content.historyBlockMap`（参考） |
 | `modules/content/internal/preview_service.go` | 手写 | 管理员预览草稿公开样式 | `content.CreatePreviewGrant`、`content.ValidatePreviewGrant` |
 | `modules/content/internal/reference_reader.go` | 手写 | 向资源库列出哪些文档引用文件 | `content.ListResourceReferences`、`content.NewReferenceRuntime`（参考）、`content.WithReferenceRuntime`（参考）、`content.referenceRuntimeFromContext`（参考）、`content.readReferenceCursor`（参考）、`content.validateReferenceCoverage`（参考）、`content.readReferenceSources`（参考）、`content.readPublicationReferences`（参考）、`content.readCommittedReferenceSource`（参考）、`content.referenceSortKey`（参考） |
-| `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | `content.ReadContentObject` |
+| `modules/content/internal/object_reader.go` | 手写 | 经对象API读取私有文件而不共享目录 | 无 |
 | `modules/content/internal/outbox_repository.go` | 手写 | 与发布/撤回提交原子登记最小事件 | `content.PublishContentEvent`（参考）、`content.bindPublicationTx`（参考）、`content.RelayOutbox`、`content.WithRelayRuntime`（参考） |
-| `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `content.AcquireBarrier`、`content.ReleaseBarrier` |
-| `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | `content.ExportSnapshot`、`content.StageSnapshot`、`content.DiscardSnapshot` |
+| `modules/content/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | 无 |
+| `modules/content/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | 无 |
 | `modules/content/internal/public_route_reader.go` | 手写 | 公开导航读取已发布文档树 | `content.ReadPublicTree`、`content.ResolvePublicPath`、`content.readPublicRouteSnapshot`（参考） |
 | `modules/content/cmd/content/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `content.main` |
 | `modules/content/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `content.BuildApplication` |
@@ -64,5 +64,5 @@
 | `modules/content/migrations/0008_publication_snapshots.sql` | 手写 | 只追加发布快照、署名历史、已发布引用和版本化重定向清单 | 无 |
 | `modules/content/migrations/0009_model_suggestions.sql` | 手写 | 只追加首次发布模型建议的按哈希结果缓存 | 无 |
 | `modules/content/migrations/0010_purged_reference_releases.sql` | 手写 | 记录已向资源服务发出空引用集合释放事件的彻底删除文档；引用列表只跳过这些文档，未释放的旧文档由事件转发循环补发 | 无 |
-| `modules/content/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `content.ReadSnapshotArchive` |
+| `modules/content/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/content/web/src/index.tsx` | UI | 文档管理：文档树、Tiptap 编辑器（稳定块 ID、斜杠菜单、画板、公式、上传）、编辑锁与自动保存、发布/撤回/历史/回收站 | `content.ContentPage` |

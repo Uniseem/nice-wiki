@@ -55,14 +55,3 @@ func checkSingleFileLink(path string, _ os.FileInfo) error {
 	}
 	return nil
 }
-
-func checkSnapshotDiskSpace(root string, required int64) error {
-	available, _, err := ReadFilesystemSpace(root)
-	if err != nil {
-		return snapshotIOError(err)
-	}
-	if available < uint64(required) {
-		return snapshotBudget("快照隔离空间不足")
-	}
-	return nil
-}

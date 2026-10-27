@@ -123,9 +123,9 @@ func authorizeConfigWrite(op platform.OperationContext) error {
 
 func authorizeConfigRead(op platform.OperationContext, object bool) error {
 	if op.Actor.Kind == "service" {
-		allowed := []string{"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection"}
+		allowed := []string{"portal", "public-site", "content", "media", "localization", "identity", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs"}
 		if object {
-			allowed = []string{"public-site", "data-protection"}
+			allowed = []string{"public-site"}
 		}
 		if slices.Contains(allowed, op.CallerService) {
 			return nil

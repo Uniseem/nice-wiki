@@ -17,7 +17,7 @@
 | `account` | site-config 8102、identity 8101 |
 | `content` | content 8103、media 8104、localization 8108、public-site 8081 |
 | `ai` | model-gateway 8105、qa 8107、agent 8114（内含 Node 进程）、memory 8109 |
-| `ops` | jobs 8111、analytics 8112、data-protection 8113、traffic-guard 8110 |
+| `ops` | jobs 8111、analytics 8112、traffic-guard 8110 |
 | `portal` 8080、`knowledge` 8106、`search` 8120、`edge` 8090、`postgres`、`caddy` | |
 
 ## 用发布包部署（推荐）

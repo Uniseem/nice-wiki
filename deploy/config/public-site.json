@@ -18,7 +18,6 @@
     "traffic-guard": "http://ops:8110",
     "jobs": "http://ops:8111",
     "analytics": "http://ops:8112",
-    "data-protection": "http://ops:8113",
     "agent": "http://ai:8114"
   },
   "databaseRef": "/run/secrets/database-url"

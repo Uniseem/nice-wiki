@@ -14,8 +14,6 @@
 | PUT `/v1/preferences` | `updatePreferences` | `portal.UpdatePreferences` | `portal.use` | `UpdatePreferencesInput` → 200 `UpdatePreferencesResult` | 修改自身偏好 | `VALIDATION`、`CONFLICT` |
 | GET `/v1/events` | `openEventStream` | `portal.OpenEventStream` | `portal.use` | `—` → 200 `string` | 权限过滤 SSE | `VALIDATION`、`FORBIDDEN`、`STALE_RESULT` |
 | GET `/v1/readiness` | `collectReadiness` | `portal.CollectReadiness` | `system.manage` | `—` → 200 `CollectReadinessResult` | 读取入口 readiness | `VALIDATION` |
-| POST `/v1/barriers` | `acquireBarrier` | `portal.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得入口维护屏障 | `FORBIDDEN`、`LOCKED`、`DEPENDENCY_UNAVAILABLE` |
-| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `portal.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放入口屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | GET `/healthz` | `health` | `portal.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `portal.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 <!-- openapi:end -->

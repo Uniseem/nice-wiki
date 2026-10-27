@@ -1,7 +1,11 @@
 {
   "slug": "analytics",
   "image": "nice-wiki-analytics",
-  "command": ["/analytics", "--config", "/config/defaults.json"],
+  "command": [
+    "/analytics",
+    "--config",
+    "/config/defaults.json"
+  ],
   "httpPort": 8112,
   "dataVolume": "/data/analytics",
   "secrets": [
@@ -34,11 +38,6 @@
       "module": "jobs",
       "endpoint": "http://jobs:8111",
       "env": "NW_DEP_JOBS"
-    },
-    {
-      "module": "data-protection",
-      "endpoint": "http://data-protection:8113",
-      "env": "NW_DEP_DATA_PROTECTION"
     }
   ],
   "probes": {

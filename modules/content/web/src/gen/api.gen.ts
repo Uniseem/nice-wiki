@@ -4,66 +4,6 @@
  */
 
 export interface paths {
-    "/v1/barriers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 取得可恢复的数据屏障
-         * @description 调用函数 content.AcquireBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        post: operations["acquireBarrier"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots:export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 导出屏障水位的一致快照
-         * @description 调用函数 content.ExportSnapshot；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        post: operations["exportSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/barriers/{barrierId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 释放屏障
-         * @description 调用函数 content.ReleaseBarrier；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        delete: operations["releaseBarrier"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/documents": {
         parameters: {
             query?: never;
@@ -540,26 +480,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/objects/{objectId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 经对象API读取私有文件而不共享目录
-         * @description 调用函数 content.ReadContentObject；参数/结果以 types.json 为准。X-Operation-Id、X-Data-Epoch、服务 proof/CSRF 的验证在入口与本服务均执行。
-         */
-        get: operations["readContentObject"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/public-tree": {
         parameters: {
             query?: never;
@@ -634,46 +554,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/snapshots:stage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 暂存本域恢复归档，不改active目录
-         * @description 暂存本域恢复归档，不改active目录（ADR0003）；参数/结果以公共schema为准
-         */
-        post: operations["stageSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots:discard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 删除恢复暂存或换出的旧数据目录
-         * @description 删除恢复暂存或换出的旧数据目录（ADR0003）；参数/结果以公共schema为准
-         */
-        post: operations["discardSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/reference-decisions/{sourceOperationId}": {
         parameters: {
             query?: never;
@@ -686,23 +566,6 @@ export interface paths {
          * @description 只读安全投影，严格当前dataEpoch；不调用真实供应方，不模型探测，不预留或扣费。
          */
         get: operations["readReferenceDecision"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/snapshots/{snapshotId}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 受控读取已完成域快照归档 */
-        get: operations["readSnapshotArchive"];
         put?: never;
         post?: never;
         delete?: never;
@@ -939,200 +802,6 @@ export interface components {
         Revision: number;
         /** @description SHA-256 小写十六进制 */
         Hash: string;
-        /** @description 真实SQL水位，所有未来重试/leased/quarantined活动outbox均计入。冻结收费queued job与稳定未知费用审计保留不是活动事件delivery。 */
-        SnapshotWorkState: {
-            outboxRevision: number;
-            workRevision: number;
-            pendingOutbox: number;
-            pendingWork: number;
-        };
-        /** @description 同一区间真实进程/SQL水位；所有计数必须0才可seal，activity变化则冲突。 */
-        SnapshotBarrierObservation: {
-            owner: string;
-            activityRevision: number;
-            work: components["schemas"]["SnapshotWorkState"];
-            revisionWatermark: number;
-            business: number;
-            cleanup: number;
-            fileOps: number;
-            drainCallbacks: number;
-        };
-        /** @description 屏障状态及安全点；未到安全点不能导出完整快照 */
-        "common.schema_BarrierStatus": {
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 对象唯一所属模块slug */
-            owner: string;
-            /**
-             * @description 精确枚举状态，未知值拒绝
-             * @enum {unknown}
-             */
-            state: "draining" | "safe" | "released" | "failed";
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description BarrierStatus.revisionWatermark；按类型、枚举及required约束使用 */
-            revisionWatermark: components["schemas"]["Revision"];
-            /** @description safe必须来自真实全域CAS封口；旧兼容响应可省略，不视为新版完整证明。 */
-            sealProofHash?: components["schemas"]["Hash"];
-            /** @description observe操作的真实在途计数/持久水位；未知不填0。 */
-            observation?: components["schemas"]["SnapshotBarrierObservation"];
-        };
-        /** @description BarrierStatus */
-        BarrierStatus: components["schemas"]["common.schema_BarrierStatus"];
-        /**
-         * @description ErrorCode的公共协议类型；字段及范围按本schema
-         * @enum {string}
-         */
-        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
-        /** @description FieldIssue的公共协议类型；字段及范围按本schema */
-        FieldIssue: {
-            /** @description 字段路径，不包含字段值 */
-            field: string;
-            /** @description 可展示且不泄露输入正文的原因 */
-            reason: string;
-        };
-        /** @description 公共失败响应；不含秘密、问题正文、原始IP或内部堆栈 */
-        Problem: {
-            /** @description 问题类型标识 */
-            type: string;
-            /** @description 中文标题 */
-            title: string;
-            /** @description HTTP 状态 */
-            status: number;
-            /** @description 登记的稳定错误码 */
-            code: components["schemas"]["ErrorCode"];
-            /** @description 中文安全说明 */
-            detail: string;
-            /** @description 本次请求唯一追踪ID */
-            requestId: components["schemas"]["Identifier"];
-            /** @description 是否允许在幂等和总截止内重试 */
-            retryable: boolean;
-            /** @description 逐字段输入错误，不能回显秘密原值 */
-            issues?: components["schemas"]["FieldIssue"][];
-        };
-        /**
-         * Format: date-time
-         * @description RFC3339 UTC 时间
-         */
-        Timestamp: string;
-        /** @description 发布与ack等broker实际统一变更水位，不把冻结queued收费job当delivery。 */
-        SnapshotBrokerObservation: {
-            revision: number;
-            pendingDeliveries: number;
-            activeLeases: number;
-        };
-        SnapshotSealReceipt: {
-            owner: string;
-            sealProofHash: components["schemas"]["Hash"];
-        };
-        /** @description 14域按owner排序唯一全覆盖；协调器必须先提供可被最终复用的broker稳定零基础观察（broker前后同水位且pending/lease为0）。非jobs的VerifyGlobalSeal只核持久prepare/drain/epoch，不在本域封口后等待第二次broker回执；jobs最后重新读取真实broker，确认仍等于该基础观察，并核全部13回执与原non-jobs proof hash，由真实协调器核验，不信外部自报。 */
-        SnapshotSealProof: {
-            barrierId: components["schemas"]["Identifier"];
-            dataEpoch: components["schemas"]["Identifier"];
-            observations: components["schemas"]["SnapshotBarrierObservation"][];
-            brokerBefore: components["schemas"]["SnapshotBrokerObservation"];
-            brokerAfter: components["schemas"]["SnapshotBrokerObservation"];
-            nonJobsSeals?: components["schemas"]["SnapshotSealReceipt"][];
-            nonJobsProofHash?: components["schemas"]["Hash"];
-        };
-        /** @description 超管委托的安全屏障申请，绑定操作与截止；restore模式还要求runtime处于restore_staging 分prepare关闭新准入、drain收尾、observe原事实、seal全域CAS封口和resume-drain旧清理。seal必须完整proof，resume必须原seal hash，其余step不得附混淆控制字段。 */
-        "common.schema_BarrierRequest": {
-            /** @description 可恢复操作ID */
-            operationId: components["schemas"]["Identifier"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /**
-             * @description BarrierRequest.mode；按类型、枚举及required约束使用
-             * @enum {unknown}
-             */
-            mode: "backup" | "restore";
-            /** @description 全链路截止；与本地取消取较早值 */
-            deadline: components["schemas"]["Timestamp"];
-            /**
-             * @description 省略仅prepare，不会自动safe。observe纯读既有屏障事实。
-             * @default prepare
-             * @enum {string}
-             */
-            step: "prepare" | "drain" | "observe" | "seal" | "resume-drain";
-            sealProof?: components["schemas"]["SnapshotSealProof"];
-            /** @description resume-drain绑定原真实seal，不打开新业务。 */
-            expectedSealHash?: components["schemas"]["Hash"];
-        } & ({
-            /** @enum {unknown} */
-            step?: "prepare" | "drain" | "observe";
-        } | {
-            /** @enum {unknown} */
-            step: "seal";
-        } | {
-            /** @enum {unknown} */
-            step: "resume-drain";
-        });
-        /** @description BarrierRequest */
-        BarrierRequest: components["schemas"]["common.schema_BarrierRequest"];
-        /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
-        ObjectRef: {
-            /** @description 模块 slug */
-            owner: string;
-            /** @description 本域不可变对象ID */
-            objectId: components["schemas"]["Identifier"];
-            /** @description 对象或协议版本 */
-            version: components["schemas"]["Revision"];
-            /** @description 完整字节内容SHA256 */
-            sha256: components["schemas"]["Hash"];
-            /** @description 规范媒体类型，按允许集验证 */
-            mediaType: string;
-            /** @description 完整对象字节数，读取结束复核 */
-            byteSize: number;
-        };
-        /** @description 本域不可变快照描述，包含schema、哈希、大小与数据代次 */
-        SnapshotRef: {
-            /** @description 不可变本域快照ID */
-            snapshotId: components["schemas"]["Identifier"];
-            /** @description 对象唯一所属模块slug */
-            owner: string;
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description SnapshotRef.dataSchemaVersion；按类型、枚举及required约束使用 */
-            dataSchemaVersion: number;
-            /** @description SnapshotRef.revisionWatermark；按类型、枚举及required约束使用 */
-            revisionWatermark: components["schemas"]["Revision"];
-            /** @description SnapshotRef.object；按类型、枚举及required约束使用 */
-            object: components["schemas"]["ObjectRef"];
-            /** @description SnapshotRef.containsSecrets；按类型、枚举及required约束使用 */
-            containsSecrets: boolean;
-        };
-        /** @description 已经导出并验证的本域快照引用 */
-        "common.schema_SnapshotExportResult": {
-            /** @description 被校验或恢复的快照引用 */
-            snapshot: components["schemas"]["SnapshotRef"];
-            /** @description SnapshotExportResult.checksum；按类型、枚举及required约束使用 */
-            checksum: components["schemas"]["Hash"];
-        };
-        /** @description SnapshotExportResult */
-        SnapshotExportResult: components["schemas"]["common.schema_SnapshotExportResult"];
-        /** @description 指定屏障和是否含秘密的快照导出请求 */
-        "common.schema_SnapshotExportRequest": {
-            /** @description SnapshotExportRequest.backupId；按类型、枚举及required约束使用 */
-            backupId: components["schemas"]["Identifier"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 当前业务数据代次 */
-            dataEpoch: components["schemas"]["Identifier"];
-            /** @description 超管明确选择是否导出密钥 */
-            includeSecrets: boolean;
-        };
-        /** @description SnapshotExportRequest */
-        SnapshotExportRequest: components["schemas"]["common.schema_SnapshotExportRequest"];
-        /** @description 释放已协调完成的屏障的结果 */
-        ReleaseBarrierResult: {
-            /** @description BarrierStatus */
-            status: components["schemas"]["common.schema_BarrierStatus"];
-        };
-        /** @description 释放屏障请求体 */
-        releaseBarrierRequest: {
-            /** @description 活动 epoch */
-            expectedEpoch: components["schemas"]["Identifier"];
-        };
         /** @description 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 */
         "common.schema_AssetVersionRef": {
             /** @description 逻辑资源ID */
@@ -1163,6 +832,11 @@ export interface components {
             /** @description 当前业务数据代次 */
             dataEpoch: components["schemas"]["Identifier"];
         };
+        /**
+         * Format: date-time
+         * @description RFC3339 UTC 时间
+         */
+        Timestamp: string;
         /** @description 树/元数据权威，与draft和published独立 */
         DocumentMetadata: {
             /** @description 文档 */
@@ -1206,8 +880,23 @@ export interface components {
             /** @description 未发null */
             lastPublishedAt: components["schemas"]["Timestamp"] | null;
         };
+        /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
+        "common.schema_ObjectRef": {
+            /** @description 模块 slug */
+            owner: string;
+            /** @description 本域不可变对象ID */
+            objectId: components["schemas"]["Identifier"];
+            /** @description 对象或协议版本 */
+            version: components["schemas"]["Revision"];
+            /** @description 完整字节内容SHA256 */
+            sha256: components["schemas"]["Hash"];
+            /** @description 规范媒体类型，按允许集验证 */
+            mediaType: string;
+            /** @description 完整对象字节数，读取结束复核 */
+            byteSize: number;
+        };
         /** @description ObjectRef */
-        types_ObjectRef: components["schemas"]["ObjectRef"];
+        ObjectRef: components["schemas"]["common.schema_ObjectRef"];
         /** @description 全篇共享草稿提交，不按人建份 */
         DraftRevision: {
             /** @description 不可变draft文件 */
@@ -1219,7 +908,7 @@ export interface components {
             /** @description Hash */
             bodyHash: components["schemas"]["Hash"];
             /** @description ObjectRef */
-            object: components["schemas"]["types_ObjectRef"];
+            object: components["schemas"]["ObjectRef"];
             /** @description 编辑者 */
             authorAccountId: components["schemas"]["Identifier"];
             /** @description 提交 */
@@ -1233,6 +922,37 @@ export interface components {
             metadata: components["schemas"]["DocumentMetadata"];
             /** @description DraftRevision */
             draft: components["schemas"]["DraftRevision"];
+        };
+        /**
+         * @description ErrorCode的公共协议类型；字段及范围按本schema
+         * @enum {string}
+         */
+        ErrorCode: "VALIDATION" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "GONE" | "CONFLICT" | "VERSION_MISMATCH" | "LOCKED" | "UNSUPPORTED_SCHEMA" | "UNSUPPORTED_CAPABILITY" | "RATE_LIMITED" | "BUDGET_EXCEEDED" | "CANCELLED" | "DEADLINE_EXCEEDED" | "DEPENDENCY_UNAVAILABLE" | "STALE_RESULT" | "INTEGRITY_ERROR" | "INTERNAL" | "CHALLENGE_REQUIRED" | "INVOCATION_NOT_ACCEPTED";
+        /** @description FieldIssue的公共协议类型；字段及范围按本schema */
+        FieldIssue: {
+            /** @description 字段路径，不包含字段值 */
+            field: string;
+            /** @description 可展示且不泄露输入正文的原因 */
+            reason: string;
+        };
+        /** @description 公共失败响应；不含秘密、问题正文、原始IP或内部堆栈 */
+        Problem: {
+            /** @description 问题类型标识 */
+            type: string;
+            /** @description 中文标题 */
+            title: string;
+            /** @description HTTP 状态 */
+            status: number;
+            /** @description 登记的稳定错误码 */
+            code: components["schemas"]["ErrorCode"];
+            /** @description 中文安全说明 */
+            detail: string;
+            /** @description 本次请求唯一追踪ID */
+            requestId: components["schemas"]["Identifier"];
+            /** @description 是否允许在幂等和总截止内重试 */
+            retryable: boolean;
+            /** @description 逐字段输入错误，不能回显秘密原值 */
+            issues?: components["schemas"]["FieldIssue"][];
         };
         /** @description 新建共享草稿文档的输入 */
         CreateDocumentInput: {
@@ -2202,13 +1922,6 @@ export interface components {
             /** @description PageInfo */
             pageInfo: components["schemas"]["PageInfo"];
         };
-        /** @description 经对象API读取私有文件而不共享目录的结果 */
-        ReadContentObjectResult: {
-            /** @description ObjectRef */
-            object: components["schemas"]["types_ObjectRef"];
-            /** @description 内部只读stream */
-            bodyHandle: string;
-        };
         /** @description 仅已发布公共导航节点，无drafthead */
         PublicTreeNode: {
             /** @description doc */
@@ -2285,60 +1998,6 @@ export interface components {
             journalRecovered: boolean;
             /** @description 恢复/备份协调实际安全点，不能仅等任务调度暂停 */
             safePoint: boolean;
-        };
-        /** @description 本域暂存回执；live数据未变，切换在进程重启时完成 */
-        SnapshotStageResult: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /** @description 暂存所属模块slug */
-            owner: string;
-            /** @description 已暂存快照ID */
-            snapshotId: components["schemas"]["Identifier"];
-            /** @description 恢复后目标代次 */
-            targetDataEpoch: components["schemas"]["Identifier"];
-            /** @description 已校验的归档SHA-256 */
-            checksum: components["schemas"]["Hash"];
-            /** @description 暂存目录已fsync并登记 */
-            staged: boolean;
-            /** @description 新版生产方必给：sha256(canonical JSON [restoreId,snapshotId])；旧回执缺失时不得据此激活。 */
-            stageId?: string;
-            /** @description 新版生产方必给：迁移后完整目标普通文件与目录树canonical指纹；源域manifest hash和完整tar checksum分别保留，不混用。旧回执缺失不能激活。 */
-            manifestHash?: components["schemas"]["Hash"];
-        };
-        /** @description 把本域备份归档暂存到restore/<restoreId>/staged；不改active目录（ADR0003） */
-        SnapshotStageRequest: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /** @description 被暂存的本域快照引用 */
-            snapshot: components["schemas"]["SnapshotRef"];
-            /** @description 本次安全屏障ID */
-            barrierId: components["schemas"]["Identifier"];
-            /** @description 恢复后目标代次 */
-            targetDataEpoch: components["schemas"]["Identifier"];
-            /** @description 本域归档SHA-256，暂存后必须一致 */
-            checksum: components["schemas"]["Hash"];
-        };
-        /** @description 丢弃结果；目录不存在视为已删除 */
-        SnapshotDiscardResult: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /**
-             * @description 已处理的目录类别
-             * @enum {unknown}
-             */
-            scope: "staged" | "before";
-            /** @description 本次是否实际删除了目录 */
-            removed: boolean;
-        };
-        /** @description 删除某次恢复的暂存目录或换出的旧数据目录 */
-        SnapshotDiscardRequest: {
-            /** @description 本次全域恢复ID */
-            restoreId: components["schemas"]["Identifier"];
-            /**
-             * @description staged=未换入的暂存；before=恢复完成后换出的旧active
-             * @enum {unknown}
-             */
-            scope: "staged" | "before";
         };
         /** @description 资源pin源的最小持久决定；COMMITTED优先，404/pending/未知都不能作为release证据 */
         ReferenceSourceDecision: {
@@ -2743,189 +2402,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    acquireBarrier: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BarrierRequest"];
-            };
-        };
-        responses: {
-            /** @description 取得可恢复的数据屏障的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BarrierStatus"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEADLINE_EXCEEDED：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    exportSnapshot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotExportRequest"];
-            };
-        };
-        responses: {
-            /** @description 导出屏障水位的一致快照的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotExportResult"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEADLINE_EXCEEDED：依赖或本地操作未在期限内结束；提交状态以 operationId 回执为准 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    releaseBarrier: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 路径中的barrierId；合并到 handler input，不能跨站点 */
-                barrierId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["releaseBarrierRequest"];
-            };
-        };
-        responses: {
-            /** @description 释放屏障的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReleaseBarrierResult"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description VERSION_MISMATCH：expectedRevision、对象版本或 dataEpoch 已改变 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     listDocuments: {
         parameters: {
             query: {
@@ -4931,59 +4407,6 @@ export interface operations {
             };
         };
     };
-    readContentObject: {
-        parameters: {
-            query?: {
-                version?: string;
-                expectedHash?: string;
-            };
-            header?: never;
-            path: {
-                /** @description 路径中的objectId；合并到 handler input，不能跨站点 */
-                objectId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 经对象API读取私有文件而不共享目录的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReadContentObjectResult"];
-                };
-            };
-            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description NOT_FOUND：资源不存在或在当前主体作用域中不可见 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description INTEGRITY_ERROR：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     readPublicTree: {
         parameters: {
             query?: never;
@@ -5120,108 +4543,6 @@ export interface operations {
             };
         };
     };
-    stageSnapshot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotStageRequest"];
-            };
-        };
-        responses: {
-            /** @description 暂存本域恢复归档，不改active目录的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotStageResult"];
-                };
-            };
-            /** @description FORBIDDEN：调用方不是data-protection或缺superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：runtime阶段或restoreId不符，或本域屏障未safe；CONFLICT：同restoreId已暂存不同checksum */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description INTEGRITY_ERROR：归档hash、owner或manifest不一致；临时目录已删除；UNSUPPORTED_SCHEMA：快照schema高于本版本可迁移范围 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description DEPENDENCY_UNAVAILABLE：拉取归档失败或磁盘空间不足；临时目录已删除 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    discardSnapshot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnapshotDiscardRequest"];
-            };
-        };
-        responses: {
-            /** @description 删除恢复暂存或换出的旧数据目录的成功回执 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotDiscardResult"];
-                };
-            };
-            /** @description FORBIDDEN：调用方不是data-protection或缺superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description LOCKED：当前恢复阶段不允许删除该目录 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     readReferenceDecision: {
         parameters: {
             query?: never;
@@ -5305,52 +4626,6 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
-            };
-        };
-    };
-    readSnapshotArchive: {
-        parameters: {
-            query: {
-                sha256: components["schemas"]["Hash"];
-                byteSize: number;
-            };
-            header?: never;
-            path: {
-                snapshotId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 完整已完成USTAR归档，接收方仍核引用hash/长度/EOF */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/x-tar": string;
-                };
-            };
-            /** @description 缺data-protection服务及superadmin委托 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 完成归档引用或维护绑定不一致 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 完成归档或控制状态尚未可证明 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

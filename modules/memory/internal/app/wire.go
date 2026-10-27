@@ -64,13 +64,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, view)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域屏障与持久化，尚未实现")
-	}
 
 	id := platform.NewIdentifier()
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
@@ -154,7 +147,7 @@ func NewRuntimeClient(config platform.ServiceConfig) (platform.SiteConfigClient,
 // ensureDataLayout 建立 active/control/restore 三区；control 区不随业务
 // 恢复替换，restore 供 ADR0003 换目录协议使用。
 func ensureDataLayout(dataRoot string) error {
-	for _, name := range [...]string{"active", "control", "restore"} {
+	for _, name := range [...]string{"active", "control"} {
 		if err := os.MkdirAll(filepath.Join(dataRoot, name), 0o700); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "建立本域数据目录失败")
 		}

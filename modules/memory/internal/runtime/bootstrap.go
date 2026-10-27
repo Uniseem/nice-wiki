@@ -156,7 +156,7 @@ func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Ide
 	if err := contextError(ctx); err != nil {
 		return nil, err
 	}
-	for _, directory := range []string{"active", "control", "restore", "active/objects"} {
+	for _, directory := range []string{"active", "control", "active/objects"} {
 		if err := os.MkdirAll(filepath.Join(dataDirectory, directory), 0o700); err != nil {
 			return nil, platform.NewError(platform.CodeInternal, false, "建立私有数据目录失败")
 		}

@@ -257,18 +257,6 @@ func problemToError(raw []byte) error {
 // PayloadValidationSpec保留显式登记的生产方载荷及引用闭包，不扩展HTTP接口。
 const PayloadValidationSpec = "{\"components\":{\"schemas\":{\"Identifier\":{\"description\":\"系统生成的不透明 ID，不含个人信息\",\"maxLength\":128,\"minLength\":1,\"pattern\":\"^[A-Za-z0-9._:-]+$\",\"type\":\"string\"},\"IdentityChanged\":{\"$ref\":\"#/components/schemas/types_IdentityChanged\"},\"Revision\":{\"description\":\"对象单调修订号\",\"minimum\":0,\"type\":\"integer\"},\"Timestamp\":{\"description\":\"RFC3339 UTC 时间\",\"format\":\"date-time\",\"type\":\"string\"},\"types_IdentityChanged\":{\"additionalProperties\":false,\"description\":\"不含口令/IP的撤销事件\",\"properties\":{\"accountId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"账户\"},\"credentialRevision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"凭据\"},\"occurredAt\":{\"$ref\":\"#/components/schemas/Timestamp\",\"description\":\"时间\"},\"permissionRevision\":{\"$ref\":\"#/components/schemas/Revision\",\"description\":\"权限\"},\"reason\":{\"description\":\"原因\",\"enum\":[\"permissions\",\"status\",\"password\",\"server_reset\",\"restore\",\"session\"],\"type\":\"string\"},\"siteId\":{\"$ref\":\"#/components/schemas/Identifier\",\"description\":\"站点\"}},\"required\":[\"accountId\",\"siteId\",\"permissionRevision\",\"credentialRevision\",\"reason\",\"occurredAt\"],\"type\":\"object\"}}},\"info\":{\"title\":\"运行载荷校验\",\"version\":\"1\"},\"openapi\":\"3.0.3\",\"paths\":{}}"
 
-// DataProtectionClient 调用data-protection服务（自动附服务断言）。
-type DataProtectionClient struct{ *producerClient }
-
-func NewDataProtectionClient(baseURL, issuer string, key platform.SigningKey) *DataProtectionClient {
-	return &DataProtectionClient{newProducerClient("data-protection", baseURL, issuer, key)}
-}
-
-// ServeRestoreArchive GET /v1/restores/{restoreId}/archives/{owner}（data-protection:serveRestoreArchive）。
-func (c *DataProtectionClient) ServeRestoreArchive(ctx context.Context, restoreId string, owner string) (*http.Response, error) {
-	return c.binary(ctx, http.MethodGet, "/v1/restores/"+url.PathEscape(restoreId)+"/archives/"+url.PathEscape(owner)+"", nil, "")
-}
-
 // IdentityClient 调用identity服务（自动附服务断言）。
 type IdentityClient struct{ *producerClient }
 
@@ -294,14 +282,6 @@ func (c *JobsClient) AcknowledgeEvent(ctx context.Context, eventId string, body 
 		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
 	}
 	return c.do(ctx, http.MethodPost, "/v1/events/"+url.PathEscape(eventId)+":ack", body, idempotencyKey)
-}
-
-// CoordinateBarrier POST /v1/barriers:coordinate（jobs:coordinateBarrier）。
-func (c *JobsClient) CoordinateBarrier(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/barriers:coordinate", body, idempotencyKey)
 }
 
 // PublishEvent POST /v1/events（jobs:publishEvent）。
@@ -330,21 +310,4 @@ func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, qu
 		return nil, err
 	}
 	return eventEnvelopeStream{r: reader}, nil
-}
-
-// SiteConfigClient 调用site-config服务（自动附服务断言）。
-type SiteConfigClient struct{ *producerClient }
-
-func NewSiteConfigClient(baseURL, issuer string, key platform.SigningKey) *SiteConfigClient {
-	return &SiteConfigClient{newProducerClient("site-config", baseURL, issuer, key)}
-}
-
-// ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
-func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
-}
-
-// RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。
-func (c *SiteConfigClient) RegisterActivation(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/runtime-state/activations", body, "")
 }

@@ -19,18 +19,12 @@
 | POST `/v1/usage:reconcile` | `reconcileUsage` | `analytics.ReconcileUsage` | `system.manage` | `ReconcileUsageRequestBody` → 200 `ReconcileUsageResult` | 对账修复派生统计 | `FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/crawler-access` | `recordCrawlerAccess` | `analytics.RecordCrawlerAccess` | `service` | `RecordCrawlerAccessRequestBody` → 200 `RecordCrawlerAccessResult` | AI Markdown访问独立计数 | `FORBIDDEN`、`VALIDATION` |
 | GET `/v1/statistics/content-gaps` | `queryContentGaps` | `analytics.QueryContentGaps` | `stats.read` | `—` → 200 `QueryContentGapsResult` | 热门文档与答不出问题联动 | `FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/barriers` | `acquireBarrier` | `analytics.EnterBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 进入analytics一致屏障 | `DEADLINE_EXCEEDED` |
-| POST `/v1/barriers/{barrierId}:release` | `releaseBarrier` | `analytics.ReleaseBarrier` | `service` | `ReleaseBarrierRequestBody` → 200 `ReleaseBarrierResult` | 解除统计维护 | `LOCKED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `analytics.CreateSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出统计快照 | `LOCKED`、`INTERNAL` |
 | GET `/healthz` | `health` | `analytics.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `analytics.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `analytics.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `analytics.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
 | POST `/v1/internal/beacons` | `ingestTrustedBeacon` | `analytics.IngestBeacon` | `service` | `IngestBeaconInput` → 204 `—` | 可信portal匿名访问转交 | `VALIDATION`、`VERSION_MISMATCH` |
 | POST `/v1/audit-exports` | `createAuditExport` | `analytics.CreateExport` | `audit.read` | `CreateAuditExportRequestBody` → 200 `CreateExportResult` | 当前审计权限私有CSV导出 | `FORBIDDEN`、`VALIDATION` |
 | GET `/v1/statistics/exports/{exportId}` | `downloadStatisticsExport` | `analytics.OpenExport` | `stats.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
 | GET `/v1/audit-exports/{exportId}` | `downloadAuditExport` | `analytics.OpenExport` | `audit.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `analytics.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | POST `/v1/jobs/{jobId}/recovery` | `readJobRecovery` | `analytics.ReadJobRecovery` | `service` | `ReadJobRecoveryInput` → 200 `ReadJobRecoveryResult` | 读取原统计聚合任务恢复证明 | `HTTP default` |
 | GET `/v1/statistics/visitors` | `listVisitors` | `analytics.ListVisitors` | `stats.read` | `—` → 200 `ListVisitorsResult` | 按唯一访客查看活动和设备信息 | `FORBIDDEN`、`VALIDATION` |
 <!-- openapi:end -->

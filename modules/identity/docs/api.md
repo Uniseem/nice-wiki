@@ -9,9 +9,6 @@
 
 | 方法与路径 | operationId | 处理函数 | 权限 | 请求 → 成功响应 | 说明 | 错误 |
 |---|---|---|---|---|---|---|
-| POST `/v1/barriers` | `acquireBarrier` | `identity.AcquireBarrier` | `service` | `BarrierRequest` → 200 `BarrierStatus` | 取得可恢复的数据屏障 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| POST `/v1/snapshots:export` | `exportSnapshot` | `identity.ExportSnapshot` | `service` | `SnapshotExportRequest` → 200 `SnapshotExportResult` | 导出屏障水位的一致快照 | `FORBIDDEN`、`LOCKED`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`DEADLINE_EXCEEDED` |
-| DELETE `/v1/barriers/{barrierId}` | `releaseBarrier` | `identity.ReleaseBarrier` | `service` | `releaseBarrierRequest` → 200 `ReleaseBarrierResult` | 释放屏障 | `FORBIDDEN`、`VERSION_MISMATCH` |
 | GET `/v1/registration` | `readRegistrationState` | `identity.ReadRegistrationState` | `anonymous` | `—` → 200 `ReadRegistrationStateResult` | 决定后台显示首次注册或登录 | `DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/registration` | `registerFirstSuperadmin` | `identity.RegisterFirstSuperadmin` | `anonymous` | `RegisterFirstSuperadminInput` → 200 `RegisterFirstSuperadminResult` | 首个注册账户原子成为唯一超管 | `VALIDATION`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE`、`UNAUTHENTICATED`、`FORBIDDEN`、`INTEGRITY_ERROR` |
 | GET `/v1/accounts` | `listAccounts` | `identity.ListAccounts` | `superadmin` | `—` → 200 `ListAccountsResult` | 超管读取子账号列表 | `VALIDATION`、`FORBIDDEN`、`UNAUTHENTICATED`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
@@ -31,9 +28,6 @@
 | PUT `/v1/preferences` | `updatePreferences` | `identity.UpdatePreferences` | `portal.use` | `UpdatePreferencesInput` → 200 `UpdatePreferencesResult` | 保存自身主题/语言/默认后台页 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`INTEGRITY_ERROR` |
 | GET `/healthz` | `health` | `identity.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `identity.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/snapshots:stage` | `stageSnapshot` | `identity.StageSnapshot` | `service` | `SnapshotStageRequest` → 200 `SnapshotStageResult` | 暂存本域恢复归档，不改active目录 | `FORBIDDEN`、`CONFLICT`、`LOCKED`、`UNSUPPORTED_SCHEMA`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/snapshots:discard` | `discardSnapshot` | `identity.DiscardSnapshot` | `service` | `SnapshotDiscardRequest` → 200 `SnapshotDiscardResult` | 删除恢复暂存或换出的旧数据目录 | `FORBIDDEN`、`LOCKED` |
-| GET `/v1/snapshots/{snapshotId}/archive` | `readSnapshotArchive` | `identity.ReadSnapshotArchive` | `superadmin` | `—` → 200 `application/x-tar` | 受控读取已完成域快照归档 | `HTTP 403`、`HTTP 409`、`HTTP 503` |
 | GET `/v1/auth/options` | `readAuthOptions` | `identity.ReadAuthOptions` | `anonymous` | `—` → 200 `ReadAuthOptionsResult` | 读取登录页选项 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/users:register` | `registerUser` | `identity.RegisterUser` | `anonymous` | `RegisterUserInput` → 200 `RegisterUserResult` | 邮箱注册并登录 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/oauth/{provider}:start` | `oauthStart` | `identity.OauthStart` | `anonymous` | `OauthStartInput` → 200 `OauthStartResult` | 开始第三方登录 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |

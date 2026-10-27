@@ -4,12 +4,6 @@
     {
       "event": "content.publication.changed",
       "version": 1,
-      "consumer": "data-protection",
-      "handler": "data-protection.MirrorSourceRevision"
-    },
-    {
-      "event": "content.publication.changed",
-      "version": 1,
       "consumer": "knowledge",
       "handler": "knowledge.HandlePublication"
     },
@@ -84,12 +78,6 @@
       "version": 1,
       "consumer": "analytics",
       "handler": "analytics.ConsumeAnalyticsEvent"
-    },
-    {
-      "event": "jobs.barrier-state-changed.v1",
-      "version": 1,
-      "consumer": "data-protection",
-      "handler": "data-protection.ConsumeBarrierEvent"
     },
     {
       "event": "qa.turn.completed",

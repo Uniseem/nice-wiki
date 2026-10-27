@@ -74,10 +74,10 @@
 |---|---|---|---|---|
 | edge | Rust | 见下方展开 | 封禁、风控策略、风险事件 | portal、traffic-guard、public-site 的缓存、analytics 的采集；按现有 Go 实现的行为用 Rust 重写 |
 | account | Go | 见下方展开 | 用户、身份绑定、会话、站点登记、协作者、域名、两种邀请码、用户权益、举报、平台设置 | identity、site-config 的平台部分 |
-| content | Go | 见下方展开 | 文档、修订、发布、编辑锁、媒体、站点设置、译文与术语、Git 同步配置 | content、media、public-site、site-config 的站点部分、localization、data-protection 的 Git 镜像 |
+| content | Go | 见下方展开 | 文档、修订、发布、编辑锁、媒体、站点设置、译文与术语、Git 同步配置 | content、media、public-site、site-config 的站点部分、localization |
 | ai | Go + Node | 见下方展开 | 渠道、自带 key、额度账本、调用记录、对话与轮次、长期记忆 | model-gateway、qa、agent、memory |
 | search | Rust | 见下方展开 | 分块、向量（pgvector）、全文索引文件 | knowledge；按现有 Go 实现的行为用 Rust 重写 |
-| ops | Go | 见下方展开 | 任务定义与执行记录、统计汇总、审计、备份目标与备份记录 | jobs、analytics、data-protection |
+| ops | Go | 见下方展开 | 任务定义与执行记录、统计汇总、审计、备份目标与备份记录 | jobs、analytics、traffic-guard（备份目标与备份记录放在 content，全平台备份是 `deploy/backup.sh`） |
 
 各服务职责展开：
 
@@ -383,7 +383,7 @@
 与上文设计相比，当前代码的实际状态如下；没写的部分按设计实现。
 
 - **服务划分**：portal 与 knowledge 仍是独立进程（edge 放在 portal 前面，没有取代它；search 是 knowledge 的 Rust 检索后端）；account、content、ai、ops 四个宿主进程各跑一组组件。Rust 服务与 Go 之间用共享密钥 HMAC 认证，没有用服务断言（密钥在部署的私有卷里）。
-- **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全（会话变量 `nw.site`）；事件仍是 outbox → jobs → inbox，按站点分发，没有换成 PG 队列。旧的跨域屏障、封口、快照协议代码还在但不再参与运行，没有删除。
+- **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全（会话变量 `nw.site`）；事件仍是 outbox → jobs → inbox，按站点分发，没有换成 PG 队列。旧的跨域屏障、封口、快照、换目录恢复协议（含 data-protection 服务）已整体删除，只在公共库里留下少量通用的运行阶段与维护标记（始终是运行中）。
 - **用户与站点**：注册（邀请码，不验证邮箱）、第三方登录（只写代码，没有联调）、站点上限与存储上限、成员角色、平台子域名与自定义域名（DNS 验证）、私有站点（一次性码换站点专用短期凭据）、举报与下架都已实现并在 NL 测试实例上验证。邮件相关（验证、通知）没有做。
 - **AI**：自带渠道优先、平台兜底、AI 邀请码额度、访客问答每日上限、按用户记账都已实现并用假供应方与 OpenRouter 免费模型验证。
 - **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点（旧账本观察管线已在 PostgreSQL 上跑通），站点主人的 AI 用量走 identity 的 `readAiUsage`。

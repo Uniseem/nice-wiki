@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"nice-wiki/libs/platform"
 	"strconv"
@@ -131,27 +130,6 @@ func NewGuardHandlers(runtime GuardRuntime) map[string]http.Handler {
 				if err = bind(&body); err == nil {
 					result, err = VerifyAdmissionHTTP(ctx, op, VerifyAdmissionHTTPInput{r.PathValue("admissionId"), body.RequestID, op.DataEpoch, body.Token})
 				}
-			case "readSnapshotArchive":
-				byteSize, parseErr := strconv.ParseInt(r.URL.Query().Get("byteSize"), 10, 64)
-				if parseErr != nil {
-					err = platform.NewError(platform.CodeValidation, false, "快照归档字节数不可读")
-					break
-				}
-				archive, readErr := ReadSnapshotArchive(ctx, op, SnapshotArchiveReadInput{
-					SnapshotID: r.PathValue("snapshotId"),
-					SHA256:     platform.Hash(r.URL.Query().Get("sha256")),
-					ByteSize:   byteSize,
-				})
-				if readErr != nil {
-					err = readErr
-					break
-				}
-				defer archive.Archive.Close()
-				w.Header().Set("Content-Type", archive.Object.MediaType)
-				w.Header().Set("Content-Length", strconv.FormatInt(archive.Object.ByteSize, 10))
-				w.WriteHeader(http.StatusOK)
-				_, _ = io.Copy(w, archive.Archive)
-				return
 			}
 			var limited *admissionRateError
 			if errors.As(err, &limited) && limited.retryAfterMs > 0 {

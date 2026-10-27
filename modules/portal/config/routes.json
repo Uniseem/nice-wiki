@@ -154,16 +154,6 @@
     {
       "method": "GET",
       "path": "/healthz",
-      "owner": "data-protection",
-      "operationId": "health",
-      "permission": "anonymous",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/healthz",
       "owner": "agent",
       "operationId": "health",
       "permission": "anonymous",
@@ -315,16 +305,6 @@
       "method": "GET",
       "path": "/readyz",
       "owner": "analytics",
-      "operationId": "ready",
-      "permission": "anonymous",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/readyz",
-      "owner": "data-protection",
       "operationId": "ready",
       "permission": "anonymous",
       "admission": null,
@@ -952,66 +932,6 @@
       "streaming": false
     },
     {
-      "method": "GET",
-      "path": "/v1/backups",
-      "owner": "data-protection",
-      "operationId": "listBackups",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/backups",
-      "owner": "data-protection",
-      "operationId": "createBackup",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/backups/{backupId}",
-      "owner": "data-protection",
-      "operationId": "readBackup",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/backups/{backupId}/download",
-      "owner": "data-protection",
-      "operationId": "streamPortableBackup",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/backups/{backupId}:download",
-      "owner": "data-protection",
-      "operationId": "authorizeBackupDownload",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/backups:import",
-      "owner": "data-protection",
-      "operationId": "importPortableBackup",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
       "method": "PUT",
       "path": "/v1/banner",
       "owner": "site-config",
@@ -1612,16 +1532,6 @@
       "streaming": false
     },
     {
-      "method": "PUT",
-      "path": "/v1/git-remote",
-      "owner": "data-protection",
-      "operationId": "configureRemote",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
       "method": "GET",
       "path": "/v1/glossary",
       "owner": "localization",
@@ -1922,16 +1832,6 @@
       "streaming": false
     },
     {
-      "method": "PUT",
-      "path": "/v1/local-backup-schedule",
-      "owner": "data-protection",
-      "operationId": "scheduleLocalBackup",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
       "method": "GET",
       "path": "/v1/mappings",
       "owner": "memory",
@@ -1987,36 +1887,6 @@
       "owner": "identity",
       "operationId": "redeemAiCode",
       "permission": "account.self",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/mirrors",
-      "owner": "data-protection",
-      "operationId": "buildMirror",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/mirrors/status",
-      "owner": "data-protection",
-      "operationId": "readMirrorStatus",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/mirrors/{mirrorId}:sync",
-      "owner": "data-protection",
-      "operationId": "syncMirror",
-      "permission": "backup.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false
@@ -2332,66 +2202,6 @@
       "streaming": false
     },
     {
-      "method": "POST",
-      "path": "/v1/restores",
-      "owner": "data-protection",
-      "operationId": "createRestore",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/restores/{restoreId}/progress",
-      "owner": "data-protection",
-      "operationId": "readRestoreProgress",
-      "permission": "anonymous",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/restores/{restoreId}:abort",
-      "owner": "data-protection",
-      "operationId": "abortRestore",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/restores/{restoreId}:cleanup",
-      "owner": "data-protection",
-      "operationId": "cleanupRestore",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/restores/{restoreId}:continue",
-      "owner": "data-protection",
-      "operationId": "continueRestore",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/restores:validate",
-      "owner": "data-protection",
-      "operationId": "validateRestore",
-      "permission": "superadmin",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
       "method": "GET",
       "path": "/v1/risk-events",
       "owner": "traffic-guard",
@@ -2497,26 +2307,6 @@
       "owner": "identity",
       "operationId": "refreshSession",
       "permission": "anonymous",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "GET",
-      "path": "/v1/settings",
-      "owner": "data-protection",
-      "operationId": "readProtectionSettings",
-      "permission": "backup.manage",
-      "admission": null,
-      "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/setup:restore",
-      "owner": "data-protection",
-      "operationId": "restoreDuringSetup",
-      "permission": "superadmin",
       "admission": null,
       "timeoutMs": null,
       "streaming": false

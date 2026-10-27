@@ -2,19 +2,17 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 46 个：手写 30、UI 1、生成 3、配置 6、迁移 6。函数 109 个：约束 34，参考 75。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 42 个：手写 26、UI 1、生成 3、配置 6、迁移 6。函数 88 个：约束 26，参考 62。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
 | `modules/site-config/internal/config_service.go` | 手写 | 读取后台站点配置 | `site-config.ReadSiteConfig`、`site-config.UpdateSiteConfig`、`site-config.readConfigAtWatermark`（参考）、`site-config.loadPublicHomeConfig`（参考）、`site-config.authorizeConfigRead`（参考） |
 | `modules/site-config/internal/config_validator.go` | 手写 | 校验配置所有字段和关联约束 | `site-config.ValidateSiteConfig`（参考）、`site-config.NormalizeBaseURL`（参考）、`site-config.validateConfigWebLink`（参考） |
 | `modules/site-config/internal/language_service.go` | 手写 | 规范基准语言 tag | `site-config.ValidateLanguageTag`（参考） |
-| `modules/site-config/internal/home_service.go` | 手写 | 保存一屏hero权威配置、公开安全投影和媒体引用持久恢复 | `site-config.UpdateHome`、`site-config.ReadPublicHome`、`site-config.ReadHomeReferenceDecision`、`site-config.RecoverHomeReferences`、`site-config.ConfigureHome`（参考）、`site-config.homeDependencies`（参考）、`site-config.homeSourceObjectID`（参考）、`site-config.homeReferenceMaterial`（参考）、`site-config.saveHomeReferenceIntent`（参考）、`site-config.readHomeReferenceIntent`（参考）、`site-config.validateHomePin`（参考）、`site-config.committedHomeReference`（参考）、`site-config.verifyHomeCommittedReference`（参考）、`site-config.checkHomeConfigCommit`（参考）、`site-config.markHomeConfigCommitted`（参考）、`site-config.homeReferenceContext`（参考）、`site-config.persistHomePin`（参考）、`site-config.acquireHomePin`（参考）、`site-config.decideHomeTermination`（参考）、`site-config.settleHomeReference`（参考）、`site-config.compareHomeInput`（参考）、`site-config.homeTerminatedError`（参考）、`site-config.finishHomeFailure`（参考）、`site-config.homeServiceContext`（参考）、`site-config.resolveHomeDocument`（参考）、`site-config.safeHomeRelativeHref`（参考）、`site-config.disablePublicHomeButton`（参考）、`site-config.readHomeQACapability`（参考）、`site-config.RecoverHomeReferenceState`（参考）、`site-config.homeWriteContext`（参考）、`site-config.ExportSnapshot`、`site-config.StageSnapshot`、`site-config.DiscardSnapshot` |
+| `modules/site-config/internal/home_service.go` | 手写 | 保存一屏hero权威配置、公开安全投影和媒体引用持久恢复 | `site-config.UpdateHome`、`site-config.ReadPublicHome`、`site-config.ReadHomeReferenceDecision`、`site-config.RecoverHomeReferences`、`site-config.ConfigureHome`（参考）、`site-config.homeDependencies`（参考）、`site-config.homeSourceObjectID`（参考）、`site-config.homeReferenceMaterial`（参考）、`site-config.saveHomeReferenceIntent`（参考）、`site-config.readHomeReferenceIntent`（参考）、`site-config.validateHomePin`（参考）、`site-config.committedHomeReference`（参考）、`site-config.verifyHomeCommittedReference`（参考）、`site-config.checkHomeConfigCommit`（参考）、`site-config.markHomeConfigCommitted`（参考）、`site-config.homeReferenceContext`（参考）、`site-config.persistHomePin`（参考）、`site-config.acquireHomePin`（参考）、`site-config.decideHomeTermination`（参考）、`site-config.settleHomeReference`（参考）、`site-config.compareHomeInput`（参考）、`site-config.homeTerminatedError`（参考）、`site-config.finishHomeFailure`（参考）、`site-config.homeServiceContext`（参考）、`site-config.resolveHomeDocument`（参考）、`site-config.safeHomeRelativeHref`（参考）、`site-config.disablePublicHomeButton`（参考）、`site-config.readHomeQACapability`（参考）、`site-config.RecoverHomeReferenceState`（参考）、`site-config.homeWriteContext`（参考） |
 | `modules/site-config/internal/home_validator.go` | 手写 | 验证首页目标与引用 | `site-config.ValidateHomeLinks`（参考）、`site-config.validateHomeStructure`（参考）、`site-config.decodeHomeTarget`（参考） |
 | `modules/site-config/internal/runtime_state_service.go` | 手写 | 读取独立控制库权威运行状态 | `site-config.ReadRuntimeState` |
-| `modules/site-config/internal/snapshot_service.go` | 手写 | 本域快照公共端口装配与真实库存回调 | `site-config.observeSiteWork`（参考）、`site-config.sealSiteWork`（参考）、`site-config.resumeSiteWork`（参考）、`site-config.observeSiteWorkFacts`（参考）、`site-config.drainSiteConfigReferences`（参考）、`site-config.NewSnapshotManager`（参考） |
-| `modules/site-config/internal/runtime_store.go` | 手写 | 打开独立control.db与active/site-config.db并持久化运行状态、激活回执、业务索引与操作幂等记录 | `site-config.ConfigureActivationVerifier`（参考）、`site-config.RuntimeStore.ConfigureActivationVerifier`（参考）、`site-config.RuntimeStore.activationVerifierAnchors`（参考）、`site-config.OpenRuntimeStore`（参考）、`site-config.OpenActiveStore`（参考）、`site-config.ActiveStore.OutboxStore`（参考）、`site-config.registerSiteConfigWorkTables`（参考）、`site-config.ValidateActiveReady`（参考）、`site-config.RuntimeStore.ReadRuntimeView`（参考） |
-| `modules/site-config/internal/runtime_transition.go` | 手写 | 按CAS切换epoch与维护阶段 | `site-config.verifyActivationReceipt`（参考）、`site-config.TransitionRuntimeState`、`site-config.ValidateRuntimeTransition`（参考）、`site-config.RegisterActivation` |
+| `modules/site-config/internal/runtime_store.go` | 手写 | 打开独立control.db与active/site-config.db并持久化运行状态、激活回执、业务索引与操作幂等记录 | `site-config.OpenRuntimeStore`（参考）、`site-config.OpenActiveStore`（参考）、`site-config.ActiveStore.OutboxStore`（参考）、`site-config.registerSiteConfigWorkTables`（参考）、`site-config.ValidateActiveReady`（参考）、`site-config.RuntimeStore.ReadRuntimeView`（参考） |
 | `modules/site-config/internal/write_epoch.go` | 手写 | 所有业务写入执行epoch与屏障检查 | `site-config.CheckWriteEpoch`（参考） |
 | `modules/site-config/internal/migrations/migrations.go` | 手写 | 内嵌本域control.db只追加SQL迁移并校验编号连续 | `site-config.All`（参考） |
 | `modules/site-config/internal/migrations/0001_control.sql` | 迁移 | 初始control.db表：runtime_state、activation_receipts、runtime_operation_receipts与schema_migrations | 无 |
@@ -27,7 +25,6 @@
 | `modules/site-config/internal/operation_repository.go` | 手写 | 查询配置幂等回执 | `site-config.ResolveConfigOperation`（参考） |
 | `modules/site-config/internal/outbox_repository.go` | 手写 | 将配置事件与业务提交原子登记，并把真实outbox单批转发装配委托给平台 | `site-config.PublishConfigEvent`（参考）、`site-config.RelayOutbox`、`site-config.WithRelayRuntime`（参考） |
 | `modules/site-config/internal/object_reader.go` | 手写 | 经协议读取本域正文或快照对象 | `site-config.ReadConfigObject` |
-| `modules/site-config/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | `site-config.WithSnapshotRuntime`（参考）、`site-config.AcquireBarrier`、`site-config.ReleaseBarrier` |
 | `modules/site-config/internal/branding_service.go` | 手写 | 更新站名/logo/图标/主题色/默认分享图 | `site-config.UpdateBranding` |
 | `modules/site-config/internal/footer_service.go` | 手写 | 更新页脚版权/自定义链接/ICP备案/源码链接 | `site-config.UpdateFooter` |
 | `modules/site-config/internal/banner_service.go` | 手写 | 保存单条可关闭公告横幅 | `site-config.UpdateBanner` |
@@ -35,7 +32,7 @@
 | `modules/site-config/internal/config_history.go` | 手写 | 读取可回滚的站点设置历史 | `site-config.ReadConfigHistory`、`site-config.RestoreConfigRevision` |
 | `modules/site-config/internal/resource_reference_reader.go` | 手写 | 向媒体返回站点设置权威资源引用快照 | `site-config.ListResourceReferences`、`site-config.authorizeResourceReferenceRead`（参考） |
 | `modules/site-config/cmd/site-config/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `site-config.main` |
-| `modules/site-config/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `site-config.registerActivationAfterSwap`（参考）、`site-config.BuildApplication` |
+| `modules/site-config/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `site-config.BuildApplication` |
 | `modules/site-config/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `site-config.Serve`、`site-config.Shutdown`、`site-config.Health`、`site-config.Ready`、`site-config.BackgroundTasks`（参考）、`site-config.Drain`（参考）、`site-config.homeRecoveryOperation`（参考） |
 | `modules/site-config/go.mod` | 配置 | 独立module nice-wiki/modules/site-config；固定Go工具链和本域实际库依赖，不能import另一服务internal或用latest浮动依赖 | 无 |
 | `modules/site-config/go.sum` | 生成 | go.mod依赖校验锁；由go mod download生成，纳入版本以可重现构建 | 无 |
@@ -50,5 +47,4 @@
 | `modules/site-config/internal/migrations/active/0003_config_commit.sql` | 迁移 | 只追加配置操作原始身份、摘要和不可重建结果回执；outbox结构复用platform | 无 |
 | `modules/site-config/internal/migrations/active/0004_config_operations.sql` | 迁移 | 一般设置操作的完整候选配置规范JSON/hash，只是重试恢复材料；正式配置仍以settings文件为权威 | 无 |
 | `modules/site-config/internal/migrations/active/0005_home_reference_decisions.sql` | 迁移 | 追加首页资源pin intent、持久终局、原pin及确认/释放续办阶段，不替代settings文件权威 | 无 |
-| `modules/site-config/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `site-config.ReadSnapshotArchive` |
 | `modules/site-config/web/src/index.tsx` | UI | 站点设置：基本信息、品牌图片、首页主视觉（含预览）、公告横幅、页脚 | `site-config.SitePage` |

@@ -45,14 +45,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	swap, err := lifecycle.ApplyRestoreSwap(config.DataRoot, runtimeView)
-	if err != nil {
-		return nil, err
-	}
-	if swap.Action != platform.SwapNone {
-		// 换目录后的 activation 回执、journal 恢复和业务资源重建尚未接入。
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "恢复换目录回执依赖本域后续工作包")
-	}
 
 	store, err := content.OpenDatabase(ctx, config.DataRoot, runtimeView.DataEpoch)
 	if err != nil {
@@ -220,7 +212,7 @@ func validateConfig(config platform.ServiceConfig) error {
 }
 
 func ensureDataLayout(dataRoot string) error {
-	for _, name := range []string{"active", "control", "restore"} {
+	for _, name := range []string{"active", "control"} {
 		path := filepath.Join(dataRoot, name)
 		if err := lifecycle.ValidatePrivatePath(path, "directory", true); err != nil {
 			return err
