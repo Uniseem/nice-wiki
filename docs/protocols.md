@@ -12,7 +12,6 @@
 
 身份令牌只接受固定发行方、固定签名算法、audience、有效期及可撤销版本；拒绝客户端选择算法。具体密钥产生/轮换见identity函数合同；JWT字段含义参照 [RFC7519](https://www.rfc-editor.org/rfc/rfc7519)，不复制第三方实现。
 
-
 会话访问令牌统一由platform.serviceauth签发和验证：固定EdDSA、typ=NW-SESSION、iss=identity、aud=portal，iat/exp为UNIX秒且最多900秒。声明携带session/account/site、credential/permission/session版本、authEpoch、dataEpoch和jti；签名有效之后，identity仍同步读取账户/会话/族/认证代次权威与秘密摘要。refresh和CSRF各自32随机字节，持久化只保存摘要；refresh旧值复用须先持久撤销族，再返回未认证。AuthContext的sessionRevision是会话单调版本，portal委托SessionVersion必须取此值，不以permissionRevision替代。
 
 portal使用identity:checkAuthorization的accessToken模式，由静态路由提供permission/action；其他域使用匹配可信委托的subject/site/session模式，两个来源不能混用。初始口令会话只允许identity:changePassword、identity:revokeSession和identity:readSelf；缺动作也拒绝。账户权限写请求检查CSRF；匿名凭证登录/刷新仍受部署固定Origin和Strict cookie约束，不要求尚未过期的access。可信公共地址只取进程配置publicBaseURL，不从请求Host反推；HTTP仅在显式allowLocalHTTP且loopback本地开发时允许。
@@ -33,7 +32,7 @@ portal使用identity:checkAuthorization的accessToken模式，由静态路由提
 
 EventEnvelope必须符合生产方events.json；至少一次持久投递，按对象revision拒绝旧事件，按eventId去重，dataEpoch不匹配拒写。事件传必要元数据与不可变ObjectRef，不任意抓客户端提供URL。
 
-有状态域的管理API为barriers和snapshots export/stage/discard（ADR0003）；request/response使用公共schema。入口无业务存储只参加维护，不虚构快照。所有管理路径受服务调用方、超管委托、屏障以及dataEpoch共同限制。
+有状态域的管理 API 只有各域自己业务需要的接口；跨域屏障、快照导出/暂存/丢弃协议已删除（ADR0003 作废）。
 
 ## 服务身份与委托（[ADR0004](adr/0004-wiring-and-service-identity.md)）
 
@@ -63,7 +62,6 @@ identity:checkAuthorization的AuthorizationDecision同时返回当前已校验�
 
 jobs:createJob可携可选notBefore指定最早领取时刻，显式值固定纳入去重；省略保留原立即可领和旧摘要。创建RPC短deadline只管提交传输，排队后由所属服务领取时建立执行期限，不能把原短请求截止当成延迟任务到期。
 
-
 服务断言可带签名siteId：出站只从可信OperationContext.Actor.SiteID复制，不取HTTP站点头。无用户委托时接收方保留签名站点及纯服务身份；旧断言省略siteId继续为system。有用户委托且断言带siteId时两者必须相同，否则FORBIDDEN。该范围不代表权限，拥有服务仍核对象归属和当前授权。主动切纯服务时清除用户proof并建立服务actor，保留已核本站/epoch/root/费用类和更早截止；传输层同时删除旧proof头。
 
 worker领取为队列控制：平台每次从当前runtime建立owner纯服务system、epoch及独立有界控制op；领取后由域从持久批准恢复实际site和执行权限，再发送真实任务对象RPC。公共WorkerJobsClient只要求六租约端口，HTTP映射与生产方schema校验集中worker.NewJobsClient，各域只装配客户端和六Result校验器。
@@ -80,10 +78,6 @@ guard createAdmission只分配持久元数据，token为空串。qa付费提问�
 
 风险信号响应只有实际禁令存在时才返回可选 `banExpiresAt` 时间；allow/challenge 无禁令时省略，禁止空时间或 null。
 
-## 域快照归档版本1（2026-10-18）
-
-公共 `DomainSnapshotManifest` 为未压缩tar首entry `manifest.json` 的唯一来源，canonical JSON上限16MiB；仅允许声明的 `files/<relativePath>` 普通文件，拒绝链接/特殊节点、重复、路径遍历及未声明内容。总归档20GiB、最多100000文件。域在真实安全截点回调穷尽files、objects、publications与跨域references，未知不能用空数组冒充完整。目标方逐项核长度/哈希/原epoch/格式版本与EOF后暂存，目标epoch只由域迁移回调建立；旧正文块ID和付费结果不重新生成。
-
 ## 后台监督与真实租约镜像
 
 TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并固定原业务deadline，HTTP断开不改deadline或取消接受任务；进程停止/显式Cancel/原deadline仍取消IO，关闭拒绝新任务并等所有回调退出。域回调负责终态/费用，监督集合不重派模型。WorkerConfig.OnLeaseRenewed在Start后的真实Heartbeat及每次权威续约后执行，只做本域同worker/fence/epoch镜像CAS，错误停止执行，禁止递归CheckLease或另造心跳。ClaimedJob.WorkerID由平台本轮领取者填入。RuntimeView.revision/barrierId来自真实site-config控制库，Ready不伪造水位。
@@ -98,22 +92,13 @@ TaskGroup只监督域已持久接受的本进程操作，Start唯一key去重并
 
 新处理链必须把ClaimInboxBeforeWrite放在事务首项写入，提供只提交该认领事务的回调；同ID身份/载荷冲突时，先提交隔离再返回完整性错误，不能让外层defer Rollback擦掉隔离。已隔离事件即使旧hash再次投递也不确认。修订水位按producer/eventType/eventVersion/subject隔离，只比较已applied；并发唯一冲突未经核对不确认。旧ClaimInbox保留兼容签名但不承诺替调用方提交隔离。
 
-数据保护部署可配置GitCredentialRefs（最多64个Identifier到规范绝对私有路径），其他域不得配置，加载只校验引用不读秘密。HTTP credentialRef只能选择已配置ID，不能拿请求路径读取私有文件。浏览器API端口仅为恢复只读/恢复取消许可/备份下载提供固定命名token选项，portal只能映射对应data-protection精确操作头，禁止任意headers或URL携token。responseType=stream返回原Response供有界管道下载，不能把20GiB归档统一读Blob。
-
 ## 任务owner持久恢复证明
 
 公共OwnerRecoveryRequest/Result来自common.schema，POST `/v1/jobs/{jobId}/recovery`由任务owner提供、operationId=readJobRecovery，仅jobs纯服务。path jobId必须与正文相同，owner必须本域；逐字段匹配原inputRef/root/epoch/expiredFence/worker/attempt及取消事实后才给结果。人工失败终局无租约时workerId可空、fence/attempt可0，绝不伪造当前worker。结果paidResultRefs始终完整数组，超预算失败，不截断。completed仅交真实原持久结果；safeToRetry必须原hash/checkpoint及付费结果可复用、全部尝试有实际未派发/已结账证明，无未知held；pending/unknown/不可达保留orphan。调用方以jobs自己持久记录构造请求、清掉portal委托、固定原root/site/epoch与5秒内截止；该端口不执行任务或模型。具体owner端口/客户端仍由后续实施登记，不把DTO存在算完整恢复。
 
 RunWorkerLoopWithResult基于真实jobs领取与终局确认累计，原RunWorkerLoop兼容委托；永久配置拒绝明确错误退出，所有heartbeat排空后交回进程关闭。报表时区ReportingTimeZone仅analytics可信部署配置，IANA校验且未配不猜UTC，匿名日盐与Daily同源；公开运行控制视图不捏造初始化字段，后台可只读readInitializationStatus安全initialized/phase，私有coordination原白名单不变。实际输出来源由MG Attempt.modelSnapshotHash和Invocation.resultAttemptId保持，与未知费用状态分开，消费者不自造模型哈希。
 
-新版本域暂存回执stageId为sha256(canonical JSON [restoreId,snapshotId])完整64位十六进制；manifestHash绑定迁移后目标完整文件/目录树指纹，源域清单指纹与完整tar checksum分别保存。SnapshotStageResult新增兼容可选字段，生产方新版始终给；缺失字段的旧回执不构成激活证明。ActivationReceipt必须绑定同一stageId/目标树指纹/restore决定；portal gate仍独立按配置hash。
-
-域快照原export仅回元数据，完整归档字节统一由GET /v1/snapshots/{snapshotId}/archive提供，query sha256/byteSize绑定本域固定ObjectRef；仅data-protection服务及superadmin委托，不能任意URL/路径。14域HTTP入口本次只登记为planned，公共OpenArchive已写，实际owner回调与授权长任务接线另按台账继续，不能因新增接口设计称完整备份可用。
-
 ModelOutput兼容完整chat/vision/translation文本，text显式空串表示已证明空输出，缺字段不是空；生产方UTF8字节上限64KiB。向量/重排/文本结果互斥，当前快照只读完整winning来源，不将旧partial delta改称完整。
-
-归档读取操作标记x-internal-only，portal静态浏览器路由生成排除该操作；其仍要求data-protection服务及superadmin委托，不用service权限隐藏掉委托。
 
 域归档清单新产出schemaVersion=2：assets以media完整五字段版本引用为权威，invocations以网关持久invocationId/rootOperationId/dataEpoch为权威，跨域仅typed引用，不猜ObjectRef版本或资产对象ID。V2两库存必填，未知拒绝，文件清单完整hash仍覆盖原DB/费用/结果证据；V1保原canonical编码只读，没有新版库存时不能声称新类型闭包。顶层备份新schemaVersion=2，历史类型名BackupManifestV1只为生成兼容；历史V1显式读取，不自动补空或重写原付费epoch。
 
-屏障HTTP沿原POST /v1/barriers以step=prepare|drain|observe|seal|resume-drain分阶段，缺省仅prepare；observe只读返回BarrierStatus.observation，safe另带sealProofHash。完整14域观察、两次同broker水位和13非jobs封口回执使用common SnapshotSealProof，绝不把单域drain或冻结收费queued jobs清零冒充全域安全。原事件控制根与付费任务根经断言cleanupScope.eventControl区分，queryHash签实际RawQuery；清理动作不得新增执行或延付费许可。
