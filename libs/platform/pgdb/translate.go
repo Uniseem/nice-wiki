@@ -380,6 +380,28 @@ func jsonPath(path string) string {
 	return "'{" + strings.Join(parts, ",") + "}'"
 }
 
+// typedJSONExtract 处理直接作为 json_object 值的 json_extract(x, '$.a')：SQLite 里数字取出来还是数字，
+// PostgreSQL 的 #>> 会变成文本，写进 JSON 后读取方按整数解码就失败；这里改用 #> 保留 JSON 原类型。
+func typedJSONExtract(raw []token) ([]token, bool) {
+	raw = trimSpace(raw)
+	if len(raw) < 4 || !raw[0].is("json_extract") {
+		return nil, false
+	}
+	open := nextSig(raw, 0)
+	if open >= len(raw) || raw[open].kind != tkPunct || raw[open].text != "(" || matchParen(raw, open) != len(raw)-1 {
+		return nil, false
+	}
+	parts := splitArgs(raw, open, len(raw)-1)
+	if len(parts) != 2 {
+		return nil, false
+	}
+	path, ok := isStringLit(parts[1])
+	if !ok {
+		return nil, false
+	}
+	return joinTokens("(public.nw_jsonb(", rewrite(trimSpace(parts[0]), false), ") #> ", jsonPath(path), ")"), true
+}
+
 func rewriteArgs(args [][]token) [][]token {
 	out := make([][]token, len(args))
 	for i, a := range args {
@@ -461,6 +483,10 @@ func rewriteCall(name string, rawArgs [][]token, tokens []token, at, end int) (r
 			wrapped[i] = a
 			if i%2 == 1 && (startsWithWord(a, "NOT") || startsWithWord(a, "EXISTS")) {
 				wrapped[i] = joinTokens("(", a, ")::int")
+			} else if i%2 == 1 {
+				if typed, ok := typedJSONExtract(rawArgs[i]); ok {
+					wrapped[i] = typed
+				}
 			}
 		}
 		return replacement{tokens: joinTokens("jsonb_build_object(", joinArgs(wrapped), ")")}, true
