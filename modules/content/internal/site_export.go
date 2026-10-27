@@ -3,6 +3,7 @@ package content
 import (
 	"archive/zip"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -146,27 +147,69 @@ func relativePath(from, to string) string {
 	return filepath.ToSlash(rel)
 }
 
-// BuildExport 读取整站文档（草稿最新版）与引用的媒体，组织成导出文件集。
-func (d SiteData) BuildExport(ctx context.Context, op OperationContext) (ExportBundle, error) {
+// readExportBody 读一篇文档的正文：published 为真时读当前公开的版本（未发布的文档返回 nil），否则读草稿最新版。
+func (d SiteData) readExportBody(ctx context.Context, op OperationContext, doc gen.DocumentMetadata, published bool) (*ReadRevisionBodyResult, error) {
+	storage := d.Drafts.Store.ConfigureRevisionStorage(RevisionStorageConfig{})
+	if published {
+		if doc.State != "published" {
+			return nil, nil
+		}
+		tx, err := d.Tree.Reference.Store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+		if err != nil {
+			return nil, contentStorageError()
+		}
+		current, stored, err := loadVisiblePublication(ctx, tx, op, d.Tree, doc.DocumentId)
+		tx.Rollback()
+		if err != nil || current.PublishedReference == nil {
+			return nil, nil
+		}
+		body, err := ReadRevisionBody(WithRevisionFileStore(ctx, storage), op, ReadRevisionBodyInput{DocumentID: doc.DocumentId, RevisionID: stored.draftRevisionID, ExpectedHash: &current.PublishedReference.ContentHash})
+		return &body, err
+	}
+	_, draft, err := d.Drafts.Store.readDraftSnapshot(ctx, op, doc.DocumentId)
+	if err != nil {
+		return nil, err
+	}
+	body, err := ReadRevisionBody(WithRevisionFileStore(ctx, storage), op, ReadRevisionBodyInput{DocumentID: doc.DocumentId, RevisionID: draft.RevisionId, ExpectedHash: &draft.BodyHash})
+	return &body, err
+}
+
+// BuildExport 读取整站文档与引用的媒体，组织成导出文件集；published 为真时只导出已发布文档的公开版本（Git 同步用）。
+func (d SiteData) BuildExport(ctx context.Context, op OperationContext, published bool) (ExportBundle, error) {
 	ctx = d.Context(ctx)
 	docs, err := d.activeDocuments(ctx, op)
 	if err != nil {
 		return ExportBundle{}, err
 	}
+	if published {
+		kept := docs[:0:0]
+		for _, doc := range docs {
+			if doc.State == "published" {
+				kept = append(kept, doc)
+			}
+		}
+		// 上级没发布时挂到最近的已发布祖先下。
+		byID := map[string]gen.DocumentMetadata{}
+		for _, doc := range docs {
+			byID[doc.DocumentId] = doc
+		}
+		for i := range kept {
+			parent := kept[i].ParentId
+			for parent != nil && byID[*parent].State != "published" {
+				parent = byID[*parent].ParentId
+			}
+			kept[i].ParentId = parent
+		}
+		docs = kept
+	}
 	files := layoutPaths(docs)
 	bundle := ExportBundle{Manifest: ExportManifestFile{Format: ExportFormat, Version: 1, ExportedAt: time.Now().UTC().Format(time.RFC3339), SiteID: op.Actor.SiteID, Documents: []ExportDoc{}, Media: []ExportMedia{}}}
-	storage := d.Drafts.Store.ConfigureRevisionStorage(RevisionStorageConfig{})
 	bodies := map[string][]any{}
 	assets := map[string]map[string]any{}
 	order := []string{}
 	for _, doc := range docs {
-		_, draft, err := d.Drafts.Store.readDraftSnapshot(ctx, op, doc.DocumentId)
-		if err != nil {
-			bundle.Warnings = append(bundle.Warnings, "《"+doc.Title+"》读取失败，已跳过")
-			continue
-		}
-		body, err := ReadRevisionBody(WithRevisionFileStore(ctx, storage), op, ReadRevisionBodyInput{DocumentID: doc.DocumentId, RevisionID: draft.RevisionId, ExpectedHash: &draft.BodyHash})
-		if err != nil {
+		body, err := d.readExportBody(ctx, op, doc, published)
+		if err != nil || body == nil {
 			bundle.Warnings = append(bundle.Warnings, "《"+doc.Title+"》正文读取失败，已跳过")
 			continue
 		}

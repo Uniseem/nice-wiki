@@ -903,6 +903,56 @@
     },
     {
       "method": "GET",
+      "path": "/v1/backup-runs",
+      "owner": "content",
+      "operationId": "listBackupRuns",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/backup-targets",
+      "owner": "content",
+      "operationId": "listBackupTargets",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/backup-targets/{targetId}",
+      "owner": "content",
+      "operationId": "deleteBackupTarget",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/backup-targets/{targetId}",
+      "owner": "content",
+      "operationId": "putBackupTarget",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/backup-targets/{targetId}:run",
+      "owner": "content",
+      "operationId": "runBackup",
+      "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": 300000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/backups",
       "owner": "data-protection",
       "operationId": "listBackups",
@@ -2477,6 +2527,56 @@
       "owner": "content",
       "operationId": "exportSite",
       "permission": "backup.manage",
+      "admission": null,
+      "timeoutMs": 300000,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/site-git",
+      "owner": "content",
+      "operationId": "deleteGitRemote",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/site-git",
+      "owner": "content",
+      "operationId": "readGitRemote",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/site-git",
+      "owner": "content",
+      "operationId": "putGitRemote",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/site-git:pull",
+      "owner": "content",
+      "operationId": "pullGit",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": 300000,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/site-git:push",
+      "owner": "content",
+      "operationId": "pushGit",
+      "permission": "site.manage",
       "admission": null,
       "timeoutMs": 300000,
       "streaming": false

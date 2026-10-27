@@ -2,7 +2,126 @@
   "types": {
     "ImportSiteResult": {
       "description": "一次导入的结果；导入的文档都是草稿",
-      "props": {"format": "string:32", "documents": "int:0", "images": "int:0", "warnings": "[string:500]", "failures": "[string:500]"}
+      "props": {
+        "format": "string:32",
+        "documents": "int:0",
+        "images": "int:0",
+        "warnings": "[string:500]",
+        "failures": "[string:500]"
+      }
+    },
+    "BackupTarget": {
+      "description": "备份目标（不含密钥）",
+      "props": {
+        "targetId": "id",
+        "kind": "enum:s3|webdav",
+        "name": "string:200",
+        "endpoint": "string:1000",
+        "bucket": "string:200",
+        "region": "string:100",
+        "pathPrefix": "string:300",
+        "username": "string:200",
+        "hasSecret": "bool",
+        "schedule": "enum:off|daily|weekly",
+        "keep": "int:1:100",
+        "lastRunAt": "string:64",
+        "lastStatus": "string:32",
+        "lastMessage": "string:400"
+      }
+    },
+    "ListBackupTargetsResult": {
+      "description": "本站的备份目标",
+      "props": {
+        "targets": "[BackupTarget]"
+      }
+    },
+    "PutBackupTargetInput": {
+      "description": "新建或修改备份目标；secret 留空表示不改密钥",
+      "props": {
+        "kind": "enum:s3|webdav",
+        "name": "string:80:1",
+        "endpoint": "string:1000:1",
+        "bucket": "string:200?",
+        "region": "string:100?",
+        "pathPrefix": "string:300?",
+        "username": "string:200?",
+        "secret": "string:2000?",
+        "schedule": "enum:off|daily|weekly",
+        "keep": "int:1:100"
+      }
+    },
+    "BackupRun": {
+      "description": "一次备份的记录",
+      "props": {
+        "runId": "id",
+        "targetId": "id",
+        "startedAt": "string:64",
+        "finishedAt": "string:64",
+        "status": "string:32",
+        "objectName": "string:300",
+        "bytes": "int:0",
+        "message": "string:400"
+      }
+    },
+    "ListBackupRunsResult": {
+      "description": "最近的备份记录",
+      "props": {
+        "runs": "[BackupRun]"
+      }
+    },
+    "RunBackupResult": {
+      "description": "一次手动备份的结果",
+      "props": {
+        "run": "BackupRun"
+      }
+    },
+    "SiteDataOk": {
+      "description": "操作成功",
+      "props": {
+        "ok": "bool"
+      }
+    },
+    "GitRemote": {
+      "description": "Git 同步配置（不含令牌）",
+      "props": {
+        "configured": "bool",
+        "url": "string:1000",
+        "branch": "string:100",
+        "username": "string:200",
+        "hasToken": "bool",
+        "pushOnPublish": "bool",
+        "lastPushAt": "string:64",
+        "lastPullAt": "string:64",
+        "lastStatus": "string:32",
+        "lastMessage": "string:400",
+        "lastCommit": "string:64"
+      }
+    },
+    "ReadGitRemoteResult": {
+      "description": "Git 同步配置",
+      "props": {
+        "remote": "GitRemote"
+      }
+    },
+    "PutGitRemoteInput": {
+      "description": "保存 Git 同步配置；token 留空表示不改令牌",
+      "props": {
+        "url": "string:1000:1",
+        "branch": "string:100?",
+        "username": "string:200?",
+        "token": "string:2000?",
+        "pushOnPublish": "bool"
+      }
+    },
+    "GitSyncResult": {
+      "description": "一次 Git 推送或拉取的结果",
+      "props": {
+        "commit": "string:64",
+        "changed": "bool",
+        "files": "int:0",
+        "message": "string:400",
+        "import": "ImportSiteResult?"
+      }
     }
   },
   "ops": [
@@ -12,8 +131,14 @@
       "path": "/v1/site-import",
       "perm": "content.edit",
       "summary": "把压缩包（Markdown 目录、GitBook、Notion 导出、本站导出）导入成草稿文档",
-      "query": {"format": "enum:auto|markdown|gitbook|notion|nicewiki?", "parent": "id?"},
-      "raw_in": {"type": "application/octet-stream", "max": 16777216},
+      "query": {
+        "format": "enum:auto|markdown|gitbook|notion|nicewiki?",
+        "parent": "id?"
+      },
+      "raw_in": {
+        "type": "application/octet-stream",
+        "max": 16777216
+      },
       "timeout_ms": 300000,
       "out": "ImportSiteResult"
     },
@@ -25,6 +150,100 @@
       "summary": "导出整站（文档、块 JSON、媒体）为压缩包",
       "raw_out": "application/zip",
       "timeout_ms": 300000
+    },
+    {
+      "id": "listBackupTargets",
+      "method": "get",
+      "path": "/v1/backup-targets",
+      "perm": "backup.manage",
+      "summary": "列出本站的备份目标",
+      "out": "ListBackupTargetsResult"
+    },
+    {
+      "id": "putBackupTarget",
+      "method": "put",
+      "path": "/v1/backup-targets/{targetId}",
+      "path_params": [
+        "targetId"
+      ],
+      "perm": "backup.manage",
+      "summary": "新建或修改备份目标（S3 兼容存储、WebDAV）",
+      "in": "PutBackupTargetInput",
+      "out": "BackupTarget"
+    },
+    {
+      "id": "deleteBackupTarget",
+      "method": "delete",
+      "path": "/v1/backup-targets/{targetId}",
+      "path_params": [
+        "targetId"
+      ],
+      "perm": "backup.manage",
+      "summary": "删除备份目标（不删远端已有备份）",
+      "out": "SiteDataOk"
+    },
+    {
+      "id": "runBackup",
+      "method": "post",
+      "path": "/v1/backup-targets/{targetId}:run",
+      "path_params": [
+        "targetId"
+      ],
+      "perm": "backup.manage",
+      "summary": "立即备份到这个目标",
+      "timeout_ms": 300000,
+      "out": "RunBackupResult"
+    },
+    {
+      "id": "listBackupRuns",
+      "method": "get",
+      "path": "/v1/backup-runs",
+      "perm": "backup.manage",
+      "summary": "最近的备份记录",
+      "out": "ListBackupRunsResult"
+    },
+    {
+      "id": "readGitRemote",
+      "method": "get",
+      "path": "/v1/site-git",
+      "perm": "site.manage",
+      "summary": "读取 Git 同步配置",
+      "out": "ReadGitRemoteResult"
+    },
+    {
+      "id": "putGitRemote",
+      "method": "put",
+      "path": "/v1/site-git",
+      "perm": "site.manage",
+      "summary": "保存 Git 同步配置",
+      "in": "PutGitRemoteInput",
+      "out": "ReadGitRemoteResult"
+    },
+    {
+      "id": "deleteGitRemote",
+      "method": "delete",
+      "path": "/v1/site-git",
+      "perm": "site.manage",
+      "summary": "取消 Git 同步",
+      "out": "SiteDataOk"
+    },
+    {
+      "id": "pushGit",
+      "method": "post",
+      "path": "/v1/site-git:push",
+      "perm": "site.manage",
+      "summary": "把已发布内容推送到仓库",
+      "timeout_ms": 300000,
+      "out": "GitSyncResult"
+    },
+    {
+      "id": "pullGit",
+      "method": "post",
+      "path": "/v1/site-git:pull",
+      "perm": "site.manage",
+      "summary": "从仓库拉取内容，导入成草稿",
+      "timeout_ms": 300000,
+      "out": "GitSyncResult"
     }
   ]
 }

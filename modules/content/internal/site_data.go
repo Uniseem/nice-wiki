@@ -23,6 +23,8 @@ type SiteData struct {
 	Media  *MediaGateway
 	Box    *secretbox.Box
 	Epoch  Identifier
+	// AllowLocal 只在本地开发时为真：备份目标和 Git 远端允许 http 与环回地址。
+	AllowLocal bool
 }
 
 // Context 给上下文挂上草稿、锁和文档树运行时，导入导出里调用的核心函数都要它们。

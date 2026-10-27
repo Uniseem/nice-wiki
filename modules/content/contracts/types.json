@@ -6888,6 +6888,409 @@
         "failures"
       ],
       "x-v2": true
+    },
+    "BackupTarget": {
+      "type": "object",
+      "description": "备份目标（不含密钥）",
+      "additionalProperties": false,
+      "properties": {
+        "targetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "s3",
+            "webdav"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "bucket": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "pathPrefix": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "hasSecret": {
+          "type": "boolean"
+        },
+        "schedule": {
+          "type": "string",
+          "enum": [
+            "off",
+            "daily",
+            "weekly"
+          ]
+        },
+        "keep": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "lastRunAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastStatus": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "lastMessage": {
+          "type": "string",
+          "maxLength": 400
+        }
+      },
+      "required": [
+        "targetId",
+        "kind",
+        "name",
+        "endpoint",
+        "bucket",
+        "region",
+        "pathPrefix",
+        "username",
+        "hasSecret",
+        "schedule",
+        "keep",
+        "lastRunAt",
+        "lastStatus",
+        "lastMessage"
+      ],
+      "x-v2": true
+    },
+    "ListBackupTargetsResult": {
+      "type": "object",
+      "description": "本站的备份目标",
+      "additionalProperties": false,
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BackupTarget"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "targets"
+      ],
+      "x-v2": true
+    },
+    "PutBackupTargetInput": {
+      "type": "object",
+      "description": "新建或修改备份目标；secret 留空表示不改密钥",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "s3",
+            "webdav"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "minLength": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 1000,
+          "minLength": 1
+        },
+        "bucket": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "pathPrefix": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "secret": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "schedule": {
+          "type": "string",
+          "enum": [
+            "off",
+            "daily",
+            "weekly"
+          ]
+        },
+        "keep": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "endpoint",
+        "schedule",
+        "keep"
+      ],
+      "x-v2": true
+    },
+    "BackupRun": {
+      "type": "object",
+      "description": "一次备份的记录",
+      "additionalProperties": false,
+      "properties": {
+        "runId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "targetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "startedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "finishedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "objectName": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 400
+        }
+      },
+      "required": [
+        "runId",
+        "targetId",
+        "startedAt",
+        "finishedAt",
+        "status",
+        "objectName",
+        "bytes",
+        "message"
+      ],
+      "x-v2": true
+    },
+    "ListBackupRunsResult": {
+      "type": "object",
+      "description": "最近的备份记录",
+      "additionalProperties": false,
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BackupRun"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "runs"
+      ],
+      "x-v2": true
+    },
+    "RunBackupResult": {
+      "type": "object",
+      "description": "一次手动备份的结果",
+      "additionalProperties": false,
+      "properties": {
+        "run": {
+          "$ref": "#/$defs/BackupRun"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "x-v2": true
+    },
+    "SiteDataOk": {
+      "type": "object",
+      "description": "操作成功",
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "x-v2": true
+    },
+    "GitRemote": {
+      "type": "object",
+      "description": "Git 同步配置（不含令牌）",
+      "additionalProperties": false,
+      "properties": {
+        "configured": {
+          "type": "boolean"
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "branch": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "hasToken": {
+          "type": "boolean"
+        },
+        "pushOnPublish": {
+          "type": "boolean"
+        },
+        "lastPushAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastPullAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "lastStatus": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "lastMessage": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "lastCommit": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "configured",
+        "url",
+        "branch",
+        "username",
+        "hasToken",
+        "pushOnPublish",
+        "lastPushAt",
+        "lastPullAt",
+        "lastStatus",
+        "lastMessage",
+        "lastCommit"
+      ],
+      "x-v2": true
+    },
+    "ReadGitRemoteResult": {
+      "type": "object",
+      "description": "Git 同步配置",
+      "additionalProperties": false,
+      "properties": {
+        "remote": {
+          "$ref": "#/$defs/GitRemote"
+        }
+      },
+      "required": [
+        "remote"
+      ],
+      "x-v2": true
+    },
+    "PutGitRemoteInput": {
+      "type": "object",
+      "description": "保存 Git 同步配置；token 留空表示不改令牌",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "maxLength": 1000,
+          "minLength": 1
+        },
+        "branch": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "token": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "pushOnPublish": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url",
+        "pushOnPublish"
+      ],
+      "x-v2": true
+    },
+    "GitSyncResult": {
+      "type": "object",
+      "description": "一次 Git 推送或拉取的结果",
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "changed": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "import": {
+          "$ref": "#/$defs/ImportSiteResult"
+        }
+      },
+      "required": [
+        "commit",
+        "changed",
+        "files",
+        "message"
+      ],
+      "x-v2": true
     }
   }
 }

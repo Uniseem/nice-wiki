@@ -119,13 +119,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err = transport.RegisterPublicationRoutes(application, treeRuntime, anchors); err != nil {
 		return nil, err
 	}
+	var siteDataLoops []platform.BackgroundTask
 	if identity != nil {
 		drafts := content.DraftRuntime{Store: store, Manager: editLocks, Identity: identity, SiteConfig: gen.NewSiteConfigClient(config.Dependencies["site-config"], ModuleSlug, key), Media: treeRuntime.Media, WriteWindow: window}
 		locks := content.EditLockRuntime{Manager: editLocks, Identity: identity, WriteWindow: window}
 		if err = transport.RegisterDraftRoutes(application, drafts, locks, treeRuntime, anchors); err != nil {
 			return nil, err
 		}
-		siteData := content.SiteData{Drafts: drafts, Locks: locks, Tree: treeRuntime, Epoch: runtimeView.DataEpoch}
+		siteData := content.SiteData{Drafts: drafts, Locks: locks, Tree: treeRuntime, Epoch: runtimeView.DataEpoch, AllowLocal: config.AllowLocalHTTP}
 		if endpoint := config.Dependencies["media"]; endpoint != "" {
 			siteData.Media = content.NewMediaGateway(endpoint, ModuleSlug, key)
 		}
@@ -137,12 +138,26 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if err = transport.RegisterSiteDataRoutes(application, siteData, identity, anchors); err != nil {
 			return nil, err
 		}
+		siteDataLoops = []platform.BackgroundTask{
+			{Name: "content.scheduled-backups", Run: func(ctx context.Context) error {
+				return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 60000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
+					siteData.RunScheduledBackups(batch, store.Sites(batch))
+					return nil
+				}})
+			}},
+			{Name: "content.git-auto-push", Run: func(ctx context.Context) error {
+				return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 30000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
+					siteData.RunGitAutoPush(batch, store.Sites(batch))
+					return nil
+				}})
+			}},
+		}
 	}
 	// 屏障与快照等路由尚未实现，请求落到 404；服务本身可启动。
 	jobsClient := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
 	relay := content.RelayRuntime{Store: store, Jobs: jobsClient, WriteWindow: window}
 	epoch := runtimeView.DataEpoch
-	application.SetBackground([]platform.BackgroundTask{
+	application.SetBackground(append(siteDataLoops, []platform.BackgroundTask{
 		{Name: "content.relay-outbox", Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
 				// 发件箱不分站点：事件自己带着站点，转发用平台身份。
@@ -161,7 +176,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 				return nil
 			}})
 		}},
-	})
+	}...))
 	retain = true
 	application.OnShutdown(store.CloseDatabase)
 	application.OnShutdown(editLocks.CloseEditLocks)
