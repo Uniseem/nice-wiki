@@ -37,6 +37,32 @@
       "delivery": "at-least-once",
       "ordering": "仅生产者/subject修订单调；网络可能重放和乱序，旧dataEpoch拒绝",
       "idempotency": "eventId+payloadHash唯一；同subject仅应用更高source revision，重复确认不重复副作用"
+    },
+    {
+      "name": "identity.site.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../identity/contracts/types.json#/$defs/SiteChangedPayload"
+      },
+      "purpose": "记下站点状态",
+      "delivery": "at-least-once",
+      "ordering": "按站点 revision 单调，只接受更高版本",
+      "idempotency": "按 revision 覆盖；清除可重复执行",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "name": "identity.site.purged",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../identity/contracts/types.json#/$defs/SitePurgedPayload"
+      },
+      "purpose": "删掉本域里该站点的任务和相关记录",
+      "delivery": "at-least-once",
+      "ordering": "按站点 revision 单调，只接受更高版本",
+      "idempotency": "按 revision 覆盖；清除可重复执行",
+      "handler": "sitestate.PurgeSite"
     }
   ]
 }

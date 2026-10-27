@@ -75,6 +75,7 @@ var EventTypes = []EventTypeEntry{
 	{Name: "identity.site.changed", Version: 1, Producer: "identity", ManagementPermission: "account.manage", Consumers: []string{
 		"analytics",
 		"content",
+		"jobs",
 		"knowledge",
 		"localization",
 		"media",
@@ -86,6 +87,7 @@ var EventTypes = []EventTypeEntry{
 	{Name: "identity.site.purged", Version: 1, Producer: "identity", ManagementPermission: "account.manage", Consumers: []string{
 		"analytics",
 		"content",
+		"jobs",
 		"knowledge",
 		"localization",
 		"media",

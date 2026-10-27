@@ -49,7 +49,10 @@ AI任务归属及上限由根contracts/ai-tasks.json唯一登记；各AI owner�
 
 ### 事件处理
 
-本域不消费事件。
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的任务和相关记录 |
 
 ### 异步任务
 

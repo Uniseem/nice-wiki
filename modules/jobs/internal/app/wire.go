@@ -15,6 +15,7 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	jobs "nice-wiki/modules/jobs/internal"
 	"nice-wiki/modules/jobs/internal/gen"
 	"nice-wiki/modules/jobs/internal/transport"
@@ -195,6 +196,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	// 站点删除到期后清掉它的任务记录。
+	backgroundTasks = append(backgroundTasks, sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: store.DB(), Events: events.Consumer(), Runtime: runtimeAuthority.ReadRuntimeState, Purge: store.PurgeSiteJobs}))
 
 	handlers := jobs.NewManagementHandlers(key)
 	for id, handler := range jobs.NewEventHandlers() {

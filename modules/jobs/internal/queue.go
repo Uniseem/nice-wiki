@@ -136,6 +136,27 @@ func OpenDatabase(dataRoot string) (*Store, error) {
 	return store, nil
 }
 
+// DB 是任务库，跟踪站点生命周期用。
+func (s *Store) DB() *sql.DB { return s.db }
+
+// PurgeSiteJobs 删掉已清除站点任务的附属记录（租约、进度、结果、终局回执、孤儿、旧事件投递）；
+// 任务行和事件行随后由站点生命周期按 site_id 清掉。
+func (s *Store) PurgeSiteJobs(ctx context.Context, site string) error {
+	for _, statement := range []string{
+		`DELETE FROM leases WHERE job_id IN (SELECT job_id FROM jobs WHERE site_id=?)`,
+		`DELETE FROM progress WHERE job_id IN (SELECT job_id FROM jobs WHERE site_id=?)`,
+		`DELETE FROM job_results WHERE job_id IN (SELECT job_id FROM jobs WHERE site_id=?)`,
+		`DELETE FROM job_outcomes WHERE job_id IN (SELECT job_id FROM jobs WHERE site_id=?)`,
+		`DELETE FROM job_orphans WHERE job_id IN (SELECT job_id FROM jobs WHERE site_id=?)`,
+		`DELETE FROM deliveries WHERE event_id IN (SELECT event_id FROM events WHERE site_id=?)`,
+	} {
+		if _, err := s.db.ExecContext(ctx, statement, site); err != nil {
+			return mapQueueDBError(err)
+		}
+	}
+	return nil
+}
+
 // Close 关闭数据库并清除当前全局安装，重复关闭安全。
 func (s *Store) Close() error {
 	if s == nil {
