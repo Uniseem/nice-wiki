@@ -22,6 +22,8 @@ MASTER_KEY_COMPONENTS = ["identity", "model-gateway", "content"]  # 需要主密
 SUBNET = "10.231.97.0/24"  # 内部桥接网络：用私有网段（服务器防火墙通常只给私有网段放行转发，文档保留段的容器出不了网），避开 Docker 默认地址池
 IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程推送的镜像：{IMAGES}-{进程}:{版本}
 UIDS = {name: 10000 + i for i, name in enumerate(PROCESSES + ["search", "edge"])}
+# 每个组件（和检索服务）一个数据库角色，只拥有自己的 schema；公共辅助函数和队列表归 nw_shared，各角色都是它的成员。
+DB_ROLES = {slug: "nw_" + slug.replace("-", "_") for slug in [*PORTS, "search"]}
 
 
 def write(path, text, mode=None):
@@ -134,7 +136,7 @@ def component_config(slug):
         "module": slug, "listen": f"0.0.0.0:{port}", "dataRoot": f"/data/{slug}",
         "trustAnchorRef": "/run/secrets/trust-anchors.json", "signingKeyRef": f"{secret_dir(slug)}/signing-key.json",
         "dependencies": {s: f"http://{PROCESS_OF[s]}:{p}" for s, p in PORTS.items() if s != slug},
-        "databaseRef": "/run/secrets/database-url",
+        "databaseRef": f"{secret_dir(slug)}/database-url",
     }
     if slug in ("portal", "traffic-guard"):
         cfg["budgetKeyRef"] = "/run/secrets/budget/budget-key.json"
@@ -166,7 +168,8 @@ def compose(release=False):
     lines += ["  postgres:", "    image: pgvector/pgvector:pg17", "    restart: unless-stopped", "    networks: [internal]",
               "    environment:", "      POSTGRES_USER: postgres", "      POSTGRES_DB: nicewiki", "      POSTGRES_PASSWORD_FILE: /run/secrets/pg-superuser-password",
               "    volumes:", "      - postgres-data:/var/lib/postgresql/data", "      - ./postgres/init:/docker-entrypoint-initdb.d:ro",
-              "      - ./secrets/postgres/superuser-password:/run/secrets/pg-superuser-password:ro", "      - ./secrets/postgres/app-password:/run/secrets/pg-app-password:ro",
+              "      - ./secrets/postgres/superuser-password:/run/secrets/pg-superuser-password:ro", "      - ./secrets/postgres/roles.sql:/run/secrets/pg-roles.sql:ro",
+              "    command: [\"postgres\", \"-c\", \"max_connections=300\"]",
               "    healthcheck:", "      test: [\"CMD-SHELL\", \"pg_isready -U postgres -d nicewiki\"]", "      interval: 5s", "      timeout: 3s", "      retries: 20", ""]
 
     def app(proc, comps, extra_volumes=(), extra_env=None, user=None, depends=("postgres",)):
@@ -176,7 +179,7 @@ def compose(release=False):
         env = {"GOMEMLIMIT": "${GOMEMLIMIT:-256MiB}", **(extra_env or {})}
         block += ["    environment:"] + [f"      {k}: {v}" for k, v in env.items()]
         vols = [f"./config/{c}.json:/config/{c}.json:ro" for c in comps] + [f"./secrets/{c}:/run/secrets/{c}:ro" for c in comps]
-        vols += ["./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro", "./secrets/database-url:/run/secrets/database-url:ro", f"{proc}-data:/data"]
+        vols += ["./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro", f"{proc}-data:/data"]
         if any(c in MASTER_KEY_COMPONENTS for c in comps):
             vols.append("./secrets/master-key:/run/secrets/master-key:ro")
         if any(c in ("portal", "traffic-guard") for c in comps):
@@ -188,15 +191,15 @@ def compose(release=False):
 
     # 主密钥文件权限 0600，宿主进程里有用到它的服务以 root 运行才读得到。
     public = {"NW_ALLOW_LOCAL_HTTP": '"false"', "NW_PUBLIC_BASE_URL": "https://${SITE_DOMAIN}"}
-    lines += app("account", HOSTS["account"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret"},
+    lines += app("account", HOSTS["account"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret", "NW_CADDY_ADMIN_URL": "http://caddy:2019"},
                  extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], user="0:0")
     lines += app("content", HOSTS["content"], extra_env=public, user="0:0")
     lines += app("ai", HOSTS["ai"], extra_volumes=["./secrets/search/secret:/run/secrets/search-secret:ro"], user="0:0")
     lines += app("ops", HOSTS["ops"], user="0:0")
     lines += ["  search:"] + image("search", "rust/Dockerfile", "search") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/search.json:/config/search.json:ro",
-              "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
+              "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/search/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
     lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "      - edge-cache:/cache", "    depends_on: [account]", ""]
-    lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
+    lines += ["  caddy:", "    build: ./caddy", "    image: nice-wiki/caddy:${NW_VERSION:-dev}", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - caddy-data:/data", "      - caddy-config:/config",
               "    depends_on: [edge]", "", "volumes:"]
@@ -204,10 +207,22 @@ def compose(release=False):
     return "\n".join(lines)
 
 
+CADDY_DOCKERFILE = """# 入口 Caddy：带 Cloudflare DNS 模块，用来给平台子域名签泛域名证书（令牌由 account 经管理接口下发）。由 scripts/gen_deploy.py 生成。
+FROM caddy:2-builder AS build
+RUN xcaddy build --with github.com/caddy-dns/cloudflare
+
+FROM caddy:2-alpine
+COPY --from=build /usr/bin/caddy /usr/bin/caddy
+"""
+
 CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 组件的 /_tls/allow 判断），
 # 再把流量交给 edge（页面缓存与限流），edge 转给 account 进程里的 portal 组件。
+# 站主在后台填了 Cloudflare 令牌后，account 经管理接口（只在内部网络）加一条 DNS 验证策略，平台子域名改用一张泛域名证书。
 # 部署相关的定制（例如放在 Cloudflare 后面：只放行 Cloudflare 回源、取真实访客 IP）写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git。
 {
+	admin 0.0.0.0:2019 {
+		origins caddy:2019
+	}
 	on_demand_tls {
 		ask http://account:8080/_tls/allow
 	}
@@ -234,14 +249,16 @@ https:// {
 """
 
 POSTGRES_INIT = """#!/bin/sh
-# 首次启动数据库时运行：建应用角色（非超级用户、不绕过行级安全）、授权、装 pgvector。
+# 首次启动数据库时运行：建共享角色 nw_shared（公共辅助函数和队列表的所有者），再按 init-secrets.sh 生成的 roles.sql
+# 给每个组件建一个角色（非超级用户、不绕过行级安全，是 nw_shared 的成员，只能建和用自己的 schema），装 pgvector。
 set -eu
 psql -v ON_ERROR_STOP=1 -U postgres -d nicewiki <<SQL
-CREATE ROLE nw_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '$(cat /run/secrets/pg-app-password)';
-GRANT CONNECT, CREATE ON DATABASE nicewiki TO nw_app;
-ALTER SCHEMA public OWNER TO nw_app;
+CREATE ROLE nw_shared NOLOGIN NOSUPERUSER NOBYPASSRLS;
+GRANT CREATE ON DATABASE nicewiki TO nw_shared;
+ALTER SCHEMA public OWNER TO nw_shared;
 CREATE EXTENSION IF NOT EXISTS vector SCHEMA public;
 SQL
+psql -v ON_ERROR_STOP=1 -U postgres -d nicewiki -f /run/secrets/pg-roles.sql
 """
 
 INIT_SECRETS = """#!/bin/sh
@@ -278,10 +295,17 @@ mkdir -p deploy/secrets/postgres deploy/secrets/search deploy/secrets/edge
 rand() { head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'; }
 [ -f deploy/secrets/master-key ] || head -c 32 /dev/urandom > deploy/secrets/master-key
 [ -f deploy/secrets/postgres/superuser-password ] || rand > deploy/secrets/postgres/superuser-password
-[ -f deploy/secrets/postgres/app-password ] || rand > deploy/secrets/postgres/app-password
+# 每个组件和检索服务一个数据库角色：口令、连接串放在各自的密钥目录里，建角色的 SQL 给数据库首次启动用。
+: > deploy/secrets/postgres/roles.sql
+for slug in @DB_SLUGS@; do
+	dir=deploy/secrets/$slug
+	role=nw_$(echo "$slug" | tr - _)
+	[ -f "$dir/db-password" ] || rand > "$dir/db-password"
+	printf 'postgres://%s:%s@postgres:5432/nicewiki?sslmode=disable' "$role" "$(cat "$dir/db-password")" > "$dir/database-url"
+	printf "CREATE ROLE %s LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '%s' IN ROLE nw_shared;\\nGRANT CONNECT, CREATE ON DATABASE nicewiki TO %s;\\n" "$role" "$(cat "$dir/db-password")" "$role" >> deploy/secrets/postgres/roles.sql
+done
 [ -f deploy/secrets/search/secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/search/secret
 [ -f deploy/secrets/edge/purge-secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/edge/purge-secret
-printf 'postgres://nw_app:%s@postgres:5432/nicewiki?sslmode=disable' "$(cat deploy/secrets/postgres/app-password)" > deploy/secrets/database-url
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户；主密钥与数据库口令只给 root。
 find deploy/secrets -type d -exec chmod 755 {} +
 find deploy/secrets -type f -exec chmod 644 {} +
@@ -360,7 +384,7 @@ docker compose stop caddy edge account content ai ops search
 docker compose up -d postgres
 docker compose exec -T postgres sh -c 'until pg_isready -U postgres -d nicewiki; do sleep 1; done'
 docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \\$\\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \\$\\$;"
-unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki --no-owner --role=nw_app
+unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki
 docker run --rm -v "${project}_content-data":/data -v "$dir/content-data":/in:ro alpine sh -c "find /data -mindepth 1 -delete && cp -a /in/. /data/"
 for volume in @VOLUMES@; do
 	docker run --rm -v "${project}_$volume":/data -v "$dir":/in:ro alpine sh -c "find /data -mindepth 1 -delete && tar xzf /in/$volume-$stamp.tar.gz -C /data"
@@ -425,9 +449,10 @@ def main():
     write("deploy/release/images.tsv", "\n".join(rows) + "\n")
     write("deploy/release/README.md", RELEASE_README)
     write("deploy/caddy/Caddyfile", CADDYFILE)
+    write("deploy/caddy/Dockerfile", CADDY_DOCKERFILE)
     write("deploy/postgres/init/01-app-role.sh", POSTGRES_INIT, 0o755)
     write("deploy/.env.example", ENV_EXAMPLE)
-    write("deploy/init-secrets.sh", INIT_SECRETS, 0o755)
+    write("deploy/init-secrets.sh", INIT_SECRETS.replace("@DB_SLUGS@", " ".join(DB_ROLES)), 0o755)
     volumes = " ".join(["account-data", "ai-data", "ops-data", "search-data"])  # content-data 单独增量复制
     write("deploy/backup.sh", BACKUP_SH.replace("@VOLUMES@", volumes), 0o755)
     write("deploy/restore.sh", RESTORE_SH.replace("@VOLUMES@", volumes), 0o755)

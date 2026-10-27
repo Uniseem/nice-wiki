@@ -15,7 +15,7 @@ import (
 func platformSettingsView(ctx context.Context, q sqlQuerier, settings platformSettings) gen.PlatformSettings {
 	view := gen.PlatformSettings{RegistrationOpen: settings.RegistrationOpen, EmailRegistration: settings.EmailRegistration, InviteRequired: settings.InviteRequired,
 		DefaultMaxSites: settings.DefaultMaxSites, DefaultStorageBytes: int(settings.DefaultStorageBytes), DefaultVisitorQaDaily: settings.DefaultVisitorQaDaily,
-		PlatformHost: settings.PlatformHost, SitesDomain: settings.SitesDomain, Providers: []gen.ProviderConfig{}}
+		PlatformHost: settings.PlatformHost, SitesDomain: settings.SitesDomain, Providers: []gen.ProviderConfig{}, CloudflareTokenSet: hasSecret(ctx, q, dnsSecretName)}
 	for _, name := range configurableProviders() {
 		conf := settings.Providers[name]
 		view.Providers = append(view.Providers, gen.ProviderConfig{Provider: gen.ProviderConfigProvider(name), Enabled: conf.Enabled, ClientId: conf.ClientID, ClientSecretSet: hasProviderSecret(ctx, q, name)})
@@ -77,6 +77,17 @@ func UpdatePlatformSettings(ctx context.Context, op OperationContext, input gen.
 					return gen.PlatformSettings{}, err
 				}
 			}
+		}
+	}
+	if input.CloudflareToken != nil {
+		token := strings.TrimSpace(*input.CloudflareToken)
+		if token == "" {
+			err = deleteSecret(ctx, store.db, dnsSecretName)
+		} else {
+			err = saveSecret(ctx, store.db, dnsSecretName, token)
+		}
+		if err != nil {
+			return gen.PlatformSettings{}, err
 		}
 	}
 	if err := saveSettings(ctx, store.db, settings); err != nil {

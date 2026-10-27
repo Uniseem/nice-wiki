@@ -20,5 +20,5 @@
     "analytics": "http://ops:8112",
     "agent": "http://ai:8114"
   },
-  "databaseRef": "/run/secrets/database-url"
+  "databaseRef": "/run/secrets/site-config/database-url"
 }

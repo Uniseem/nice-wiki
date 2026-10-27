@@ -88,7 +88,8 @@ func Open(ctx context.Context, dsn string) (*Queue, error) {
 	if err != nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "打开队列连接失败")
 	}
-	db.SetMaxOpenConns(8)
+	// 部署时每个组件一个连接串（一个角色），每个都开一个队列连接池：池子小一些，免得撑满数据库连接数。
+	db.SetMaxOpenConns(4)
 	if err := ensure(ctx, db); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -109,6 +110,17 @@ func ensure(ctx context.Context, db *sql.DB) error {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "获取队列建表锁失败")
 	}
 	defer conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock(7310001)`)
+	// 队列表是各组件共用的：部署时归共享角色所有，各组件角色作为成员读写。
+	var shared bool
+	if err := conn.QueryRowContext(ctx, pgdb.SharedRoleCheck).Scan(&shared); err != nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, true, "读取数据库角色失败")
+	}
+	if shared {
+		if _, err := conn.ExecContext(ctx, "SET ROLE "+pgdb.SharedRole); err != nil {
+			return platform.NewError(platform.CodeDependencyUnavailable, true, "切换到共享角色失败")
+		}
+		defer conn.ExecContext(context.Background(), "RESET ROLE")
+	}
 	for _, statement := range append(append([]string{}, schemaSQL...), jobSchemaSQL...) {
 		if _, err := conn.ExecContext(ctx, statement); err != nil {
 			if os.Getenv("NW_DEBUG") != "" {

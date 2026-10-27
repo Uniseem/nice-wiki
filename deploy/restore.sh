@@ -29,7 +29,7 @@ docker compose stop caddy edge account content ai ops search
 docker compose up -d postgres
 docker compose exec -T postgres sh -c 'until pg_isready -U postgres -d nicewiki; do sleep 1; done'
 docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \$\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \$\$;"
-unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki --no-owner --role=nw_app
+unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki
 docker run --rm -v "${project}_content-data":/data -v "$dir/content-data":/in:ro alpine sh -c "find /data -mindepth 1 -delete && cp -a /in/. /data/"
 for volume in account-data ai-data ops-data search-data; do
 	docker run --rm -v "${project}_$volume":/data -v "$dir":/in:ro alpine sh -c "find /data -mindepth 1 -delete && tar xzf /in/$volume-$stamp.tar.gz -C /data"

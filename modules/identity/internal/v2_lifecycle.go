@@ -10,6 +10,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/queue"
+	"nice-wiki/libs/platform/secretbox"
 	"nice-wiki/modules/identity/internal/gen"
 )
 
@@ -148,8 +149,8 @@ func RestoreSite(ctx context.Context, op OperationContext, input DeletedSiteRef)
 	return gen.SiteResult{Site: s}, err
 }
 
-// runSitePurge 每分钟清除一批保留期已满的站点，并复核到期的自定义域名。
-func runSitePurge(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) error {
+// runSitePurge 每分钟清除一批保留期已满的站点、补齐 Caddy 的泛域名证书策略，并复核到期的自定义域名。
+func runSitePurge(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier, box *secretbox.Box) error {
 	return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{
 		AdmitBatch:  lifecycle.SimpleAdmission(siteConfig.ReadRuntimeState, dataEpoch),
 		PollMillis:  int(sitePurgeEvery / time.Millisecond),
@@ -158,6 +159,9 @@ func runSitePurge(ctx context.Context, store *Store, siteConfig platform.SiteCon
 		Recover: func(work context.Context) error {
 			if err := purgeExpiredSites(work, store.db, dataEpoch); err != nil {
 				return err
+			}
+			if box != nil {
+				syncCaddyWildcard(WithSecretBox(work, box), store.db)
 			}
 			return recheckDomains(work, store.db)
 		},

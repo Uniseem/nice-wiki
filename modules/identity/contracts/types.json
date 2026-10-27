@@ -3027,6 +3027,9 @@
             "$ref": "#/$defs/ProviderConfig"
           },
           "maxItems": 1000
+        },
+        "cloudflareTokenSet": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3038,7 +3041,8 @@
         "defaultVisitorQaDaily",
         "platformHost",
         "sitesDomain",
-        "providers"
+        "providers",
+        "cloudflareTokenSet"
       ],
       "x-v2": true
     },
@@ -3119,6 +3123,10 @@
             "$ref": "#/$defs/ProviderUpdate"
           },
           "maxItems": 1000
+        },
+        "cloudflareToken": {
+          "type": "string",
+          "maxLength": 512
         }
       },
       "x-v2": true

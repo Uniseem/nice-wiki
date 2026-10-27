@@ -205,6 +205,26 @@ func InstallHelpers(ctx context.Context, conn *pgx.Conn) error {
 	return nil
 }
 
+// SharedRole 是部署时公共对象（辅助函数、队列表）的所有者角色。
+const SharedRole = "nw_shared"
+
+// SharedRoleCheck 判断当前登录角色能否切到共享角色。
+const SharedRoleCheck = `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'nw_shared') AND pg_has_role(current_user, 'nw_shared', 'MEMBER')`
+
+// useSharedRole 有共享角色时切过去（调用方用完 RESET ROLE），返回是否切了。
+func useSharedRole(ctx context.Context, conn *pgx.Conn) (bool, error) {
+	var ok bool
+	if err := conn.QueryRow(ctx, SharedRoleCheck).Scan(&ok); err != nil {
+		return false, err
+	}
+	if ok {
+		if _, err := conn.Exec(ctx, "SET ROLE "+SharedRole); err != nil {
+			return false, err
+		}
+	}
+	return ok, nil
+}
+
 func quoteIdent(name string) string { return `"` + strings.ReplaceAll(name, `"`, `""`) + `"` }
 
 func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) error {
@@ -218,8 +238,19 @@ func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) er
 		return err
 	}
 	defer conn.Exec(ctx, "SELECT pg_advisory_unlock(7242001)")
+	// 部署时每个组件一个数据库角色：公共辅助函数归共享角色 nw_shared 所有（各组件角色都是它的成员），
+	// 不然第二个组件 CREATE OR REPLACE 别人建的函数会因不是所有者失败。开发时只有一个角色，没有 nw_shared。
+	shared, err := useSharedRole(ctx, conn)
+	if err != nil {
+		return err
+	}
 	if err := InstallHelpers(ctx, conn); err != nil {
 		return err
+	}
+	if shared {
+		if _, err := conn.Exec(ctx, "RESET ROLE"); err != nil {
+			return err
+		}
 	}
 	if _, err := conn.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS "+quoteIdent(schema)); err != nil {
 		return err

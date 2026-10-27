@@ -305,7 +305,7 @@ func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClien
 	if len(a.backgroundTasks) != 0 {
 		return platform.NewError(platform.CodeConflict, false, "身份后台入口重复装配")
 	}
-	tasks, err := identity.NewBackgroundTasks(a.store, siteConfig, a.openedEpoch)
+	tasks, err := identity.NewBackgroundTasks(a.store, siteConfig, a.openedEpoch, a.secretBox)
 	if err != nil {
 		return err
 	}

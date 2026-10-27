@@ -4,7 +4,7 @@ import { api, askText, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, f
 import { useEffect, useState } from 'react';
 
 type Provider = { provider: 'github' | 'google' | 'linuxdo' | 'gdrive' | 'onedrive' | 'dropbox'; enabled: boolean; clientId: string; clientSecretSet: boolean };
-type Settings = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; defaultMaxSites: number; defaultStorageBytes: number; defaultVisitorQaDaily: number; platformHost: string; sitesDomain: string; providers: Provider[] };
+type Settings = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; defaultMaxSites: number; defaultStorageBytes: number; defaultVisitorQaDaily: number; platformHost: string; sitesDomain: string; providers: Provider[]; cloudflareTokenSet: boolean };
 type RegInvite = { inviteId: string; note: string; maxUses: number; used: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type AiInvite = { inviteId: string; note: string; capMicros: number; period: 'once' | 'monthly'; tasks: string[]; maxUses: number; used: number; maxSites?: number; storageBytes?: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type User = { userId: string; email: string; displayName: string; status: 'active' | 'disabled' | 'deleted'; siteCount: number; createdAt: string };
@@ -51,6 +51,7 @@ function SettingsTab() {
   const current = useLoad((signal) => api<Settings>('/v1/platform/settings', { signal }), []);
   const [form, setForm] = useState<Settings | null>(null);
   const [secrets, setSecrets] = useState<Record<string, string>>({});
+  const [clearToken, setClearToken] = useState(false);
   const { busy, run } = useAction();
   useEffect(() => { if (current.data) setForm(current.data); }, [current.data]);
   if (current.error && !current.data) return <ErrorBlock error={current.error} onRetry={current.reload} />;
@@ -59,8 +60,11 @@ function SettingsTab() {
   const setProvider = (provider: Provider['provider'], patch: Partial<Provider>) => set('providers', form.providers.map((item) => (item.provider === provider ? { ...item, ...patch } : item)));
   const save = async () => {
     const providers = form.providers.map((item) => ({ provider: item.provider, enabled: item.enabled, clientId: item.clientId, ...(secrets[item.provider] ? { clientSecret: secrets[item.provider] } : {}) }));
-    const saved = await run(() => api<Settings>('/v1/platform/settings', { method: 'PUT', body: { ...form, providers } }), t('平台设置已保存'));
-    if (saved) { setSecrets({}); current.setData(saved); }
+    const { cloudflareTokenSet: _, ...settings } = form;
+    // 令牌框留空保持不变；点了“清除令牌”才清掉。
+    const token = secrets.cloudflare ? { cloudflareToken: secrets.cloudflare } : clearToken ? { cloudflareToken: '' } : {};
+    const saved = await run(() => api<Settings>('/v1/platform/settings', { method: 'PUT', body: { ...settings, providers, ...token } }), t('平台设置已保存'));
+    if (saved) { setSecrets({}); setClearToken(false); current.setData(saved); }
   };
   const providerCard = (item: Provider) => (
     <div key={item.provider} className="flex flex-col gap-3 rounded-xl border border-separator p-4">
@@ -77,7 +81,10 @@ function SettingsTab() {
         <FormGrid>
           <TextInput label={t('平台域名')} placeholder="app.example.com" value={form.platformHost} onChange={(value) => set('platformHost', value.trim())} description={t('用户登录、管理站点的地址。')} />
           <TextInput label={t('站点子域名后缀')} placeholder="example.site" value={form.sitesDomain} onChange={(value) => set('sitesDomain', value.trim())} description={t('用户站点是 <站点名>.<后缀>，需要泛解析到平台入口。')} />
+          <TextInput autoComplete="off" label={t('Cloudflare API 令牌（泛域名证书）')} placeholder={form.cloudflareTokenSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets.cloudflare ?? ''} onChange={(value) => setSecrets({ ...secrets, cloudflare: value })}
+            description={form.cloudflareTokenSet ? clearToken ? t('保存后清除令牌，平台子域名回到逐个签证书。') : t('已设置：平台子域名用一张泛域名证书（DNS 验证）。') : t('子域名后缀的 DNS 托管在 Cloudflare 时填写（令牌只需该域名的 DNS 编辑权限），平台子域名就改用一张泛域名证书，不再逐个签。')} />
         </FormGrid>
+        {form.cloudflareTokenSet && <div><Button isDisabled={clearToken} size="sm" variant="secondary" onPress={() => { setClearToken(true); setSecrets({ ...secrets, cloudflare: '' }); }}>{t('清除令牌')}</Button></div>}
       </Panel>
       <Panel title={t('注册')}>
         <div className="flex flex-col gap-4">

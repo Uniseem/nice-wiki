@@ -20,6 +20,6 @@
     "jobs": "http://ops:8111",
     "agent": "http://ai:8114"
   },
-  "databaseRef": "/run/secrets/database-url",
+  "databaseRef": "/run/secrets/analytics/database-url",
   "reportingTimeZone": "Asia/Shanghai"
 }

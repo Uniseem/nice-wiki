@@ -21,6 +21,6 @@
     "agent": "http://ai:8114",
     "search": "http://search:8120"
   },
-  "databaseRef": "/run/secrets/database-url",
+  "databaseRef": "/run/secrets/knowledge/database-url",
   "searchSecretRef": "/run/secrets/search-secret"
 }

@@ -22,6 +22,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/secretbox"
 )
 
 const (
@@ -952,7 +953,7 @@ func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error {
 }
 
 // NewBackgroundTasks 只返回具有真实运行权威的后台入口；缺任一依赖时不登记后台任务。
-func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
+func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier, box *secretbox.Box) ([]platform.BackgroundTask, error) {
 	if store == nil || store.db == nil || siteConfig == nil || !platform.ValidIdentifier(dataEpoch) {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "身份后台任务真实运行依赖尚未装配")
 	}
@@ -966,7 +967,7 @@ func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, data
 		{
 			Name: "identity.site-purge",
 			Run: func(ctx context.Context) error {
-				return runSitePurge(ctx, store, siteConfig, dataEpoch)
+				return runSitePurge(ctx, store, siteConfig, dataEpoch, box)
 			},
 		},
 	}, nil

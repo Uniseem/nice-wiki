@@ -104,43 +104,73 @@ func saveSettings(ctx context.Context, q sqlQuerier, settings platformSettings) 
 func providerSecretName(provider string) string { return "oauth:" + provider }
 
 func hasProviderSecret(ctx context.Context, q sqlQuerier, provider string) bool {
-	var n int
-	_ = q.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_secrets WHERE name=?`, providerSecretName(provider)).Scan(&n)
-	return n == 1
+	return hasSecret(ctx, q, providerSecretName(provider))
 }
 
 func saveProviderSecret(ctx context.Context, q sqlQuerier, provider, secret string) error {
+	return saveSecret(ctx, q, providerSecretName(provider), secret)
+}
+
+func loadProviderSecret(ctx context.Context, q sqlQuerier, provider string) (string, error) {
+	plain, found, err := loadSecret(ctx, q, providerSecretName(provider))
+	if err == nil && !found {
+		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "第三方登录密钥未配置")
+	}
+	return plain, err
+}
+
+// 平台密钥（第三方登录凭证、DNS 令牌）用主密钥加密后存在 platform_secrets，名字同时作附加数据，换名解不开。
+
+func hasSecret(ctx context.Context, q sqlQuerier, name string) bool {
+	var n int
+	_ = q.QueryRowContext(ctx, `SELECT COUNT(*) FROM platform_secrets WHERE name=?`, name).Scan(&n)
+	return n == 1
+}
+
+func saveSecret(ctx context.Context, q sqlQuerier, name, secret string) error {
 	box, err := secretBoxFrom(ctx)
 	if err != nil {
 		return err
 	}
-	nonce, ciphertext, err := box.Seal([]byte(secret), providerSecretName(provider))
+	nonce, ciphertext, err := box.Seal([]byte(secret), name)
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "密钥加密失败")
 	}
 	_, err = q.ExecContext(ctx, `INSERT INTO platform_secrets(name,nonce,ciphertext,updated_at) VALUES(?,?,?,?)
         ON CONFLICT(name) DO UPDATE SET nonce=excluded.nonce, ciphertext=excluded.ciphertext, updated_at=excluded.updated_at`,
-		providerSecretName(provider), nonce, ciphertext, platform.Now())
+		name, nonce, ciphertext, platform.Now())
 	if err != nil {
 		return identityDBError()
 	}
 	return nil
 }
 
-func loadProviderSecret(ctx context.Context, q sqlQuerier, provider string) (string, error) {
+func deleteSecret(ctx context.Context, q sqlQuerier, name string) error {
+	if _, err := q.ExecContext(ctx, `DELETE FROM platform_secrets WHERE name=?`, name); err != nil {
+		return identityDBError()
+	}
+	return nil
+}
+
+// loadSecret 解密读出平台密钥；没存过时 found 为 false。
+func loadSecret(ctx context.Context, q sqlQuerier, name string) (string, bool, error) {
 	box, err := secretBoxFrom(ctx)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	var nonce, ciphertext []byte
-	if err := q.QueryRowContext(ctx, `SELECT nonce,ciphertext FROM platform_secrets WHERE name=?`, providerSecretName(provider)).Scan(&nonce, &ciphertext); err != nil {
-		return "", platform.NewError(platform.CodeDependencyUnavailable, true, "第三方登录密钥未配置")
+	err = q.QueryRowContext(ctx, `SELECT nonce,ciphertext FROM platform_secrets WHERE name=?`, name).Scan(&nonce, &ciphertext)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
 	}
-	plain, err := box.Open(nonce, ciphertext, providerSecretName(provider))
 	if err != nil {
-		return "", platform.NewError(platform.CodeIntegrityError, false, "第三方登录密钥无法解密")
+		return "", false, identityDBError()
 	}
-	return string(plain), nil
+	plain, err := box.Open(nonce, ciphertext, name)
+	if err != nil {
+		return "", false, platform.NewError(platform.CodeIntegrityError, false, "平台密钥无法解密")
+	}
+	return string(plain), true, nil
 }
 
 // 站点内角色：owner 拥有全部十项功能并额外管理成员、域名、审计与备份；editor 能写能发布；viewer 只读。

@@ -20,5 +20,5 @@
     "jobs": "http://ops:8111",
     "analytics": "http://ops:8112"
   },
-  "databaseRef": "/run/secrets/database-url"
+  "databaseRef": "/run/secrets/agent/database-url"
 }
