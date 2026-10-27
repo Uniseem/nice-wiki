@@ -1,6 +1,6 @@
-# nice-wiki · 微服务文档站（重建中）
+# nice-wiki · 多用户文档平台
 
-本 main 从零建立分级设计契约并按R1实现微服务，旧实现和旧文档保存在old归档提交272bddc。站点主链路（初始化 → 写文档 → 发布 → 公开页）、后台各页面和 AI 问答/翻译的第一版已能在本地跑通，本地启动方式与最新进度见 [STATUS.md](STATUS.md)；备份恢复的完整协议和真实部署尚未完成。
+本 main 是多用户文档平台（GitBook 式）：用户自己注册、建站、邀请协作者、绑定域名，站点内容有编辑器、多语言、AI 问答与统计。设计见 [docs/architecture-v2.md](docs/architecture-v2.md)（以它为准，第 18 节记录与设计的差异），最新进度与本地启动方式见 [STATUS.md](STATUS.md)。旧实现和旧文档保存在old归档提交272bddc 与 archive-16-services 分支。
 
 从 [文档总索引](docs/README.md) 开始；先读 [全局需求](docs/requirements.md)、[总架构](docs/architecture.md)、[服务地图](docs/service-map.md)、[公共协议](docs/protocols.md)，再进入模块总文档。每个模块索引其架构、数据、API、流程、文件、函数、运维和验收规格。
 
