@@ -2451,6 +2451,13 @@
         },
         "purgeAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "failedDomains": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "renameAfter": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
@@ -2464,7 +2471,8 @@
         "createdAt",
         "visitorQaDaily",
         "qaPausedOn",
-        "grants"
+        "grants",
+        "failedDomains"
       ],
       "x-v2": true
     },
@@ -2579,13 +2587,18 @@
     },
     "UpdateSiteInput": {
       "type": "object",
-      "description": "修改站点名称、可见性或访客每日提问上限",
+      "description": "修改站点名称、站点地址名（30 天一次）、可见性或访客每日提问上限",
       "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
           "maxLength": 100,
           "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "maxLength": 63,
+          "minLength": 3
         },
         "visibility": {
           "type": "string",

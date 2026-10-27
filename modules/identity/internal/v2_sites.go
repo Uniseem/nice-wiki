@@ -38,11 +38,12 @@ func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.Si
 	var s gen.SiteSummary
 	var status, visibility, createdAt string
 	var daily sql.NullInt64
-	var deletedAt sql.NullString
+	var deletedAt, slugChanged sql.NullString
 	err := q.QueryRowContext(ctx, `SELECT site_id,slug,name,status,visibility,created_at,
         COALESCE((SELECT host FROM site_domains WHERE site_id=sites.site_id AND is_primary=1 AND status='verified' LIMIT 1),''),
-        visitor_qa_daily,qa_paused_on,deleted_at
-        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost, &daily, &s.QaPausedOn, &deletedAt)
+        (SELECT COUNT(*) FROM site_domains WHERE site_id=sites.site_id AND kind='custom' AND status='failed'),
+        visitor_qa_daily,qa_paused_on,deleted_at,slug_changed_at
+        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost, &s.FailedDomains, &daily, &s.QaPausedOn, &deletedAt, &slugChanged)
 	if errors.Is(err, sql.ErrNoRows) {
 		return s, platform.NewError(platform.CodeNotFound, false, "站点不存在")
 	}
@@ -64,7 +65,74 @@ func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.Si
 		at := purgeAt(deletedAt.String)
 		s.PurgeAt = &at
 	}
+	if slugChanged.Valid {
+		if at := parseTS(slugChanged.String).Add(slugCooldown); at.After(time.Now()) {
+			s.RenameAfter = &at
+		}
+	}
 	return s, nil
+}
+
+// slugCooldown 是站点名两次修改的最短间隔，也是旧子域名保留（跳转到新地址）的时长。
+const slugCooldown = 30 * 24 * time.Hour
+
+// renameSite 改站点名：新子域名接替旧子域名（主域名身份也一并接过），旧子域名保留 slugCooldown 期间跳转到新地址，到期由后台删掉、名字放出。
+func renameSite(ctx context.Context, db *sql.DB, siteID, raw string) error {
+	slug := strings.ToLower(strings.TrimSpace(raw))
+	if !slugPattern.MatchString(slug) || reservedSlugs[slug] || strings.Contains(slug, "--") {
+		return platform.NewError(platform.CodeValidation, false, "站点名只能用小写字母、数字和连字符，3 到 63 位，且不能是保留名")
+	}
+	settings, err := loadSettings(ctx, db)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return identityDBError()
+	}
+	defer tx.Rollback()
+	var current string
+	var changed sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT slug,slug_changed_at FROM sites WHERE site_id=?`, siteID).Scan(&current, &changed); err != nil {
+		return identityDBError()
+	}
+	if current == slug {
+		return nil
+	}
+	if changed.Valid && parseTS(changed.String).Add(slugCooldown).After(time.Now()) {
+		return platform.NewError(platform.CodeConflict, false, "站点名 30 天内只能改一次")
+	}
+	host := slug + "." + sitesDomainOf(settings)
+	var taken int
+	if err := tx.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM sites WHERE slug=?) + (SELECT COUNT(*) FROM site_domains WHERE host=?)`, slug, host).Scan(&taken); err != nil {
+		return identityDBError()
+	}
+	if taken > 0 {
+		return platform.NewError(platform.CodeConflict, false, "站点名已被占用")
+	}
+	var oldHost string
+	var primary bool
+	if err := tx.QueryRowContext(ctx, `SELECT host,is_primary FROM site_domains WHERE site_id=? AND kind='subdomain' AND expires_at IS NULL`, siteID).Scan(&oldHost, &primary); err != nil {
+		return identityDBError()
+	}
+	now := platform.Now()
+	expires := time.Now().UTC().Add(slugCooldown).Format(time.RFC3339Nano)
+	for _, statement := range []struct {
+		sql  string
+		args []any
+	}{
+		{`UPDATE sites SET slug=?, slug_changed_at=?, revision=revision+1, updated_at=? WHERE site_id=?`, []any{slug, now, now, siteID}},
+		{`UPDATE site_domains SET is_primary=0, expires_at=? WHERE host=?`, []any{expires, oldHost}},
+		{`INSERT INTO site_domains(host,site_id,kind,status,is_primary,verify_token,verified_at,created_at) VALUES(?,?,'subdomain','verified',?,'',?,?)`, []any{host, siteID, primary, now, now}},
+	} {
+		if _, err := tx.ExecContext(ctx, statement.sql, statement.args...); err != nil {
+			return identityDBError()
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return identityDBError()
+	}
+	return nil
 }
 
 // ListMySites 列出当前用户所有的站点和额度；已删除、还在保留期里的站点只列给所有者（用来恢复）。
@@ -166,6 +234,14 @@ func CreateSite(ctx context.Context, op OperationContext, input gen.CreateSiteIn
 	if limits.SiteCount >= limits.MaxSites {
 		return gen.SiteResult{}, platform.NewError(platform.CodeBudgetExceeded, false, "已达到站点数量上限")
 	}
+	// 别的站点改名后保留的旧子域名还没到期，名字不能用。
+	var retired int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM site_domains WHERE host=?`, slug+"."+sitesDomainOf(settings)).Scan(&retired); err != nil {
+		return gen.SiteResult{}, identityDBError()
+	}
+	if retired > 0 {
+		return gen.SiteResult{}, platform.NewError(platform.CodeConflict, false, "站点名已被占用")
+	}
 	siteID, now := platform.NewIdentifier(), platform.Now()
 	if _, err := tx.ExecContext(ctx, `INSERT INTO sites(site_id,slug,name,owner_user_id,status,visibility,base_language,revision,created_at,updated_at) VALUES(?,?,?,?,'active','public',?,1,?,?)`,
 		siteID, slug, name, userID, baseLanguage, now, now); err != nil {
@@ -260,6 +336,14 @@ func UpdateSite(ctx context.Context, op OperationContext, input UpdateSiteCmd) (
 		}
 		if _, err := store.db.ExecContext(ctx, `UPDATE sites SET name=?, revision=revision+1, updated_at=? WHERE site_id=?`, name, platform.Now(), input.SiteID); err != nil {
 			return gen.SiteResult{}, identityDBError()
+		}
+	}
+	if input.Body.Slug != nil {
+		if role != "owner" {
+			return gen.SiteResult{}, platform.NewError(platform.CodeForbidden, false, "只有所有者能改站点名")
+		}
+		if err := renameSite(ctx, store.db, input.SiteID, *input.Body.Slug); err != nil {
+			return gen.SiteResult{}, err
 		}
 	}
 	if input.Body.Visibility != nil {
@@ -536,6 +620,64 @@ func AddSiteDomain(ctx context.Context, op OperationContext, input AddSiteDomain
 	return gen.SiteDomainResult{Domain: d}, err
 }
 
+// recheckDomains 已验证的自定义域名每天复核一次验证记录；连续 3 次（约 3 天）查不到就标成失效：
+// 不再签发和续期证书（AllowTlsHost 只放行已验证的），也不再作主域名；站点所有者在“我的站点”和域名页看到提示。
+// 偶尔的解析失败只记次数，查到一次就清零。
+func recheckDomains(ctx context.Context, db *sql.DB) error {
+	// 改名后保留的旧子域名到期删掉，名字放出。
+	if _, err := db.ExecContext(ctx, `DELETE FROM site_domains WHERE expires_at IS NOT NULL AND expires_at<?`, platform.Now()); err != nil {
+		return identityDBError()
+	}
+	cutoff := time.Now().UTC().Add(-24 * time.Hour).Format(time.RFC3339Nano)
+	rows, err := db.QueryContext(ctx, `SELECT site_id,host,verify_token,check_failures FROM site_domains
+        WHERE kind='custom' AND status='verified' AND (checked_at IS NULL OR checked_at<?) ORDER BY checked_at LIMIT 20`, cutoff)
+	if err != nil {
+		return identityDBError()
+	}
+	type due struct {
+		site, host, token string
+		failures          int
+	}
+	var list []due
+	for rows.Next() {
+		var d due
+		if err := rows.Scan(&d.site, &d.host, &d.token, &d.failures); err != nil {
+			rows.Close()
+			return identityDBError()
+		}
+		list = append(list, d)
+	}
+	rows.Close()
+	for _, d := range list {
+		lookupCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
+		records, _ := lookupTXT(lookupCtx, "_nw-verify."+d.host)
+		cancel()
+		matched := false
+		for _, record := range records {
+			if strings.TrimSpace(record) == "nw-verify="+d.token {
+				matched = true
+			}
+		}
+		now := platform.Now()
+		switch {
+		case matched:
+			_, err = db.ExecContext(ctx, `UPDATE site_domains SET checked_at=?, check_failures=0 WHERE host=?`, now, d.host)
+		case d.failures+1 >= 3:
+			// 失效的域名如果是主域名，主域名交回平台子域名。
+			if _, err = db.ExecContext(ctx, `UPDATE site_domains SET status='failed', is_primary=0, checked_at=?, check_failures=? WHERE host=?`, now, d.failures+1, d.host); err == nil {
+				_, err = db.ExecContext(ctx, `UPDATE site_domains SET is_primary=1 WHERE site_id=? AND kind='subdomain' AND expires_at IS NULL
+                    AND NOT EXISTS (SELECT 1 FROM site_domains p WHERE p.site_id=? AND p.is_primary=1)`, d.site, d.site)
+			}
+		default:
+			_, err = db.ExecContext(ctx, `UPDATE site_domains SET checked_at=?, check_failures=? WHERE host=?`, now, d.failures+1, d.host)
+		}
+		if err != nil {
+			return identityDBError()
+		}
+	}
+	return nil
+}
+
 // lookupTXT 可替换，便于离线环境；默认走系统解析器。
 var lookupTXT = func(ctx context.Context, name string) ([]string, error) {
 	return (&net.Resolver{}).LookupTXT(ctx, name)
@@ -569,7 +711,8 @@ func VerifySiteDomain(ctx context.Context, op OperationContext, input SiteHostRe
 	status := "failed"
 	if matched {
 		status = "verified"
-		if _, err := store.db.ExecContext(ctx, `UPDATE site_domains SET status='verified', verified_at=? WHERE site_id=? AND host=?`, platform.Now(), input.SiteID, input.Host); err != nil {
+		now := platform.Now()
+		if _, err := store.db.ExecContext(ctx, `UPDATE site_domains SET status='verified', verified_at=?, checked_at=?, check_failures=0 WHERE site_id=? AND host=?`, now, now, input.SiteID, input.Host); err != nil {
 			return gen.SiteDomainResult{}, identityDBError()
 		}
 	} else if _, err := store.db.ExecContext(ctx, `UPDATE site_domains SET status='failed' WHERE site_id=? AND host=?`, input.SiteID, input.Host); err != nil {

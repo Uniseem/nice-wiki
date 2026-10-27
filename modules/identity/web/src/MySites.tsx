@@ -1,13 +1,15 @@
 import { ArrowRight, Ellipsis, Globe, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Form, Label, Modal, Table } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { adminLanguage, api, confirmAction, currentSite, EmptyBlock, ErrorBlock, findSiteLanguage, fmtBytes, FormGrid, LoadingBlock, navigate, newKey, NumberInput, PageHeader, selectSite, SelectInput, siteLanguages, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { adminLanguage, api, confirmAction, currentSite, EmptyBlock, ErrorBlock, findSiteLanguage, fmtBytes, fmtDateTime, FormGrid, LoadingBlock, navigate, newKey, NumberInput, PageHeader, selectSite, SelectInput, siteLanguages, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useState } from 'react';
 
 export type Site = {
   siteId: string; slug: string; name: string; status: 'active' | 'suspended' | 'deleted'; role: 'owner' | 'editor' | 'viewer';
   visibility: 'public' | 'private'; primaryHost: string; createdAt: string; visitorQaDaily: number; qaPausedOn: string; grants: string[];
   purgeAt?: string; // 已删除站点的永久清除时间，在这之前所有者可以恢复
+  failedDomains: number; // 复核时验证记录查不到、已失效的自定义域名个数
+  renameAfter?: string; // 站点名改过后要到这个时间才能再改
 };
 type Limits = { maxSites: number; siteCount: number; storageBytes: number };
 type Usage = { siteBytes: number; ownerBytes: number; ownerLimitBytes: number };
@@ -21,6 +23,15 @@ const statusText: Record<string, { label: string; tone: 'success' | 'warning' | 
 export function openSite(site: Site, path = '/admin/dashboard') {
   selectSite({ siteId: site.siteId, grants: site.grants });
   navigate(path);
+}
+
+// 站点配置里的公开地址（站内链接、站点地图、规范地址用）跟着主地址走：改站点名、换主域名后调用。
+export async function syncPublicAddress(siteId: string) {
+  const { site } = await api<{ site: Site }>(`/v1/sites/${siteId}`);
+  const url = `${location.protocol}//${site.primaryHost}${location.port && !site.primaryHost.includes(':') && site.primaryHost.endsWith('.localhost') ? `:${location.port}` : ''}`;
+  const { config } = await api<{ config: { publicBaseURL: string; titleTemplate: string; description: string; indexingEnabled: boolean; resourceLimits: unknown; securityPolicy: unknown; revision: number } }>('/v1/config', { site: siteId });
+  if (!site.primaryHost || config.publicBaseURL === url) return;
+  await api('/v1/config', { method: 'PUT', site: siteId, body: { publicBaseURL: url, titleTemplate: config.titleTemplate, description: config.description, indexingEnabled: config.indexingEnabled, resourceLimits: config.resourceLimits, securityPolicy: config.securityPolicy, expectedRevision: config.revision } });
 }
 
 export default function MySitesPage() {
@@ -77,6 +88,7 @@ export default function MySitesPage() {
                     <Table.Cell>
                       <Chip color={statusText[site.status]?.tone ?? 'default'} size="sm" variant="soft">{statusText[site.status]?.label ?? site.status}</Chip>
                       {site.purgeAt && <span className="ms-2 text-xs text-muted">{t('{0} 天后永久清除', Math.max(1, Math.ceil((Date.parse(site.purgeAt) - Date.now()) / 86400000)))}</span>}
+                      {site.failedDomains > 0 && <Chip className="ms-1" color="danger" size="sm" variant="soft">{t('自定义域名已失效')}</Chip>}
                       {site.qaPausedOn === new Date().toISOString().slice(0, 10) && <Chip className="ms-1" color="warning" size="sm" variant="soft">{t('今日提问已达上限')}</Chip>}
                     </Table.Cell>
                     <Table.Cell className="text-end">
@@ -159,11 +171,16 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
 
 function SettingsDialog({ site, onClose, onSaved }: { site: Site; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(site.name);
+  const [slug, setSlug] = useState(site.slug);
   const [isPrivate, setPrivate] = useState(site.visibility === 'private');
   const [daily, setDaily] = useState(site.visitorQaDaily);
   const { busy, run } = useAction();
   const submit = async () => {
-    const done = await run(() => api(`/v1/sites/${site.siteId}`, { method: 'PATCH', body: { name, visibility: isPrivate ? 'private' : 'public', visitorQaDaily: daily } }), t('站点设置已保存'));
+    const renamed = slug.trim().toLowerCase() !== site.slug;
+    const done = await run(async () => {
+      await api(`/v1/sites/${site.siteId}`, { method: 'PATCH', body: { name, visibility: isPrivate ? 'private' : 'public', visitorQaDaily: daily, ...(renamed ? { slug: slug.trim().toLowerCase() } : {}) } });
+      if (renamed) await syncPublicAddress(site.siteId);
+    }, t('站点设置已保存'));
     if (done !== undefined) onSaved();
   };
   return (
@@ -175,6 +192,8 @@ function SettingsDialog({ site, onClose, onSaved }: { site: Site; onClose: () =>
           <Form className="flex flex-col" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <Modal.Body className="flex flex-col gap-4">
               <TextInput isRequired label={t('站点名称')} maxLength={100} value={name} onChange={setName} />
+              <TextInput isRequired isDisabled={!!site.renameAfter} label={t('站点地址名')} maxLength={63} value={slug} onChange={setSlug}
+                description={site.renameAfter ? t('{0} 之后才能再改。', fmtDateTime(site.renameAfter)) : t('子域名的前缀。30 天内只能改一次；旧地址保留 30 天并跳转到新地址，之后放出给别人用。')} />
               <SwitchInput isSelected={isPrivate} label={t('私有站点')} description={t('只有站点成员登录后才能看到公开页。')} onChange={setPrivate} />
               <FormGrid columns={1}>
                 <NumberInput label={t('访客每日提问上限')} minValue={0} maxValue={100000} value={daily} onChange={setDaily} description={t('达到后当天暂停访客提问，0 表示不限。花的是你的 AI 额度或你自己的 key。')} />

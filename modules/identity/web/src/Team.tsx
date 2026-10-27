@@ -1,6 +1,7 @@
 import { Ellipsis, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Form, Label, Modal, Table, Tabs } from '@heroui/react';
 import type { Key } from '@heroui/react';
+import { syncPublicAddress } from './MySites';
 import { api, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, LoadingBlock, Mono, Notice, PageHeader, SelectInput, TextInput, useAction, useCurrentSite, useLoad, t } from '@ui';
 import { useState } from 'react';
 
@@ -131,7 +132,10 @@ function Domains({ siteId }: { siteId: string }) {
       if (!ok) return;
       await run(() => api(`/v1/sites/${siteId}/domains/${encodeURIComponent(domain.host)}`, { method: 'DELETE' }), t('已移除'));
     } else {
-      await run(() => api(`/v1/sites/${siteId}/domains/${encodeURIComponent(domain.host)}:${kind}`, { method: 'POST', body: {} }), kind === 'verify' ? t('验证完成') : t('已设为主域名'));
+      await run(async () => {
+        await api(`/v1/sites/${siteId}/domains/${encodeURIComponent(domain.host)}:${kind}`, { method: 'POST', body: {} });
+        if (kind === 'primary') await syncPublicAddress(siteId);
+      }, kind === 'verify' ? t('验证完成') : t('已设为主域名'));
     }
     domains.reload();
   };
@@ -151,6 +155,7 @@ function Domains({ siteId }: { siteId: string }) {
           <p className="text-sm leading-6">{t('在域名解析里添加一条 TXT 记录：')}</p>
           <p className="text-sm"><Mono>{domain.verifyName}</Mono> → <Mono>{domain.verifyToken}</Mono></p>
           <p className="text-sm leading-6">{t('并把域名 CNAME 指向平台地址。证书会在第一次访问时自动签发。')}</p>
+          <p className="text-sm leading-6">{t('这条 TXT 记录验证后也要一直保留：平台每天复核，连续 3 天查不到会停用这个域名，补回记录后重新验证即可。')}</p>
         </Notice>
       ))}
       {domains.error ? <ErrorBlock error={domains.error} onRetry={domains.reload} /> : !domains.data ? <LoadingBlock lines={3} /> : (

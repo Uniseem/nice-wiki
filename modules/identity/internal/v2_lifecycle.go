@@ -148,7 +148,7 @@ func RestoreSite(ctx context.Context, op OperationContext, input DeletedSiteRef)
 	return gen.SiteResult{Site: s}, err
 }
 
-// runSitePurge 每分钟清除一批保留期已满的站点。
+// runSitePurge 每分钟清除一批保留期已满的站点，并复核到期的自定义域名。
 func runSitePurge(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) error {
 	return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{
 		AdmitBatch:  lifecycle.SimpleAdmission(siteConfig.ReadRuntimeState, dataEpoch),
@@ -156,7 +156,10 @@ func runSitePurge(ctx context.Context, store *Store, siteConfig platform.SiteCon
 		Runtime:     siteConfig.ReadRuntimeState,
 		WriteWindow: lifecycle.SimpleWriteWindow(siteConfig.ReadRuntimeState),
 		Recover: func(work context.Context) error {
-			return purgeExpiredSites(work, store.db, dataEpoch)
+			if err := purgeExpiredSites(work, store.db, dataEpoch); err != nil {
+				return err
+			}
+			return recheckDomains(work, store.db)
 		},
 	})
 }
