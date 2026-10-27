@@ -1,8 +1,8 @@
 import { Ellipsis, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Form, Label, Modal, Table, Tabs } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { syncPublicAddress } from './MySites';
-import { api, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, LoadingBlock, Mono, Notice, PageHeader, SelectInput, TextInput, useAction, useCurrentSite, useLoad, t } from '@ui';
+import { syncPublicAddress, type Site } from './MySites';
+import { api, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, LoadingBlock, Mono, Notice, PageHeader, Panel, SelectInput, TextInput, useAction, useCurrentSite, useLoad, t } from '@ui';
 import { useState } from 'react';
 
 type Member = { userId: string; displayName: string; email: string; role: 'owner' | 'editor' | 'viewer'; createdAt: string };
@@ -24,10 +24,12 @@ export default function TeamPage() {
           <Tabs.List aria-label={t('团队与域名')}>
             <Tabs.Tab id="members">{t('成员')}<Tabs.Indicator /></Tabs.Tab>
             <Tabs.Tab id="domains">{t('域名')}<Tabs.Indicator /></Tabs.Tab>
+            <Tabs.Tab id="access">{t('私有访问')}<Tabs.Indicator /></Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
         <Tabs.Panel id="members"><Members siteId={site} /></Tabs.Panel>
         <Tabs.Panel id="domains"><Domains siteId={site} /></Tabs.Panel>
+        <Tabs.Panel id="access"><PrivateAccess siteId={site} /></Tabs.Panel>
       </Tabs>
     </div>
   );
@@ -192,6 +194,83 @@ function Domains({ siteId }: { siteId: string }) {
           </Table.ScrollContainer>
         </Table>
       )}
+    </div>
+  );
+}
+
+type ShareLink = { linkId: string; note: string; expiresAt?: string; revoked: boolean; createdAt: string };
+
+// 私有站点除了成员登录，还可以给访客一个访问密码或分享链接；只有所有者能管理。
+function PrivateAccess({ siteId }: { siteId: string }) {
+  const site = useLoad((signal) => api<{ site: Site }>(`/v1/sites/${siteId}`, { signal }).then((result) => result.site), [siteId]);
+  const links = useLoad((signal) => api<{ links: ShareLink[]; passwordEnabled: boolean }>(`/v1/sites/${siteId}/share-links`, { signal }), [siteId]);
+  const [password, setPassword] = useState('');
+  const [note, setNote] = useState('');
+  const [days, setDays] = useState('30');
+  const [created, setCreated] = useState('');
+  const { busy, run } = useAction();
+  if (site.error || links.error) return <ErrorBlock error={site.error ?? links.error} onRetry={() => { site.reload(); links.reload(); }} />;
+  if (!site.data || !links.data) return <LoadingBlock lines={3} />;
+  const origin = `${location.protocol}//${site.data.primaryHost}${location.port && site.data.primaryHost.endsWith('.localhost') ? `:${location.port}` : ''}`;
+  const savePassword = async (value: string | null) => {
+    const done = await run(() => api(`/v1/sites/${siteId}/private-password`, { method: 'PUT', body: value ? { password: value } : {} }), value ? t('访问密码已设置') : t('访问密码已清除'));
+    if (done !== undefined) { setPassword(''); links.reload(); }
+  };
+  const create = async () => {
+    const result = await run(() => api<{ token: string }>(`/v1/sites/${siteId}/share-links`, { method: 'POST', body: { ...(note.trim() ? { note: note.trim() } : {}), ...(days !== 'never' ? { expiresInDays: Number(days) } : {}) } }), t('分享链接已生成'));
+    if (result) { setCreated(`${origin}/_pv/share?token=${result.token}`); setNote(''); links.reload(); }
+  };
+  const revoke = async (link: ShareLink) => {
+    if (!(await confirmAction({ title: t('作废这个分享链接？'), body: t('之后不能再用它进入；已经进入的访客最多还能看 12 小时。'), confirmLabel: t('作废'), tone: 'danger' }))) return;
+    await run(() => api(`/v1/sites/${siteId}/share-links/${link.linkId}`, { method: 'DELETE' }), t('已作废'));
+    links.reload();
+  };
+  return (
+    <div className="flex flex-col gap-6">
+      {site.data.visibility !== 'private' && <Notice status="default">{t('站点现在是公开的，这里的设置在把站点改成私有后才生效（在“我的站点”的站点设置里改）。')}</Notice>}
+      <Panel title={t('访问密码')} description={links.data.passwordEnabled ? t('已设置。访客在站点上输入密码就能看 12 小时；改密码后旧密码立即失效。') : t('没有设置。设置后，访客在站点上输入密码就能看，不用注册。')}>
+        <Form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void savePassword(password); }}>
+          <TextInput className="max-w-xs" label={links.data.passwordEnabled ? t('新的访问密码') : t('访问密码')} minLength={4} maxLength={128} type="password" value={password} onChange={setPassword} />
+          <Button isDisabled={password.length < 4} isPending={busy} type="submit">{t('保存')}</Button>
+          {links.data.passwordEnabled && <Button isDisabled={busy} variant="secondary" onPress={() => void savePassword(null)}>{t('清除密码')}</Button>}
+        </Form>
+      </Panel>
+      <Panel title={t('分享链接')} description={t('拿到链接的人不用登录就能看。每个链接可以单独作废。')}>
+        <Form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void create(); }}>
+          <TextInput className="max-w-xs" label={t('备注')} maxLength={200} placeholder={t('例如：给评审组')} value={note} onChange={setNote} />
+          <SelectInput label={t('有效期')} value={days} onChange={setDays} options={[{ value: '7', label: t('7 天') }, { value: '30', label: t('30 天') }, { value: '365', label: t('一年') }, { value: 'never', label: t('长期有效') }]} />
+          <Button isPending={busy} type="submit"><Plus />{t('生成链接')}</Button>
+        </Form>
+        {created && (
+          <Notice status="success" title={t('链接只显示这一次，请现在复制')}>
+            <p className="break-all text-sm"><Mono>{created}</Mono></p>
+          </Notice>
+        )}
+        {links.data.links.length > 0 && (
+          <Table>
+            <Table.ScrollContainer>
+              <Table.Content aria-label={t('分享链接')} className="min-w-[560px]">
+                <Table.Header>
+                  <Table.Column isRowHeader>{t('备注')}</Table.Column>
+                  <Table.Column>{t('生成时间')}</Table.Column>
+                  <Table.Column>{t('有效期至')}</Table.Column>
+                  <Table.Column className="w-24 text-end">{t('操作')}</Table.Column>
+                </Table.Header>
+                <Table.Body>
+                  {links.data.links.map((link) => (
+                    <Table.Row key={link.linkId} id={link.linkId}>
+                      <Table.Cell>{link.note || t('（无备注）')}</Table.Cell>
+                      <Table.Cell>{fmtDateTime(link.createdAt)}</Table.Cell>
+                      <Table.Cell>{link.revoked ? <Chip size="sm" variant="soft">{t('已作废')}</Chip> : link.expiresAt ? fmtDateTime(link.expiresAt) : t('长期')}</Table.Cell>
+                      <Table.Cell className="text-end">{!link.revoked && <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void revoke(link)}>{t('作废')}</Button>}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
+        )}
+      </Panel>
     </div>
   );
 }

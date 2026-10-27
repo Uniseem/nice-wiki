@@ -7,6 +7,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -791,15 +792,16 @@ func ResolveHost(ctx context.Context, op OperationContext, input HostRef) (gen.R
 	var status, visibility string
 	var primary bool
 	err := store.db.QueryRowContext(ctx, `SELECT s.site_id,s.slug,s.status,s.visibility,d.is_primary,
-        COALESCE((SELECT host FROM site_domains WHERE site_id=s.site_id AND is_primary=1 AND status='verified' LIMIT 1),'')
+        COALESCE((SELECT host FROM site_domains WHERE site_id=s.site_id AND is_primary=1 AND status='verified' LIMIT 1),''),
+        s.private_password_hash<>''
         FROM site_domains d JOIN sites s ON s.site_id=d.site_id WHERE d.host=? AND d.status='verified'`, host).
-		Scan(&result.SiteId, &result.Slug, &status, &visibility, &primary, &result.PrimaryHost)
+		Scan(&result.SiteId, &result.Slug, &status, &visibility, &primary, &result.PrimaryHost, &result.PasswordEnabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		if net.ParseIP(host) == nil && host != "localhost" && !strings.HasSuffix(host, ".localhost") {
 			return result, platform.NewError(platform.CodeNotFound, false, "域名没有对应站点")
 		}
-		err = store.db.QueryRowContext(ctx, `SELECT site_id,slug,status,visibility,'' FROM sites WHERE status<>'deleted' ORDER BY created_at LIMIT 1`).
-			Scan(&result.SiteId, &result.Slug, &status, &visibility, &result.PrimaryHost)
+		err = store.db.QueryRowContext(ctx, `SELECT site_id,slug,status,visibility,'',private_password_hash<>'' FROM sites WHERE status<>'deleted' ORDER BY created_at LIMIT 1`).
+			Scan(&result.SiteId, &result.Slug, &status, &visibility, &result.PrimaryHost, &result.PasswordEnabled)
 		primary = true
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, platform.NewError(platform.CodeNotFound, false, "还没有站点")
@@ -877,27 +879,216 @@ func RedeemPrivateAccess(ctx context.Context, op OperationContext, input RedeemP
 	if !ok {
 		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
 	}
-	tx, err := store.db.BeginTx(ctx, nil)
+	grant := gen.PrivateAccessGrant{TtlSeconds: 12 * 3600}
+	body := input.Body
+	switch {
+	case body.Code != nil:
+		return grant, redeemMemberCode(ctx, store.db, input.SiteID, *body.Code)
+	case body.Password != nil:
+		if !privateGuesses.allow(input.SiteID) {
+			return grant, platform.NewError(platform.CodeRateLimited, true, "密码试错太多，请稍后再试")
+		}
+		var hash, visibility string
+		if err := store.db.QueryRowContext(ctx, `SELECT private_password_hash,visibility FROM sites WHERE site_id=? AND status='active'`, input.SiteID).Scan(&hash, &visibility); err != nil || hash == "" || visibility != "private" {
+			return grant, platform.NewError(platform.CodeForbidden, false, "这个站点没有设访问密码")
+		}
+		verified, err := VerifyPassword(VerifyPasswordInput{Password: padSitePassword(*body.Password), EncodedHash: hash})
+		if err != nil || !verified.Valid {
+			privateGuesses.fail(input.SiteID)
+			return grant, platform.NewError(platform.CodeForbidden, false, "访问密码不对")
+		}
+		return grant, nil
+	case body.ShareToken != nil:
+		var expires, revoked sql.NullString
+		err := store.db.QueryRowContext(ctx, `SELECT l.expires_at,l.revoked_at FROM private_share_links l JOIN sites s ON s.site_id=l.site_id
+            WHERE l.token_hash=? AND l.site_id=? AND s.status='active'`, hashCode(*body.ShareToken), input.SiteID).Scan(&expires, &revoked)
+		if err != nil || revoked.Valid || (expires.Valid && !parseTS(expires.String).After(time.Now().UTC())) {
+			return grant, platform.NewError(platform.CodeForbidden, false, "分享链接无效或已过期")
+		}
+		return grant, nil
+	}
+	return grant, platform.NewError(platform.CodeValidation, false, "缺少访问凭据")
+}
+
+// redeemMemberCode 核对成员从平台域名带来的一次性码（用一次就删）。
+func redeemMemberCode(ctx context.Context, db *sql.DB, siteID, code string) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return gen.PrivateAccessGrant{}, identityDBError()
+		return identityDBError()
 	}
 	defer tx.Rollback()
-	var siteID, expires string
-	err = tx.QueryRowContext(ctx, `SELECT site_id,expires_at FROM private_access_codes WHERE code_hash=?`, hashCode(input.Body.Code)).Scan(&siteID, &expires)
+	var codeSite, expires string
+	err = tx.QueryRowContext(ctx, `SELECT site_id,expires_at FROM private_access_codes WHERE code_hash=?`, hashCode(code)).Scan(&codeSite, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
-		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
+		return platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
 	}
 	if err != nil {
-		return gen.PrivateAccessGrant{}, identityDBError()
+		return identityDBError()
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM private_access_codes WHERE code_hash=?`, hashCode(input.Body.Code)); err != nil {
-		return gen.PrivateAccessGrant{}, identityDBError()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM private_access_codes WHERE code_hash=?`, hashCode(code)); err != nil {
+		return identityDBError()
 	}
 	if err := tx.Commit(); err != nil {
-		return gen.PrivateAccessGrant{}, identityDBError()
+		return identityDBError()
 	}
-	if siteID != input.SiteID || !parseTS(expires).After(time.Now().UTC()) {
-		return gen.PrivateAccessGrant{}, platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
+	if codeSite != siteID || !parseTS(expires).After(time.Now().UTC()) {
+		return platform.NewError(platform.CodeForbidden, false, "进入私有站点的码无效或已过期")
 	}
-	return gen.PrivateAccessGrant{TtlSeconds: 12 * 3600}, nil
+	return nil
+}
+
+// guessLimiter 限制访问密码的试错：每个站点 10 分钟内最多错 20 次（单实例，记在内存里）。
+type guessLimiter struct {
+	mu    sync.Mutex
+	sites map[string][]time.Time
+}
+
+var privateGuesses = &guessLimiter{sites: map[string][]time.Time{}}
+
+func (g *guessLimiter) recent(site string) []time.Time {
+	cutoff := time.Now().Add(-10 * time.Minute)
+	kept := g.sites[site][:0]
+	for _, at := range g.sites[site] {
+		if at.After(cutoff) {
+			kept = append(kept, at)
+		}
+	}
+	g.sites[site] = kept
+	return kept
+}
+
+func (g *guessLimiter) allow(site string) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return len(g.recent(site)) < 20
+}
+
+func (g *guessLimiter) fail(site string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.sites[site] = append(g.recent(site), time.Now())
+}
+
+// requireOwner 要求当前用户是站点所有者（站主也可以）。
+func requireOwner(ctx context.Context, db *sql.DB, op OperationContext, siteID string) error {
+	if err := requireSiteScope(op, siteID); err != nil {
+		return err
+	}
+	role, err := memberRole(ctx, db, op, siteID)
+	if err != nil {
+		return err
+	}
+	if role != "owner" {
+		return platform.NewError(platform.CodeForbidden, false, "只有所有者能管理站点的访问方式")
+	}
+	return nil
+}
+
+// SetSitePassword 设置或清除私有站点的访问密码；访客在站点域名上输入它就能看（12 小时有效）。
+func SetSitePassword(ctx context.Context, op OperationContext, input SetSitePasswordCmd) (gen.SitePasswordResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.SitePasswordResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	if err := requireOwner(ctx, store.db, op, input.SiteID); err != nil {
+		return gen.SitePasswordResult{}, err
+	}
+	hash := ""
+	if input.Body.Password != nil {
+		if len([]rune(*input.Body.Password)) < 4 {
+			return gen.SitePasswordResult{}, platform.NewError(platform.CodeValidation, false, "访问密码至少 4 位")
+		}
+		// 访问密码比账号口令短（可以 4 位），不走账号口令的长度校验。
+		hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: padSitePassword(*input.Body.Password)})
+		if err != nil {
+			return gen.SitePasswordResult{}, err
+		}
+		hash = hashed.EncodedHash
+	}
+	if _, err := store.db.ExecContext(ctx, `UPDATE sites SET private_password_hash=?, updated_at=? WHERE site_id=?`, hash, platform.Now(), input.SiteID); err != nil {
+		return gen.SitePasswordResult{}, identityDBError()
+	}
+	return gen.SitePasswordResult{Enabled: hash != ""}, nil
+}
+
+// padSitePassword 给访问密码加固定前缀再哈希：访问密码可以只有 4 位，账号口令的哈希函数要求至少 8 位。
+func padSitePassword(password string) string { return "nw-site-password:" + password }
+
+func shareLinkView(id, note, created string, expires, revoked sql.NullString) gen.ShareLink {
+	link := gen.ShareLink{LinkId: id, Note: note, Revoked: revoked.Valid, CreatedAt: parseTS(created)}
+	if expires.Valid {
+		at := parseTS(expires.String)
+		link.ExpiresAt = &at
+	}
+	return link
+}
+
+// ListShareLinks 列出站点的分享链接（令牌不再显示）。
+func ListShareLinks(ctx context.Context, op OperationContext, input SiteRef) (gen.ListShareLinksResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.ListShareLinksResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	if err := requireOwner(ctx, store.db, op, input.SiteID); err != nil {
+		return gen.ListShareLinksResult{}, err
+	}
+	result := gen.ListShareLinksResult{Links: []gen.ShareLink{}}
+	if err := store.db.QueryRowContext(ctx, `SELECT private_password_hash<>'' FROM sites WHERE site_id=?`, input.SiteID).Scan(&result.PasswordEnabled); err != nil {
+		return result, identityDBError()
+	}
+	rows, err := store.db.QueryContext(ctx, `SELECT link_id,note,created_at,expires_at,revoked_at FROM private_share_links WHERE site_id=? ORDER BY created_at DESC`, input.SiteID)
+	if err != nil {
+		return result, identityDBError()
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, note, created string
+		var expires, revoked sql.NullString
+		if err := rows.Scan(&id, &note, &created, &expires, &revoked); err != nil {
+			return result, identityDBError()
+		}
+		result.Links = append(result.Links, shareLinkView(id, note, created, expires, revoked))
+	}
+	return result, nil
+}
+
+// CreateShareLink 新建分享链接：拿到链接的人不用登录就能看私有站点；令牌只在这里返回一次。
+func CreateShareLink(ctx context.Context, op OperationContext, input CreateShareLinkCmd) (gen.CreateShareLinkResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.CreateShareLinkResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	if err := requireOwner(ctx, store.db, op, input.SiteID); err != nil {
+		return gen.CreateShareLinkResult{}, err
+	}
+	token, id, now := randomCode(24), platform.NewIdentifier(), platform.Now()
+	note := ""
+	if input.Body.Note != nil {
+		note = strings.TrimSpace(*input.Body.Note)
+	}
+	var expires sql.NullString
+	if input.Body.ExpiresInDays != nil {
+		expires = sql.NullString{String: time.Now().UTC().Add(time.Duration(*input.Body.ExpiresInDays) * 24 * time.Hour).Format(time.RFC3339Nano), Valid: true}
+	}
+	if _, err := store.db.ExecContext(ctx, `INSERT INTO private_share_links(link_id,site_id,token_hash,note,expires_at,created_at) VALUES(?,?,?,?,?,?)`, id, input.SiteID, hashCode(token), note, expires, now); err != nil {
+		return gen.CreateShareLinkResult{}, identityDBError()
+	}
+	return gen.CreateShareLinkResult{Link: shareLinkView(id, note, now, expires, sql.NullString{}), Token: token}, nil
+}
+
+// RevokeShareLink 作废分享链接：之后不能再用它进入（已经进入的访客最多再看 12 小时）。
+func RevokeShareLink(ctx context.Context, op OperationContext, input ShareLinkRef) (gen.RemovedResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.RemovedResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	if err := requireOwner(ctx, store.db, op, input.SiteID); err != nil {
+		return gen.RemovedResult{}, err
+	}
+	result, err := store.db.ExecContext(ctx, `UPDATE private_share_links SET revoked_at=? WHERE site_id=? AND link_id=? AND revoked_at IS NULL`, platform.Now(), input.SiteID, input.LinkID)
+	if err != nil {
+		return gen.RemovedResult{}, identityDBError()
+	}
+	n, _ := result.RowsAffected()
+	return gen.RemovedResult{Removed: n > 0}, nil
 }

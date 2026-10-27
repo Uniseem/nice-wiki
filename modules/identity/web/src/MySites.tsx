@@ -194,7 +194,7 @@ function SettingsDialog({ site, onClose, onSaved }: { site: Site; onClose: () =>
               <TextInput isRequired label={t('站点名称')} maxLength={100} value={name} onChange={setName} />
               <TextInput isRequired isDisabled={!!site.renameAfter} label={t('站点地址名')} maxLength={63} value={slug} onChange={setSlug}
                 description={site.renameAfter ? t('{0} 之后才能再改。', fmtDateTime(site.renameAfter)) : t('子域名的前缀。30 天内只能改一次；旧地址保留 30 天并跳转到新地址，之后放出给别人用。')} />
-              <SwitchInput isSelected={isPrivate} label={t('私有站点')} description={t('只有站点成员登录后才能看到公开页。')} onChange={setPrivate} />
+              <SwitchInput isSelected={isPrivate} label={t('私有站点')} description={t('只有站点成员、知道访问密码或拿到分享链接的人能看到公开页（密码和链接在“团队与域名”里设置）。')} onChange={setPrivate} />
               <FormGrid columns={1}>
                 <NumberInput label={t('访客每日提问上限')} minValue={0} maxValue={100000} value={daily} onChange={setDaily} description={t('达到后当天暂停访客提问，0 表示不限。花的是你的 AI 额度或你自己的 key。')} />
               </FormGrid>

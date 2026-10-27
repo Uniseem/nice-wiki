@@ -277,11 +277,12 @@ func hostResolver(client *gen.IdentityClient, epoch platform.Identifier) func(co
 			PrimaryHost  string `json:"primaryHost"`
 			RedirectHost string `json:"redirectHost"`
 			PlatformHost string `json:"platformHost"`
+			Password     bool   `json:"passwordEnabled"`
 		}
 		if json.Unmarshal(raw, &body) != nil || body.SiteID == "" {
 			return transport.HostSite{}, false, nil
 		}
-		return transport.HostSite{SiteID: body.SiteID, Status: body.Status, Visibility: body.Visibility, PrimaryHost: body.PrimaryHost, RedirectHost: body.RedirectHost, PlatformHost: body.PlatformHost}, true, nil
+		return transport.HostSite{SiteID: body.SiteID, Status: body.Status, Visibility: body.Visibility, PrimaryHost: body.PrimaryHost, RedirectHost: body.RedirectHost, PlatformHost: body.PlatformHost, PasswordEnabled: body.Password}, true, nil
 	}
 }
 
@@ -306,16 +307,14 @@ func tlsAllower(client *gen.IdentityClient, epoch platform.Identifier) func(cont
 	}
 }
 
-// privateRedeemer 在站点域名上把协作者带来的一次性码交给身份服务核对。
-func privateRedeemer(client *gen.IdentityClient, epoch platform.Identifier) func(context.Context, platform.Identifier, string) error {
-	return func(ctx context.Context, siteID platform.Identifier, code string) error {
+// privateRedeemer 在站点域名上把私有访问凭据（成员一次性码、访问密码、分享链接令牌）交给身份服务核对。
+func privateRedeemer(client *gen.IdentityClient, epoch platform.Identifier) func(context.Context, platform.Identifier, transport.PrivateCredential) error {
+	return func(ctx context.Context, siteID platform.Identifier, credential transport.PrivateCredential) error {
 		deadline := platform.Timestamp(time.Now().UTC().Add(5 * time.Second).Format(time.RFC3339Nano))
 		id := platform.NewIdentifier()
 		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline, DataEpoch: epoch,
 			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: siteID, ExpiresAt: deadline, Grants: []string{}}}
-		_, err := client.RedeemPrivateAccess(platform.WithPortalProof(platform.WithOperationContext(ctx, op), ""), string(siteID), struct {
-			Code string `json:"code"`
-		}{code})
+		_, err := client.RedeemPrivateAccess(platform.WithPortalProof(platform.WithOperationContext(ctx, op), ""), string(siteID), credential)
 		return err
 	}
 }

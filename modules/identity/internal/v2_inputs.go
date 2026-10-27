@@ -47,6 +47,18 @@ type ResolveReportCmd struct {
 	ReportID string
 	Body     gen.ResolveReportInput
 }
+type SetSitePasswordCmd struct {
+	SiteID string
+	Body   gen.SetSitePasswordInput
+}
+
+type CreateShareLinkCmd struct {
+	SiteID string
+	Body   gen.CreateShareLinkInput
+}
+
+type ShareLinkRef struct{ SiteID, LinkID string }
+
 type RedeemPrivateAccessCmd struct {
 	SiteID string
 	Body   gen.RedeemPrivateAccessInput

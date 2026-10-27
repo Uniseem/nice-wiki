@@ -2934,6 +2934,9 @@
         "platformHost": {
           "type": "string",
           "maxLength": 253
+        },
+        "passwordEnabled": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -2942,7 +2945,8 @@
         "status",
         "visibility",
         "primaryHost",
-        "platformHost"
+        "platformHost",
+        "passwordEnabled"
       ],
       "x-v2": true
     },
@@ -4108,20 +4112,142 @@
       ],
       "x-v2": true
     },
+    "SetSitePasswordInput": {
+      "type": "object",
+      "description": "设置或清除私有站点的访问密码（不填表示清除）",
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 4
+        }
+      },
+      "x-v2": true
+    },
+    "SitePasswordResult": {
+      "type": "object",
+      "description": "私有站点是否设了访问密码",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "x-v2": true
+    },
+    "ShareLink": {
+      "type": "object",
+      "description": "私有站点的分享链接（令牌只在创建时返回一次）",
+      "additionalProperties": false,
+      "properties": {
+        "linkId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "expiresAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "linkId",
+        "note",
+        "revoked",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "ListShareLinksResult": {
+      "type": "object",
+      "description": "分享链接列表",
+      "additionalProperties": false,
+      "properties": {
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShareLink"
+          },
+          "maxItems": 1000
+        },
+        "passwordEnabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "links",
+        "passwordEnabled"
+      ],
+      "x-v2": true
+    },
+    "CreateShareLinkInput": {
+      "type": "object",
+      "description": "新建分享链接",
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "expiresInDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "x-v2": true
+    },
+    "CreateShareLinkResult": {
+      "type": "object",
+      "description": "新建的分享链接和令牌（只返回这一次）",
+      "additionalProperties": false,
+      "properties": {
+        "link": {
+          "$ref": "#/$defs/ShareLink"
+        },
+        "token": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "link",
+        "token"
+      ],
+      "x-v2": true
+    },
     "RedeemPrivateAccessInput": {
       "type": "object",
-      "description": "站点域名上的入口用一次性码换取站点专用短期访问",
+      "description": "站点域名上的入口换取站点专用短期访问：成员带来的一次性码、访客输入的访问密码或分享链接里的令牌，三选一",
       "additionalProperties": false,
       "properties": {
         "code": {
           "type": "string",
           "maxLength": 128,
           "minLength": 1
+        },
+        "password": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "shareToken": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
         }
       },
-      "required": [
-        "code"
-      ],
       "x-v2": true
     },
     "PrivateAccessGrant": {

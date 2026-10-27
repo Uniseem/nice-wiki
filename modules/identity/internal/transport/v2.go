@@ -89,6 +89,16 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	handlers["removeSiteDomain"] = v2Operation(a, identity.RemoveSiteDomain, siteHost)
 	handlers["resolveHost"] = v2Operation(a, identity.ResolveHost, func(_ none, r *http.Request) identity.HostRef { return identity.HostRef{Host: r.PathValue("host")} })
 	handlers["issuePrivateAccess"] = v2Operation(a, identity.IssuePrivateAccess, site)
+	handlers["setSitePassword"] = v2Operation(a, identity.SetSitePassword, func(b gen.SetSitePasswordInput, r *http.Request) identity.SetSitePasswordCmd {
+		return identity.SetSitePasswordCmd{SiteID: r.PathValue("siteId"), Body: b}
+	})
+	handlers["listShareLinks"] = v2Operation(a, identity.ListShareLinks, site)
+	handlers["createShareLink"] = v2Operation(a, identity.CreateShareLink, func(b gen.CreateShareLinkInput, r *http.Request) identity.CreateShareLinkCmd {
+		return identity.CreateShareLinkCmd{SiteID: r.PathValue("siteId"), Body: b}
+	})
+	handlers["revokeShareLink"] = v2Operation(a, identity.RevokeShareLink, func(_ none, r *http.Request) identity.ShareLinkRef {
+		return identity.ShareLinkRef{SiteID: r.PathValue("siteId"), LinkID: r.PathValue("linkId")}
+	})
 	handlers["redeemPrivateAccess"] = v2Operation(a, identity.RedeemPrivateAccess, func(b gen.RedeemPrivateAccessInput, r *http.Request) identity.RedeemPrivateAccessCmd {
 		return identity.RedeemPrivateAccessCmd{SiteID: r.PathValue("siteId"), Body: b}
 	})

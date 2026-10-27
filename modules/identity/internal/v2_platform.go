@@ -274,9 +274,9 @@ func ResetUserPassword(ctx context.Context, op OperationContext, input ResetUser
 		return gen.UserResult{}, identityDBError()
 	}
 	defer tx.Rollback()
-	var accountID string
+	var accountID, accountSite string
 	var superadmin bool
-	if err := tx.QueryRowContext(ctx, `SELECT u.account_id,a.is_superadmin FROM users u JOIN accounts a ON a.account_id=u.account_id WHERE u.user_id=?`, input.UserID).Scan(&accountID, &superadmin); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT u.account_id,a.site_id,a.is_superadmin FROM users u JOIN accounts a ON a.account_id=u.account_id WHERE u.user_id=?`, input.UserID).Scan(&accountID, &accountSite, &superadmin); err != nil {
 		return gen.UserResult{}, platform.NewError(platform.CodeNotFound, false, "用户不存在")
 	}
 	if superadmin {
@@ -289,7 +289,10 @@ func ResetUserPassword(ctx context.Context, op OperationContext, input ResetUser
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET must_change_password=1, revision=revision+1, updated_at=? WHERE account_id=?`, platform.Now(), accountID); err != nil {
 		return gen.UserResult{}, identityDBError()
 	}
-	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, tx), op, RevokeAllSessionsInput{AccountID: accountID, Reason: "admin_reset"}); err != nil {
+	// 会话按账户所在的站点（用户的家站点）登记，撤销时以那个站点为准。
+	userOp := op
+	userOp.Actor.SiteID = accountSite
+	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, tx), userOp, RevokeAllSessionsInput{AccountID: accountID, Reason: "admin_reset"}); err != nil {
 		return gen.UserResult{}, err
 	}
 	if err := tx.Commit(); err != nil {

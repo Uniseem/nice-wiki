@@ -2612,6 +2612,46 @@
       "streaming": false
     },
     {
+      "method": "PUT",
+      "path": "/v1/sites/{siteId}/private-password",
+      "owner": "identity",
+      "operationId": "setSitePassword",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sites/{siteId}/share-links",
+      "owner": "identity",
+      "operationId": "listShareLinks",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sites/{siteId}/share-links",
+      "owner": "identity",
+      "operationId": "createShareLink",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sites/{siteId}/share-links/{linkId}",
+      "owner": "identity",
+      "operationId": "revokeShareLink",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "GET",
       "path": "/v1/statistics/content-gaps",
       "owner": "analytics",

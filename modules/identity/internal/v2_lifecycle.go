@@ -205,6 +205,7 @@ func purgeSite(ctx context.Context, db *sql.DB, dataEpoch platform.Identifier, s
 	}
 	for _, statement := range []string{
 		`DELETE FROM private_access_codes WHERE site_id=?`,
+		`DELETE FROM private_share_links WHERE site_id=?`,
 		`DELETE FROM site_domains WHERE site_id=?`,
 		`DELETE FROM site_members WHERE site_id=?`,
 		`DELETE FROM sites WHERE site_id=?`,

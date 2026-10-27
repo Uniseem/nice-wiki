@@ -39,7 +39,7 @@ type Application struct {
 	edgePurgeURL        string
 	edgePurgeSecretFile string
 	tlsAllow            func(context.Context, string) (bool, error)
-	redeemPrivate       func(context.Context, platform.Identifier, string) error
+	redeemPrivate       func(context.Context, platform.Identifier, PrivateCredential) error
 	hostMu              sync.Mutex
 	hostCache           map[string]hostEntry
 	resolveHost         func(context.Context, string) (HostSite, bool, error)
@@ -277,6 +277,10 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && result.Status < 300 && purgeOperations[result.Owner+":"+result.Operation] {
 		a.purgeEdge(a.targetSiteOf(r, string(hostSiteID)))
+	}
+	// 站点登记（可见性、访问密码、域名、站点名、状态）改了：域名解析缓存立即作废，免得私有化后还按公开放行。
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && result.Status < 300 && result.Owner == "identity" {
+		a.forgetHosts()
 	}
 }
 

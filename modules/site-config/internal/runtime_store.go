@@ -716,8 +716,26 @@ func hashInput(input any) (string, error) {
 // DB 是站点配置库，跟踪站点生命周期用。
 func (s *ActiveStore) DB() *sql.DB { return s.db }
 
-// PurgeSiteFiles 删掉站点的配置文件（保留期满清除时调用，可重复执行）。
+// PurgeSiteFiles 删掉站点的配置文件和它在配置日志里的记录（保留期满清除时调用，可重复执行）。
+// 日志记录要一起删：启动恢复会按日志重放每个站点，留着记录、删了文件会启动失败。
 func (s *ActiveStore) PurgeSiteFiles(_ context.Context, site string) error {
+	for _, state := range []string{"PREPARED", "COMMITTED"} {
+		paths, err := configJournalPaths(s.activeRoot, state)
+		if err != nil {
+			return err
+		}
+		for _, path := range paths {
+			record, err := readConfigRecord(path)
+			if err != nil {
+				return err
+			}
+			if record.SiteID == site {
+				if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+					return platform.NewError(platform.CodeInternal, false, "删除站点配置日志失败")
+				}
+			}
+		}
+	}
 	if err := os.RemoveAll(filepath.Join(s.activeRoot, "settings", site)); err != nil {
 		return platform.NewError(platform.CodeInternal, false, "删除站点配置文件失败")
 	}

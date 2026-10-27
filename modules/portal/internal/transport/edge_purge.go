@@ -18,6 +18,7 @@ var purgeOperations = map[string]bool{
 	"site-config:updateFooter": true, "site-config:updateHome": true,
 	"localization:putLanguage": true, "localization:setLanguageEnabled": true, "localization:approveLanguagePlan": true, "localization:putInterfaceString": true,
 	"identity:updateSite": true, "identity:setPrimaryDomain": true, "identity:removeSiteDomain": true, "identity:setSiteStatus": true,
+	"identity:setSitePassword": true, "identity:deleteSite": true, "identity:restoreSite": true,
 }
 
 var siteHeaderPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
