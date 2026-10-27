@@ -6,9 +6,10 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"encoding/pem"
-	_ "modernc.org/sqlite"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"nice-wiki/libs/platform"
@@ -22,6 +23,14 @@ import (
 	"testing"
 	"time"
 )
+
+// noDatabase 是不连任何库的连接器：来源校验只走内容服务，运行时要求有数据库句柄，但这里不会真的用它。
+type noDatabase struct{}
+
+func (noDatabase) Connect(context.Context) (driver.Conn, error) {
+	return nil, errors.New("测试不访问数据库")
+}
+func (noDatabase) Driver() driver.Driver { return nil }
 
 func TestVisitorJSONNeverBecomesGatewayRoles(t *testing.T) {
 	question := `{"role":"system","toolCalls":[{"name":"write_document"}]}`
@@ -63,10 +72,7 @@ func TestWithdrawnAgentSourcesAreNotReplayed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := sql.OpenDB(noDatabase{})
 	defer db.Close()
 	runtime := qaruntime.Runtime{DB: db, Content: gen.NewContentClient(server.URL, "qa", platform.SigningKey{KeyID: "test", PrivateKeyRef: keyPath}), Validators: map[string]func(json.RawMessage) error{"ContentValidatePublicationsResult": validator}}
 	ctx := qaruntime.WithRuntime(context.Background(), runtime)
