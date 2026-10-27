@@ -117,7 +117,7 @@ ENTRYPOINT ["/usr/local/bin/nw-search"]
 CMD ["/config/search.json"]
 
 FROM debian:bookworm-slim AS edge
-RUN useradd -u {UIDS['edge']} -m edge
+RUN useradd -u {UIDS['edge']} -m edge && mkdir -p /cache && chown {UIDS['edge']}:{UIDS['edge']} /cache
 COPY --from=build /src/rust/target/release/nw-edge /usr/local/bin/nw-edge
 USER {UIDS['edge']}:{UIDS['edge']}
 ENTRYPOINT ["/usr/local/bin/nw-edge"]
@@ -198,12 +198,12 @@ def compose(release=False):
                  extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], depends=("postgres", "account", "content"))
     lines += ["  search:"] + image("search", "rust/Dockerfile", "search") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/search.json:/config/search.json:ro",
               "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
-    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "    depends_on: [portal]", ""]
+    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "      - edge-cache:/cache", "    depends_on: [portal]", ""]
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - caddy-data:/data", "      - caddy-config:/config",
               "    depends_on: [edge]", "", "volumes:"]
-    lines += [f"  {v}:" for v in ["postgres-data", "account-data", "content-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data", "caddy-data", "caddy-config"]] + [""]
+    lines += [f"  {v}:" for v in ["postgres-data", "account-data", "content-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data", "edge-cache", "caddy-data", "caddy-config"]] + [""]
     return "\n".join(lines)
 
 
@@ -418,7 +418,7 @@ def main():
     for slug in PORTS:
         write(f"deploy/config/{slug}.json", json.dumps(component_config(slug), indent=2, ensure_ascii=False) + "\n")
     write("deploy/config/search.json", json.dumps({"listen": f"0.0.0.0:{SEARCH_PORT}", "dataDir": "/data/index", "secretFile": "/run/secrets/search-secret", "databaseUrlFile": "/run/secrets/database-url"}, indent=2) + "\n")
-    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "portal:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret"}, indent=2) + "\n")
+    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "portal:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret", "mediaDiskDir": "/cache/media"}, indent=2) + "\n")
     write("deploy/config/services.json", json.dumps({"version": 1, "services": [
         {"slug": s, "url": f"http://{PROCESS_OF[s]}:{p}", "port": p, "dataVolume": f"/data/{s}", "secretsDir": f"deploy/secrets/{s}"} for s, p in PORTS.items()]}, indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())

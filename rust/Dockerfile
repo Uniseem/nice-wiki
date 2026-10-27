@@ -13,7 +13,7 @@ ENTRYPOINT ["/usr/local/bin/nw-search"]
 CMD ["/config/search.json"]
 
 FROM debian:bookworm-slim AS edge
-RUN useradd -u 10007 -m edge
+RUN useradd -u 10007 -m edge && mkdir -p /cache && chown 10007:10007 /cache
 COPY --from=build /src/rust/target/release/nw-edge /usr/local/bin/nw-edge
 USER 10007:10007
 ENTRYPOINT ["/usr/local/bin/nw-edge"]

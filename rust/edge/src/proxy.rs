@@ -18,6 +18,7 @@ use tokio::sync::Notify;
 
 use crate::cache::{Cache, Entry};
 use crate::config::Config;
+use crate::disk::DiskCache;
 use crate::limiter::Limiter;
 
 type Body = BoxBody<Bytes, hyper::Error>;
@@ -25,6 +26,7 @@ type Body = BoxBody<Bytes, hyper::Error>;
 pub struct State {
     pub config: Config,
     cache: Cache,
+    disk: Option<Arc<DiskCache>>,
     limiter: Limiter,
     client: Client<HttpConnector, Incoming>,
     inflight: Mutex<HashMap<String, Arc<Notify>>>,
@@ -41,8 +43,13 @@ impl State {
         connector.set_nodelay(true);
         connector.set_connect_timeout(Some(Duration::from_secs(3)));
         let client = Client::builder(TokioExecutor::new()).pool_idle_timeout(Duration::from_secs(30)).build(connector);
+        let disk = match &config.media_disk_dir {
+            Some(dir) => Some(Arc::new(DiskCache::open(dir, config.media_disk_bytes)?)),
+            None => None,
+        };
         Ok(Self {
             cache: Cache::new(config.cache_bytes),
+            disk,
             limiter: Limiter::new(config.read_rate.clone(), config.write_rate.clone()),
             client,
             inflight: Mutex::new(HashMap::new()),
@@ -105,6 +112,11 @@ fn cacheable_path(path: &str, query: Option<&str>) -> bool {
     !(path.starts_with("/v1/") || path.starts_with("/admin") || path.starts_with("/_edge") || path.starts_with("/_tls") || path.starts_with("/_report"))
 }
 
+/// 带内容哈希的媒体字节（cacheable_path 已核对 sha 参数）。
+fn is_media(path: &str) -> bool {
+    path.strip_prefix("/v1/assets/").is_some_and(|rest| rest.ends_with("/bytes"))
+}
+
 async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>) -> anyhow::Result<Response<Body>> {
     let path = request.uri().path().to_owned();
     if path == "/_edge/healthz" {
@@ -139,6 +151,16 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
     if let Some(entry) = state.cache.get(&key) {
         return Ok(from_entry(entry, &method, "HIT"));
     }
+    let media = is_media(&path);
+    if let (true, Some(disk)) = (media, state.disk.clone()) {
+        let lookup = key.clone();
+        if let Some(entry) = tokio::task::spawn_blocking(move || disk.get(&lookup)).await? {
+            if entry.body.len() <= state.config.max_object_bytes {
+                state.cache.put(key, entry.clone(), Duration::from_secs(state.config.asset_ttl_seconds));
+            }
+            return Ok(from_entry(entry, &method, "HIT-DISK"));
+        }
+    }
     // 同一页面的并发未命中只放一个去上游，其余等它填好缓存。
     let notify = {
         let mut inflight = state.inflight.lock().unwrap();
@@ -161,7 +183,7 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
     let response = forward(state, peer, request).await?;
     let (mut parts, body) = response.into_parts();
     if let Some(ttl) = ttl_for(state, &path, &parts.status, &parts.headers) {
-        let max = state.config.max_object_bytes;
+        let max = if media && state.disk.is_some() { state.config.media_max_object_bytes } else { state.config.max_object_bytes };
         let length = parts.headers.get(header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<usize>().ok());
         // 上游（portal）的页面是分块传输、没有 Content-Length：先攒到上限，攒得下就缓存，攒不下就把已读的部分接上剩余的继续流式转发。
         let gathered = match length {
@@ -176,7 +198,13 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
                 headers.remove(header::TRANSFER_ENCODING);
                 let site = headers.remove("x-nw-site").and_then(|v| v.to_str().ok().map(str::to_owned)).unwrap_or_default();
                 let entry = Entry { status: parts.status, headers: headers.into_iter().filter_map(|(name, value)| name.map(|n| (n, value))).collect(), body: collected, expires: std::time::Instant::now(), host, site };
-                state.cache.put(key, entry.clone(), ttl);
+                if let (true, Some(disk)) = (media, state.disk.clone()) {
+                    let (stored_key, stored, seconds) = (key.clone(), entry.clone(), ttl.as_secs());
+                    let _ = tokio::task::spawn_blocking(move || disk.put(&stored_key, &stored, seconds)).await;
+                }
+                if entry.body.len() <= state.config.max_object_bytes {
+                    state.cache.put(key, entry.clone(), ttl);
+                }
                 return Ok(from_entry(entry, &method, "MISS"));
             }
             Gathered::Skip(rest) => {
@@ -255,6 +283,10 @@ fn ttl_for(state: &State, path: &str, status: &StatusCode, headers: &HeaderMap) 
     if *status != StatusCode::OK || headers.contains_key(header::SET_COOKIE) {
         return None;
     }
+    // 事件流要边到边转发，不攒包也不缓存。
+    if headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).is_some_and(|v| v.starts_with("text/event-stream")) {
+        return None;
+    }
     let control = headers.get(header::CACHE_CONTROL).and_then(|v| v.to_str().ok()).unwrap_or_default().to_ascii_lowercase();
     if control.contains("no-store") || control.contains("private") {
         return None;
@@ -323,9 +355,9 @@ fn purge(state: &State, request: &Request<Incoming>) -> Response<Body> {
     let param = |name: &str| query.split('&').find_map(|pair| pair.strip_prefix(name)).unwrap_or_default().to_ascii_lowercase();
     let (host, site) = (param("host="), param("site="));
     let count = if !site.is_empty() {
-        state.cache.purge_site(&site)
+        state.cache.purge_site(&site) + state.disk.as_ref().map_or(0, |disk| disk.purge_site(&site))
     } else if !host.is_empty() {
-        state.cache.purge_host(&host)
+        state.cache.purge_host(&host) + state.disk.as_ref().map_or(0, |disk| disk.purge_host(&host))
     } else {
         return text(StatusCode::BAD_REQUEST, "missing host or site");
     };

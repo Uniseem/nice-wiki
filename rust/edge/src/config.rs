@@ -26,6 +26,15 @@ pub struct Config {
     /// 单个响应超过这个大小就不缓存。
     #[serde(default = "default_max_object")]
     pub max_object_bytes: usize,
+    /// 媒体磁盘缓存目录；缺省时不开启磁盘缓存。
+    #[serde(default)]
+    pub media_disk_dir: Option<String>,
+    /// 媒体磁盘缓存总字节数上限。
+    #[serde(default = "default_media_disk_bytes")]
+    pub media_disk_bytes: u64,
+    /// 单个媒体超过这个大小就不落盘。
+    #[serde(default = "default_media_max_object")]
+    pub media_max_object_bytes: usize,
     #[serde(default = "default_read_rate")]
     pub read_rate: Rate,
     #[serde(default = "default_write_rate")]
@@ -49,6 +58,12 @@ fn default_cache_bytes() -> usize {
 }
 fn default_max_object() -> usize {
     4 << 20
+}
+fn default_media_disk_bytes() -> u64 {
+    2 << 30
+}
+fn default_media_max_object() -> usize {
+    64 << 20
 }
 fn default_read_rate() -> Rate {
     Rate { per_second: 30.0, burst: 120.0 }

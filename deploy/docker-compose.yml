@@ -202,6 +202,7 @@ services:
     volumes:
       - ./config/edge.json:/config/edge.json:ro
       - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro
+      - edge-cache:/cache
     depends_on: [portal]
 
   caddy:
@@ -227,5 +228,6 @@ volumes:
   knowledge-data:
   portal-data:
   search-data:
+  edge-cache:
   caddy-data:
   caddy-config:
