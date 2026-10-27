@@ -64,12 +64,6 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 		return nil
 	})
 	launchPageLoop(func(ctx context.Context) error {
-		return runAnalyticsPeriodic(ctx, rt, 1000, "聚合事件发布", func(ctx context.Context, op OperationContext) error {
-			_, err := PublishAggregateEvents(ctx, op, PublishAggregateEventsInput{BatchSize: 100, DataEpoch: rt.Epoch})
-			return err
-		})
-	})
-	launchPageLoop(func(ctx context.Context) error {
 		return runAnalyticsPeriodic(ctx, rt, 60000, "费用统计同步", func(ctx context.Context, op OperationContext) error {
 			site, err := runtimeFrom(ctx, op)
 			if err != nil {

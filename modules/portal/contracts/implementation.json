@@ -206,9 +206,6 @@
       "updatePreferences",
       "verifySessionCSRF"
     ],
-    "jobs": [
-      "subscribeEvents"
-    ],
     "site-config": [
       "readRuntimeState",
       "readSiteConfig"

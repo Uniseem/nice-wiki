@@ -11,7 +11,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -370,7 +370,7 @@ func releasePurgedReferences(ctx context.Context, tx *sql.Tx, op OperationContex
 		if err != nil {
 			return platform.NewError(platform.CodeIntegrityError, false, "彻底删除的资源事件载荷无法编码")
 		}
-		if err = outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: id, Revision: int64(version + 1), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+		if err = queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: id, Revision: int64(version + 1), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 			return err
 		}
 		if _, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO purged_reference_releases(site_id,document_id) VALUES(?,?)`, op.Actor.SiteID, id); err != nil {
@@ -379,38 +379,6 @@ func releasePurgedReferences(ctx context.Context, tx *sql.Tx, op OperationContex
 	}
 	// 引用列表随之变化，推进扫描水位，进行中的分页读取会从头再读。
 	if _, err = tx.ExecContext(ctx, `UPDATE reference_scan_state SET revision=revision+1 WHERE singleton=1`); err != nil {
-		return contentStorageError()
-	}
-	return nil
-}
-
-// releasePurgedBacklog 为本修复之前彻底删除、还没发过释放事件的文档补发；没有遗留时只是一次空查询。
-func releasePurgedBacklog(ctx context.Context, op OperationContext, runtime RelayRuntime) error {
-	const backlog = `SELECT d.document_id FROM documents d WHERE d.site_id=? AND d.state='purged' AND NOT EXISTS (SELECT 1 FROM purged_reference_releases r WHERE r.site_id=d.site_id AND r.document_id=d.document_id) ORDER BY d.document_id LIMIT 100`
-	ids, err := queryIdentifiers(ctx, runtime.Store.db, backlog, op.Actor.SiteID)
-	if err != nil || len(ids) == 0 {
-		return err
-	}
-	work, view, cancel, err := lifecycle.NewWriteContext(platform.WithOperationContext(ctx, op), runtime.WriteWindow)
-	if err != nil {
-		return err
-	}
-	defer cancel()
-	if view.DataEpoch != op.DataEpoch {
-		return nil
-	}
-	tx, err := runtime.Store.db.BeginTx(work, nil)
-	if err != nil {
-		return contentStorageError()
-	}
-	defer tx.Rollback()
-	if ids, err = queryIdentifiers(work, tx, backlog, op.Actor.SiteID); err != nil || len(ids) == 0 {
-		return err
-	}
-	if err = releasePurgedReferences(work, tx, op, ids); err != nil {
-		return err
-	}
-	if err = tx.Commit(); err != nil {
 		return contentStorageError()
 	}
 	return nil

@@ -28,7 +28,7 @@ portal使用identity:checkAuthorization的accessToken模式，由静态路由提
 
 ## 事件与公共管理
 
-事件只经jobs中转（ADR0002）：生产方在业务事务内写outbox，本域转发循环在提交后调用jobs:publishEvent，确认后才标relayed；jobs按各域events.json consume条目生成的订阅目录建立投递；消费方订阅循环以durable模式调用jobs:subscribeEvents，按handler字段调用本域处理函数，本地事务提交后才jobs:acknowledgeEvent；未确认投递在确认租约到期后重投，超限转死信。portal浏览器转发使用ephemeral订阅，不建投递。
+事件走共用的 PostgreSQL 队列（libs/platform/queue，schema queue）：生产方在业务事务内直接写事件，并给此刻已登记订阅的每个消费者各生成一条待投递行；消费方订阅循环启动时登记订阅（并补发近 7 天已发布但还没有投递的事件），之后按可见超时领取投递（读取时把可见时间推到未来作租约，每读一次租约翻倍，最长 5 分钟），按 handler 字段调用本域处理函数，本地事务提交后确认；读取超过 10 次转死信，死信由 ops 的 jobs 管理接口查看和重放。不再有 outbox 转发和 jobs 的事件接口。
 
 EventEnvelope必须符合生产方events.json；至少一次持久投递，按对象revision拒绝旧事件，按eventId去重，dataEpoch不匹配拒写。事件传必要元数据与不可变ObjectRef，不任意抓客户端提供URL。
 

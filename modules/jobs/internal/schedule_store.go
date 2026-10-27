@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/jobs/internal/gen"
 )
 
@@ -594,7 +594,7 @@ func enqueueScheduleChanged(work *leaseOperation, row scheduleRow) error {
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "定时事件编码失败")
 	}
-	return outbox.EnqueueEvent(work.tx, platform.EventEnvelope{
+	return queue.EnqueueEvent(work.tx, platform.EventEnvelope{
 		EventID: platform.NewIdentifier(), EventType: scheduleEventType, EventVersion: scheduleEventVersion,
 		Producer: "jobs", SubjectID: row.id, Revision: row.revision, OccurredAt: work.now.Format(time.RFC3339Nano),
 		DataEpoch: row.dataEpoch, Payload: payload,

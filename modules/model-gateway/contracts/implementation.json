@@ -542,9 +542,6 @@
       "checkAuthorization",
       "readSiteAiPolicy"
     ],
-    "jobs": [
-      "publishEvent"
-    ],
     "localization": [
       "readLanguageSuggestionApproval"
     ],

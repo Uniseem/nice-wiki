@@ -226,7 +226,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			present[task.Name] = true
 		}
 	}
-	for _, name := range []string{"knowledge.worker", "knowledge.events", "knowledge.outbox", "knowledge.recovery", "knowledge.gc"} {
+	for _, name := range []string{"knowledge.worker", "knowledge.events", "knowledge.recovery", "knowledge.gc"} {
 		if !present[name] {
 			return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "本域完整后台入口尚未装配")
 		}

@@ -50,7 +50,7 @@ func main() {
 	modules, _ := filepath.Glob(filepath.Join(*repo, "modules", "*"))
 	sort.Strings(modules)
 	failures := 0
-	platformDDL := goStatements(filepath.Join(*repo, "libs", "platform", "outbox"), filepath.Join(*repo, "libs", "platform", "inbox"))
+	platformDDL := goStatements(filepath.Join(*repo, "libs", "platform", "inbox"))
 	for _, dir := range modules {
 		name := filepath.Base(dir)
 		if *only != "" && name != *only {

@@ -345,15 +345,6 @@ def check_events(modules):
     for module in modules:
         path = ROOT / module['root'] / 'contracts/events.json'
         data = load_json(path)
-        impl = load_json(ROOT / module['root'] / 'contracts/implementation.json')
-        deps = {producer + ':' + name for producer, names in impl.get('consumes', {}).items() for name in names}
-        directions = {event.get('direction') for event in data.get('events', [])}
-        if 'consume' in directions and not {'jobs:subscribeEvents', 'jobs:acknowledgeEvent'} <= deps:
-            fail(module['slug'], '消费事件但没有调用jobs订阅与确认的订阅循环')
-        if module['slug'] != 'jobs' and 'publish' in directions and 'jobs:publishEvent' not in deps:
-            fail(module['slug'], '生产事件但没有把outbox转交jobs的转发函数')
-        if 'jobs:publishEvent' in deps and 'publish' not in directions:
-            fail(module['slug'], '调用jobs:publishEvent但未在events.json登记生产事件')
         for event in data.get('events', []):
             if event.get('direction') == 'consume':
                 if not event.get('handler'):

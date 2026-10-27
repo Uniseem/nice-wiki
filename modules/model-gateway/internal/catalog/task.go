@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -134,7 +134,7 @@ func PutTaskAssignment(ctx context.Context, op OperationContext, input PutTaskAs
 	if err != nil {
 		return PutTaskAssignmentResult{}, platform.NewError(platform.CodeInternal, false, "任务分配事件编码失败")
 	}
-	if err := outbox.EnqueueEvent(snapshot.tx, platform.EventEnvelope{
+	if err := queue.EnqueueEvent(snapshot.tx, platform.EventEnvelope{
 		EventID: platform.NewIdentifier(), EventType: "assignment.changed", EventVersion: 1,
 		Producer: "model-gateway", SubjectID: input.Assignment.TaskId, Revision: platform.Revision(input.Assignment.Version),
 		OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload,

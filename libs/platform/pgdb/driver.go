@@ -191,7 +191,7 @@ func (Driver) openConnector(name string) (driver.Connector, error) {
 	config.RuntimeParams["application_name"] = "nw-" + c.module
 	hash := fnv.New64a()
 	hash.Write([]byte(schema))
-	return &connector{inner: stdlib.GetConnector(*config), lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema, tenant: isTenant(c.module)}, nil
+	return &connector{inner: stdlib.GetConnector(*config), config: config, lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema, tenant: isTenant(c.module)}, nil
 }
 
 // InstallHelpers 在 public schema 安装翻译后语句依赖的辅助函数。
@@ -231,6 +231,7 @@ func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) er
 
 type connector struct {
 	inner       driver.Connector
+	config      *pgx.ConnConfig // 复制单例模板行用独立连接，不受调用方事务（可能是只读的）影响
 	lockKey     int64
 	module      string
 	schema      string
@@ -361,11 +362,14 @@ func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string)
 	if _, ok := o.provisioned.Load(site); ok {
 		return nil
 	}
-	pgxConn := c.Conn.(*stdlib.Conn).Conn()
+	pgxConn, err := pgx.ConnectConfig(ctx, o.config)
+	if err != nil {
+		return err
+	}
+	defer pgxConn.Close(context.Background())
 	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.site', '', false), set_config('nw.tpl', '', false)"); err != nil {
 		return err
 	}
-	c.siteSet = false
 	rows, err := pgxConn.Query(ctx, `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name IN (SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site') ORDER BY table_name, ordinal_position`, o.schema)
 	if err != nil {
 		return err
@@ -402,9 +406,7 @@ func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string)
 			return fmt.Errorf("pgdb: 复制单例模板行失败 %s：%w", table, err)
 		}
 	}
-	if !c.inTx {
-		o.provisioned.Store(site, true)
-	}
+	o.provisioned.Store(site, true)
 	return nil
 }
 

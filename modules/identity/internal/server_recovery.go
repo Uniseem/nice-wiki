@@ -22,7 +22,6 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 )
 
 const (
@@ -32,8 +31,6 @@ const (
 	maxIndexedAccounts      = 10000
 	maxSuperadminResetBytes = passwordMaxRunes * utf8.UTFMax
 	superadminResetInterval = 5000 * time.Millisecond
-	outboxRelayInterval     = 1000 * time.Millisecond
-	outboxRelayBatchLimit   = 100
 )
 
 var (
@@ -622,9 +619,6 @@ func applySuperadminResetLocked(ctx context.Context, op OperationContext, input 
 		return ApplySuperadminResetResult{}, identityContextError(err)
 	}
 	resetOp := superadminResetOperation(op, account, input.Candidate.FileHash)
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-		return ApplySuperadminResetResult{}, err
-	}
 	digest, keyID, err := privateIdentityDigest(ctx, resetOp, "applySuperadminReset", superadminResetDigestInput{FileHash: input.Candidate.FileHash})
 	if err != nil {
 		return ApplySuperadminResetResult{}, err
@@ -958,8 +952,8 @@ func consumeSuperadminResetFile(dataRoot string, fileHash platform.Hash) error {
 }
 
 // NewBackgroundTasks 只返回具有真实运行权威的后台入口；缺任一依赖时不登记后台任务。
-func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
-	if store == nil || store.db == nil || siteConfig == nil || publisher == nil || !platform.ValidIdentifier(dataEpoch) {
+func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error) {
+	if store == nil || store.db == nil || siteConfig == nil || !platform.ValidIdentifier(dataEpoch) {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "身份后台任务真实运行依赖尚未装配")
 	}
 	return []platform.BackgroundTask{
@@ -967,12 +961,6 @@ func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, publ
 			Name: "identity.superadmin-reset",
 			Run: func(ctx context.Context) error {
 				return runSuperadminResetObserver(ctx, store, siteConfig, dataEpoch)
-			},
-		},
-		{
-			Name: "identity.outbox",
-			Run: func(ctx context.Context) error {
-				return runOutboxRelay(ctx, store, siteConfig, publisher, dataEpoch)
 			},
 		},
 	}, nil
@@ -1001,34 +989,6 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 			}
 			work = WithIdentityStore(work, store)
 			_, err := ObserveSuperadminResetFile(work, op, ObserveSuperadminResetFileInput{})
-			return err
-		},
-	})
-}
-
-// runOutboxRelay 只负责把单批RelayOutbox交给公共恢复循环调度；
-// 轮询、准入、运行权威与写窗口均由platform实现。
-func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) error {
-	siteID, err := waitForIdentitySite(ctx, store, outboxRelayInterval)
-	if err != nil {
-		return err
-	}
-	if ctx.Err() != nil {
-		return nil
-	}
-	op := identityBackgroundOperation(siteID, dataEpoch, time.Now().UTC().Add(time.Minute))
-	return lifecycle.RunRecoveryLoop(platform.WithOperationContext(ctx, op), platform.RecoveryLoopConfig{
-		AdmitBatch:  lifecycle.SimpleAdmission(siteConfig.ReadRuntimeState, dataEpoch),
-		PollMillis:  int(outboxRelayInterval / time.Millisecond),
-		Runtime:     siteConfig.ReadRuntimeState,
-		WriteWindow: lifecycle.SimpleWriteWindow(siteConfig.ReadRuntimeState),
-		Recover: func(work context.Context) error {
-			op, ok := platform.OperationContextFrom(work)
-			if !ok {
-				return platform.NewError(platform.CodeDependencyUnavailable, true, "outbox后台缺少受信操作上下文")
-			}
-			relayCtx := WithRelayRuntime(work, store, publisher, siteConfig)
-			_, err := RelayOutbox(relayCtx, op, RelayOutboxInput{BatchLimit: outboxRelayBatchLimit})
 			return err
 		},
 	})

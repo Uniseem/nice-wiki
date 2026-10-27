@@ -13,7 +13,6 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/modelclient"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/memory/internal/gen"
 	memoryruntime "nice-wiki/modules/memory/internal/runtime"
@@ -91,9 +90,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return fail(err)
 	}
 	jobs := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
-	if err = memoryruntime.ConfigurePublisher(outbox.NewEventPublisher(jobs)); err != nil {
-		return fail(err)
-	}
 	validators := map[string]func(json.RawMessage) error{}
 	for _, name := range []string{"CreateInvocationResult", "CancelInvocationResult", "StreamEvent", "GetInvocationResult", "LookupInvocationResult", "ReadTaskAssignmentsResult", "ReadProfilesResult", "JobsCreateJobResult", "JobsRequestCancelResult", "AssistantModelOutput"} {
 		validator, validationErr := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)

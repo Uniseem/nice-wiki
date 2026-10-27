@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"nice-wiki/libs/platform"
@@ -267,47 +266,4 @@ func NewIdentityClient(baseURL, issuer string, key platform.SigningKey) *Identit
 // CheckAuthorization POST /v1/authorizations/check（identity:checkAuthorization）。
 func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
-}
-
-// JobsClient 调用jobs服务（自动附服务断言）。
-type JobsClient struct{ *producerClient }
-
-func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient {
-	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
-}
-
-// AcknowledgeEvent POST /v1/events/{eventId}:ack（jobs:acknowledgeEvent）。
-func (c *JobsClient) AcknowledgeEvent(ctx context.Context, eventId string, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/events/"+url.PathEscape(eventId)+":ack", body, idempotencyKey)
-}
-
-// PublishEvent POST /v1/events（jobs:publishEvent）。
-func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
-}
-
-// SubscribeEvents GET /v1/events:subscribe（jobs:subscribeEvents）。
-// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
-func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, queries ...url.Values) (platform.EventStream, error) {
-	requestPath := "/v1/events:subscribe"
-	query := url.Values{}
-	for _, values := range queries {
-		for key, entries := range values {
-			query[key] = append(query[key], entries...)
-		}
-	}
-	if encoded := query.Encode(); encoded != "" {
-		requestPath += "?" + encoded
-	}
-	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
-	if err != nil {
-		return nil, err
-	}
-	return eventEnvelopeStream{r: reader}, nil
 }

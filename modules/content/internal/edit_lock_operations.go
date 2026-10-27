@@ -12,7 +12,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -474,7 +474,7 @@ func (s *Store) enqueueEditLockChange(ctx context.Context, tx *sql.Tx, op Operat
 	if _, err := tx.ExecContext(ctx, `INSERT INTO edit_lock_audit(event_id,site_id,document_id,actor_id,actor_kind,operation_id,data_epoch,server_boot_id,fencing_token,action,affected_account_id,occurred_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, eventID, snapshot.SiteID, snapshot.DocumentID, op.Actor.SubjectID, op.Actor.Kind, op.OperationID, op.DataEpoch, snapshot.ServerBootID, snapshot.FencingToken, snapshot.Cause, payload.AffectedAccountID, now); err != nil {
 		return contentStorageError()
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: eventID, EventType: "content.edit-lock.changed", EventVersion: 1, Producer: "content", SubjectID: snapshot.DocumentID, Revision: revision, OccurredAt: now, DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: eventID, EventType: "content.edit-lock.changed", EventVersion: 1, Producer: "content", SubjectID: snapshot.DocumentID, Revision: revision, OccurredAt: now, DataEpoch: op.DataEpoch, Payload: raw})
 }
 
 func (manager *EditLockManager) expireEditLocks(ctx context.Context, op OperationContext, now time.Time) ([]EditLockSnapshot, error) {

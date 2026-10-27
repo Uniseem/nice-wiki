@@ -10,10 +10,8 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/identity/internal"
-	"nice-wiki/modules/identity/internal/gen"
 	"nice-wiki/modules/identity/internal/transport"
 )
 
@@ -55,10 +53,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
-	if err := store.EnsureOutbox(ctx); err != nil {
-		store.Close()
-		return nil, err
-	}
 	if err := store.RecoverJournal(); err != nil {
 		store.Close()
 		return nil, err
@@ -74,12 +68,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
-	if config.Dependencies["jobs"] == "" {
-		store.Close()
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "缺少jobs依赖地址")
-	}
-	publisher := outbox.NewEventPublisher(gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key))
-	if err := application.InstallBackgroundTasks(runtimeAuthority, publisher); err != nil {
+	if err := application.InstallBackgroundTasks(runtimeAuthority); err != nil {
 		store.Close()
 		return nil, err
 	}

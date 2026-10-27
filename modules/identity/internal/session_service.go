@@ -7,8 +7,6 @@ import (
 	"errors"
 	"time"
 
-	"nice-wiki/libs/platform/outbox"
-
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/identity/internal/gen"
@@ -314,9 +312,6 @@ func RefreshSession(ctx context.Context, op OperationContext, input RefreshSessi
 	store, ok := identityStoreFromContext(ctx)
 	if !ok {
 		return RefreshSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话私有存储尚未装配")
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-		return RefreshSessionResult{}, err
 	}
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {

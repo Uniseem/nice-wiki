@@ -7,7 +7,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	_ "nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/knowledge/internal/gen"
 	"nice-wiki/modules/knowledge/migrations"
@@ -71,9 +70,6 @@ func OpenRepository(ctx context.Context, dataRoot, site, epoch string) (*sql.DB,
 		if err = tx.Commit(); err != nil {
 			return closeFailure(storageError(err))
 		}
-	}
-	if err = outbox.EnsureSchema(ctx, db); err != nil {
-		return closeFailure(err)
 	}
 	if err = inbox.EnsureSchema(ctx, db); err != nil {
 		return closeFailure(err)

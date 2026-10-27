@@ -10,7 +10,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -656,7 +656,7 @@ func enqueueTreeChanged(ctx context.Context, tx *sql.Tx, op OperationContext, tr
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "文档树事件无法编码")
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: treeRevision, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload})
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: treeRevision, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload})
 }
 
 func listPublicationReferences(ctx context.Context, tx *sql.Tx, op OperationContext, documentID Identifier) ([]gen.ResourceReference, int, error) {

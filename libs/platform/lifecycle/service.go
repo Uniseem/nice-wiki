@@ -130,7 +130,12 @@ func runComponent(ctx context.Context, stopSignals context.CancelFunc, spec plat
 	}
 	application, err := spec.BuildApplication(ctx, config)
 	// 依赖还没就绪（站点未初始化、依赖服务未启动）时每 3 秒重试，不必靠进程守护反复重启整个进程。
+	lastRetry := ""
 	for err != nil && retryableStartup(err) && ctx.Err() == nil {
+		if note := fmt.Sprintf("%v", err); os.Getenv("NW_DEBUG") != "" && note != lastRetry {
+			fmt.Fprintf(os.Stderr, "装配重试 %s：%s\n", config.Module, note)
+			lastRetry = note
+		}
 		time.Sleep(3 * time.Second)
 		application, err = spec.BuildApplication(ctx, config)
 	}

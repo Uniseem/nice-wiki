@@ -13,7 +13,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
@@ -31,7 +30,7 @@ const ModuleSlug = "site-config"
 // 不经 HTTP 自调用。控制库不可用时 localRuntime 如实返回
 // DEPENDENCY_UNAVAILABLE，装配失败交进程守护重试，不用占位数据冒充权威。
 //
-// 打开 active 业务库、恢复本域 journal、装配 Relay。
+// 打开 active 业务库、恢复本域 journal。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -74,21 +73,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		homeRuntime.QA = gen.NewQaClient(base, ModuleSlug, key)
 	}
 	activeStore.ConfigureCursorKey(key)
-	jobsBase := config.Dependencies["jobs"]
-	if jobsBase == "" {
-		_ = activeStore.Close()
-		_ = closeRuntime(runtimeAuthority)
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "事件依赖地址未配置")
-	}
 	homeRuntime.WriteWindow = lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState)
 	activeStore.ConfigureHome(homeRuntime)
-	relayRuntime := siteconfig.RelayRuntime{
-		Store:       activeStore.OutboxStore(),
-		Publisher:   outbox.NewEventPublisher(gen.NewJobsClient(jobsBase, ModuleSlug, key)),
-		Runtime:     runtimeAuthority.ReadRuntimeState,
-		WriteWindow: lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState),
-		AdmitBatch:  lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, openedEpoch),
-	}
 	startupOperation := platform.OperationContext{
 		RequestID:       "site-config-startup",
 		OperationID:     "site-config-startup-journal",
@@ -133,7 +119,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "身份权威地址未配置")
 	}
 	identity := gen.NewIdentityClient(identityBase, ModuleSlug, key)
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, relayRuntime, openedEpoch, apivalidate.NewIdentityAuthorizer(identity))
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, openedEpoch, apivalidate.NewIdentityAuthorizer(identity))
 	if err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)

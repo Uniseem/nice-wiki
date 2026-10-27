@@ -327,33 +327,6 @@ func (c *IdentityClient) VerifySessionCSRF(ctx context.Context, body any) (json.
 	return c.do(ctx, http.MethodPost, "/v1/csrf:verify", body, "")
 }
 
-// JobsClient 调用jobs服务（自动附服务断言）。
-type JobsClient struct{ *producerClient }
-
-func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient {
-	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
-}
-
-// SubscribeEvents GET /v1/events:subscribe（jobs:subscribeEvents）。
-// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
-func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, queries ...url.Values) (platform.EventStream, error) {
-	requestPath := "/v1/events:subscribe"
-	query := url.Values{}
-	for _, values := range queries {
-		for key, entries := range values {
-			query[key] = append(query[key], entries...)
-		}
-	}
-	if encoded := query.Encode(); encoded != "" {
-		requestPath += "?" + encoded
-	}
-	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
-	if err != nil {
-		return nil, err
-	}
-	return eventEnvelopeStream{r: reader}, nil
-}
-
 // SiteConfigClient 调用site-config服务（自动附服务断言）。
 type SiteConfigClient struct{ *producerClient }
 

@@ -9,6 +9,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/admin"
 	"nice-wiki/modules/knowledge/internal/build"
@@ -112,13 +113,17 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
 	var searchService *searchclient.Client
 	if base := config.Dependencies["search"]; base != "" && config.SearchSecretRef != "" {
 		if searchService, err = searchclient.New(base, config.SearchSecretRef); err != nil {
 			return nil, err
 		}
 	}
-	indexes, err := indexer.NewIndexRuntime(indexer.Runtime{Search: searchService, DB: db, DataRoot: config.DataRoot, Gateway: gateway, InferenceClient: model.Gateway, Memory: gen.NewMemoryClient(config.Dependencies["memory"], ModuleSlug, key), Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Media: gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key), Content: gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), BaseLanguage: site.Config.BaseLanguage, WriteWindow: window})
+	indexes, err := indexer.NewIndexRuntime(indexer.Runtime{Events: events, Search: searchService, DB: db, DataRoot: config.DataRoot, Gateway: gateway, InferenceClient: model.Gateway, Memory: gen.NewMemoryClient(config.Dependencies["memory"], ModuleSlug, key), Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Media: gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key), Content: gen.NewContentClient(config.Dependencies["content"], ModuleSlug, key), BaseLanguage: site.Config.BaseLanguage, WriteWindow: window})
 	if err != nil {
 		return nil, err
 	}
@@ -228,10 +233,6 @@ func assembleBackgroundTasks(bind func(context.Context) context.Context, db *sql
 			_, err := domainruntime.RunWorker(bind(platform.WithOperationContext(ctx, op)), op, domainruntime.RunWorkerInput{WorkerID: ModuleSlug, MaximumConcurrentJobs: 4})
 			return err
 		}},
-		loop("knowledge.outbox", 1000, false, func(ctx context.Context, op platform.OperationContext) error {
-			_, err := events.PublishOutbox(ctx, op, events.PublishOutboxInput{Limit: 100, WorkerID: ModuleSlug})
-			return err
-		}),
 		// 层级摘要与全站概括：每分钟检查一次，满 24 小时（或从没生成过）才在后台重算。
 		batch("knowledge.overview", 60000, func(ctx context.Context, op platform.OperationContext) error {
 			return overview.RunDaily(ctx, op)

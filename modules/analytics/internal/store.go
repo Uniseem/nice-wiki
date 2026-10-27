@@ -10,7 +10,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/analytics/migrations"
 	"os"
@@ -33,7 +32,6 @@ type Runtime struct {
 	Window              platform.WriteWindowConfig
 	Authorize           func(context.Context, OperationContext, string, string) error
 	ValidateEvent       func(string, int, json.RawMessage) error
-	Publisher           platform.EventPublisher
 	mu                  sync.Mutex
 	flushMu             sync.Mutex
 	exportMu            sync.Mutex
@@ -276,9 +274,6 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 	if err = inbox.EnsureSchema(ctx, db); err != nil {
 		return nil, err
 	}
-	if err = outbox.EnsureSchema(ctx, db); err != nil {
-		return nil, err
-	}
 	geoPath := filepath.Join(root, "control", "geoip.mmdb")
 	var geo *maxminddb.Reader
 	if _, e := os.Lstat(geoPath); e == nil {
@@ -347,7 +342,7 @@ func (rt *Runtime) ForSite(ctx context.Context, site string) (*Runtime, error) {
 	}
 	clone := &Runtime{base: base, Consumer: base.Consumer, Jobs: base.Jobs, Submitter: base.Submitter, ValidateCreateJob: base.ValidateCreateJob,
 		GeoIP: base.GeoIP, DB: base.DB, Root: base.Root, Epoch: base.Epoch, SiteID: site, Key: base.Key, Window: base.Window,
-		Authorize: base.Authorize, ValidateEvent: base.ValidateEvent, Publisher: base.Publisher, CountingLocation: base.CountingLocation,
+		Authorize: base.Authorize, ValidateEvent: base.ValidateEvent, CountingLocation: base.CountingLocation,
 		reportingZone: base.reportingZone, salts: map[string][]byte{}, queue: make([]beaconRow, 0, 256)}
 	// 费用统计只对平台站点同步（模型网关的账本按平台站点登记）；站点主人的 AI 用量走 identity 的 readAiUsage。
 	if base.reportingZone != "" && base.Window.Runtime != nil {

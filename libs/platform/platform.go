@@ -323,17 +323,6 @@ type RuntimeView struct {
 type WorkAdmission func(context.Context) (context.Context, func(), error)
 type JobExecutionScopeBinder func(context.Context, OperationContext, ClaimedJob) (context.Context, error)
 
-// RelayConfig outbox转发循环参数；batchLimit≤100。
-type RelayConfig struct {
-	BindEventScope func(context.Context, OutboxRow) (context.Context, func(), error)
-	AdmitBatch     WorkAdmission `json:"-"`
-	BatchLimit     int           `json:"batchLimit"`
-	PollMillis     int           `json:"pollMillis"`
-	// Runtime 与 WriteWindow均必需；未知权威或关闭安全窗口时停止active写入。
-	Runtime     func(ctx context.Context) (RuntimeView, error) `json:"-"`
-	WriteWindow func(context.Context) (time.Time, error)       `json:"-"`
-}
-
 // WriteWindowConfig 由受信装配提供当前运行权威及本域control安全截止。
 type WriteWindowConfig struct {
 	Runtime     func(context.Context) (RuntimeView, error)
@@ -731,13 +720,6 @@ type JobExecutionInput struct {
 	CheckLease func(context.Context) error `json:"-"`
 }
 
-// RelayBatchResult只描述本批已领取行；不表示全域已送达。
-type RelayBatchResult struct {
-	Relayed     int64 `json:"relayed"`
-	Pending     int64 `json:"pending"`
-	Quarantined int64 `json:"quarantined"`
-}
-
 // JobExecutionResult 任务执行结果；retry表示可重试失败。
 type JobExecutionResult struct {
 	State          string       `json:"state"`
@@ -787,48 +769,6 @@ func (r JobExecutorRegistry) Executor(jobType string) JobExecutor {
 	return r[jobType]
 }
 
-// OutboxRow outbox表一行的机制视图；payload为信封载荷原文。
-type OutboxRow struct {
-	EventID       Identifier
-	EventType     string
-	EventVersion  int
-	Producer      string
-	SubjectID     Identifier
-	Revision      Revision
-	OccurredAt    Timestamp
-	DataEpoch     Identifier
-	SiteID        Identifier
-	Payload       json.RawMessage
-	PayloadHash   Hash
-	State         string
-	Attempts      int
-	NextAttemptAt Timestamp
-}
-
-// outbox行状态。
-const (
-	OutboxPending     = "pending"
-	OutboxRelayed     = "relayed"
-	OutboxQuarantined = "quarantined"
-	OutboxDiscarded   = "discarded"
-)
-
-// OutboxStore 本域outbox表访问接口；实现须与业务库同库同事务语义。
-type OutboxStore interface {
-	// ClaimBatch 按提交顺序领取到期pending行并写入行租约。
-	ClaimBatch(ctx context.Context, limit int, lease time.Duration) ([]OutboxRow, error)
-	// MarkRelayed 确认已提交给jobs。
-	MarkRelayed(ctx context.Context, eventIDs []Identifier) error
-	// ReleaseForRetry 释放租约并按退避安排下次尝试。
-	ReleaseForRetry(ctx context.Context, eventID Identifier, attempts int, next time.Duration) error
-	// Quarantine 隔离同ID异hash或信封非法的行。
-	Quarantine(ctx context.Context, eventID Identifier, reason string) error
-	// Discard 丢弃单个不属于当前代的pending行。
-	Discard(ctx context.Context, eventID, epoch Identifier) error
-	// DiscardOtherEpochs 丢弃不属于当前代的pending行，返回丢弃数。
-	DiscardOtherEpochs(ctx context.Context, epoch Identifier) (int64, error)
-}
-
 // Tx 本域数据库事务句柄；*sql.Tx天然满足。
 type Tx interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -863,11 +803,6 @@ type ModelEventStream interface {
 	Close() error
 }
 
-// EventPublisher 只暴露outbox转发所需的持久事件接收端口。
-type EventPublisher interface {
-	PublishEvent(ctx context.Context, envelope EventEnvelope) error
-}
-
 // TypedWorkerJobsClient在领取前由jobs按登记类型筛选，避免同owner下依赖任务互占全部worker。
 type TypedWorkerJobsClient interface {
 	WorkerJobsClient
@@ -893,7 +828,6 @@ type EventConsumerClient interface {
 type JobsClient interface {
 	WorkerJobsClient
 	EventConsumerClient
-	PublishEvent(ctx context.Context, envelope EventEnvelope) error
 }
 
 // GatewayInvocationSnapshot为当前真实权威，与历史Events独立，不从费用状态推断输出。

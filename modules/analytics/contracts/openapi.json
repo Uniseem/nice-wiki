@@ -1542,9 +1542,6 @@
       "AnalyticsJobsFailJobResult": {
         "$ref": "../../jobs/contracts/types.json#/$defs/FailJobResult"
       },
-      "AnalyticsJobsAcknowledgeEventResult": {
-        "$ref": "../../jobs/contracts/types.json#/$defs/AcknowledgeEventResult"
-      },
       "AnalyticsQaCompletedPayload": {
         "$ref": "../../qa/contracts/types.json#/$defs/EventQaTurnCompletedPayload"
       },
@@ -1572,7 +1569,6 @@
     "AnalyticsJobsCheckLeaseResult",
     "AnalyticsJobsCompleteJobResult",
     "AnalyticsJobsFailJobResult",
-    "AnalyticsJobsAcknowledgeEventResult",
     "AnalyticsQaCompletedPayload",
     "AnalyticsQaFailedPayload",
     "AnalyticsSettledPayload",

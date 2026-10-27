@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/knowledge/internal/gen"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 )
@@ -91,7 +91,7 @@ func ActivateBuild(ctx context.Context, op OperationContext, input ActivateBuild
 			Hash     string                   `json:"indexVersionHash"`
 			Epoch    string                   `json:"dataEpoch"`
 		}{input.BuildID, record.Build.Document, record.Build.Space, hash, op.DataEpoch})
-		if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: "index.ready." + platform.HashBytes([]byte(input.BuildID)), EventType: "index.ready", EventVersion: 1, Producer: "knowledge", SubjectID: record.Build.Document.DocumentId, Revision: int64(record.Build.Generation), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+		if err := queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: "index.ready." + platform.HashBytes([]byte(input.BuildID)), EventType: "index.ready", EventVersion: 1, Producer: "knowledge", SubjectID: record.Build.Document.DocumentId, Revision: int64(record.Build.Generation), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 			return ActivateBuildResult{}, err
 		}
 		record.Build.State = gen.IndexBuildState("active")

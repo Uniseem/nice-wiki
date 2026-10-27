@@ -24,13 +24,10 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 	if err != nil {
 		return ConsumeEventsResult{}, err
 	}
-	if runtime.Jobs == nil || runtime.WriteWindow.Runtime == nil || runtime.Validators["JobsAcknowledgeEventResult"] == nil || runtime.Validators["PublicationChangedPayload"] == nil || runtime.Validators["PublicationWithdrawnPayload"] == nil {
+	if runtime.Events == nil || runtime.WriteWindow.Runtime == nil || runtime.Validators["PublicationChangedPayload"] == nil || runtime.Validators["PublicationWithdrawnPayload"] == nil {
 		return ConsumeEventsResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "索引事件订阅依赖未装配")
 	}
-	client, err := inbox.NewEventConsumer(runtime.Jobs, runtime.Validators["JobsAcknowledgeEventResult"])
-	if err != nil {
-		return ConsumeEventsResult{}, err
-	}
+	client := runtime.Events.Consumer()
 	validate := func(eventType string, version int, payload json.RawMessage) error {
 		if version != 1 {
 			return platform.NewError(platform.CodeValidation, false, "索引事件版本未登记")

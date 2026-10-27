@@ -19,8 +19,6 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
-	"nice-wiki/modules/qa/internal/events"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
@@ -170,16 +168,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	}
 	started := time.Now().UnixNano()
 	interruptedHandled := false
-	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.outbox", Run: func(work context.Context) error {
-		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
-			ctx, op, ok := serviceOp(tick)
-			if !ok {
-				return nil
-			}
-			_, err := events.PublishOutbox(ctx, op, events.PublishOutboxInput{Limit: 100})
-			return err
-		}})
-	}}, {Name: "qa.housekeeping", Run: func(work context.Context) error {
+	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.housekeeping", Run: func(work context.Context) error {
 		// 启动后先收尾上次进程中断的轮次，之后每分钟按保留期清理过期会话、诊断记录和已终止轮次的事件。
 		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 60000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
 			ctx, op, ok := serviceOp(tick)
@@ -279,10 +268,6 @@ func openDatabase(dataRoot string) (*sql.DB, error) {
 			_ = db.Close()
 			return nil, platform.NewError(platform.CodeInternal, false, "提交问答迁移失败")
 		}
-	}
-	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
-		_ = db.Close()
-		return nil, err
 	}
 	return db, nil
 }

@@ -141,18 +141,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			}},
 		}
 	}
-	// 屏障与快照等路由尚未实现，请求落到 404；服务本身可启动。
-	jobsClient := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
-	relay := content.RelayRuntime{Store: store, Jobs: jobsClient, WriteWindow: window}
 	epoch := runtimeView.DataEpoch
 	application.SetBackground(append(siteDataLoops, []platform.BackgroundTask{
-		{Name: "content.relay-outbox", Run: func(ctx context.Context) error {
-			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
-				// 发件箱不分站点：事件自己带着站点，转发用平台身份。
-				_, err := content.RelayOutbox(content.WithRelayRuntime(batch, relay), content.ServiceOperation("system", epoch), content.RelayOutboxInput{BatchLimit: 100})
-				return err
-			}})
-		}},
 		{Name: "content.expire-idle-locks", Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 5000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
 				for _, site := range store.Sites(batch) {

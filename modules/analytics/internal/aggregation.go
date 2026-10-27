@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"time"
 )
 
@@ -202,7 +202,7 @@ func enqueueAggregate(tx *sql.Tx, op OperationContext, revision int64, day, kind
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "聚合事件编码失败")
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "analytics.aggregate-updated.v1", EventVersion: 1, Producer: "analytics", SubjectID: "analytics." + kind, Revision: revision, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "analytics.aggregate-updated.v1", EventVersion: 1, Producer: "analytics", SubjectID: "analytics." + kind, Revision: revision, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
 }
 
 func readAggregate(ctx context.Context, tx *sql.Tx, kind, key string, expected int64, out any) (bool, int64, error) {

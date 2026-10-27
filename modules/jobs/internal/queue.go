@@ -18,7 +18,7 @@ import (
 	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/jobs/internal/gen"
 	jobsmigrations "nice-wiki/modules/jobs/migrations"
 )
@@ -30,28 +30,6 @@ const (
 	jobEventType    = "jobs.job-state-changed.v1"
 	jobEventVersion = 1
 )
-
-// jobsWorkTables 是本域全部16张运行期业务表。schema_migrations 只在启动
-// 迁移阶段写入，不属于运行期业务工作门；nw_outbox 由平台自身登记。
-// 使用定长数组使表门数量在编译期固定为16，避免遗漏表后仍宣称全域封口。
-var jobsWorkTables = [16]string{
-	"jobs",
-	"leases",
-	"progress",
-	"job_results",
-	"events",
-	"deliveries",
-	"schedules",
-	"barriers",
-	"lease_operations",
-	"job_outcomes",
-	"job_orphans",
-	"event_sequence",
-	"consumer_offsets",
-	"event_operations",
-	"job_management_operations",
-	"schedule_operations",
-}
 
 // CreateJobInput 是内部任务提交合同；HTTP层的 dataEpoch 来自可信操作上下文，
 // 不从浏览器请求正文读取。
@@ -75,20 +53,17 @@ type SiteIDProvider func(context.Context, platform.Identifier) (string, error)
 // Store 是 jobs active 区数据库句柄。单连接保证短写事务串行执行；
 // outbox 与任务状态使用同一个 SQLite 事务。
 type Store struct {
-	db                   *sql.DB
-	mu                   sync.RWMutex
-	siteID               SiteIDProvider
-	closed               bool
-	leaseRuntime         LeaseRuntimeProvider
-	identity             *gen.IdentityClient
-	recovery             OwnerRecoveryChecker
-	progressMu           sync.Mutex
-	progressStreams      map[string]int
-	eventMu              sync.Mutex
-	eventStreams         map[string]int
-	backgroundAdmit      platform.WorkAdmission
-	backgroundEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)
-	journalRecovered     bool
+	db               *sql.DB
+	mu               sync.RWMutex
+	siteID           SiteIDProvider
+	closed           bool
+	leaseRuntime     LeaseRuntimeProvider
+	identity         *gen.IdentityClient
+	recovery         OwnerRecoveryChecker
+	progressMu       sync.Mutex
+	progressStreams  map[string]int
+	backgroundAdmit  platform.WorkAdmission
+	journalRecovered bool
 }
 
 var activeQueue struct {
@@ -108,9 +83,9 @@ func InstallStore(store *Store, runtime LeaseRuntimeProvider, identity *gen.Iden
 	activeQueue.Unlock()
 }
 
-// ConfigureBackgroundScope 安装后台任务和outbox共用的真实业务scope；缺失时后台保持失败关闭。
-func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission, bindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)) error {
-	if s == nil || admit == nil || bindEventScope == nil {
+// ConfigureBackgroundScope 安装后台任务共用的真实业务scope；缺失时后台保持失败关闭。
+func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission) error {
+	if s == nil || admit == nil {
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "后台业务scope尚未完整装配")
 	}
 	s.mu.Lock()
@@ -119,7 +94,6 @@ func (s *Store) ConfigureBackgroundScope(admit platform.WorkAdmission, bindEvent
 		return platform.NewError(platform.CodeDependencyUnavailable, true, "任务存储已关闭")
 	}
 	s.backgroundAdmit = admit
-	s.backgroundEventScope = bindEventScope
 	return nil
 }
 
@@ -155,10 +129,6 @@ func OpenDatabase(dataRoot string) (*Store, error) {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "任务数据库不可用")
 	}
 	if err := store.runMigrations(); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if err := registerJobsWorkTables(context.Background(), db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -318,7 +288,7 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 		DataEpoch:    in.DataEpoch,
 		Payload:      payload,
 	}
-	if err := outbox.EnqueueEvent(tx, event); err != nil {
+	if err := queue.EnqueueEvent(tx, event); err != nil {
 		return rollback(err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -446,9 +416,6 @@ func (s *Store) runMigrations() error {
 			return platform.NewError(platform.CodeIntegrityError, false, "任务迁移版本未知")
 		}
 	}
-	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
-		return err
-	}
 	for _, migration := range all {
 		if _, ok := applied[migration.Version]; ok {
 			continue
@@ -468,22 +435,6 @@ func (s *Store) runMigrations() error {
 		}
 		if err := tx.Commit(); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "提交任务迁移失败")
-		}
-	}
-	return nil
-}
-
-// registerJobsWorkTables 在本域迁移完成后把可信业务表登记到平台统一
-// revision 与 sealed gate；表清单只来自本域已登记迁移，不接受配置自报。
-func registerJobsWorkTables(ctx context.Context, db *sql.DB) error {
-	seen := make(map[string]struct{}, len(jobsWorkTables))
-	for _, table := range jobsWorkTables {
-		if _, ok := seen[table]; ok {
-			return platform.NewError(platform.CodeIntegrityError, false, "jobs业务写门表清单重复")
-		}
-		seen[table] = struct{}{}
-		if err := outbox.RegisterWorkTable(ctx, db, table); err != nil {
-			return err
 		}
 	}
 	return nil

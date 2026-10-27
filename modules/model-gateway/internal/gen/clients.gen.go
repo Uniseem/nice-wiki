@@ -274,21 +274,6 @@ func (c *IdentityClient) ReadSiteAiPolicy(ctx context.Context, siteId string) (j
 	return c.do(ctx, http.MethodGet, "/v1/sites/"+url.PathEscape(siteId)+"/ai-policy", nil, "")
 }
 
-// JobsClient 调用jobs服务（自动附服务断言）。
-type JobsClient struct{ *producerClient }
-
-func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient {
-	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
-}
-
-// PublishEvent POST /v1/events（jobs:publishEvent）。
-func (c *JobsClient) PublishEvent(ctx context.Context, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/events", body, idempotencyKey)
-}
-
 // LocalizationClient 调用localization服务（自动附服务断言）。
 type LocalizationClient struct{ *producerClient }
 

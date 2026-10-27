@@ -441,9 +441,6 @@
     "identity": [
       "checkAuthorization"
     ],
-    "jobs": [
-      "publishEvent"
-    ],
     "knowledge": [
       "readJobRecovery"
     ],

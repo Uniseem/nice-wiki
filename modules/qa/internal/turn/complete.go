@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/stream"
@@ -113,7 +113,7 @@ func CompleteTurn(ctx context.Context, op OperationContext, input CompleteTurnIn
 		DataEpoch       string `json:"dataEpoch"`
 		AnswerKind      string `json:"answerKind"`
 	}{input.TurnID, conversation.ConversationId, op.RootOperationID, message.Revision, current.Language, string(current.Turn.CacheHit), max(0, (current.TerminalNS-current.CreatedNS)/int64(time.Millisecond)), op.DataEpoch, input.AnswerKind})
-	if err := outbox.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.complete." + input.TurnID, EventType: "qa.turn.completed", EventVersion: 1, Producer: "qa", SubjectID: input.TurnID, Revision: int64(message.Revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+	if err := queue.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.complete." + input.TurnID, EventType: "qa.turn.completed", EventVersion: 1, Producer: "qa", SubjectID: input.TurnID, Revision: int64(message.Revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return CompleteTurnResult{}, err
 	}
 	if _, err := tx.Tx.ExecContext(tx.Context, `UPDATE conversations SET version=version+1 WHERE conversation_id=?`, conversation.ConversationId); err != nil {

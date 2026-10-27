@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/identity/internal/gen"
 )
 
@@ -149,9 +148,6 @@ func RegisterUser(ctx context.Context, op OperationContext, input gen.RegisterUs
 	}()
 	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.Password})
 	if err != nil {
-		return RegisterFirstSuperadminResult{}, err
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
 	tx, err := store.db.BeginTx(ctx, nil)
@@ -391,9 +387,6 @@ func OauthLogin(ctx context.Context, op OperationContext, input gen.OauthLoginIn
 	}
 	profile, err := fetchProfile(ctx, provider, ep, conf, secret, input.Code, input.RedirectUri)
 	if err != nil {
-		return RegisterFirstSuperadminResult{}, err
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
 	tx, err := store.db.BeginTx(ctx, nil)

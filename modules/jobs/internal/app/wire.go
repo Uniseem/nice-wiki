@@ -13,7 +13,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
 	jobs "nice-wiki/modules/jobs/internal"
 	"nice-wiki/modules/jobs/internal/gen"
@@ -97,11 +97,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return store.ReadLeaseRuntime(current)
 	}
 	jobs.InstallStore(store, runtimeProvider, identity, recovery, siteID)
-	// self publisher按配置可选；缺失时保留outbox，不让Relay任务错误终止整个进程。
-	var publisher platform.EventPublisher
-	if selfBase := config.Dependencies[ModuleSlug]; selfBase != "" {
-		publisher = outbox.NewEventPublisher(gen.NewJobsClient(selfBase, ModuleSlug, key))
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
 	}
+	jobs.InstallEventQueue(events)
 	migrations, err := jobsmigrations.All()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "任务迁移集不可读")
@@ -110,14 +110,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "任务迁移集为空")
 	}
 	admitBusiness := lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, openedDataEpoch)
-	bindEventScope := func(work context.Context, _ platform.OutboxRow) (context.Context, func(), error) {
-		return work, func() {}, nil
-	}
-	assembleBackgroundTasks := func(admit platform.WorkAdmission, bindEventScope func(context.Context, platform.OutboxRow) (context.Context, func(), error)) ([]platform.BackgroundTask, error) {
-		if store == nil || admit == nil || bindEventScope == nil {
-			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "jobs后台准入或事件scope尚未完整装配")
+	assembleBackgroundTasks := func(admit platform.WorkAdmission) ([]platform.BackgroundTask, error) {
+		if store == nil || admit == nil {
+			return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "jobs后台准入尚未完整装配")
 		}
-		if err := store.ConfigureBackgroundScope(admit, bindEventScope); err != nil {
+		if err := store.ConfigureBackgroundScope(admit); err != nil {
 			return nil, err
 		}
 		runtimeView := func(work context.Context) (platform.RuntimeView, error) {
@@ -181,10 +178,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 				_, err := jobs.TickSchedules(ctx, op, jobs.TickSchedulesInput{Now: time.Now().UTC(), DataEpoch: view.Runtime.DataEpoch})
 				return err
 			}),
-			periodic("jobs.RequeueExpiredDeliveries", 5000, func(ctx context.Context, op platform.OperationContext, view jobs.LeaseRuntimeView) error {
-				_, err := jobs.RequeueExpiredDeliveries(ctx, op, jobs.RequeueExpiredDeliveriesInput{Limit: 100, DataEpoch: view.Runtime.DataEpoch})
-				return err
-			}),
 			periodic("jobs.PurgeExpiredHistory", 60000, func(ctx context.Context, op platform.OperationContext, view jobs.LeaseRuntimeView) error {
 				now := time.Now().UTC()
 				if !purgeNext.IsZero() && now.Before(purgeNext) {
@@ -196,24 +189,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 				purgeNext = now.Add(24 * time.Hour)
 				return nil
 			}),
-			{Name: "jobs.RelayOutbox", Run: func(ctx context.Context) error {
-				if publisher == nil {
-					<-ctx.Done()
-					return nil
-				}
-				view, err := runtimeProvider(ctx)
-				if err != nil {
-					return err
-				}
-				bound, op, err := operation(ctx, view.Runtime.DataEpoch)
-				if err != nil {
-					return err
-				}
-				return jobs.RelayOutbox(bound, op, publisher)
-			}},
 		}, nil
 	}
-	backgroundTasks, err := assembleBackgroundTasks(admitBusiness, bindEventScope)
+	backgroundTasks, err := assembleBackgroundTasks(admitBusiness)
 	if err != nil {
 		return nil, err
 	}

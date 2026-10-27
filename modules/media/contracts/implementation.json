@@ -414,16 +414,13 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "checkLease",
       "claimJob",
       "completeJob",
       "createJob",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "site-config": [
       "listResourceReferences",

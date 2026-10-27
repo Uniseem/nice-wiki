@@ -92,7 +92,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	mediaClient := gen.NewMediaClient(config.Dependencies["media"], ModuleSlug, key)
-	options := gatewayruntime.ExecutionOptions{SiteID: siteID, Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Jobs: gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key), Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
+	options := gatewayruntime.ExecutionOptions{SiteID: siteID, Anchors: anchors, Tasks: taskGroup, Media: mediaClient, MediaBytes: mediaClient, Validators: validators, WriteWindow: platform.WriteWindowConfig{Runtime: runtimeAuthority.ReadRuntimeState, WriteWindow: func(work context.Context) (time.Time, error) {
 		view, err := runtimeAuthority.ReadRuntimeState(work)
 		if err != nil {
 			return time.Time{}, err

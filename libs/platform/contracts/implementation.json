@@ -194,15 +194,12 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "checkLease",
       "claimJob",
       "completeJob",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "model-gateway": [
       "cancelInference",

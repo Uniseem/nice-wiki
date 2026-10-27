@@ -10,8 +10,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
-	"nice-wiki/modules/traffic-guard/internal/gen"
+	"nice-wiki/libs/platform/queue"
 )
 
 // GuardRuntime 只由本域可信装配提供；预算key独立于可轮换的服务签名key。
@@ -27,7 +26,6 @@ type GuardRuntime struct {
 	Anchors               platform.TrustAnchors
 	ValidateIdentityEvent func(json.RawMessage) error
 	Turnstile             TurnstileConfig
-	Jobs                  *gen.JobsClient
 }
 type guardRuntimeKey struct{}
 type guardTransactionKey struct{}
@@ -35,28 +33,6 @@ type guardAuthorizationKey struct{}
 type guardAuthorizationMark struct {
 	operationID string
 	action      string
-}
-
-var guardWorkTables = [...]string{
-	"guard_policy",
-	"policy_operation_receipts",
-	"login_attempts",
-	"login_attempt_networks",
-	"login_failures",
-	"login_locks",
-	"login_finish_receipts",
-	"guard_operation_receipts",
-	"guard_subjects",
-	"guard_network_aliases",
-	"guard_buckets",
-	"guard_permits",
-	"guard_challenges",
-	"guard_bans",
-	"guard_question_signals",
-	"guard_risk_events",
-	"guard_waiters",
-	"guard_identity_revisions",
-	"guard_permit_networks",
 }
 
 var guardPendingWorkQueries = [...]string{
@@ -216,7 +192,7 @@ func enqueueGuardEvent(t *guardTransaction, eventType, subject string, revision 
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "风控事件无法编码")
 	}
-	return outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: eventType, EventVersion: 1, Producer: "traffic-guard", SubjectID: subject, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: eventType, EventVersion: 1, Producer: "traffic-guard", SubjectID: subject, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: raw})
 }
 func defaultGuardPolicy() GuardPolicy {
 	network := 60
@@ -247,13 +223,4 @@ func readGuardPolicy(t *guardTransaction) (GuardPolicy, int64, error) {
 		policy.QaPerNetworkPerMinute = &rate
 	}
 	return policy, revision, nil
-}
-
-func registerGuardWorkTables(ctx context.Context, db *sql.DB) error {
-	for _, table := range guardWorkTables {
-		if err := outbox.RegisterWorkTable(ctx, db, table); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -21,7 +21,6 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/media/internal/gen"
 	mediamigrations "nice-wiki/modules/media/migrations"
 )
@@ -233,10 +232,6 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		return nil, err
 	}
 	if err := store.runMigrations(); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}

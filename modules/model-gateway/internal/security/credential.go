@@ -24,8 +24,8 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 )
@@ -232,7 +232,7 @@ func writeCredential(ctx context.Context, op OperationContext, input credentialC
 	if err != nil {
 		return credentialWriteResult{}, platform.NewError(platform.CodeInternal, false, "供应方凭据事件编码失败")
 	}
-	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "provider.changed", EventVersion: 1, Producer: "model-gateway", SubjectID: input.ProviderID, Revision: platform.Revision(providerVersion + 1), OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+	if err := queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "provider.changed", EventVersion: 1, Producer: "model-gateway", SubjectID: input.ProviderID, Revision: platform.Revision(providerVersion + 1), OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return credentialWriteResult{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM operation_receipts WHERE site_id=? AND actor_id=? AND function_id=? AND idempotency_key=?`, op.Actor.SiteID, op.Actor.SubjectID, functionID, input.IdempotencyKey); err != nil {

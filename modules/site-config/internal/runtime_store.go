@@ -23,7 +23,6 @@ import (
 	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/migrations"
 )
@@ -163,12 +162,6 @@ func OpenActiveStore(ctx context.Context, dataRoot string, dataEpoch platform.Id
 	if err := store.runActiveMigrations(ctx); err != nil {
 		return closeOnError(err)
 	}
-	if err := outbox.EnsureSchema(ctx, db); err != nil {
-		return closeOnError(err)
-	}
-	if err := registerSiteConfigWorkTables(ctx, db); err != nil {
-		return closeOnError(err)
-	}
 	if err := store.ensureActiveState(ctx, dataEpoch); err != nil {
 		return closeOnError(err)
 	}
@@ -205,34 +198,6 @@ func currentActiveStore() *ActiveStore {
 	activeBusinessStore.RLock()
 	defer activeBusinessStore.RUnlock()
 	return activeBusinessStore.store
-}
-
-// OutboxStore 返回与active业务库同库的标准outbox端口；不复制平台领取/封口机制。
-func (s *ActiveStore) OutboxStore() *outbox.Store {
-	if s == nil || s.db == nil {
-		return nil
-	}
-	return outbox.NewStore(s.db)
-}
-
-var siteConfigWorkTables = [...]string{
-	"site_config_state",
-	"config_revision_index",
-	"announcement_heads",
-	"initialization_decisions",
-	"initialization_state",
-	"config_operations",
-	"config_operation_materials",
-	"home_reference_decisions",
-}
-
-func registerSiteConfigWorkTables(ctx context.Context, db *sql.DB) error {
-	for _, table := range siteConfigWorkTables {
-		if err := outbox.RegisterWorkTable(ctx, db, table); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (s *ActiveStore) runActiveMigrations(ctx context.Context) error {

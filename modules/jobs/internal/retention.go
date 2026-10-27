@@ -49,9 +49,11 @@ func PurgeExpiredHistory(ctx context.Context, op OperationContext, in PurgeExpir
 	if err != nil {
 		return PurgeExpiredHistoryResult{}, err
 	}
-	eventCount, err := purgeAcknowledgedEvents(ctx, work.tx, op.DataEpoch, eventCutoff, in.BatchSize)
-	if err != nil {
-		return PurgeExpiredHistoryResult{}, err
+	var eventCount int64
+	if q, err := currentEventQueue(); err == nil {
+		if eventCount, err = q.PurgeEvents(ctx, eventCutoff); err != nil {
+			return PurgeExpiredHistoryResult{}, err
+		}
 	}
 	jobCount, err := purgeTerminalJobs(ctx, work.tx, op.DataEpoch, terminalCutoff, in.BatchSize)
 	if err != nil {
@@ -173,73 +175,6 @@ func purgeTerminalJobs(ctx context.Context, tx *sql.Tx, epoch platform.Identifie
 			}
 		}
 		result, err := tx.ExecContext(ctx, `DELETE FROM jobs WHERE job_id=? AND data_epoch=?`, candidate.id, epoch)
-		if err != nil {
-			return deleted, mapQueueDBError(err)
-		}
-		count, err := result.RowsAffected()
-		if err != nil {
-			return deleted, mapQueueDBError(err)
-		}
-		deleted += count
-	}
-	return deleted, nil
-}
-
-func purgeAcknowledgedEvents(ctx context.Context, tx *sql.Tx, epoch platform.Identifier, cutoff time.Time, limit int) (int64, error) {
-	var invalid int64
-	if err := tx.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM events
-		WHERE data_epoch=? AND (json_valid(CAST(envelope_json AS TEXT))=0
-		   OR json_type(CAST(envelope_json AS TEXT),'$.occurredAt')<>'text')`, epoch).Scan(&invalid); err != nil {
-		return 0, mapQueueDBError(err)
-	}
-	if invalid != 0 {
-		return 0, platform.NewError(platform.CodeIntegrityError, false, "存在无法核验发生时间的事件")
-	}
-	rows, err := tx.QueryContext(ctx, `
-		SELECT e.event_id,json_extract(CAST(e.envelope_json AS TEXT),'$.occurredAt')
-		FROM events e LEFT JOIN deliveries d ON d.event_id=e.event_id
-		WHERE e.data_epoch=?
-		  AND json_extract(CAST(e.envelope_json AS TEXT),'$.occurredAt')<=?
-		GROUP BY e.event_id,e.event_seq,json_extract(CAST(e.envelope_json AS TEXT),'$.occurredAt')
-		HAVING COUNT(d.event_id)=SUM(CASE WHEN d.state='acknowledged' THEN 1 ELSE 0 END)
-		ORDER BY e.event_seq
-		LIMIT ?`, epoch, cutoff.UTC().Format(time.RFC3339Nano), limit)
-	if err != nil {
-		return 0, mapQueueDBError(err)
-	}
-	type candidate struct {
-		id     string
-		atText string
-	}
-	candidates := make([]candidate, 0)
-	for rows.Next() {
-		var item candidate
-		if err := rows.Scan(&item.id, &item.atText); err != nil {
-			_ = rows.Close()
-			return 0, mapQueueDBError(err)
-		}
-		expired, err := retentionTimeReached(item.atText, cutoff)
-		if err != nil {
-			_ = rows.Close()
-			return 0, err
-		}
-		if expired {
-			candidates = append(candidates, item)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return 0, mapQueueDBError(err)
-	}
-	_ = rows.Close()
-
-	var deleted int64
-	for _, candidate := range candidates {
-		if _, err := tx.ExecContext(ctx, `DELETE FROM deliveries WHERE event_id=? AND event_id IN (SELECT event_id FROM events WHERE event_id=? AND data_epoch=?)`, candidate.id, candidate.id, epoch); err != nil {
-			return deleted, mapQueueDBError(err)
-		}
-		result, err := tx.ExecContext(ctx, `DELETE FROM events WHERE event_id=? AND data_epoch=?`, candidate.id, epoch)
 		if err != nil {
 			return deleted, mapQueueDBError(err)
 		}

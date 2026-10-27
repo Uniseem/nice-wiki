@@ -41,7 +41,6 @@ type Application struct {
 	anchors         platform.TrustAnchors
 	runtime         platform.SiteConfigClient
 	active          *siteconfig.ActiveStore
-	relay           siteconfig.RelayRuntime
 	openedEpoch     platform.Identifier
 	state           atomic.Int32
 	serveStarted    atomic.Bool
@@ -55,9 +54,9 @@ type Application struct {
 
 // NewApplication 只向统一入口提供真实已实现的handler；缺登记操作时
 // 平台工厂返回错误，不能把部分业务接线伪装成完整服务就绪。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, relayRuntime siteconfig.RelayRuntime, openedEpoch platform.Identifier,
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, openedEpoch platform.Identifier,
 	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
-	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, relay: relayRuntime, openedEpoch: openedEpoch}
+	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, openedEpoch: openedEpoch}
 	spec, err := gen.GetSwagger()
 	if err != nil {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP规格不可读")
@@ -95,9 +94,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 				return err
 			}})
 	}}}
-	application.backgroundTasks = append(application.backgroundTasks, platform.BackgroundTask{Name: "site-config.outbox-relay", Run: func(ctx context.Context) error {
-		return runRelayLoop(ctx, application)
-	}})
 	return application, nil
 }
 
@@ -300,35 +296,6 @@ func serviceCallers() map[string][]string {
 		callers[id] = []string{"portal"}
 	}
 	return callers
-}
-
-func runRelayLoop(ctx context.Context, app *Application) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	for {
-		if err := ctx.Err(); err != nil {
-			return nil
-		}
-		view, err := app.runtime.ReadRuntimeState(ctx)
-		if err == nil {
-			id := platform.NewIdentifier()
-			op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: moduleName,
-				DataEpoch: view.DataEpoch, Deadline: platform.Timestamp(time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)),
-				Actor: platform.AuthContext{Kind: "service", SubjectID: moduleName, SiteID: "system"}}
-			_, relayErr := siteconfig.RelayOutbox(siteconfig.WithRelayRuntime(platform.WithOperationContext(ctx, op), app.relay), op, siteconfig.RelayOutboxInput{BatchLimit: 100})
-			if relayErr != nil {
-				var failure *platform.Error
-				if !errors.As(relayErr, &failure) || (failure.Code != platform.CodeLocked && failure.Code != platform.CodeDependencyUnavailable && failure.Code != platform.CodeVersionMismatch) {
-					return relayErr
-				}
-			}
-		}
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-		}
-	}
 }
 
 // Serve 运行独立HTTP服务；ctx 取消触发的停止由进程模板调用 Shutdown

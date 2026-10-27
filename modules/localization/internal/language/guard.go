@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/localization/internal/gen"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
 )
@@ -232,7 +232,7 @@ func enqueueLanguageChanged(tx *sql.Tx, tag string, version int, enabled bool, e
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "语言变更事件编码失败")
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{
 		EventID:      platform.NewIdentifier(),
 		EventType:    languageChangedEvent,
 		EventVersion: 1,

@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 )
 
 // ProgressTransaction 是HeartbeatJob已经核对owner、epoch与fence的业务事务。
@@ -73,7 +73,7 @@ func AppendProgress(ctx context.Context, op OperationContext, tx *ProgressTransa
 	if err != nil {
 		return AppendProgressResult{}, platform.NewError(platform.CodeInternal, false, "任务进度事件编码失败")
 	}
-	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "jobs.job-progress.v1", EventVersion: 1,
+	if err := queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "jobs.job-progress.v1", EventVersion: 1,
 		Producer: "jobs", SubjectID: in.JobID, Revision: seq, OccurredAt: at, DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return AppendProgressResult{}, err
 	}

@@ -6,8 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"nice-wiki/libs/platform/apivalidate"
-	"nice-wiki/libs/platform/inbox"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/worker"
 	analytics "nice-wiki/modules/analytics/internal"
 	"nice-wiki/modules/analytics/internal/gen"
@@ -118,17 +117,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = store.Close()
 		return nil, err
 	}
-	ack, e := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "AnalyticsJobsAcknowledgeEventResult")
-	if e != nil {
-		_ = store.Close()
-		return nil, e
-	}
-	store.Consumer, err = inbox.NewEventConsumer(jobs, ack)
+	events, err := queue.ForConfig(ctx, config)
 	if err != nil {
 		_ = store.Close()
 		return nil, err
 	}
-	store.Publisher = outbox.NewEventPublisher(jobs)
+	store.Consumer = events.Consumer()
 	eventSchemas := map[string]string{"qa.turn.completed": "AnalyticsQaCompletedPayload", "qa.turn.failed": "AnalyticsQaFailedPayload", "invocation.settled": "AnalyticsSettledPayload", "invocation.reconciled": "AnalyticsReconciledPayload"}
 	eventValidators := map[string]func(json.RawMessage) error{}
 	for event, schema := range eventSchemas {

@@ -17,7 +17,6 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
-	"nice-wiki/libs/platform/outbox"
 	guardmigrations "nice-wiki/modules/traffic-guard/migrations"
 )
 
@@ -77,10 +76,6 @@ func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore,
 	if err := db.Ping(); err != nil {
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域业务库不可用")
-	}
-	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
-		_ = db.Close()
-		return nil, err
 	}
 
 	if err := inbox.EnsureSchema(context.Background(), db); err != nil {
@@ -164,9 +159,6 @@ func (s *PolicyStore) RunMigrations() error {
 	}
 	if s.AppliedMigrations == 0 {
 		s.AppliedMigrations = int64(len(all))
-	}
-	if err := registerGuardWorkTables(context.Background(), s.db); err != nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "登记风控业务work表失败")
 	}
 	return nil
 }

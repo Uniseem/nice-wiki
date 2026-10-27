@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/billing"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -225,7 +225,7 @@ func PutModel(ctx context.Context, op OperationContext, input PutModelInput) (Pu
 		return PutModelResult{}, platform.NewError(platform.CodeInternal, false, "模型事件编码失败")
 	}
 	now := platform.Now()
-	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{
+	if err := queue.EnqueueEvent(tx, platform.EventEnvelope{
 		EventID: platform.NewIdentifier(), EventType: modelEventType, EventVersion: modelEventVersion,
 		Producer: "model-gateway", SubjectID: model.ModelId, Revision: platform.Revision(model.Version),
 		OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload,

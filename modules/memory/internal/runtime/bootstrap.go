@@ -21,7 +21,6 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/memory/internal/gen"
 	memorymigrations "nice-wiki/modules/memory/migrations"
 )
@@ -66,7 +65,6 @@ type Store struct {
 	writeMu    sync.Mutex
 	window     platform.WriteWindowConfig
 	gateway    platform.GatewayClient
-	publisher  platform.EventPublisher
 	jobs       *gen.JobsClient
 	gatewayRaw *gen.ModelGatewayClient
 	validators map[string]func(json.RawMessage) error
@@ -198,9 +196,6 @@ func OpenStore(ctx context.Context, dataDirectory string, dataEpoch platform.Ide
 		return closeOnError(err)
 	}
 	// 跨服务事件只经平台 nw_outbox/nw_inbox（ADR0005），与业务写入同库同事务。
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-		return closeOnError(err)
-	}
 	if err := inbox.EnsureSchema(ctx, store.db); err != nil {
 		return closeOnError(err)
 	}

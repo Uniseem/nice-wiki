@@ -272,32 +272,22 @@ func listJobBatch(ctx context.Context, op OperationContext, input ListJobsInput,
 }
 
 func listDeliveryBatch(ctx context.Context, op OperationContext, input ListDeliveriesInput, after string) ([]managementItem, error) {
-	work, err := beginLeaseOperation(ctx, op, op.DataEpoch)
+	q, err := currentEventQueue()
 	if err != nil {
 		return nil, err
 	}
-	defer work.close()
-	rows, err := work.tx.QueryContext(ctx, `SELECT d.delivery_id,e.event_type,e.event_version,e.producer,d.consumer_id,d.attempt,d.last_error_code
-        FROM deliveries d JOIN events e ON e.event_id=d.event_id WHERE e.data_epoch=? AND d.state='dead-letter' AND e.site_id=?
-        AND d.delivery_id>? AND (?='' OR e.producer=?) ORDER BY d.delivery_id LIMIT 100`, op.DataEpoch, op.Actor.SiteID, after, input.Producer, input.Producer)
+	letters, err := q.ListDeadLetters(ctx, op.Actor.SiteID, input.Producer, after, 100)
 	if err != nil {
-		return nil, mapQueueDBError(err)
+		return nil, err
 	}
-	defer rows.Close()
-	items := []managementItem{}
-	for rows.Next() {
-		var summary DeliverySummary
-		if err := rows.Scan(&summary.DeliveryID, &summary.EventType, &summary.EventVersion, &summary.Producer, &summary.Consumer, &summary.Attempts, &summary.LastErrorCode); err != nil {
-			return nil, mapQueueDBError(err)
-		}
+	items := make([]managementItem, 0, len(letters))
+	for _, letter := range letters {
+		summary := DeliverySummary{DeliveryID: letter.DeliveryID, EventType: letter.EventType, EventVersion: letter.EventVersion, Producer: letter.Producer, Consumer: letter.Consumer, Attempts: int64(letter.Attempts), LastErrorCode: letter.LastError}
 		definition, err := findEventDefinition(summary.EventType, summary.EventVersion)
 		if err != nil || definition.Producer != summary.Producer || definition.ManagementPermission == "" {
 			return nil, platform.NewError(platform.CodeIntegrityError, false, "死信生产方或版本目录不一致")
 		}
 		items = append(items, managementItem{id: summary.DeliveryID, permission: definition.ManagementPermission, delivery: summary})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, mapQueueDBError(err)
 	}
 	return items, nil
 }
@@ -395,9 +385,6 @@ func inspectManualRetry(ctx context.Context, op OperationContext, input RetryJob
 	if err != nil || prior != nil {
 		return retryCandidate{}, prior, err
 	}
-	if err := work.requireEventWrite(false); err != nil {
-		return retryCandidate{}, nil, err
-	}
 	if job.state != "dead-letter" || job.cancelRequested {
 		return retryCandidate{}, nil, platform.NewError(platform.CodeConflict, false, "只能人工处理未取消的失败终局")
 	}
@@ -441,9 +428,6 @@ func applyManualRetry(ctx context.Context, op OperationContext, input RetryJobIn
 	}
 	if prior != nil {
 		return *prior, nil
-	}
-	if err := work.requireEventWrite(false); err != nil {
-		return RetryJobResult{}, err
 	}
 	if job.state != "dead-letter" || job.cancelRequested || job.revision != candidate.job.revision || job.fence != candidate.job.fence {
 		return RetryJobResult{}, platform.NewError(platform.CodeConflict, false, "owner确认期间任务状态已变化")

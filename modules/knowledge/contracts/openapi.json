@@ -2282,9 +2282,6 @@
       "MediaReadAssetResult": {
         "$ref": "../../media/contracts/types.json#/$defs/ReadAssetResult"
       },
-      "JobsAcknowledgeEventResult": {
-        "$ref": "../../jobs/contracts/types.json#/$defs/AcknowledgeEventResult"
-      },
       "ContentReadPublicTreeResult": {
         "$ref": "../../content/contracts/types.json#/$defs/ReadPublicTreeResult"
       },
@@ -2351,7 +2348,6 @@
     "PublicationChangedPayload",
     "PublicationWithdrawnPayload",
     "MediaReadAssetResult",
-    "JobsAcknowledgeEventResult",
     "ContentReadPublicTreeResult",
     "GatewayTokenizeTextResult",
     "SiteConfigReadSiteConfigResult",

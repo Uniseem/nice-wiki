@@ -445,7 +445,6 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "cancelJob",
       "checkLease",
       "claimJob",
@@ -454,9 +453,7 @@
       "createSchedule",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "localization": [
       "applyApprovedGlossaryProposal"

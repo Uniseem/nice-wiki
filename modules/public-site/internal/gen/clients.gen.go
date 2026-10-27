@@ -350,14 +350,6 @@ func NewJobsClient(baseURL, issuer string, key platform.SigningKey) *JobsClient 
 	return &JobsClient{newProducerClient("jobs", baseURL, issuer, key)}
 }
 
-// AcknowledgeEvent POST /v1/events/{eventId}:ack（jobs:acknowledgeEvent）。
-func (c *JobsClient) AcknowledgeEvent(ctx context.Context, eventId string, body any, idempotencyKey string) (json.RawMessage, error) {
-	if idempotencyKey == "" {
-		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
-	}
-	return c.do(ctx, http.MethodPost, "/v1/events/"+url.PathEscape(eventId)+":ack", body, idempotencyKey)
-}
-
 // CheckLease GET /v1/jobs/{jobId}/lease（jobs:checkLease）。
 // queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
 func (c *JobsClient) CheckLease(ctx context.Context, jobId string, queries ...url.Values) (json.RawMessage, error) {
@@ -420,26 +412,6 @@ func (c *JobsClient) StartJob(ctx context.Context, jobId string, body any, idemp
 		return nil, platform.NewError(platform.CodeValidation, false, "缺少幂等键")
 	}
 	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+":start", body, idempotencyKey)
-}
-
-// SubscribeEvents GET /v1/events:subscribe（jobs:subscribeEvents）。
-// queries传递登记的查询参数；必填、类型和范围由拥有服务入口严格校验。
-func (c *JobsClient) SubscribeEvents(ctx context.Context, lastEventId string, queries ...url.Values) (platform.EventStream, error) {
-	requestPath := "/v1/events:subscribe"
-	query := url.Values{}
-	for _, values := range queries {
-		for key, entries := range values {
-			query[key] = append(query[key], entries...)
-		}
-	}
-	if encoded := query.Encode(); encoded != "" {
-		requestPath += "?" + encoded
-	}
-	reader, err := c.sse(ctx, http.MethodGet, requestPath, lastEventId)
-	if err != nil {
-		return nil, err
-	}
-	return eventEnvelopeStream{r: reader}, nil
 }
 
 // LocalizationClient 调用localization服务（自动附服务断言）。

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/serviceauth"
 )
 
@@ -50,9 +49,6 @@ func CreateAccount(ctx context.Context, op OperationContext, input CreateAccount
 	}
 	encoded, err := HashPassword(ctx, op, HashPasswordInput{Password: input.InitialPassword})
 	if err != nil {
-		return CreateAccountResult{}, err
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
 		return CreateAccountResult{}, err
 	}
 	store.accountMu.Lock()
@@ -478,9 +474,6 @@ type accountManagementOperation struct {
 
 // beginAccountManagement 为管理写入建立同一权威事务；超管标志取账户row。
 func beginAccountManagement(ctx context.Context, op OperationContext, store *Store, digest, keyID, action string) (*accountManagementOperation, error) {
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-		return nil, err
-	}
 	store.accountMu.Lock()
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 )
@@ -52,7 +52,7 @@ func RecordFeedback(ctx context.Context, op OperationContext, input RecordFeedba
 		FeedbackVersion int    `json:"feedbackVersion"`
 		DataEpoch       string `json:"dataEpoch"`
 	}{input.TurnId, input.AnswerRevision, string(input.Value), version, op.DataEpoch})
-	if err := outbox.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.feedback." + platform.HashBytes(payload), EventType: "qa.feedback.changed", EventVersion: 1, Producer: "qa", SubjectID: input.TurnId, Revision: int64(version), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+	if err := queue.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: "qa.feedback." + platform.HashBytes(payload), EventType: "qa.feedback.changed", EventVersion: 1, Producer: "qa", SubjectID: input.TurnId, Revision: int64(version), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return result, err
 	}
 	result = RecordFeedbackResult{Version: version, Value: gen.RecordFeedbackResultValue(input.Value)}

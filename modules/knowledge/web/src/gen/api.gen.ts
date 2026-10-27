@@ -402,7 +402,6 @@ export interface components {
         PublicationChangedPayload: components["schemas"]["types_PublicationChangedPayload"];
         PublicationWithdrawnPayload: components["schemas"]["types_PublicationWithdrawnPayload"];
         MediaReadAssetResult: components["schemas"]["ReadAssetResult"];
-        JobsAcknowledgeEventResult: components["schemas"]["AcknowledgeEventResult"];
         ContentReadPublicTreeResult: components["schemas"]["ReadPublicTreeResult"];
         GatewayTokenizeTextResult: components["schemas"]["TokenizeTextResult"];
         SiteConfigReadSiteConfigResult: components["schemas"]["ReadSiteConfigResult"];
@@ -2022,11 +2021,6 @@ export interface components {
         ReadAssetResult: {
             /** @description Asset */
             asset: components["schemas"]["Asset"];
-        };
-        /** @description 消费者确认投递成功结果；失败不返回半成功结果 */
-        AcknowledgeEventResult: {
-            /** @description acknowledged 的明确真假结果，不可 null */
-            acknowledged: boolean;
         };
         /** @description 仅已发布公共导航节点，无drafthead */
         PublicTreeNode: {

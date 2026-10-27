@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 )
 
 // ReadData 固定本域已核代次与屏障下的一致快照，不向调用方泄露其他域资源。
@@ -87,7 +87,7 @@ func EmitReference(tx *sql.Tx, op OperationContext, event, subject string, revis
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "本地化事件编码失败")
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: event, EventVersion: 1, Producer: "localization", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: event, EventVersion: 1, Producer: "localization", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
 }
 func StorageError(err error) error {
 	if err == nil {

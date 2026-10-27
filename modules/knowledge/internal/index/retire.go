@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"time"
 )
 
@@ -132,7 +132,7 @@ func RetireDocumentIndex(ctx context.Context, op OperationContext, input RetireD
 	for _, row := range active {
 		payloadRaw, _ := json.Marshal(map[string]any{"documentId": input.DocumentID, "publishedRevisionId": row.Build.Document.PublishedRevisionId, "visibilityRevision": input.VisibilityRevision, "spaceId": row.Build.Space.SpaceId, "dataEpoch": op.DataEpoch})
 		eventID := "index.retired." + platform.HashBytes([]byte(input.EventID+":"+row.Build.BuildId))
-		if err = outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: eventID, EventType: "index.retired", EventVersion: 1, Producer: "knowledge", SubjectID: input.DocumentID, Revision: int64(input.VisibilityRevision), OccurredAt: now.Format(time.RFC3339Nano), DataEpoch: op.DataEpoch, Payload: payloadRaw}); err != nil {
+		if err = queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: eventID, EventType: "index.retired", EventVersion: 1, Producer: "knowledge", SubjectID: input.DocumentID, Revision: int64(input.VisibilityRevision), OccurredAt: now.Format(time.RFC3339Nano), DataEpoch: op.DataEpoch, Payload: payloadRaw}); err != nil {
 			return RetireDocumentIndexResult{}, err
 		}
 	}

@@ -52,6 +52,13 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 		}
 		subscribed[event] = true
 	}
+	if registrar, ok := client.(interface {
+		Register(context.Context, string, []string) error
+	}); ok {
+		if err := registrar.Register(ctx, config.ConsumerID, config.Events); err != nil {
+			return result, err
+		}
+	}
 	c := &consumerLoop{client: client, config: config, subscribed: subscribed, handlers: handlers, queues: make([]chan consumerDelivery, config.MaxInFlight), dones: make([]chan struct{}, config.MaxInFlight)}
 	c.start(ctx)
 	defer func() {

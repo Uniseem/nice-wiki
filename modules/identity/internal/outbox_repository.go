@@ -7,48 +7,10 @@ import (
 	"errors"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 )
 
 const identityAuthorizationChangedEvent = "identity.authorization.changed"
-
-// RelayOutboxInput 是持续转发循环的单批参数。
-type RelayOutboxInput struct {
-	BatchLimit int `json:"batchLimit"`
-}
-
-// RelayOutboxResult 只在转发循环因进程上下文取消而安全退出时返回。
-type RelayOutboxResult struct {
-	Relayed     int64 `json:"relayed"`
-	Pending     int64 `json:"pending"`
-	Quarantined int64 `json:"quarantined"`
-}
-
-type relayRuntimeContextKey struct{}
-
-type relayRuntime struct {
-	store      platform.OutboxStore
-	publisher  platform.EventPublisher
-	siteConfig platform.SiteConfigClient
-}
-
-// WithRelayRuntime 由本域启动装配注入真实存储、jobs客户端和运行权威。
-// 这里只保存进程内句柄，不允许网络输入提供这些依赖。
-func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, siteConfig platform.SiteConfigClient) context.Context {
-	var outboxStore platform.OutboxStore
-	if store != nil && store.db != nil {
-		outboxStore = outbox.NewStore(store.db)
-	}
-	return context.WithValue(ctx, relayRuntimeContextKey{}, relayRuntime{
-		store: outboxStore, publisher: publisher, siteConfig: siteConfig,
-	})
-}
-
-func relayRuntimeFromContext(ctx context.Context) (relayRuntime, bool) {
-	runtime, ok := ctx.Value(relayRuntimeContextKey{}).(relayRuntime)
-	return runtime, ok && runtime.store != nil && runtime.publisher != nil && runtime.siteConfig != nil
-}
 
 // IdentityChanged 是身份撤销事件载荷；不包含口令、IP或正文。
 type IdentityChanged struct {
@@ -85,7 +47,7 @@ func identityTransactionFromContext(ctx context.Context) (*sql.Tx, bool) {
 }
 
 // PublishIdentityEvent 在身份业务事务内登记唯一事件和幂等回执。
-// 提交后的投递由 RelayOutbox 经 jobs 完成，本函数不直接调用 jobs。
+// 事件直接写进共用的事件队列（libs/platform/queue），消费者从队列读取。
 func PublishIdentityEvent(ctx context.Context, op OperationContext, input PublishIdentityEventInput) (PublishIdentityEventResult, error) {
 	if err := checkIdentityRepositoryContext(ctx, op); err != nil {
 		return PublishIdentityEventResult{}, err
@@ -108,9 +70,6 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 		store, ok = identityStoreFromContext(ctx)
 		if !ok || store.db == nil {
 			return PublishIdentityEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份私有存储尚未装配")
-		}
-		if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-			return PublishIdentityEventResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份事件outbox不可用")
 		}
 		var err error
 		tx, err = store.db.BeginTx(ctx, nil)
@@ -167,7 +126,7 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 		DataEpoch:    op.DataEpoch,
 		Payload:      payload,
 	}
-	if err := outbox.EnqueueEvent(tx, envelope); err != nil {
+	if err := queue.EnqueueEvent(tx, envelope); err != nil {
 		return PublishIdentityEventResult{}, mapIdentityOutboxError(err)
 	}
 	if ownedTx && existingDigest == "" {
@@ -191,48 +150,6 @@ func PublishIdentityEvent(ctx context.Context, op OperationContext, input Publis
 		}
 	}
 	return PublishIdentityEventResult{Queued: true}, nil
-}
-
-// RelayOutbox 只装配本域持久outbox与jobs发布端口，
-// 单批领取、重试、隔离和旧代次处理由平台统一实现。
-func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInput) (RelayOutboxResult, error) {
-	if input.BatchLimit < 1 || input.BatchLimit > 100 {
-		return RelayOutboxResult{}, platform.NewError(platform.CodeValidation, false, "outbox批量上限不合法")
-	}
-	if err := checkIdentityRepositoryContext(ctx, op); err != nil {
-		return RelayOutboxResult{}, err
-	}
-	if op.CallerService != "identity" || op.Actor.Kind != "service" || !platform.ValidIdentifier(op.Actor.SiteID) {
-		return RelayOutboxResult{}, platform.NewError(platform.CodeForbidden, false, "outbox转发只允许身份服务后台")
-	}
-	runtime, ok := relayRuntimeFromContext(ctx)
-	if !ok {
-		return RelayOutboxResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "outbox转发运行依赖尚未装配")
-	}
-	relayCtx := platform.WithOperationContext(ctx, op)
-	view, err := runtime.siteConfig.ReadRuntimeState(relayCtx)
-	if err != nil {
-		return RelayOutboxResult{}, err
-	}
-	if view.DataEpoch != op.DataEpoch {
-		return RelayOutboxResult{}, platform.NewError(platform.CodeVersionMismatch, false, "outbox转发代次与运行权威不一致")
-	}
-
-	result, err := outbox.RunRelayBatch(relayCtx, runtime.store, runtime.publisher, platform.RelayConfig{
-		BatchLimit:  input.BatchLimit,
-		PollMillis:  1000,
-		AdmitBatch:  lifecycle.SimpleAdmission(runtime.siteConfig.ReadRuntimeState, op.DataEpoch),
-		Runtime:     runtime.siteConfig.ReadRuntimeState,
-		WriteWindow: lifecycle.SimpleWriteWindow(runtime.siteConfig.ReadRuntimeState),
-	})
-	if err != nil {
-		return RelayOutboxResult{}, err
-	}
-	return RelayOutboxResult{
-		Relayed:     result.Relayed,
-		Pending:     result.Pending,
-		Quarantined: result.Quarantined,
-	}, nil
 }
 
 func validateIdentityChanged(input PublishIdentityEventInput, op OperationContext) error {

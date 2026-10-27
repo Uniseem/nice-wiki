@@ -9,6 +9,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/modules/knowledge/internal/gen"
 )
@@ -16,12 +17,14 @@ import (
 type OperationContext = platform.OperationContext
 
 type Runtime struct {
-	DB                          *sql.DB
-	DataRoot                    string
-	Gateway                     *gen.ModelGatewayClient
-	InferenceClient             platform.GatewayClient
-	Memory                      *gen.MemoryClient
-	Jobs                        *gen.JobsClient
+	DB              *sql.DB
+	DataRoot        string
+	Gateway         *gen.ModelGatewayClient
+	InferenceClient platform.GatewayClient
+	Memory          *gen.MemoryClient
+	Jobs            *gen.JobsClient
+	// Events 是共用的事件队列，索引服务从它读发布事件。
+	Events                      *queue.Queue
 	Media                       *gen.MediaClient
 	BaseLanguage                string
 	Validators                  map[string]func(json.RawMessage) error
@@ -41,7 +44,7 @@ func NewIndexRuntime(runtime Runtime) (Runtime, error) {
 	}
 	runtime.ValidatePublicationResult = validator
 	runtime.Validators = map[string]func(json.RawMessage) error{}
-	for _, name := range []string{"MemoryResolveContextResult", "GatewayReadModelsResult", "GatewayReadProfilesResult", "GatewayReadTaskAssignmentsResult", "GatewayTokenizeTextResult", "GatewayQuoteCostResult", "GatewayResolveTaskRouteResult", "JobsReadJobResult", "JobsCreateJobResult", "JobsCancelJobResult", "JobsAcknowledgeEventResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "MediaReadAssetResult", "PublicationChangedPayload", "PublicationWithdrawnPayload"} {
+	for _, name := range []string{"MemoryResolveContextResult", "GatewayReadModelsResult", "GatewayReadProfilesResult", "GatewayReadTaskAssignmentsResult", "GatewayTokenizeTextResult", "GatewayQuoteCostResult", "GatewayResolveTaskRouteResult", "JobsReadJobResult", "JobsCreateJobResult", "JobsCancelJobResult", "ContentReadPublishedRevisionResult", "ContentReadPublicTreeResult", "MediaReadAssetResult", "PublicationChangedPayload", "PublicationWithdrawnPayload"} {
 		validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), name)
 		if err != nil {
 			return Runtime{}, err

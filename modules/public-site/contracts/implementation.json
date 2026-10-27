@@ -493,15 +493,13 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "checkLease",
       "claimJob",
       "completeJob",
       "createJob",
       "failJob",
       "heartbeatJob",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "localization": [
       "listLanguages",

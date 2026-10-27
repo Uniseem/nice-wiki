@@ -17,7 +17,6 @@ import (
 	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	gatewaymigrations "nice-wiki/modules/model-gateway/migrations"
 )
 
@@ -326,9 +325,6 @@ func (s *Store) Close() error {
 // runMigrations 按编号执行 migrations/ 内嵌的只追加迁移（首个迁移自建
 // schema_migrations），并初始化运行水位单例；跨服务事件表由平台建立。
 func (s *Store) runMigrations() error {
-	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
-		return err
-	}
 	all, err := gatewaymigrations.All()
 	if err != nil {
 		return (platform.NewError(platform.CodeIntegrityError, false, "模型网关迁移集不合法"))
@@ -385,9 +381,6 @@ func (s *Store) runMigrations() error {
 		return platform.NewError(platform.CodeInternal, false, "初始化模型网关运行水位失败")
 	}
 	// 跨服务事件只写平台 nw_outbox，由平台转发循环经 jobs 投递（ADR0005）。
-	if err := outbox.EnsureSchema(context.Background(), s.db); err != nil {
-		return err
-	}
 	s.catalogVersion = int64(len(all))
 	return nil
 }

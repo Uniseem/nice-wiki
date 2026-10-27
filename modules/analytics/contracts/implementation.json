@@ -528,7 +528,6 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "checkLease",
       "claimJob",
       "completeJob",
@@ -536,9 +535,7 @@
       "createSchedule",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "model-gateway": [
       "readUsageStatisticsPage"

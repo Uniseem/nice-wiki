@@ -17,7 +17,6 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/localization/internal/gen"
 	localizationmigrations "nice-wiki/modules/localization/migrations"
 )
@@ -54,7 +53,6 @@ type LoadRuntimeResult struct {
 // control区不随业务恢复换目录替换。
 type Store struct {
 	gateway              platform.GatewayClient
-	publisher            platform.EventPublisher
 	content              *gen.ContentClient
 	sourceValidators     map[string]func(json.RawMessage) error
 	planGateway          *gen.ModelGatewayClient
@@ -109,10 +107,6 @@ func OpenStore(dataRoot string) (*Store, error) {
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域业务库不可用")
 	}
 	if err := inbox.EnsureSchema(context.Background(), db); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if err := outbox.EnsureSchema(context.Background(), db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}

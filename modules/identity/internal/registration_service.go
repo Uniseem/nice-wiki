@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/modules/identity/internal/gen"
 )
 
@@ -160,9 +159,6 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	}
 	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.Password})
 	if err != nil {
-		return RegisterFirstSuperadminResult{}, err
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
 	store.accountMu.Lock()

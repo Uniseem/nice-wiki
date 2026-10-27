@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 )
 
 type RevokeAllSessionsInput struct {
@@ -31,9 +30,6 @@ func RevokeAllSessions(ctx context.Context, op OperationContext, input RevokeAll
 		store, ok := identityStoreFromContext(ctx)
 		if !ok {
 			return RevokeAllSessionsResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话私有存储尚未装配")
-		}
-		if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-			return RevokeAllSessionsResult{}, err
 		}
 		var err error
 		tx, err = store.db.BeginTx(ctx, nil)
@@ -204,9 +200,6 @@ func RevokeSession(ctx context.Context, op OperationContext, input RevokeSession
 	store, ok := identityStoreFromContext(ctx)
 	if !ok {
 		return RevokeSessionResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "会话私有存储尚未装配")
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
-		return RevokeSessionResult{}, err
 	}
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {

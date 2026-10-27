@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"nice-wiki/libs/platform"
@@ -161,6 +163,9 @@ func (s *ActiveStore) ReadInitializationRecord(ctx context.Context, q ReadTransa
 	var initialized, configRevision int64
 	var updatedAt string
 	if err := q.QueryRowContext(ctx, `SELECT initialized,config_revision,updated_at FROM site_config_state WHERE singleton=1`).Scan(&initialized, &configRevision, &updatedAt); err != nil {
+		if os.Getenv("NW_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "初始化水位原始错误：%v\n", err)
+		}
 		return gen.InitializationState{}, false, platform.NewError(platform.CodeDependencyUnavailable, true, "读取初始化水位失败")
 	}
 	var operationID, stateJSON, siteID, decision string

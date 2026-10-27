@@ -2771,9 +2771,6 @@
       },
       "JobsFailJobResult": {
         "$ref": "../../jobs/contracts/types.json#/$defs/FailJobResult"
-      },
-      "JobsAcknowledgeEventResult": {
-        "$ref": "../../jobs/contracts/types.json#/$defs/AcknowledgeEventResult"
       }
     }
   },
@@ -2796,7 +2793,6 @@
     "JobsHeartbeatJobResult",
     "JobsCheckLeaseResult",
     "JobsCompleteJobResult",
-    "JobsFailJobResult",
-    "JobsAcknowledgeEventResult"
+    "JobsFailJobResult"
   ]
 }

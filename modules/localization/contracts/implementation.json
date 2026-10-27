@@ -572,7 +572,6 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "cancelJob",
       "checkLease",
       "claimJob",
@@ -580,9 +579,7 @@
       "createJob",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "memory": [
       "resolveContext"

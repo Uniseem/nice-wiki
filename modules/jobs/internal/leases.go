@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/jobs/internal/gen"
 )
 
@@ -427,7 +427,7 @@ func (work *leaseOperation) enqueueState(jobID, owner, epoch, state string, revi
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "任务状态事件编码失败")
 	}
-	return outbox.EnqueueEvent(work.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: jobEventType,
+	return queue.EnqueueEvent(work.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: jobEventType,
 		EventVersion: jobEventVersion, Producer: "jobs", SubjectID: jobID, Revision: revision, OccurredAt: work.now.Format(time.RFC3339Nano), DataEpoch: epoch, Payload: payload})
 }
 

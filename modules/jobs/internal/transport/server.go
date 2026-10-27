@@ -21,16 +21,14 @@ const (
 	moduleName    = "jobs"
 	moduleVersion = "1"
 
-	requiredBackgroundTaskCount = 6
+	requiredBackgroundTaskCount = 4
 )
 
 var requiredBackgroundTasks = map[string]bool{
-	"jobs.RequeueDue":               true,
-	"jobs.ReapExpiredLeases":        true,
-	"jobs.TickSchedules":            true,
-	"jobs.RequeueExpiredDeliveries": true,
-	"jobs.PurgeExpiredHistory":      true,
-	"jobs.RelayOutbox":              true,
+	"jobs.RequeueDue":          true,
+	"jobs.ReapExpiredLeases":   true,
+	"jobs.TickSchedules":       true,
+	"jobs.PurgeExpiredHistory": true,
 }
 
 // ReadinessEvidence 由完整启动装配从 site-config 与真实本域状态联合读取；

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"nice-wiki/modules/model-gateway/internal/ownership"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
@@ -169,7 +169,7 @@ func PutProfile(ctx context.Context, op OperationContext, input PutProfileInput)
 	if err != nil {
 		return PutProfileResult{}, platform.NewError(platform.CodeInternal, false, "档位变更事件编码失败")
 	}
-	if err := outbox.EnqueueEvent(snapshot.tx, platform.EventEnvelope{
+	if err := queue.EnqueueEvent(snapshot.tx, platform.EventEnvelope{
 		EventID: platform.NewIdentifier(), EventType: "profile.changed", EventVersion: 1,
 		Producer: "model-gateway", SubjectID: input.Profile.ProfileId, Revision: platform.Revision(input.Profile.Version),
 		OccurredAt: now, DataEpoch: op.DataEpoch, Payload: payload,

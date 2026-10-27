@@ -391,9 +391,6 @@
     "identity": [
       "checkAuthorization"
     ],
-    "jobs": [
-      "publishEvent"
-    ],
     "media": [
       "acquireResourceReferences",
       "confirmResourceReferences",

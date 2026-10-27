@@ -14,6 +14,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/inbox"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/worker"
 	"nice-wiki/modules/media/internal/gen"
 )
@@ -161,7 +162,7 @@ func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, 
 }
 
 // NewMediaBackgroundTasks仅构造闭包，完整应用门槛失败时不会启动任何业务后台。
-func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platform.BackgroundTask, error) {
+func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient, events *queue.Queue) ([]platform.BackgroundTask, error) {
 	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
 		return nil, platform.NewError(platform.CodeForbidden, false, "资源后台装配仅接受本域可信启动")
 	}
@@ -169,17 +170,14 @@ func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platf
 	if err != nil {
 		return nil, err
 	}
-	if jobs == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
+	if jobs == nil || events == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源后台真实客户端或窗口未装配")
 	}
 	workerJobs, err := NewCleanupWorkerClient(jobs)
 	if err != nil {
 		return nil, err
 	}
-	eventClient, err := newMediaEventConsumer(jobs)
-	if err != nil {
-		return nil, err
-	}
+	eventClient := events.Consumer()
 	eventAdmission := newMediaEventAdmission(s.window)
 	return []platform.BackgroundTask{
 		{Name: "media.ConsumeEvents", Run: func(ctx context.Context) error {
@@ -197,14 +195,6 @@ func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient) ([]platf
 		{Name: "media.RunWorker", Run: func(ctx context.Context) error {
 			_, err := RunWorker(ctx, op, WorkerLoopInput{MaxConcurrency: 2, Client: workerJobs})
 			return err
-		}},
-		{Name: "media.RelayOutbox", Run: func(ctx context.Context) error {
-			work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
-			return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 1000, AdmitBatch: lifecycle.SimpleAdmission(s.window.Runtime, ""), Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow, Recover: func(batchCtx context.Context) error {
-				batchOp, _ := platform.OperationContextFrom(batchCtx)
-				_, err := RelayOutbox(batchCtx, batchOp, RelayOutboxInput{BatchLimit: 100})
-				return err
-			}})
 		}},
 	}, nil
 }
@@ -316,17 +306,6 @@ func decodeReferenceChangedEvent(envelope platform.EventEnvelope) (ApplyReferenc
 		ReferenceDigest:   payload.ReferenceDigest,
 		EventId:           envelope.EventID,
 	}, nil
-}
-
-func newMediaEventConsumer(client *gen.JobsClient) (platform.EventConsumerClient, error) {
-	if client == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "引用事件jobs客户端未装配")
-	}
-	validateAck, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "JobsAcknowledgeEventResult")
-	if err != nil {
-		return nil, err
-	}
-	return inbox.NewEventConsumer(client, validateAck)
 }
 
 func newMediaEventAdmission(window platform.WriteWindowConfig) platform.WorkAdmission {

@@ -14,7 +14,6 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/modelclient"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/localization/internal/gen"
@@ -101,8 +100,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, gatewayErr
 	}
 	jobsClient := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
-	publisher := outbox.NewEventPublisher(jobsClient)
-	if err = localizationruntime.ConfigureExecutionAdapters(gateway, publisher); err != nil {
+	if err = localizationruntime.ConfigureExecutionAdapters(gateway); err != nil {
 		return nil, err
 	}
 	planValidators := map[string]func(json.RawMessage) error{}

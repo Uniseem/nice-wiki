@@ -11,7 +11,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/content/internal/gen"
 )
@@ -501,7 +501,7 @@ func executeTreeMutation(ctx context.Context, op OperationContext, action string
 		ChangedDocumentIDs []Identifier `json:"changedDocumentIds"`
 		DataEpoch          Identifier   `json:"dataEpoch"`
 	}{op.Actor.SiteID, version + 1, ids, op.DataEpoch})
-	if err = outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: version + 1, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+	if err = queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: version + 1, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return nil, err
 	}
 	if err = tx.Commit(); err != nil {

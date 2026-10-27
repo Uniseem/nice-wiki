@@ -17,8 +17,8 @@ import (
 	"unicode/utf8"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 	"nice-wiki/libs/platform/problem"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	gatewayruntime "nice-wiki/modules/model-gateway/internal/runtime"
 	"nice-wiki/modules/model-gateway/internal/security"
@@ -263,7 +263,7 @@ func PutProvider(ctx context.Context, op OperationContext, input PutProviderInpu
 	if err != nil {
 		return rollback(platform.NewError(platform.CodeInternal, false, "供应方事件编码失败"))
 	}
-	if err := outbox.EnqueueEvent(tx, platform.EventEnvelope{
+	if err := queue.EnqueueEvent(tx, platform.EventEnvelope{
 		EventID:      platform.NewIdentifier(),
 		EventType:    providerEventType,
 		EventVersion: providerEventVersion,

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/model-gateway/internal/gen"
 	"os"
 	"slices"
@@ -33,7 +33,6 @@ type ExecutionOptions struct {
 	LanguageApprovals LanguageApprovalClient
 	WriteWindow       platform.WriteWindowConfig
 	Anchors           platform.TrustAnchors
-	Jobs              *gen.JobsClient
 	Tasks             InvocationTaskGroup
 	Media             *gen.MediaClient
 	MediaBytes        MediaBytesClient
@@ -381,7 +380,7 @@ func EnqueueExecutionEvent(tx *ExecutionTransaction, op OperationContext, eventT
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "费用事件不能编码")
 	}
-	return outbox.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: eventType + "." + platform.HashBytes(raw), EventType: eventType, EventVersion: 1, Producer: "model-gateway", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: eventType + "." + platform.HashBytes(raw), EventType: eventType, EventVersion: 1, Producer: "model-gateway", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
 }
 
 func ReleaseResolvedReferences(tx *ExecutionTransaction, record InvocationRecord) error {

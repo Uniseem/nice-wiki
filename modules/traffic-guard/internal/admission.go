@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 )
 
 type Identifier = platform.Identifier
@@ -533,5 +533,5 @@ func recordAdmissionDenial(t *guardTransaction, request, action, reason string, 
 	if err != nil {
 		return loginDBError()
 	}
-	return outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: eventID, EventType: "traffic-guard.admission-denied.v1", EventVersion: 1, Producer: "traffic-guard", SubjectID: eventID, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: payload})
+	return queue.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: eventID, EventType: "traffic-guard.admission-denied.v1", EventVersion: 1, Producer: "traffic-guard", SubjectID: eventID, Revision: revision, OccurredAt: t.now.Format(time.RFC3339Nano), DataEpoch: t.op.DataEpoch, Payload: payload})
 }

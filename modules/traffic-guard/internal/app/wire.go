@@ -93,7 +93,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		WriteWindow:           platform.WriteWindowConfig{Runtime: runtimeReader, WriteWindow: lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState)},
 		SigningKey:            key,
 		Anchors:               anchors,
-		Jobs:                  gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key),
 		ValidateIdentityEvent: validateIdentityEvent,
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{

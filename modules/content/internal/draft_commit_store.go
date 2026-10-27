@@ -9,7 +9,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -428,7 +428,7 @@ func (t *draftCommitTransaction) Commit(ctx context.Context, request DraftCommit
 		if err != nil {
 			return result, platform.NewError(platform.CodeIntegrityError, false, "草稿资源事件载荷无法编码")
 		}
-		if err := outbox.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: plan.DocumentID, Revision: int64(plan.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+		if err := queue.EnqueueEvent(t.tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.resources.changed", EventVersion: 2, Producer: "content", SubjectID: plan.DocumentID, Revision: int64(plan.SourceVersion), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 			return result, err
 		}
 	}

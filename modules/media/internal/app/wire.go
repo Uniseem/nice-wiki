@@ -14,6 +14,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
 	mediaDomain "nice-wiki/modules/media/internal"
 	"nice-wiki/modules/media/internal/gen"
@@ -113,7 +114,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	background, err := mediaDomain.NewMediaBackgroundTasks(startup, jobs)
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	background, err := mediaDomain.NewMediaBackgroundTasks(startup, jobs, events)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,6 @@ import (
 
 	"golang.org/x/crypto/argon2"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/outbox"
 )
 
 // Password 与 types.json 的敏感口令标量对应；本域不记录其原值。
@@ -369,9 +368,6 @@ func ChangePassword(ctx context.Context, op OperationContext, input ChangePasswo
 	}
 	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.NewPassword})
 	if err != nil {
-		return ChangePasswordResult{}, err
-	}
-	if err := outbox.EnsureSchema(ctx, store.db); err != nil {
 		return ChangePasswordResult{}, err
 	}
 	store.accountMu.Lock()

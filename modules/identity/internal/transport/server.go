@@ -296,14 +296,14 @@ func (a *Application) BackgroundTasks() []platform.BackgroundTask {
 }
 
 // InstallBackgroundTasks 只由完整启动装配调用；任一依赖缺失均拒绝装配。
-func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, publisher platform.EventPublisher) error {
-	if siteConfig == nil || publisher == nil || !platform.ValidIdentifier(a.openedEpoch) {
+func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient) error {
+	if siteConfig == nil || !platform.ValidIdentifier(a.openedEpoch) {
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "身份后台真实运行依赖未装配")
 	}
 	if len(a.backgroundTasks) != 0 {
 		return platform.NewError(platform.CodeConflict, false, "身份后台入口重复装配")
 	}
-	tasks, err := identity.NewBackgroundTasks(a.store, siteConfig, publisher, a.openedEpoch)
+	tasks, err := identity.NewBackgroundTasks(a.store, siteConfig, a.openedEpoch)
 	if err != nil {
 		return err
 	}

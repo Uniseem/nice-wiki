@@ -27,7 +27,7 @@ var tenantModules = map[string]bool{
 
 // globalTables 是租户组件里不做隔离的表（迁移记录、运行元数据、事件收发件箱、已废弃的快照机制等）。
 var globalTables = map[string]bool{
-	"schema_migrations": true, "nw_pragma": true, "nw_outbox": true, "nw_outbox_control": true, "nw_inbox": true,
+	"schema_migrations": true, "nw_pragma": true, "nw_inbox": true,
 	"runtime_meta": true, "runtime_state": true, "local_barrier": true, "barriers": true, "reference_scan_state": true,
 	"domain_versions": true, "control_state": true, "restore_receipts": true, "control_schema": true,
 }

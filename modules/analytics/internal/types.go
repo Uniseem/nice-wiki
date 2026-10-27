@@ -351,15 +351,6 @@ type PurgeExportsResult struct {
 	Deleted int64 `json:"deleted"`
 }
 
-type PublishAggregateEventsInput struct {
-	BatchSize int64               `json:"batchSize"`
-	DataEpoch platform.Identifier `json:"dataEpoch"`
-}
-
-type PublishAggregateEventsResult struct {
-	Sent int64 `json:"sent"`
-}
-
 type ClassifyCrawlerInput struct {
 	UserAgent string `json:"userAgent"`
 }

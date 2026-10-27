@@ -355,7 +355,6 @@ export interface components {
         AnalyticsJobsCheckLeaseResult: components["schemas"]["CheckLeaseResult"];
         AnalyticsJobsCompleteJobResult: components["schemas"]["CompleteJobResult"];
         AnalyticsJobsFailJobResult: components["schemas"]["FailJobResult"];
-        AnalyticsJobsAcknowledgeEventResult: components["schemas"]["AcknowledgeEventResult"];
         AnalyticsQaCompletedPayload: components["schemas"]["EventQaTurnCompletedPayload"];
         AnalyticsQaFailedPayload: components["schemas"]["EventQaTurnFailedPayload"];
         AnalyticsSettledPayload: components["schemas"]["EventInvocationSettledPayload"];
@@ -1140,11 +1139,6 @@ export interface components {
             state: string;
             /** @description 仅retry-wait返回的下次领取时间；终局省略 */
             retryAt?: components["schemas"]["Timestamp"];
-        };
-        /** @description 消费者确认投递成功结果；失败不返回半成功结果 */
-        AcknowledgeEventResult: {
-            /** @description acknowledged 的明确真假结果，不可 null */
-            acknowledged: boolean;
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         EventQaTurnCompletedPayload: {

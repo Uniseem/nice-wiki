@@ -16,7 +16,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/memory/internal/gen"
 )
 
@@ -348,7 +348,7 @@ func Emit(tx *sql.Tx, op platform.OperationContext, eventType, subject string, r
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "记忆事件编码失败")
 	}
-	return outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: eventType, EventVersion: 1, Producer: "memory", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: eventType, EventVersion: 1, Producer: "memory", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
 }
 
 // ReadAllEntries 在事务内读取 current 对象，正文仍从权威文件核验。
@@ -399,23 +399,4 @@ func SaveContextManifest(ctx context.Context, op platform.OperationContext, id, 
 	}
 	_, err = s.db.ExecContext(ctx, `INSERT INTO context_snapshots(site_id,snapshot_id,task_id,language,mapping_revision,manifest_hash,body_hash,byte_size,created_at,manifest_json) SELECT ?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM runtime_state WHERE id=1 AND data_epoch=?) ON CONFLICT(site_id,snapshot_id) DO NOTHING`, op.Actor.SiteID, id, task, language, revision, versionHash, bodyHash, size, platform.Now(), raw, op.DataEpoch)
 	return DBError(err)
-}
-
-// ConfigurePublisher 注入已绑定服务身份的 jobs 发布适配器。
-func ConfigurePublisher(publisher platform.EventPublisher) error {
-	s := CurrentStore()
-	if s == nil {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "记忆存储未打开")
-	}
-	s.publisher = publisher
-	return nil
-}
-
-// RelayBatch 使用平台当前运行态/安全写窗口，只装配本域参数。
-func RelayBatch(ctx context.Context, limit int) (platform.RelayBatchResult, error) {
-	s := CurrentStore()
-	if s == nil || s.publisher == nil {
-		return platform.RelayBatchResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "记忆事件发布器未装配")
-	}
-	return outbox.RunRelayBatch(ctx, outbox.NewStore(s.db), s.publisher, platform.RelayConfig{BatchLimit: limit, PollMillis: 1000, Runtime: s.window.Runtime, WriteWindow: s.window.WriteWindow})
 }

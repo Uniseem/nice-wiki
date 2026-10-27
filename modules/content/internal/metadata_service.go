@@ -9,7 +9,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
-	"nice-wiki/libs/platform/outbox"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/modules/content/internal/gen"
 )
 
@@ -158,7 +158,7 @@ func UpdateDocumentMetadata(ctx context.Context, op OperationContext, input Upda
 		ChangedDocumentIDs []Identifier `json:"changedDocumentIds"`
 		DataEpoch          Identifier   `json:"dataEpoch"`
 	}{op.Actor.SiteID, treeRevision + 1, []Identifier{input.DocumentId}, op.DataEpoch})
-	if err = outbox.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: treeRevision + 1, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
+	if err = queue.EnqueueEvent(tx, platform.EventEnvelope{EventID: platform.NewIdentifier(), EventType: "content.tree.changed", EventVersion: 1, Producer: "content", SubjectID: op.Actor.SiteID, Revision: treeRevision + 1, OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: payload}); err != nil {
 		return UpdateDocumentMetadataResult{}, err
 	}
 	if err = tx.Commit(); err != nil {

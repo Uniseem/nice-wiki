@@ -689,7 +689,6 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "acknowledgeEvent",
       "cancelJob",
       "checkLease",
       "claimJob",
@@ -697,10 +696,8 @@
       "createJob",
       "failJob",
       "heartbeatJob",
-      "publishEvent",
       "readJob",
-      "startJob",
-      "subscribeEvents"
+      "startJob"
     ],
     "media": [
       "readAsset",
