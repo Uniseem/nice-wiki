@@ -2,7 +2,17 @@
   "types": {
     "ImportAssetResult": {
       "description": "导入完成的资源（含不可变版本引用）",
-      "props": {"asset": "any"}
+      "props": {
+        "asset": "any"
+      }
+    },
+    "StorageUsage": {
+      "description": "存储用量：本站点已用、所有者名下站点合计已用（含上传中）、所有者的上限",
+      "props": {
+        "siteBytes": "int:0",
+        "ownerBytes": "int:0",
+        "ownerLimitBytes": "int:0"
+      }
     }
   },
   "ops": [
@@ -12,9 +22,23 @@
       "path": "/v1/asset-imports",
       "perm": "service",
       "summary": "内容域导入站点数据时交来的文件，一次完成声明、写入、校验与登记",
-      "headers": {"X-Original-Name": "string:255", "X-Created-By": "id"},
-      "raw_in": {"type": "application/octet-stream", "max": 134217728},
+      "headers": {
+        "X-Original-Name": "string:255",
+        "X-Created-By": "id"
+      },
+      "raw_in": {
+        "type": "application/octet-stream",
+        "max": 134217728
+      },
       "out": "ImportAssetResult"
+    },
+    {
+      "id": "readStorageUsage",
+      "method": "get",
+      "path": "/v1/storage-usage",
+      "perm": "media.upload",
+      "summary": "读取存储用量",
+      "out": "StorageUsage"
     }
   ]
 }

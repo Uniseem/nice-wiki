@@ -104,6 +104,9 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 		return identity.InviteRef{InviteID: r.PathValue("inviteId")}
 	})
 	handlers["listUsers"] = v2Operation(a, identity.ListUsers, queryPage)
+	handlers["resetUserPassword"] = v2Operation(a, identity.ResetUserPassword, func(b gen.ResetUserPasswordInput, r *http.Request) identity.ResetUserPasswordCmd {
+		return identity.ResetUserPasswordCmd{UserID: r.PathValue("userId"), Body: b}
+	})
 	handlers["setUserStatus"] = v2Operation(a, identity.SetUserStatus, func(b gen.SetUserStatusInput, r *http.Request) identity.SetUserStatusCmd {
 		return identity.SetUserStatusCmd{UserID: r.PathValue("userId"), Body: b}
 	})

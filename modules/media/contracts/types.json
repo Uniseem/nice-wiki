@@ -5986,6 +5986,31 @@
         "asset"
       ],
       "x-v2": true
+    },
+    "StorageUsage": {
+      "type": "object",
+      "description": "存储用量：本站点已用、所有者名下站点合计已用（含上传中）、所有者的上限",
+      "additionalProperties": false,
+      "properties": {
+        "siteBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ownerBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ownerLimitBytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "siteBytes",
+        "ownerBytes",
+        "ownerLimitBytes"
+      ],
+      "x-v2": true
     }
   }
 }

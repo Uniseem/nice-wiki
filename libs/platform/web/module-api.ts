@@ -13,6 +13,8 @@ export interface ModuleAPIRequest {
   backupDownloadToken?: string;
   // 下载备份时的加密口令，只映射到 X-Backup-Passphrase 头。
   backupPassphrase?: string;
+  // 指定这次请求落在哪个站点（X-Nw-Site），不填用后台当前选中的站点；个人级接口忽略。
+  site?: string;
 }
 
 export interface ModuleAPIClient {

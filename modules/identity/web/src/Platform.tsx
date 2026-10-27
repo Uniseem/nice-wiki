@@ -1,6 +1,6 @@
 import { Copy, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Table, Tabs } from '@heroui/react';
-import { api, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtMoney, FormGrid, LoadingBlock, Mono, Notice, notify, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { api, askText, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtMoney, FormGrid, LoadingBlock, Mono, Notice, notify, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useEffect, useState } from 'react';
 
 type Provider = { provider: 'github' | 'google' | 'linuxdo' | 'gdrive' | 'onedrive' | 'dropbox'; enabled: boolean; clientId: string; clientSecretSet: boolean };
@@ -230,9 +230,14 @@ function UsersTab() {
   const { busy, run } = useAction();
   const toggle = async (user: User) => {
     const status = user.status === 'active' ? 'disabled' : 'active';
-    if (status === 'disabled' && !(await confirmAction({ title: t('停用用户“{0}”？', user.email || user.displayName), body: t('对方所有设备立即退出，无法再登录。'), confirmLabel: t('停用'), tone: 'warning' }))) return;
+    if (status === 'disabled' && !(await confirmAction({ title: t('停用用户“{0}”？', user.email || user.displayName), body: t('对方所有设备立即退出，无法再登录；名下站点一起下架，恢复用户时放回。'), confirmLabel: t('停用'), tone: 'warning' }))) return;
     await run(() => api(`/v1/users/${user.userId}/status`, { method: 'PUT', body: { status } }), status === 'active' ? t('已恢复') : t('已停用'));
     users.reload();
+  };
+  const resetPassword = async (user: User) => {
+    const password = await askText({ title: t('重置“{0}”的口令', user.email || user.displayName), label: t('临时口令'), type: 'password', description: t('对方所有设备立即退出，用这个口令登录后必须先改口令。至少 8 位。') });
+    if (!password) return;
+    await run(() => api(`/v1/users/${user.userId}/password`, { method: 'PUT', body: { password } }), t('口令已重置'));
   };
   if (users.error) return <ErrorBlock error={users.error} onRetry={users.reload} />;
   if (!users.data) return <LoadingBlock lines={4} />;
@@ -240,7 +245,10 @@ function UsersTab() {
     <SimpleTable label={t('用户')} empty={t('还没有用户')} columns={[t('用户'), t('站点数'), t('注册时间'), t('状态'), '']}
       rows={users.data.map((user) => [<span key="u"><span className="block font-medium text-foreground">{user.displayName}</span><span className="block text-xs text-muted">{user.email}</span></span>, String(user.siteCount), fmtDateTime(user.createdAt),
         <Chip key="s" color={user.status === 'active' ? 'success' : 'default'} size="sm" variant="soft">{user.status === 'active' ? t('正常') : t('已停用')}</Chip>,
-        user.status === 'deleted' ? null : <Button key="a" isDisabled={busy} size="sm" variant="ghost" onPress={() => void toggle(user)}>{user.status === 'active' ? t('停用') : t('恢复')}</Button>])} />
+        user.status === 'deleted' ? null : <span key="a" className="inline-flex gap-1">
+          <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void resetPassword(user)}>{t('重置口令')}</Button>
+          <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void toggle(user)}>{user.status === 'active' ? t('停用') : t('恢复')}</Button>
+        </span>])} />
   );
 }
 

@@ -2364,7 +2364,7 @@
     },
     "UserLimits": {
       "type": "object",
-      "description": "当前用户的站点与存储额度",
+      "description": "当前用户的站点与存储额度（存储用量向 media 读）",
       "additionalProperties": false,
       "properties": {
         "maxSites": {
@@ -2378,17 +2378,12 @@
         "storageBytes": {
           "type": "integer",
           "minimum": 0
-        },
-        "storageUsed": {
-          "type": "integer",
-          "minimum": 0
         }
       },
       "required": [
         "maxSites",
         "siteCount",
-        "storageBytes",
-        "storageUsed"
+        "storageBytes"
       ],
       "x-v2": true
     },
@@ -3235,6 +3230,22 @@
       },
       "required": [
         "users"
+      ],
+      "x-v2": true
+    },
+    "ResetUserPasswordInput": {
+      "type": "object",
+      "description": "站主给用户设一个临时口令（没有邮件找回，忘了口令找站主）；用户下次登录必须先改",
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 8
+        }
+      },
+      "required": [
+        "password"
       ],
       "x-v2": true
     },

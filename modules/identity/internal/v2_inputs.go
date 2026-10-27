@@ -30,6 +30,11 @@ type AddSiteDomainCmd struct {
 	SiteID string
 	Body   gen.AddSiteDomainInput
 }
+type ResetUserPasswordCmd struct {
+	UserID string
+	Body   gen.ResetUserPasswordInput
+}
+
 type SetUserStatusCmd struct {
 	UserID string
 	Body   gen.SetUserStatusInput

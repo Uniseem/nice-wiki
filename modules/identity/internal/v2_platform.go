@@ -259,6 +259,46 @@ func SetUserStatus(ctx context.Context, op OperationContext, input SetUserStatus
 	return gen.UserResult{User: u}, err
 }
 
+// ResetUserPassword 站主给用户设临时口令：第三方登录的用户也能因此用邮箱和口令登录；用户的会话全部失效，下次登录先改口令。
+func ResetUserPassword(ctx context.Context, op OperationContext, input ResetUserPasswordCmd) (gen.UserResult, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.UserResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	hashed, err := HashPassword(ctx, op, HashPasswordInput{Password: input.Body.Password})
+	if err != nil {
+		return gen.UserResult{}, err
+	}
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return gen.UserResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	var accountID string
+	var superadmin bool
+	if err := tx.QueryRowContext(ctx, `SELECT u.account_id,a.is_superadmin FROM users u JOIN accounts a ON a.account_id=u.account_id WHERE u.user_id=?`, input.UserID).Scan(&accountID, &superadmin); err != nil {
+		return gen.UserResult{}, platform.NewError(platform.CodeNotFound, false, "用户不存在")
+	}
+	if superadmin {
+		return gen.UserResult{}, platform.NewError(platform.CodeForbidden, false, "站主口令只能走服务器恢复")
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO credentials(account_id,password_hash,credential_revision) VALUES(?,?,1)
+        ON CONFLICT(account_id) DO UPDATE SET password_hash=excluded.password_hash, credential_revision=credentials.credential_revision+1`, accountID, hashed.EncodedHash); err != nil {
+		return gen.UserResult{}, identityDBError()
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET must_change_password=1, revision=revision+1, updated_at=? WHERE account_id=?`, platform.Now(), accountID); err != nil {
+		return gen.UserResult{}, identityDBError()
+	}
+	if _, err := RevokeAllSessions(WithIdentityTransaction(ctx, tx), op, RevokeAllSessionsInput{AccountID: accountID, Reason: "admin_reset"}); err != nil {
+		return gen.UserResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return gen.UserResult{}, identityDBError()
+	}
+	u, err := userSummary(ctx, store.db, input.UserID)
+	return gen.UserResult{User: u}, err
+}
+
 func adminSite(ctx context.Context, q sqlQuerier, siteID string) (gen.AdminSite, error) {
 	var s gen.AdminSite
 	var status, created string

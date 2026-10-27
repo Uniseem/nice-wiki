@@ -1,7 +1,7 @@
 import { ArrowRight, Ellipsis, Globe, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Dropdown, Form, Label, Modal, Table } from '@heroui/react';
 import type { Key } from '@heroui/react';
-import { adminLanguage, api, confirmAction, currentSite, EmptyBlock, ErrorBlock, findSiteLanguage, FormGrid, LoadingBlock, navigate, newKey, NumberInput, PageHeader, selectSite, SelectInput, siteLanguages, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { adminLanguage, api, confirmAction, currentSite, EmptyBlock, ErrorBlock, findSiteLanguage, fmtBytes, FormGrid, LoadingBlock, navigate, newKey, NumberInput, PageHeader, selectSite, SelectInput, siteLanguages, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useState } from 'react';
 
 export type Site = {
@@ -9,7 +9,8 @@ export type Site = {
   visibility: 'public' | 'private'; primaryHost: string; createdAt: string; visitorQaDaily: number; qaPausedOn: string; grants: string[];
   purgeAt?: string; // 已删除站点的永久清除时间，在这之前所有者可以恢复
 };
-type Limits = { maxSites: number; siteCount: number; storageBytes: number; storageUsed: number };
+type Limits = { maxSites: number; siteCount: number; storageBytes: number };
+type Usage = { siteBytes: number; ownerBytes: number; ownerLimitBytes: number };
 
 const roleText: Record<Site['role'], string> = { owner: t('所有者'), editor: t('编辑'), viewer: t('只读') };
 const statusText: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' }> = {
@@ -44,11 +45,15 @@ export default function MySitesPage() {
   };
 
   const limits = sites.data?.limits;
+  // 存储额度是名下站点共用的：随便拿一个自己的正常站点向 media 读合计用量。
+  const owned = sites.data?.sites.find((site) => site.role === 'owner' && site.status === 'active')?.siteId;
+  const usage = useLoad((signal) => owned ? api<Usage>('/v1/storage-usage', { signal, site: owned }) : Promise.resolve(null), [owned]);
+  const storage = usage.data ? ' ' + t('存储已用 {0} / {1}。', fmtBytes(usage.data.ownerBytes), fmtBytes(usage.data.ownerLimitBytes)) : '';
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t('我的站点')}
-        description={limits ? t('已建 {0} / {1} 个站点。每个站点有自己的子域名，也可以绑定自己的域名。', limits.siteCount, limits.maxSites) : t('每个站点有自己的子域名，也可以绑定自己的域名。')}
+        description={limits ? t('已建 {0} / {1} 个站点。每个站点有自己的子域名，也可以绑定自己的域名。', limits.siteCount, limits.maxSites) + storage : t('每个站点有自己的子域名，也可以绑定自己的域名。')}
         actions={<Button isDisabled={!!limits && limits.siteCount >= limits.maxSites} onPress={() => setCreating(true)}><Plus />{t('新建站点')}</Button>}
       />
       {sites.error ? <ErrorBlock error={sites.error} onRetry={sites.reload} /> : !sites.data ? <LoadingBlock lines={4} /> : (

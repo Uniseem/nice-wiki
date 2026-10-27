@@ -153,7 +153,7 @@ export async function request<T>(path: string, options: ModuleAPIRequest = {}, r
   if (options.backupDownloadToken) headers['X-Backup-Download-Token'] = options.backupDownloadToken;
   if (options.backupPassphrase) headers['X-Backup-Passphrase'] = options.backupPassphrase;
   const csrf = read(keys.csrf);
-  const site = read(keys.site);
+  const site = options.site ?? read(keys.site);
   if (site && !personalPath.test(path)) headers['X-Nw-Site'] = site;
   if (method !== 'GET') {
     headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();

@@ -2632,6 +2632,16 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/storage-usage",
+      "owner": "media",
+      "operationId": "readStorageUsage",
+      "permission": "media.upload",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "PUT",
       "path": "/v1/task-assignments/{taskId}",
       "owner": "model-gateway",
@@ -2876,6 +2886,16 @@
       "path": "/v1/users",
       "owner": "identity",
       "operationId": "listUsers",
+      "permission": "system.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/users/{userId}/password",
+      "owner": "identity",
+      "operationId": "resetUserPassword",
       "permission": "system.manage",
       "admission": null,
       "timeoutMs": null,
