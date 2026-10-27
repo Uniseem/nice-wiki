@@ -12,6 +12,7 @@ import (
 // 页面自带的界面文字以简体中文为原文；其他语言先用 builtinUI 的内置译文，没有的退回英文。
 // 只替换固定文案，正文和用户填写的内容不经过这里。整句在前、片段在后（替换按参数顺序匹配）。
 var englishUI = strings.NewReplacer(
+	"提问次数已达上限，请稍后再来。", "Question limit reached. Please try again later.",
 	"欢迎来到", "Welcome to",
 	"拥抱未来", "Embrace the future",
 	"坚守传统", "Keep the tradition",

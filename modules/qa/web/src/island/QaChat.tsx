@@ -30,10 +30,13 @@ const touch = matchMedia('(pointer: coarse)').matches;
 
 // 服务暂时不可用（发版重启等）时客户端已经自动重试过一阵，仍不行就给一句友好提示，不显示错误码。
 const busy = (t: Translate) => t('服务正在更新，请稍后再试。');
+// 站点当天的访客提问数用完，或这个访客提问太频繁（都是 429 RATE_LIMITED）。
+const limited = (t: Translate) => t('提问次数已达上限，请稍后再来。');
 
 function failure(t: Translate, problem: unknown): string {
   if (transient(problem)) return busy(t);
   if (problem instanceof QaError) {
+    if (problem.code === 'RATE_LIMITED') return limited(t);
     if (problem.code === 'challenge-failed') return t('人机验证没有完成');
     if (problem.code === 'challenge-unsupported') return t('人机验证无法在此浏览器运行');
     if (problem.code === 'STREAM') return `${t('回答连接失败（')}${problem.status}${t('），请稍后再试。')}`;
@@ -136,7 +139,7 @@ export function QaChat({ locale, t, autoFocus, className, documentId, pageTitle,
     else if (event.kind === 'cancelled') patch(id, (message) => ({ ...message, status: 'cancelled', steps: finishSteps(message.steps, 'cancelled'), reconnecting: false }));
     else if (event.kind === 'failed') {
       if (event.code === 'CHALLENGE_REQUIRED' && allowChallenge) return true;
-      patch(id, (message) => ({ ...message, status: 'error', steps: finishSteps(message.steps, 'error'), reconnecting: false, error: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : event.code === 'CHALLENGE_REQUIRED' ? t('人机验证没有完成') : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
+      patch(id, (message) => ({ ...message, status: 'error', steps: finishSteps(message.steps, 'error'), reconnecting: false, error: event.code === 'DEPENDENCY_UNAVAILABLE' ? busy(t) : event.code === 'RATE_LIMITED' ? limited(t) : event.code === 'CHALLENGE_REQUIRED' ? t('人机验证没有完成') : `${t('这次没有回答成功（')}${event.code || 'error'}${t('），请稍后再试。')}` }));
     }
     return false;
   }
