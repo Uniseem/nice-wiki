@@ -3,7 +3,9 @@ package content
 import (
 	"archive/zip"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -288,6 +290,23 @@ func (d SiteData) BuildExport(ctx context.Context, op OperationContext, publishe
 	bundle.Files = append([]exportFile{{Name: ExportManifest, Data: manifest}}, bundle.Files...)
 	sort.SliceStable(bundle.Files[1:], func(i, j int) bool { return bundle.Files[1+i].Name < bundle.Files[1+j].Name })
 	return bundle, nil
+}
+
+// Fingerprint 是导出内容的指纹：清单里的导出时间不算，其余文件按名字和内容计入，
+// 内容没变的两次导出指纹相同，备份据此跳过重复上传。
+func (b ExportBundle) Fingerprint() string {
+	sum := sha256.New()
+	for _, file := range b.Files {
+		data := file.Data
+		if file.Name == ExportManifest {
+			manifest := b.Manifest
+			manifest.ExportedAt = ""
+			data, _ = json.Marshal(manifest)
+		}
+		fmt.Fprintf(sum, "%s\x00%d\x00", file.Name, len(data))
+		sum.Write(data)
+	}
+	return hex.EncodeToString(sum.Sum(nil))
 }
 
 // WriteZip 把导出文件集写成 zip。

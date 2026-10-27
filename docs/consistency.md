@@ -20,16 +20,11 @@ model-gateway是唯一费用和费用额度权威；调用前原子预留所有�
 
 ## 备份恢复
 
-site-config的dataEpoch和maintenanceRevision是权威。data-protection持久记录恢复决策，逐域安全屏障停止新写并等待在途调用到可结算安全点。所有域export校验和后才封存完整清单；任一失败不标完整成功。
+站点内容的备份是整站导出包（清单、块 JSON、Markdown、媒体），内容和上一份一样就不再重复上传；全平台备份是 `deploy/backup.sh`（`pg_dump` 加增量复制正文修订与媒体，可选加密和异地同步）。恢复用 `deploy/restore.sh`，停服后覆盖数据库和数据卷再启动，没有在线分阶段恢复，也没有跨服务屏障、快照和换目录协议（[ADR0003](adr/0003-restore-by-restart.md) 已废弃）。数据代次只在恢复这类整体替换时变化，旧代次的任务、租约和事件按代次拒绝。
 
-恢复按[ADR0003](adr/0003-restore-by-restart.md)执行：先校验备份，再让每个域把归档暂存到自己的restore/<restoreId>/staged（不动active）；全部暂存后持久写切换决定，并在site-config记录目标epoch；各服务安全退出、由进程守护重启，启动时把active换成暂存数据并登记回执，全部回执齐后解除维护。任一域未确认则保持维护，可重试或整体换回（启动时把before换回active），不提供混代读写。旧队列、令牌、缓存和租约随代次失效；免费索引可重建，付费派生结果从备份恢复，绝不自动重新调用模型。
-
-每域数据根分为active（业务数据，进入快照、恢复时整体替换）、control（屏障、恢复日志、identity服务签名密钥，永不替换）与restore/<restoreId>/staged|before（暂存与换出的旧数据）。恢复不签发专用许可：stage/discard只接受data-protection服务身份携带的superadmin委托，换目录发生在进程启动时、不需要跨服务授权。identity换入后撤销全部会话，管理员用备份中的账号重新登录；恢复进度凭只读进度令牌查看。部署必须配置进程守护自动重启。
-
-data git只是允许数据的版本镜像，源历史在各域持久保存；镜像延迟显式可见，镜像不含账号/配置密钥/数据库/资源，不能代替完整备份。
+Git 同步只推已发布内容，不含账号、配置密钥、数据库和资源，不能代替完整备份。
 
 任务领取、完成和失败写回同时绑定owner、worker、持久fence与dataEpoch；队列持久保留rootOperationId，worker从所属域权威任务读取原主体、预算和期限，不能用启动上下文或重试生成新付费根。执行结果携完整可空ObjectRef与paidResultRefs，取消同样保留已付费结果。过期执行权先隔离为orphan并提升fence，只有owner持久确认completed或safeToRetry后才能复用结果或重排；未知结果不能凭进程健康重试。
 
 取消意图以持久cancel_requested为准，失败、重排、领取、心跳均保留；只有owner明确确认安全取消才终局cancelled。已取消任务的不明确失败进入orphan，保留已付费结果并由owner核实，不自动重跑。owner已落盘成功与取消竞争时保留成功结果。
 
-恢复隔离保留原输入、原付费结果、原来源与未决费用证据；撤销旧epoch job/fence/event/outbox的活动资格，不做通用epoch改写或重新派发。拥有者必须按已验证来源登记只读投影/新代免费通知，未知跨域闭包保持Ready失败关闭。目标schema在staged迁移并形成完整目标树指纹，切换只接受同一restore/barrier/target/stage证明。

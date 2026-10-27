@@ -18,7 +18,6 @@ content拥有正文、修订、发布可见性、草稿与树；media拥有资�
 
 发布持久完成后投递带修订事件，索引/翻译/公开投影独立更新。风控签发请求范围准入，AI网关校验签名并唯一处理额度；风控不反向查模型费用，统计不控制实时预算。
 
-恢复是单独控制流程（[ADR0003](adr/0003-restore-by-restart.md)）：site-config进入维护→各域安全屏障→各域把备份归档暂存到自己的restore目录（不动active）→data-protection持久写切换决定→各服务由进程守护重启，启动时换入暂存数据并登记回执→全部回执与就绪后解除维护。维护期间不开放业务请求，不暴露混代；切换后失败可整体换回。
 
 ## 单仓与独立交付
 
@@ -30,4 +29,4 @@ content拥有正文、修订、发布可见性、草稿与树；media拥有资�
 
 portal.ProxyRequest 是浏览器访问后台与公开 API 的唯一入口：按生成的路由表匹配，执行维护门禁、同源与 CSRF、身份与预授权，对标记 x-admission 的公开 AI 请求先向 traffic-guard 申请准入，再以服务断言与委托证明转发，并流式回传。公开页面由 public-site 直接输出。
 
-各服务共用的机制（服务身份、操作上下文、outbox/inbox、订阅与任务循环、模型调用、恢复换目录、进程模板）只在 `libs/platform` 实现一次，服务的入口函数只装配本域参数。部署配置集中在 `deploy/`：单机 Docker Compose 加 Caddy，HTTPS 只在 Caddy 终止。
+各服务共用的机制（服务身份、操作上下文、outbox/inbox、订阅与任务循环、模型调用、进程模板）只在 `libs/platform` 实现一次，服务的入口函数只装配本域参数。部署配置集中在 `deploy/`：单机 Docker Compose 加 Caddy，HTTPS 只在 Caddy 终止。

@@ -2,7 +2,7 @@
 
 15域均为独立Go module、独立可执行入口、镜像及私有data目录。本文件补启动装配缺口，不改变old产品行为、不放领域算法；本轮不创建未来业务源码。机器合同：[service-bootstrap.json](../contracts/service-bootstrap.json)。
 
-普通匿名HTTP `GET /healthz` 只检查进程；`GET /readyz` 检查本域配置/schema/journal/control区、服务身份信任锚与epoch。维护中已换入目标数据可control-ready，但publicRequestsAllowed=false，不能提前开放业务；全部域登记切换回执后由runtime解除维护。无AI配置不阻塞初始化、文档管理和公开阅读。
+普通匿名HTTP `GET /healthz` 只检查进程；`GET /readyz` 检查本域配置/schema/journal/control区、服务身份信任锚与epoch。无AI配置不阻塞初始化、文档管理和公开阅读。
 
 ## 每域独立文件
 
@@ -22,7 +22,6 @@
 | traffic-guard | `modules/traffic-guard/cmd/traffic-guard/main.go` | `modules/traffic-guard/internal/app/wire.go` | `modules/traffic-guard/internal/transport/server.go` | `modules/traffic-guard/web` | `modules/traffic-guard/config/defaults.json` |
 | jobs | `modules/jobs/cmd/jobs/main.go` | `modules/jobs/internal/app/wire.go` | `modules/jobs/internal/transport/server.go` | `modules/jobs/web` | `modules/jobs/config/defaults.json` |
 | analytics | `modules/analytics/cmd/analytics/main.go` | `modules/analytics/internal/app/wire.go` | `modules/analytics/internal/transport/server.go` | `modules/analytics/web` | `modules/analytics/config/defaults.json` |
-| data-protection | `modules/data-protection/cmd/data-protection/main.go` | `modules/data-protection/internal/app/wire.go` | `modules/data-protection/internal/transport/server.go` | `modules/data-protection/web` | `modules/data-protection/config/defaults.json` |
 
 每域同时登记 `go.mod`、`go.sum`、`Dockerfile`、`Makefile`、`deploy/manifest.json`。已有web/ui根登记package.json/pnpm-lock.yaml/vite.config.ts/tsconfig.json/index.html/src/main.ts；沿用原根，不复制业务。go.mod/package.json是各域精确版本唯一声明，依赖锁配合Docker可重现构建；TypeScript保留old D18的6.0.x。Docker仅本域构建产物，非root运行且本域独占data卷，HTTPS交可信反代。
 
@@ -54,9 +53,9 @@ func BuildApplication(ctx context.Context, config ServiceConfig) (*Application, 
 装配本域存储、客户端、函数路由与worker
 
 1. 验证module/listen/data目录/secretRef；建立本域控制区和业务数据区；portal不虚构业务DB
-2. 先读control区恢复日志与site-config runtime：phase为restore_switching且本域有该restoreId的staged目录、尚未换入时，把active改名为restore/<restoreId>/before、staged改名为active并fsync父目录后写control日志；phase为restore_rolling_back且已换入时反向换回；换目录后丢弃旧dataEpoch未转发outbox、租约与可重建缓存。随后打开active区DB运行schema迁移与文件journal恢复；control区不随恢复替换
+2. 先读control区日志与site-config runtime，丢弃旧dataEpoch未转发的outbox、租约与可重建缓存，再打开active区DB运行schema迁移
 3. 按implementation登记dependencies装配HTTP/JSON/SSE客户端；绑定每个OpenAPI x-handler至本域手写函数；健康路由直接注册，缺任何handler则启动失败
-4. 读取runtime epoch/maintenance；维护期间只开放健康/就绪与控制管理接口、不启动worker；本次启动完成换目录或换回时调用site-config:registerActivation登记回执；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环，并配置停止新副作用/安全点机制
+4. 读取runtime数据代次；注册本域主动claim worker，有登记生产/消费事件时启动本域outbox转发与事件订阅循环
 5. UI仅加载本域dist静态资源；没有AI渠道仍装配基础文档/初始化能力，不探测模型；失败逆序关闭已打开资源
 
 错误：VALIDATION, INTEGRITY_ERROR, DEPENDENCY_UNAVAILABLE。副作用：打开本域DB/文件资源、注册router和本域worker；失败资源回滚。
@@ -71,9 +70,8 @@ func Serve(ctx context.Context, app *Application) error
 运行独立HTTP/JSON/SSE服务
 
 1. 仅HTTP启动net/http.Server，ReadHeaderTimeout=5s、MaxHeaderBytes=64KiB；写deadline由各路由决定，SSE不用统一短WriteTimeout
-2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限/epoch/maintenance门禁，SSE响应X-Accel-Buffering:no
-3. 运行中每5秒读取site-config runtime；phase进入restore_switching或restore_rolling_back且本域有该restoreId的staged或已换入目录时，停止新请求、在途操作到安全点后以退出码75退出，由进程守护重启并在BuildApplication换目录
-4. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
+2. 启动本域worker循环，匿名Health/Ready优先可访问；普通路由执行权限和数据代次门禁，SSE响应X-Accel-Buffering:no
+3. ctx取消即停止新入口并调用Shutdown；ListenAndServe的http.ErrServerClosed为正常结束，其他错误保存安全失败状态
 
 错误：INTERNAL。副作用：监听本域HTTP端口、服务请求和本域worker。
 并发：只有一Serve调用；每请求取消独立，worker只本域。幂等：重复Serve返回CONFLICT语义，不开第二监听。
@@ -116,10 +114,9 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error)
 
 GET /readyz普通HTTP就绪检查
 
-1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready或维护控制ready；返回当前active数据代次与本域恢复回执状态
+1. 确认配置/本域schema/journal/control区与服务身份信任锚完整并在lifecycle ready；返回当前active数据代次
 2. 已初始化时核activeDataEpoch等于runtime目标代次；关键运行权威不可达或旧epoch返回503；site-config本域读取自身权威
-3. 维护中本域已换入目标数据可返回200 control-ready但publicRequestsAllowed=false，使全域回执检查不会和维护门禁互相等待；所有域完成后runtime解除维护才开放
-4. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
+3. 未初始化可仅带初始化能力ready，activeDataEpoch=null；无AI渠道不使基础内容能力失败，能力缺项显式呈现
 
 错误：DEPENDENCY_UNAVAILABLE。副作用：无。
 并发：有界只读快照；依赖请求总deadline1500ms，禁止模型探测。幂等：GET只读重复安全。

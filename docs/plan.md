@@ -33,9 +33,7 @@
 
 ## M4 保护与恢复
 
-服务：data-protection，以及各域的屏障、快照、恢复换目录、全域封口。
-
-- 一致备份、恢复、data git 同步。
+2026-10-27 起由新架构设计取代：data-protection 和跨域屏障、快照、恢复换目录协议已删除，改为站点导出备份（S3、WebDAV、海外网盘）、Git 同步和全平台备份脚本 `deploy/backup.sh` / `restore.sh`，见 [architecture-v2](architecture-v2.md) 第 12 节。
 
 ## M5 部署
 

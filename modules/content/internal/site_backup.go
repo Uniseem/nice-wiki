@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -285,6 +286,15 @@ func (d SiteData) RunBackup(ctx context.Context, op OperationContext, targetID s
 	if err != nil {
 		return record("failed", "", 0, "导出失败："+errorText(err)), err
 	}
+	// 内容和上一次成功的备份一样，且那份还在远端，就不再上传新的一份。
+	fingerprint := bundle.Fingerprint()
+	var lastFingerprint, lastObject string
+	_ = d.db().QueryRowContext(ctx, `SELECT last_fingerprint,last_object FROM backup_targets WHERE site_id=? AND target_id=?`, site, targetID).Scan(&lastFingerprint, &lastObject)
+	if lastFingerprint == fingerprint && lastObject != "" {
+		if names, err := store.List(ctx, "nicewiki-"+shortID(site)+"-"); err == nil && slices.Contains(names, lastObject) {
+			return record("ok", lastObject, 0, "内容没有变化，沿用上一份备份"), nil
+		}
+	}
 	var buf bytes.Buffer
 	if err := bundle.WriteZip(&buf); err != nil {
 		return record("failed", "", 0, "打包失败"), err
@@ -308,6 +318,7 @@ func (d SiteData) RunBackup(ctx context.Context, op OperationContext, targetID s
 			names = names[1:]
 		}
 	}
+	_, _ = d.db().ExecContext(ctx, `UPDATE backup_targets SET last_fingerprint=?,last_object=? WHERE site_id=? AND target_id=?`, fingerprint, object, site, targetID)
 	return record("ok", object, int64(buf.Len()), message), nil
 }
 
