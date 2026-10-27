@@ -214,12 +214,21 @@ func authorizeDeliveryManagement(ctx context.Context, op OperationContext, deliv
 	}
 	delivery, err := work.readDeliveryRecord(ctx, deliveryID, "", "")
 	client := work.store.identity
+	var site string
+	if err == nil {
+		if scanErr := work.tx.QueryRowContext(ctx, `SELECT site_id FROM events WHERE event_id=?`, delivery.eventID).Scan(&site); scanErr != nil {
+			err = mapQueueDBError(scanErr)
+		}
+	}
 	work.close()
 	if err != nil {
 		return deliveryRecord{}, err
 	}
 	if client == nil {
 		return deliveryRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "事件重放授权尚未装配")
+	}
+	if site != op.Actor.SiteID {
+		return deliveryRecord{}, platform.NewError(platform.CodeNotFound, false, "事件投递不存在")
 	}
 	definition, err := findEventDefinition(delivery.name, delivery.version)
 	if err != nil || definition.Producer != delivery.producer || definition.ManagementPermission == "" {

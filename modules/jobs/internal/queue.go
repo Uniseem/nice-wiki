@@ -298,7 +298,7 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 		return rollback(mapQueueDBError(err))
 	}
 
-	if _, err := tx.ExecContext(ctx, `UPDATE jobs SET trigger_event=?,target_language=? WHERE job_id=?`, in.Trigger, in.TargetLanguage, jobID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE jobs SET trigger_event=?,target_language=?,site_id=? WHERE job_id=?`, in.Trigger, in.TargetLanguage, op.Actor.SiteID, jobID); err != nil {
 		return rollback(mapQueueDBError(err))
 	}
 	payload, err := json.Marshal(jobStateChangedPayload{

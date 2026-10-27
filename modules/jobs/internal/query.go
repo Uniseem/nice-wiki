@@ -70,7 +70,7 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 		return jobRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "任务管理授权尚未装配")
 	}
 	job := jobRecord{id: jobID}
-	err := store.db.QueryRowContext(ctx, `SELECT owner,type,data_epoch FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch)
+	err := store.db.QueryRowContext(ctx, `SELECT owner,type,data_epoch,site_id FROM jobs WHERE job_id=?`, jobID).Scan(&job.owner, &job.jobType, &job.epoch, &job.site)
 	client := store.identity
 	store.mu.RUnlock()
 	if errors.Is(err, sql.ErrNoRows) {
@@ -86,6 +86,10 @@ func authorizeJobManagement(ctx context.Context, op OperationContext, jobID stri
 	// 传输层只放这些服务调用 cancelJob。
 	if op.Actor.Kind == "service" && op.Actor.SubjectID == op.CallerService && op.CallerService == job.owner {
 		return job, nil
+	}
+	// 任务表是各站点共用的，人只能管理自己当前站点的任务；不属于本站点的按不存在处理。
+	if job.site != op.Actor.SiteID {
+		return jobRecord{}, platform.NewError(platform.CodeNotFound, false, "任务不存在")
 	}
 	permission, err := jobManagementPermission(job.owner, job.jobType)
 	if err != nil {

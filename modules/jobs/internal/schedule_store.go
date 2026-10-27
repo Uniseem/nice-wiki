@@ -19,7 +19,7 @@ const (
 	scheduleEventVersion = 1
 	maxSchedulesPerEpoch = 1000
 	maxScheduleList      = 256
-	schedulePermission   = "job.manage"
+	schedulePermission   = "system.manage"
 )
 
 // CreateScheduleInput 是创建定时的内部输入。dataEpoch只来自可信操作上下文。

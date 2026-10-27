@@ -24,6 +24,7 @@ type CompleteJobResult = gen.CompleteJobResult
 
 type jobRecord struct {
 	id              string
+	site            string
 	owner           string
 	jobType         string
 	epoch           string

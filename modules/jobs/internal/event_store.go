@@ -59,9 +59,9 @@ func PublishEvent(ctx context.Context, op OperationContext, in PublishEventInput
 		if err := work.tx.QueryRowContext(ctx, `UPDATE event_sequence SET last_seq=last_seq+1 WHERE singleton=1 RETURNING last_seq`).Scan(&seq); err != nil {
 			return PublishEventResult{}, mapQueueDBError(err)
 		}
-		if _, err := work.tx.ExecContext(ctx, `INSERT INTO events(event_id,event_seq,envelope_json,source_revision,data_epoch,producer,event_type,event_version,subject_id,envelope_hash)
-			VALUES(?,?,?,?,?,?,?,?,?,?)`, in.Event.EventID, seq, encoded, in.Event.Revision, in.Event.DataEpoch,
-			in.Event.Producer, in.Event.EventType, in.Event.EventVersion, in.Event.SubjectID, hash); err != nil {
+		if _, err := work.tx.ExecContext(ctx, `INSERT INTO events(event_id,event_seq,envelope_json,source_revision,data_epoch,producer,event_type,event_version,subject_id,envelope_hash,site_id)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?)`, in.Event.EventID, seq, encoded, in.Event.Revision, in.Event.DataEpoch,
+			in.Event.Producer, in.Event.EventType, in.Event.EventVersion, in.Event.SubjectID, hash, in.Event.SiteID); err != nil {
 			return PublishEventResult{}, mapQueueDBError(err)
 		}
 		definition, _ := findEventDefinition(in.Event.EventType, in.Event.EventVersion)

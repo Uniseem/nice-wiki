@@ -238,7 +238,7 @@ func listJobBatch(ctx context.Context, op OperationContext, input ListJobsInput,
 	defer work.close()
 	rows, err := work.tx.QueryContext(ctx, `SELECT job_id FROM jobs WHERE data_epoch=? AND (?='' OR (created_at,job_id)<((SELECT created_at FROM jobs WHERE job_id=? AND data_epoch=?),?)) AND (?='' OR owner=?)
         AND (?='all' OR state=? OR (?='active' AND state IN ('queued','leased','running','retry-wait','cancel-requested','orphan')) OR (?='failed' AND state IN ('retry-wait','dead-letter','orphan')))
-        ORDER BY created_at DESC,job_id DESC LIMIT 100`, op.DataEpoch, after, after, op.DataEpoch, after, input.Owner, input.Owner, input.State, input.State, input.State, input.State)
+        AND site_id=? ORDER BY created_at DESC,job_id DESC LIMIT 100`, op.DataEpoch, after, after, op.DataEpoch, after, input.Owner, input.Owner, input.State, input.State, input.State, input.State, op.Actor.SiteID)
 	if err != nil {
 		return nil, mapQueueDBError(err)
 	}
@@ -278,8 +278,8 @@ func listDeliveryBatch(ctx context.Context, op OperationContext, input ListDeliv
 	}
 	defer work.close()
 	rows, err := work.tx.QueryContext(ctx, `SELECT d.delivery_id,e.event_type,e.event_version,e.producer,d.consumer_id,d.attempt,d.last_error_code
-        FROM deliveries d JOIN events e ON e.event_id=d.event_id WHERE e.data_epoch=? AND d.state='dead-letter'
-        AND d.delivery_id>? AND (?='' OR e.producer=?) ORDER BY d.delivery_id LIMIT 100`, op.DataEpoch, after, input.Producer, input.Producer)
+        FROM deliveries d JOIN events e ON e.event_id=d.event_id WHERE e.data_epoch=? AND d.state='dead-letter' AND e.site_id=?
+        AND d.delivery_id>? AND (?='' OR e.producer=?) ORDER BY d.delivery_id LIMIT 100`, op.DataEpoch, op.Actor.SiteID, after, input.Producer, input.Producer)
 	if err != nil {
 		return nil, mapQueueDBError(err)
 	}

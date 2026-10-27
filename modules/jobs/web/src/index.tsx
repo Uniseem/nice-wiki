@@ -1,6 +1,6 @@
 import { ArrowsRotateRight, ClockArrowRotateLeft, ListCheck } from '@gravity-ui/icons';
 import { Button, Chip, Drawer, Form, Modal, ProgressBar, Table, Tabs } from '@heroui/react';
-import { api, apiClient, confirmAction, Details, EmptyBlock, ErrorBlock, findSiteLanguage, fmtDateTime, fmtRelative, LoadingBlock, Mono, newKey, notify, Notice, PageHeader, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { api, apiClient, confirmAction, Details, EmptyBlock, ErrorBlock, findSiteLanguage, fmtDateTime, fmtRelative, LoadingBlock, Mono, newKey, notify, Notice, PageHeader, SelectInput, SwitchInput, TextInput, useAction, useGrants, useLoad, t } from '@ui';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { components } from './gen/api.gen';
 import { ConfigureProgressAPI, ReconnectProgress, type ProgressEvent } from './progress';
@@ -16,7 +16,7 @@ const states: Record<string, { label: string; tone: 'default' | 'accent' | 'succ
   queued: { label: t('排队中'), tone: 'default' }, leased: { label: t('已领取'), tone: 'accent' }, running: { label: t('运行中'), tone: 'accent' }, 'retry-wait': { label: t('等待重试'), tone: 'warning' },
   'dead-letter': { label: t('死信'), tone: 'danger' }, 'cancel-requested': { label: t('取消中'), tone: 'warning' }, cancelled: { label: t('已取消'), tone: 'default' }, succeeded: { label: t('成功'), tone: 'success' }, orphan: { label: t('无主'), tone: 'warning' },
 };
-const categories = [{ value: 'all', label: t('全部') }, { value: 'localization', label: t('翻译') }, { value: 'knowledge', label: t('知识索引') }, { value: 'media', label: t('资源') }, { value: 'memory', label: t('长期记忆') }, { value: 'analytics', label: t('统计') }, { value: 'data-protection', label: t('备份') }, { value: 'content', label: t('文档') }, { value: 'public-site', label: t('公开站') }, { value: 'qa', label: t('问答记录') }];
+const categories = [{ value: 'all', label: t('全部') }, { value: 'localization', label: t('翻译') }, { value: 'knowledge', label: t('知识索引') }, { value: 'media', label: t('资源') }, { value: 'memory', label: t('长期记忆') }, { value: 'analytics', label: t('统计') }, { value: 'content', label: t('文档') }, { value: 'public-site', label: t('公开站') }, { value: 'qa', label: t('问答记录') }];
 const jobNames: Record<string, string> = {
  'analytics.aggregate-daily': t('按天统计'), 'analytics.aggregate-hourly': t('按小时统计'), 'analytics.aggregate-usage': t('用量统计'), 'analytics.reconcile-usage': t('用量对账'),
  'knowledge.build': t('建立知识索引'), 'knowledge.extract': t('附件提取'),
@@ -30,6 +30,7 @@ const stateChip = (state: string) => <Chip color={states[state]?.tone ?? 'defaul
 
 export default function JobsPage() {
   const [tab, setTab] = useState('jobs');
+  const platformAdmin = useGrants().includes('system.manage');
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('任务队列')} description={t('后台任务、失败后进入死信的事件投递，以及定时调度。取消只记录意图，由任务所属服务确认安全终态。')} />
@@ -38,12 +39,12 @@ export default function JobsPage() {
           <Tabs.List aria-label={t('任务')}>
             <Tabs.Tab id="jobs">{t('任务')}<Tabs.Indicator /></Tabs.Tab>
             <Tabs.Tab id="deliveries">{t('死信投递')}<Tabs.Indicator /></Tabs.Tab>
-            <Tabs.Tab id="schedules">{t('定时调度')}<Tabs.Indicator /></Tabs.Tab>
+            {platformAdmin && <Tabs.Tab id="schedules">{t('定时调度')}<Tabs.Indicator /></Tabs.Tab>}
           </Tabs.List>
         </Tabs.ListContainer>
         <Tabs.Panel id="jobs"><JobsTab /></Tabs.Panel>
         <Tabs.Panel id="deliveries"><DeliveriesTab /></Tabs.Panel>
-        <Tabs.Panel id="schedules"><SchedulesTab /></Tabs.Panel>
+        {platformAdmin && <Tabs.Panel id="schedules"><SchedulesTab /></Tabs.Panel>}
       </Tabs>
     </div>
   );

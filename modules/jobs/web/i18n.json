@@ -1103,22 +1103,6 @@
   "id": "Terbitkan halaman",
   "ar": "نشر الصفحة"
  },
- "备份": {
-  "zh-Hant": "備份",
-  "en": "Backups",
-  "ja": "バックアップ",
-  "ko": "백업",
-  "fr": "Sauvegardes",
-  "de": "Sicherungen",
-  "es": "Copias de seguridad",
-  "pt": "Backups",
-  "ru": "Резервные копии",
-  "it": "Backup",
-  "vi": "Sao lưu",
-  "th": "ข้อมูลสำรอง",
-  "id": "Cadangan",
-  "ar": "النسخ الاحتياطية"
- },
  "建立知识索引": {
   "zh-Hant": "建立知識索引",
   "en": "Build knowledge index",
