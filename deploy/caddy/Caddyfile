@@ -1,9 +1,9 @@
-# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 的 /_tls/allow 判断），
-# 再把流量交给 edge（页面缓存与限流），edge 转给 portal。
+# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 组件的 /_tls/allow 判断），
+# 再把流量交给 edge（页面缓存与限流），edge 转给 account 进程里的 portal 组件。
 # 部署相关的定制（例如放在 Cloudflare 后面：只放行 Cloudflare 回源、取真实访客 IP）写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git。
 {
 	on_demand_tls {
-		ask http://portal:8080/_tls/allow
+		ask http://account:8080/_tls/allow
 	}
 	import /etc/caddy/conf.d/global-*.caddy
 }

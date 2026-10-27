@@ -6,15 +6,15 @@ WORKDIR /src/rust
 RUN cargo build --release -p nw-search -p nw-edge
 
 FROM debian:bookworm-slim AS search
-RUN useradd -u 10006 -m search && mkdir -p /data && chown 10006:10006 /data
+RUN useradd -u 10004 -m search && mkdir -p /data && chown 10004:10004 /data
 COPY --from=build /src/rust/target/release/nw-search /usr/local/bin/nw-search
-USER 10006:10006
+USER 10004:10004
 ENTRYPOINT ["/usr/local/bin/nw-search"]
 CMD ["/config/search.json"]
 
 FROM debian:bookworm-slim AS edge
-RUN useradd -u 10007 -m edge && mkdir -p /cache && chown 10007:10007 /cache
+RUN useradd -u 10005 -m edge && mkdir -p /cache && chown 10005:10005 /cache
 COPY --from=build /src/rust/target/release/nw-edge /usr/local/bin/nw-edge
-USER 10007:10007
+USER 10005:10005
 ENTRYPOINT ["/usr/local/bin/nw-edge"]
 CMD ["/config/edge.json"]

@@ -26,7 +26,7 @@ docker compose exec -T postgres pg_dump -U postgres -Fc nicewiki > "$out/db-$sta
 seal "$out/db-$stamp.dump"
 mkdir -p "$out/content-data"
 docker run --rm -v "${project}_content-data":/data:ro -v "$out/content-data":/out alpine sh -c "cp -au /data/. /out/ && chown -R $(id -u):$(id -g) /out"
-for volume in account-data ai-data ops-data knowledge-data portal-data search-data; do
+for volume in account-data ai-data ops-data search-data; do
 	docker run --rm -v "${project}_$volume":/data:ro -v "$out":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
 done
 tar czf "$out/secrets-$stamp.tar.gz" -C . secrets

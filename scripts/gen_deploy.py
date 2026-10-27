@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """生成部署文件：各进程的 Dockerfile、deploy/docker-compose.yml、Caddyfile、各组件配置、密钥初始化与备份恢复脚本。
-拓扑见 docs/architecture-v2.md：Caddy（按需证书）→ edge（Rust，缓存与限流）→ portal；account、content、ai、ops 四个宿主进程各跑一组组件，
-knowledge（检索与向量）配 search（Rust）；全部数据在一个带 pgvector 的 PostgreSQL 里，正文和媒体文件在 content 的数据卷。
+拓扑见 docs/architecture-v2.md：Caddy（按需证书）→ edge（Rust，缓存与限流）→ account 进程里的 portal 组件；account、content、ai、ops 四个宿主进程各跑一组组件，
+ai 进程里的 knowledge 组件配 search（Rust）；全部数据在一个带 pgvector 的 PostgreSQL 里，正文和媒体文件在 content 的数据卷。
 进程与组件清单只在本文件里维护，改完后重新运行即可。"""
 import json, os
 
@@ -11,12 +11,11 @@ PORTS = {  # 组件: 端口
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114,
 }
-# 宿主进程 → 组件（同一进程里运行多个组件，各自监听、各自配置）；portal、knowledge 是独立进程。
-HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
-         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "traffic-guard"]}
-PROCESSES = list(HOSTS) + ["portal", "knowledge"]
+# 宿主进程 → 组件（同一进程里运行多个组件，各自监听、各自配置）；portal 随 account、knowledge 随 ai 运行。
+HOSTS = {"account": ["site-config", "identity", "portal"], "content": ["content", "media", "localization", "public-site"],
+         "ai": ["model-gateway", "qa", "agent", "memory", "knowledge"], "ops": ["jobs", "analytics", "traffic-guard"]}
+PROCESSES = list(HOSTS)
 PROCESS_OF = {c: p for p, comps in HOSTS.items() for c in comps}
-PROCESS_OF.update({"portal": "portal", "knowledge": "knowledge"})
 SEARCH_PORT, EDGE_PORT = 8120, 8090
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "public-site"]
 MASTER_KEY_COMPONENTS = ["identity", "model-gateway", "content"]  # 需要主密钥（加密保存第三方凭据、自带密钥、备份凭据）
@@ -67,11 +66,11 @@ RUN pnpm build:agent
 
 
 def go_dockerfile(proc):
-    """Go 进程镜像；构建上下文为仓库根。宿主进程在 services/<进程>，portal 与 knowledge 在 modules/<进程>。"""
+    """Go 进程镜像；构建上下文为仓库根。宿主进程在 services/<进程>。"""
     host = proc in HOSTS
     workdir = f"services/{proc}" if host else f"modules/{proc}"
     pre, copy_extra, base, env = "", "", "alpine:3.20", ""
-    if proc == "portal":
+    if proc == "account":
         pre = web_stage()
         copy_extra = "COPY --from=web /out/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\n"
         env = "ENV NW_WEB_DIR=/web\n"
@@ -82,7 +81,7 @@ def go_dockerfile(proc):
         base = "node:24-alpine"
     uid = UIDS[proc]
     cmd = '["--config-dir", "/config"]' if host else f'["--config", "/config/{proc}.json"]'
-    wd = "/config" if proc != "portal" else "/"
+    wd = "/" if proc == "account" else "/config"
     return f"""# {proc} 进程镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 {pre}FROM golang:1.25-alpine AS build
 WORKDIR /src
@@ -189,30 +188,28 @@ def compose(release=False):
 
     # 主密钥文件权限 0600，宿主进程里有用到它的服务以 root 运行才读得到。
     public = {"NW_ALLOW_LOCAL_HTTP": '"false"', "NW_PUBLIC_BASE_URL": "https://${SITE_DOMAIN}"}
-    lines += app("account", HOSTS["account"], extra_env=public, user="0:0")
+    lines += app("account", HOSTS["account"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret"},
+                 extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], user="0:0")
     lines += app("content", HOSTS["content"], extra_env=public, user="0:0")
-    lines += app("ai", HOSTS["ai"], user="0:0")
+    lines += app("ai", HOSTS["ai"], extra_volumes=["./secrets/search/secret:/run/secrets/search-secret:ro"], user="0:0")
     lines += app("ops", HOSTS["ops"], user="0:0")
-    lines += app("knowledge", ["knowledge"], extra_volumes=["./secrets/search/secret:/run/secrets/search-secret:ro"])
-    lines += app("portal", ["portal"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret"},
-                 extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], depends=("postgres", "account", "content"))
     lines += ["  search:"] + image("search", "rust/Dockerfile", "search") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/search.json:/config/search.json:ro",
               "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
-    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "      - edge-cache:/cache", "    depends_on: [portal]", ""]
+    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "      - edge-cache:/cache", "    depends_on: [account]", ""]
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - caddy-data:/data", "      - caddy-config:/config",
               "    depends_on: [edge]", "", "volumes:"]
-    lines += [f"  {v}:" for v in ["postgres-data", "account-data", "content-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data", "edge-cache", "caddy-data", "caddy-config"]] + [""]
+    lines += [f"  {v}:" for v in ["postgres-data", "account-data", "content-data", "ai-data", "ops-data", "search-data", "edge-cache", "caddy-data", "caddy-config"]] + [""]
     return "\n".join(lines)
 
 
-CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 的 /_tls/allow 判断），
-# 再把流量交给 edge（页面缓存与限流），edge 转给 portal。
+CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 组件的 /_tls/allow 判断），
+# 再把流量交给 edge（页面缓存与限流），edge 转给 account 进程里的 portal 组件。
 # 部署相关的定制（例如放在 Cloudflare 后面：只放行 Cloudflare 回源、取真实访客 IP）写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git。
 {
 	on_demand_tls {
-		ask http://portal:8080/_tls/allow
+		ask http://account:8080/_tls/allow
 	}
 	import /etc/caddy/conf.d/global-*.caddy
 }
@@ -359,7 +356,7 @@ done
 printf '将用备份 %s 覆盖当前数据库和全部数据卷，输入 yes 继续：' "$stamp"
 read answer
 [ "$answer" = yes ] || exit 1
-docker compose stop caddy edge portal account content ai ops knowledge search
+docker compose stop caddy edge account content ai ops search
 docker compose up -d postgres
 docker compose exec -T postgres sh -c 'until pg_isready -U postgres -d nicewiki; do sleep 1; done'
 docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \\$\\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \\$\\$;"
@@ -384,7 +381,7 @@ NW_BIND=0.0.0.0
 
 RELEASE_README = """# nice-wiki 部署包
 
-单机部署：公开入口（Caddy 按需证书 → edge → portal）、account、content、ai、ops、knowledge、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
+单机部署：公开入口（Caddy 按需证书 → edge → account 进程里的 portal 组件）、account、content、ai、ops、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
 服务器上不编译、不需要 Go。
 
 需要：Linux 服务器（amd64 或 arm64）、Docker 及 compose 插件、已解析到服务器的域名、可用的 80/443 端口。
@@ -418,12 +415,12 @@ def main():
     for slug in PORTS:
         write(f"deploy/config/{slug}.json", json.dumps(component_config(slug), indent=2, ensure_ascii=False) + "\n")
     write("deploy/config/search.json", json.dumps({"listen": f"0.0.0.0:{SEARCH_PORT}", "dataDir": "/data/index", "secretFile": "/run/secrets/search-secret", "databaseUrlFile": "/run/secrets/database-url"}, indent=2) + "\n")
-    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "portal:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret", "mediaDiskDir": "/cache/media"}, indent=2) + "\n")
+    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "account:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret", "mediaDiskDir": "/cache/media"}, indent=2) + "\n")
     write("deploy/config/services.json", json.dumps({"version": 1, "services": [
         {"slug": s, "url": f"http://{PROCESS_OF[s]}:{p}", "port": p, "dataVolume": f"/data/{s}", "secretsDir": f"deploy/secrets/{s}"} for s, p in PORTS.items()]}, indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
     write("deploy/release/docker-compose.yml", compose(release=True))
-    rows = [f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t{'/' if p == 'portal' else '/config'}\t{p}\t" + ("--config-dir,/config" if p in HOSTS else f"--config,/config/{p}.json") for p in PROCESSES]
+    rows = [f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t{'/' if p == 'account' else '/config'}\t{p}\t" + ("--config-dir,/config" if p in HOSTS else f"--config,/config/{p}.json") for p in PROCESSES]
     rows += [f"search\t{UIDS['search']}\t{SEARCH_PORT}\t/config\tnw-search\t/config/search.json", f"edge\t{UIDS['edge']}\t{EDGE_PORT}\t/config\tnw-edge\t/config/edge.json"]
     write("deploy/release/images.tsv", "\n".join(rows) + "\n")
     write("deploy/release/README.md", RELEASE_README)
@@ -431,7 +428,7 @@ def main():
     write("deploy/postgres/init/01-app-role.sh", POSTGRES_INIT, 0o755)
     write("deploy/.env.example", ENV_EXAMPLE)
     write("deploy/init-secrets.sh", INIT_SECRETS, 0o755)
-    volumes = " ".join(["account-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data"])  # content-data 单独增量复制
+    volumes = " ".join(["account-data", "ai-data", "ops-data", "search-data"])  # content-data 单独增量复制
     write("deploy/backup.sh", BACKUP_SH.replace("@VOLUMES@", volumes), 0o755)
     write("deploy/restore.sh", RESTORE_SH.replace("@VOLUMES@", volumes), 0o755)
     write(".dockerignore", """# 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。

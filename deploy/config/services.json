@@ -3,7 +3,7 @@
   "services": [
     {
       "slug": "portal",
-      "url": "http://portal:8080",
+      "url": "http://account:8080",
       "port": 8080,
       "dataVolume": "/data/portal",
       "secretsDir": "deploy/secrets/portal"
@@ -52,7 +52,7 @@
     },
     {
       "slug": "knowledge",
-      "url": "http://knowledge:8106",
+      "url": "http://ai:8106",
       "port": 8106,
       "dataVolume": "/data/knowledge",
       "secretsDir": "deploy/secrets/knowledge"

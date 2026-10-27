@@ -38,7 +38,7 @@ build)
 		echo "$arch $first"
 	done | xargs -P 2 -n 2 sh -c "$one"
 	for arch in $arches; do
-		for cmd in services/*/cmd/* modules/portal/cmd/portal modules/knowledge/cmd/knowledge libs/platform/cmd/nw-keys; do
+		for cmd in services/*/cmd/* libs/platform/cmd/nw-keys; do
 			[ "$cmd" = "$first" ] || echo "$arch $cmd"
 		done
 	done | xargs -P "$(getconf _NPROCESSORS_ONLN)" -n 2 sh -c "$one"
@@ -57,7 +57,7 @@ images)
 			set -- usr
 			env=""
 			base=alpine:3.20
-			if [ "$slug" = portal ]; then
+			if [ "$slug" = account ]; then
 				cp -R web-dist "$files/web"
 				mkdir -p "$files/config"
 				cp modules/portal/config/routes.json "$files/config/routes.json"

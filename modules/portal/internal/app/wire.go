@@ -155,6 +155,9 @@ type catalogFile struct {
 
 func loadRouteRegistry() (portal.RouteRegistry, error) {
 	paths := []string{"config/routes.json"}
+	if file := os.Getenv("NW_ROUTES_FILE"); file != "" {
+		paths = []string{file}
+	}
 	if executable, err := os.Executable(); err == nil {
 		base := filepath.Dir(executable)
 		paths = append(paths, filepath.Join(base, "config", "routes.json"), filepath.Join(base, "..", "config", "routes.json"))

@@ -15,14 +15,13 @@ PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "i
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114}.items()}
 # 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置；
-# portal、knowledge 暂时仍是各自独立的进程（分别由 Rust 的 edge、search 取代前保留）。
-HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
-         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "traffic-guard"]}
-STANDALONE = ["portal", "knowledge"]
+# portal 随 account 进程、knowledge 随 ai 进程运行（保持 edge、account、content、ai、search、ops 六个服务）。
+HOSTS = {"account": ["site-config", "identity", "portal"], "content": ["content", "media", "localization", "public-site"],
+         "ai": ["model-gateway", "qa", "agent", "memory", "knowledge"], "ops": ["jobs", "analytics", "traffic-guard"]}
 # Rust 检索服务（rust/search）：独立进程，没有 cargo 或设置了 NW_DEV_NO_SEARCH 时不启动，知识库退回进程内检索。
 SEARCH_PORT = 8120 + PORT_OFFSET
 USE_SEARCH = shutil.which("cargo") is not None and not os.environ.get("NW_DEV_NO_SEARCH")
-DEFAULT_UP = (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai", "knowledge", "portal"]
+DEFAULT_UP = (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai"]
 LISTEN_PORTS = {**PORTS, "search": SEARCH_PORT}
 
 
@@ -186,13 +185,13 @@ def pidfile(s):
 
 
 def proc_env():
-    return {**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")}
+    return {**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ROUTES_FILE": os.path.join(ROOT, "modules", "portal", "config", "routes.json"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")}
 
 
 def up(procs):
     setup()
     build(procs)
-    if "portal" in procs or "ai" in procs:
+    if "account" in procs or "ai" in procs:
         build_web()
     os.makedirs(path("run"), exist_ok=True)
     for s in procs:

@@ -1,6 +1,6 @@
 {
   "listen": "0.0.0.0:8090",
-  "upstream": "portal:8080",
+  "upstream": "account:8080",
   "trustForwarded": true,
   "purgeSecretFile": "/run/secrets/purge-secret",
   "mediaDiskDir": "/cache/media"

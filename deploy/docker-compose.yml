@@ -40,15 +40,21 @@ services:
       GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
       NW_ALLOW_LOCAL_HTTP: "false"
       NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+      NW_EDGE_PURGE_URL: http://edge:8090
+      NW_EDGE_PURGE_SECRET_FILE: /run/secrets/edge-purge-secret
     volumes:
       - ./config/site-config.json:/config/site-config.json:ro
       - ./config/identity.json:/config/identity.json:ro
+      - ./config/portal.json:/config/portal.json:ro
       - ./secrets/site-config:/run/secrets/site-config:ro
       - ./secrets/identity:/run/secrets/identity:ro
+      - ./secrets/portal:/run/secrets/portal:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - ./secrets/database-url:/run/secrets/database-url:ro
       - account-data:/data
       - ./secrets/master-key:/run/secrets/master-key:ro
+      - ./secrets/budget:/run/secrets/budget:ro
+      - ./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro
     depends_on:
       postgres: {condition: service_healthy}
 
@@ -95,14 +101,17 @@ services:
       - ./config/qa.json:/config/qa.json:ro
       - ./config/agent.json:/config/agent.json:ro
       - ./config/memory.json:/config/memory.json:ro
+      - ./config/knowledge.json:/config/knowledge.json:ro
       - ./secrets/model-gateway:/run/secrets/model-gateway:ro
       - ./secrets/qa:/run/secrets/qa:ro
       - ./secrets/agent:/run/secrets/agent:ro
       - ./secrets/memory:/run/secrets/memory:ro
+      - ./secrets/knowledge:/run/secrets/knowledge:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - ./secrets/database-url:/run/secrets/database-url:ro
       - ai-data:/data
       - ./secrets/master-key:/run/secrets/master-key:ro
+      - ./secrets/search/secret:/run/secrets/search-secret:ro
     depends_on:
       postgres: {condition: service_healthy}
 
@@ -129,51 +138,6 @@ services:
       - ./secrets/budget:/run/secrets/budget:ro
     depends_on:
       postgres: {condition: service_healthy}
-
-  knowledge:
-    build:
-      context: ..
-      dockerfile: modules/knowledge/Dockerfile
-    image: nice-wiki/knowledge:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/knowledge.json:/config/knowledge.json:ro
-      - ./secrets/knowledge:/run/secrets/knowledge:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - ./secrets/database-url:/run/secrets/database-url:ro
-      - knowledge-data:/data
-      - ./secrets/search/secret:/run/secrets/search-secret:ro
-    depends_on:
-      postgres: {condition: service_healthy}
-
-  portal:
-    build:
-      context: ..
-      dockerfile: modules/portal/Dockerfile
-    image: nice-wiki/portal:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-      NW_ALLOW_LOCAL_HTTP: "false"
-      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
-      NW_EDGE_PURGE_URL: http://edge:8090
-      NW_EDGE_PURGE_SECRET_FILE: /run/secrets/edge-purge-secret
-    volumes:
-      - ./config/portal.json:/config/portal.json:ro
-      - ./secrets/portal:/run/secrets/portal:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - ./secrets/database-url:/run/secrets/database-url:ro
-      - portal-data:/data
-      - ./secrets/budget:/run/secrets/budget:ro
-      - ./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro
-    depends_on:
-      postgres: {condition: service_healthy}
-      account: {condition: service_started}
-      content: {condition: service_started}
 
   search:
     build:
@@ -203,7 +167,7 @@ services:
       - ./config/edge.json:/config/edge.json:ro
       - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro
       - edge-cache:/cache
-    depends_on: [portal]
+    depends_on: [account]
 
   caddy:
     image: caddy:2-alpine
@@ -225,8 +189,6 @@ volumes:
   content-data:
   ai-data:
   ops-data:
-  knowledge-data:
-  portal-data:
   search-data:
   edge-cache:
   caddy-data:
