@@ -8,7 +8,7 @@
 - **站点内容**：沿用原有产品——块编辑器、发布、公开站、多语言自动翻译、AI 问答、知识索引、长期记忆、访问统计、防滥用。统计、媒体、问答、翻译、索引都按站点隔离（一个 PostgreSQL，行级安全）。
 - **AI 分层**：自带渠道（OpenAI 兼容地址 + 自己的 key）优先，没有或不可用时用平台额度；AI 邀请码给额度；访客问答每日上限；按用户记账。验证用的是假供应方与 OpenRouter 免费模型。
 - **数据**：导入（Markdown 目录、GitBook、Notion、本站导出包，导入的都是草稿）、整站导出、S3、WebDAV 与海外网盘备份目标（手动、每天、每周）、Git 同步（只推已发布内容，可发布后自动推送；拉取生成草稿）。全平台备份用 `deploy/backup.sh`。
-- **工程**：account、content、ai、ops 四个宿主进程 + portal、knowledge，Rust 的 search（全文 + 向量）和 edge（页面缓存、限流）；`scripts/gen_deploy.py` 生成各进程镜像与单机编排；浏览器里验证过登录、注册、建站、成员、域名、私有站点、举报、数据与同步等页面。
+- **工程**：account（含 portal）、content、ai（含 knowledge）、ops 四个宿主进程，Rust 的 search（全文 + 向量）和 edge（页面缓存、限流、媒体磁盘缓存），共 6 个进程；事件走 PostgreSQL 队列（`libs/platform/queue`），任务仍经 ops 里 jobs 的 HTTP 接口；`scripts/gen_deploy.py` 生成各进程镜像与单机编排；浏览器里验证过登录、注册、建站、成员、域名、私有站点、举报、数据与同步等页面。
 
 本地开发与检查（编译、测试、冒烟都在 NL 编译机，见 AGENTS.md；配置、数据和密钥在不进 git 的目录）：
 
