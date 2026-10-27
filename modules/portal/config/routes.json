@@ -1902,6 +1902,46 @@
       "streaming": false
     },
     {
+      "method": "GET",
+      "path": "/v1/me/identities",
+      "owner": "identity",
+      "operationId": "listMyIdentities",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/me/identities/{provider}",
+      "owner": "identity",
+      "operationId": "unlinkIdentity",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/identities/{provider}/link",
+      "owner": "identity",
+      "operationId": "linkIdentity",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/me/identities/{provider}/start",
+      "owner": "identity",
+      "operationId": "startIdentityLink",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
       "method": "POST",
       "path": "/v1/oauth/{provider}:login",
       "owner": "identity",

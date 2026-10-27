@@ -206,6 +206,11 @@ func providerOf(name string) (oauthEndpoints, error) {
 
 // OauthStart 生成一次性 state（只存摘要，十分钟有效）并返回授权跳转地址。
 func OauthStart(ctx context.Context, op OperationContext, input gen.OauthStartInput) (gen.OauthStartResult, error) {
+	return startOAuth(ctx, input.RedirectUri, "")
+}
+
+// startOAuth 记下一次性 state 并给出授权地址；linkUser 非空表示已登录用户在绑定第三方账号。
+func startOAuth(ctx context.Context, redirectURI, linkUser string) (gen.OauthStartResult, error) {
 	provider := pathProvider(ctx)
 	ep, err := providerOf(provider)
 	if err != nil {
@@ -228,11 +233,32 @@ func OauthStart(ctx context.Context, op OperationContext, input gen.OauthStartIn
 	if _, err := store.db.ExecContext(ctx, `DELETE FROM oauth_states WHERE expires_at<?`, nowRFC()); err != nil {
 		return gen.OauthStartResult{}, identityDBError()
 	}
-	if _, err := store.db.ExecContext(ctx, `INSERT INTO oauth_states(state_hash,provider,redirect_uri,expires_at) VALUES(?,?,?,?)`, hashCode(state), provider, input.RedirectUri, expires); err != nil {
+	if _, err := store.db.ExecContext(ctx, `INSERT INTO oauth_states(state_hash,provider,redirect_uri,expires_at,link_user_id) VALUES(?,?,?,?,?)`, hashCode(state), provider, redirectURI, expires, linkUser); err != nil {
 		return gen.OauthStartResult{}, identityDBError()
 	}
-	query := url.Values{"client_id": {conf.ClientID}, "redirect_uri": {input.RedirectUri}, "response_type": {"code"}, "scope": {ep.Scope}, "state": {state}}
+	query := url.Values{"client_id": {conf.ClientID}, "redirect_uri": {redirectURI}, "response_type": {"code"}, "scope": {ep.Scope}, "state": {state}}
 	return gen.OauthStartResult{AuthorizeUrl: ep.Authorize + "?" + query.Encode(), State: state}, nil
+}
+
+// consumeOAuthState 用掉一次性 state（删除成功才算用掉）；linkUser 必须和发起时一致（登录流程传空）。
+func consumeOAuthState(ctx context.Context, db *sql.DB, provider, state, redirectURI, linkUser string) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return identityDBError()
+	}
+	defer tx.Rollback()
+	var stored string
+	err = tx.QueryRowContext(ctx, `SELECT redirect_uri FROM oauth_states WHERE state_hash=? AND provider=? AND expires_at>? AND link_user_id=?`, hashCode(state), provider, nowRFC(), linkUser).Scan(&stored)
+	if err == nil {
+		_, err = tx.ExecContext(ctx, `DELETE FROM oauth_states WHERE state_hash=?`, hashCode(state))
+	}
+	if err == nil {
+		err = tx.Commit()
+	}
+	if err != nil || stored != redirectURI {
+		return platform.NewError(platform.CodeUnauthenticated, false, "授权状态已失效，请重新操作")
+	}
+	return nil
 }
 
 type oauthProfile struct{ Subject, Email, Name, Avatar string }
@@ -363,23 +389,8 @@ func OauthLogin(ctx context.Context, op OperationContext, input gen.OauthLoginIn
 			_ = finishIdentityLogin(ctx, op, attempt, "failed")
 		}
 	}()
-	// state 单次有效：删除成功才算用掉。
-	var storedRedirect string
-	stateTx, err := store.db.BeginTx(ctx, nil)
-	if err != nil {
-		return RegisterFirstSuperadminResult{}, identityDBError()
-	}
-	err = stateTx.QueryRowContext(ctx, `SELECT redirect_uri FROM oauth_states WHERE state_hash=? AND provider=? AND expires_at>?`, hashCode(input.State), provider, nowRFC()).Scan(&storedRedirect)
-	if err == nil {
-		_, err = stateTx.ExecContext(ctx, `DELETE FROM oauth_states WHERE state_hash=?`, hashCode(input.State))
-	}
-	if err == nil {
-		err = stateTx.Commit()
-	} else {
-		stateTx.Rollback()
-	}
-	if err != nil || storedRedirect != input.RedirectUri {
-		return RegisterFirstSuperadminResult{}, platform.NewError(platform.CodeUnauthenticated, false, "登录状态已失效，请重新登录")
+	if err := consumeOAuthState(ctx, store.db, provider, input.State, input.RedirectUri, ""); err != nil {
+		return RegisterFirstSuperadminResult{}, err
 	}
 	secret, err := loadProviderSecret(ctx, store.db, provider)
 	if err != nil {
@@ -448,6 +459,132 @@ func OauthLogin(ctx context.Context, op OperationContext, input gen.OauthLoginIn
 		return RegisterFirstSuperadminResult{}, identityDBError()
 	}
 	return RegisterFirstSuperadminResult{Account: account, Tokens: tokens, NextRoute: "/admin"}, nil
+}
+
+// ---- 绑定第三方账号 ----
+
+// myUser 是当前登录的平台用户。
+func myUser(ctx context.Context, op OperationContext) (*Store, string, error) {
+	if err := requireAdminActor(op); err != nil {
+		return nil, "", err
+	}
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return nil, "", platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	userID, err := userOfAccount(ctx, store.db, op.Actor.SubjectID)
+	return store, userID, err
+}
+
+func myIdentities(ctx context.Context, db sqlQuerier, userID string) (gen.MyIdentitiesResult, error) {
+	result := gen.MyIdentitiesResult{Identities: []gen.LinkedIdentity{}}
+	var hash string
+	if err := db.QueryRowContext(ctx, `SELECT a.account_name, COALESCE(c.password_hash,'!') FROM users u JOIN accounts a ON a.account_id=u.account_id
+        LEFT JOIN credentials c ON c.account_id=a.account_id WHERE u.user_id=?`, userID).Scan(&result.LoginName, &hash); err != nil {
+		return result, identityDBError()
+	}
+	result.HasPassword = hash != "!"
+	rows, err := db.QueryContext(ctx, `SELECT provider,email,created_at FROM user_identities WHERE user_id=? ORDER BY created_at`, userID)
+	if err != nil {
+		return result, identityDBError()
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item gen.LinkedIdentity
+		var provider, created string
+		if err := rows.Scan(&provider, &item.Email, &created); err != nil {
+			return result, identityDBError()
+		}
+		item.Provider, item.CreatedAt = gen.LinkedIdentityProvider(provider), parseTS(created)
+		result.Identities = append(result.Identities, item)
+	}
+	return result, nil
+}
+
+// ListMyIdentities 列出当前用户的登录方式。
+func ListMyIdentities(ctx context.Context, op OperationContext, _ struct{}) (gen.MyIdentitiesResult, error) {
+	store, userID, err := myUser(ctx, op)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	return myIdentities(ctx, store.db, userID)
+}
+
+// StartIdentityLink 已登录用户开始绑定第三方账号：授权回来后由 LinkIdentity 完成。
+func StartIdentityLink(ctx context.Context, op OperationContext, input gen.OauthStartInput) (gen.OauthStartResult, error) {
+	_, userID, err := myUser(ctx, op)
+	if err != nil {
+		return gen.OauthStartResult{}, err
+	}
+	return startOAuth(ctx, input.RedirectUri, userID)
+}
+
+// LinkIdentity 把授权回来的第三方账号绑到当前用户；这个第三方账号已经属于别的用户时拒绝（不合并账号）。
+func LinkIdentity(ctx context.Context, op OperationContext, input gen.OauthLoginInput) (gen.MyIdentitiesResult, error) {
+	store, userID, err := myUser(ctx, op)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	provider := pathProvider(ctx)
+	ep, err := providerOf(provider)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	if err := consumeOAuthState(ctx, store.db, provider, input.State, input.RedirectUri, userID); err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	settings, err := loadSettings(ctx, store.db)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	secret, err := loadProviderSecret(ctx, store.db, provider)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	profile, err := fetchProfile(ctx, provider, ep, settings.Providers[provider], secret, input.Code, input.RedirectUri)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	var owner string
+	err = store.db.QueryRowContext(ctx, `SELECT user_id FROM user_identities WHERE provider=? AND subject=?`, provider, profile.Subject).Scan(&owner)
+	switch {
+	case err == nil && owner == userID:
+	case err == nil:
+		return gen.MyIdentitiesResult{}, platform.NewError(platform.CodeConflict, false, "这个第三方账号已经绑定在别的用户上")
+	case errors.Is(err, sql.ErrNoRows):
+		if _, err := store.db.ExecContext(ctx, `INSERT INTO user_identities(provider,subject,user_id,email,created_at) VALUES(?,?,?,?,?)`, provider, profile.Subject, userID, profile.Email, platform.Now()); err != nil {
+			return gen.MyIdentitiesResult{}, identityDBError()
+		}
+	default:
+		return gen.MyIdentitiesResult{}, identityDBError()
+	}
+	return myIdentities(ctx, store.db, userID)
+}
+
+// UnlinkIdentity 解绑第三方账号；解绑后至少要留一种登录方式（另一个第三方账号或口令）。
+func UnlinkIdentity(ctx context.Context, op OperationContext, _ struct{}) (gen.MyIdentitiesResult, error) {
+	store, userID, err := myUser(ctx, op)
+	if err != nil {
+		return gen.MyIdentitiesResult{}, err
+	}
+	provider := pathProvider(ctx)
+	current, err := myIdentities(ctx, store.db, userID)
+	if err != nil {
+		return current, err
+	}
+	others := 0
+	for _, item := range current.Identities {
+		if string(item.Provider) != provider {
+			others++
+		}
+	}
+	if others == 0 && !current.HasPassword {
+		return current, platform.NewError(platform.CodeConflict, false, "这是唯一的登录方式，先设口令或绑定别的账号再解绑")
+	}
+	if _, err := store.db.ExecContext(ctx, `DELETE FROM user_identities WHERE user_id=? AND provider=?`, userID, provider); err != nil {
+		return current, identityDBError()
+	}
+	return myIdentities(ctx, store.db, userID)
 }
 
 func truncateRunes(s string, n int) string {

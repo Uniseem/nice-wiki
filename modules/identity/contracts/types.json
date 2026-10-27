@@ -2362,6 +2362,61 @@
       ],
       "x-v2": true
     },
+    "LinkedIdentity": {
+      "type": "object",
+      "description": "绑定在当前用户上的第三方账号",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "google",
+            "linuxdo"
+          ]
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "createdAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "provider",
+        "email",
+        "createdAt"
+      ],
+      "x-v2": true
+    },
+    "MyIdentitiesResult": {
+      "type": "object",
+      "description": "当前用户的登录方式：绑定的第三方账号、能否用口令登录及登录名",
+      "additionalProperties": false,
+      "properties": {
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LinkedIdentity"
+          },
+          "maxItems": 1000
+        },
+        "hasPassword": {
+          "type": "boolean"
+        },
+        "loginName": {
+          "type": "string",
+          "maxLength": 320
+        }
+      },
+      "required": [
+        "identities",
+        "hasPassword",
+        "loginName"
+      ],
+      "x-v2": true
+    },
     "UserLimits": {
       "type": "object",
       "description": "当前用户的站点与存储额度（存储用量向 media 读）",

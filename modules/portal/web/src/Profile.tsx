@@ -1,7 +1,7 @@
 import { Display, Key as KeyIcon } from '@gravity-ui/icons';
 import { Button, Chip, Form, Table } from '@heroui/react';
 import { api, ApiError, confirmAction, currentSessionId, Details, ErrorBlock, fmtDateTime, fmtRelative, LoadingBlock, Notice, PageHeader, Panel, storeSession, TextInput, useAction, useGrants, useLoad, t } from '@ui';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useAccount } from './AdminLayout';
 
 type Session = { sessionId: string; issuedAt: string; absoluteExpiresAt: string; deviceLabel: string; restrictedToPasswordChange: boolean; revokedAt: string | null };
@@ -77,7 +77,7 @@ export default function Profile() {
         <Panel className="xl:col-span-1" title={t('账号')}>
           <Details items={[
             [t('账号名'), account.accountName],
-            [t('身份'), account.isSuperadmin ? t('超级管理员') : t('子账号')],
+            [t('身份'), account.isSuperadmin ? t('超级管理员') : account.siteId?.startsWith('home:') ? t('用户') : t('子账号')],
             [t('功能权限'), account.isSuperadmin ? t('全部') : (
               <span className="flex flex-wrap gap-1">
                 {account.permissions.length ? account.permissions.map((key) => <Chip key={key} size="sm" variant="soft">{groupLabels[key] ?? key}</Chip>) : t('无')}
@@ -101,6 +101,8 @@ export default function Profile() {
           )}
         </Panel>
       </div>
+
+      {account.siteId?.startsWith('home:') && !restricted && <LoginMethods />}
 
       <Panel
         title={t('登录设备')}
@@ -141,5 +143,40 @@ export default function Profile() {
         )}
       </Panel>
     </div>
+  );
+}
+
+type Identities = { identities: { provider: string; email: string; createdAt: string }[]; hasPassword: boolean; loginName: string };
+
+// 平台用户的登录方式：可以绑定多个第三方账号（不按邮箱自动合并），解绑时至少要留一种。
+function LoginMethods() {
+  const mine = useLoad((signal) => api<Identities>('/v1/me/identities', { signal }), []);
+  const options = useLoad((signal) => api<{ providers: { provider: string; label: string }[] }>('/v1/auth/options', { signal }), []);
+  const { busy, run } = useAction();
+  const link = (provider: string) => run(async () => {
+    try { sessionStorage.setItem('nw_oauth_link', provider); } catch { /* 存储被禁用时回来会按登录处理并报错 */ }
+    const started = await api<{ authorizeUrl: string }>(`/v1/me/identities/${provider}/start`, { method: 'POST', body: { redirectUri: `${location.origin}/admin/oauth/${provider}` } });
+    location.assign(started.authorizeUrl);
+  });
+  const unlink = async (provider: string, label: string) => {
+    if (!(await confirmAction({ title: t('解绑 {0}？', label), body: t('解绑后不能再用这个账号登录。'), confirmLabel: t('解绑'), tone: 'warning' }))) return;
+    await run(() => api(`/v1/me/identities/${provider}`, { method: 'DELETE' }), t('已解绑'));
+    mine.reload();
+  };
+  if (mine.error) return <ErrorBlock error={mine.error} onRetry={mine.reload} />;
+  if (!mine.data || !options.data) return <LoadingBlock lines={2} />;
+  const providers = options.data.providers;
+  return (
+    <Panel title={t('登录方式')} description={t('可以绑定多个第三方账号，用任何一个都能登录到这个账号。')}>
+      <Details items={[
+        [t('口令登录'), mine.data.hasPassword ? t('已设置（登录名 {0}）', mine.data.loginName) : t('未设置')],
+        ...providers.map((item): [string, ReactNode] => {
+          const bound = mine.data!.identities.find((identity) => identity.provider === item.provider);
+          return [item.label, bound ? (
+            <span className="inline-flex items-center gap-2">{bound.email || t('已绑定')}<Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void unlink(item.provider, item.label)}>{t('解绑')}</Button></span>
+          ) : <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => void link(item.provider)}>{t('绑定')}</Button>];
+        }),
+      ]} />
+    </Panel>
   );
 }

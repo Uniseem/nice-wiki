@@ -67,6 +67,11 @@ export function App() {
           if (['gdrive', 'onedrive', 'dropbox'].includes(callback[1])) {
             try { sessionStorage.setItem('nw_drive_return', JSON.stringify({ provider: callback[1], code: query.get('code') ?? '', state: query.get('state') ?? '', error: query.get('error_description') ?? query.get('error') ?? '' })); } catch { /* 存储被禁用时只能让用户重来 */ }
             history.replaceState(null, '', '/admin/backup');
+          } else if (readLinkMode() === callback[1]) {
+            // 已登录用户在“个人设置”里绑定第三方账号回来。
+            await api(`/v1/me/identities/${callback[1]}/link`, { method: 'POST', body: { code: query.get('code') ?? '', state: query.get('state') ?? '', redirectUri: `${location.origin}/admin/oauth/${callback[1]}` } })
+              .catch((problem) => notify.error(t('绑定失败'), errorText(problem)));
+            history.replaceState(null, '', '/admin/me');
           } else {
             const result = await api<{ session: Parameters<typeof storeSession>[0]; account?: Account }>(`/v1/oauth/${callback[1]}:login`, { method: 'POST', body: { code: query.get('code') ?? '', state: query.get('state') ?? '', redirectUri: `${location.origin}/admin/oauth/${callback[1]}` } });
             storeSession(result.session);
@@ -118,4 +123,13 @@ export function App() {
       </I18nProvider>
     </RouterProvider>
   );
+}
+
+// 绑定第三方账号前记下的提供方；读一次就清掉。
+function readLinkMode(): string {
+  try {
+    const value = sessionStorage.getItem('nw_oauth_link') ?? '';
+    sessionStorage.removeItem('nw_oauth_link');
+    return value;
+  } catch { return ''; }
 }
