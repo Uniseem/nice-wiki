@@ -55,6 +55,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 - 平台域名（用户登录、管理站点）与用户站点的子域名后缀在后台“平台管理”里填；`SITE_DOMAIN` 只用来签第一张证书。
 - 用户站点的子域名需要把泛域名（`*.后缀`）解析到本机；用户自己绑定的域名由用户在域名服务商处解析到本机，再在后台验证。
+- 用户把备份存到自己的网盘（Google Drive、OneDrive、Dropbox）需要站主先在三家各创建一个 OAuth 应用，回调地址填 `https://<平台域名>/admin/oauth/<gdrive|onedrive|dropbox>`，并只申请应用文件夹权限；Client ID 与密钥在后台“平台管理 → 设置 → 网盘备份”里填。没填的网盘，用户那边的授权会被拒绝。
 - Let's Encrypt 对同一注册域名每周最多签 50 张新证书；用户子域名多了以后改用带 DNS 模块的 Caddy 签泛域名证书（在 `deploy/caddy/conf.d/` 里加本地定制）。
 
 ## 放在 Cloudflare 后面（小黄云，只代理平台自己的域名）

@@ -2968,7 +2968,10 @@
           "enum": [
             "github",
             "google",
-            "linuxdo"
+            "linuxdo",
+            "gdrive",
+            "onedrive",
+            "dropbox"
           ]
         },
         "enabled": {
@@ -3057,7 +3060,10 @@
           "enum": [
             "github",
             "google",
-            "linuxdo"
+            "linuxdo",
+            "gdrive",
+            "onedrive",
+            "dropbox"
           ]
         },
         "enabled": {
@@ -3914,6 +3920,122 @@
         "tasks",
         "siteIds",
         "visitorQaDaily"
+      ],
+      "x-v2": true
+    },
+    "StartDriveAuthInput": {
+      "type": "object",
+      "description": "为备份目标发起网盘授权",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "gdrive",
+            "onedrive",
+            "dropbox"
+          ]
+        },
+        "targetId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "redirectUri": {
+          "type": "string",
+          "maxLength": 512,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "provider",
+        "targetId",
+        "redirectUri"
+      ],
+      "x-v2": true
+    },
+    "StartDriveAuthResult": {
+      "type": "object",
+      "description": "网盘授权跳转地址",
+      "additionalProperties": false,
+      "properties": {
+        "authorizeUrl": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "authorizeUrl"
+      ],
+      "x-v2": true
+    },
+    "CompleteDriveAuthInput": {
+      "type": "object",
+      "description": "网盘授权回调：用授权码换长期授权并交给内容域保存",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 2048,
+          "minLength": 1
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 1
+        },
+        "redirectUri": {
+          "type": "string",
+          "maxLength": 512,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "code",
+        "state",
+        "redirectUri"
+      ],
+      "x-v2": true
+    },
+    "RefreshDriveTokenInput": {
+      "type": "object",
+      "description": "内容域用保存的长期授权换短期访问令牌",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "gdrive",
+            "onedrive",
+            "dropbox"
+          ]
+        },
+        "refreshToken": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "provider",
+        "refreshToken"
+      ],
+      "x-v2": true
+    },
+    "RefreshDriveTokenResult": {
+      "type": "object",
+      "description": "短期访问令牌；服务商换发了新的长期授权时一并带回",
+      "additionalProperties": false,
+      "properties": {
+        "accessToken": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "refreshToken": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "accessToken"
       ],
       "x-v2": true
     },

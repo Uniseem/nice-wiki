@@ -130,6 +130,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if endpoint := config.Dependencies["media"]; endpoint != "" {
 			siteData.Media = content.NewMediaGateway(endpoint, ModuleSlug, key)
 		}
+		if endpoint := config.Dependencies["identity"]; endpoint != "" {
+			siteData.Drive = content.NewDriveGateway(endpoint, ModuleSlug, key)
+		}
 		if config.MasterKeyRef != "" {
 			if box, boxErr := secretbox.Load(config.MasterKeyRef); boxErr == nil {
 				siteData.Box = box

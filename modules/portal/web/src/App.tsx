@@ -60,12 +60,18 @@ export function App() {
     void (async () => {
       try {
         // 第三方登录回来：地址是 /admin/oauth/<提供方>?code=…&state=…，换成会话再进后台。
+        // 网盘授权回来（已经登录）：把授权码交给“导出与备份”页完成。
         const callback = location.pathname.match(/^\/admin\/oauth\/([a-z]+)$/);
         if (callback) {
           const query = new URLSearchParams(location.search);
-          const result = await api<{ session: Parameters<typeof storeSession>[0]; account?: Account }>(`/v1/oauth/${callback[1]}:login`, { method: 'POST', body: { code: query.get('code') ?? '', state: query.get('state') ?? '', redirectUri: `${location.origin}/admin/oauth/${callback[1]}` } });
-          storeSession(result.session);
-          history.replaceState(null, '', '/admin');
+          if (['gdrive', 'onedrive', 'dropbox'].includes(callback[1])) {
+            try { sessionStorage.setItem('nw_drive_return', JSON.stringify({ provider: callback[1], code: query.get('code') ?? '', state: query.get('state') ?? '', error: query.get('error_description') ?? query.get('error') ?? '' })); } catch { /* 存储被禁用时只能让用户重来 */ }
+            history.replaceState(null, '', '/admin/backup');
+          } else {
+            const result = await api<{ session: Parameters<typeof storeSession>[0]; account?: Account }>(`/v1/oauth/${callback[1]}:login`, { method: 'POST', body: { code: query.get('code') ?? '', state: query.get('state') ?? '', redirectUri: `${location.origin}/admin/oauth/${callback[1]}` } });
+            storeSession(result.session);
+            history.replaceState(null, '', '/admin');
+          }
         }
         const self = await api<{ account: Account }>('/v1/self');
         // 授权项只在登录/刷新响应里；本地还没有（比如从旧版本升级上来）时静默刷新一次补上。

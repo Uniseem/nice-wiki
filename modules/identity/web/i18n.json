@@ -4414,5 +4414,37 @@
   "th": "ไม่ได้ระบุไซต์",
   "id": "Situs tidak ditentukan",
   "ar": "الموقع غير محدد"
+ },
+ "站点所有者可以把备份存到自己的网盘。在对应平台创建 OAuth 应用并只申请应用文件夹权限（Google 用 drive.file，OneDrive 用 Files.ReadWrite.AppFolder，Dropbox 选 App folder），回调地址填 {0}。": {
+  "zh-Hant": "站點所有者可以把備份存到自己的網盤。在對應平台創建 OAuth 應用並只申請應用文件夾權限（Google 用 drive.file，OneDrive 用 Files.ReadWrite.AppFolder，Dropbox 選 App folder），回調地址填 {0}。",
+  "en": "Site owners can save backups to their own cloud storage. Create an OAuth app on the platform and request only app folder permissions (drive.file for Google, Files.ReadWrite.AppFolder for OneDrive, App folder for Dropbox). Set the callback URL to {0}.",
+  "ja": "サイト所有者はバックアップを自身のクラウドストレージに保存できます。対応プラットフォームでOAuthアプリを作成し、アプリフォルダ権限のみを申請してください（Googleはdrive.file、OneDriveはFiles.ReadWrite.AppFolder、DropboxはApp folderを選択）。コールバックURLに {0} を入力してください。",
+  "ko": "사이트 소유자는 백업을 개인 클라우드 저장소에 저장할 수 있습니다. 해당 플랫폼에서 OAuth 앱을 생성하고 앱 폴더 권한만 요청하세요(Google은 drive.file, OneDrive는 Files.ReadWrite.AppFolder, Dropbox는 App folder 선택). 콜백 주소에 {0}를 입력하세요.",
+  "fr": "Les propriétaires du site peuvent enregistrer les sauvegardes sur leur propre cloud. Créez une application OAuth sur la plateforme et demandez uniquement les permissions du dossier d'application (drive.file pour Google, Files.ReadWrite.AppFolder pour OneDrive, App folder pour Dropbox). Saisissez {0} comme URL de redirection.",
+  "de": "Website-Besitzer können Backups in ihrem eigenen Cloud-Speicher speichern. Erstellen Sie eine OAuth-App auf der Plattform und beantragen Sie nur Berechtigungen für den App-Ordner (drive.file für Google, Files.ReadWrite.AppFolder für OneDrive, App folder für Dropbox). Geben Sie {0} als Callback-URL ein.",
+  "es": "Los propietarios del sitio pueden guardar las copias de seguridad en su propia nube. Cree una aplicación OAuth en la plataforma y solicite solo permisos de carpeta de aplicación (drive.file para Google, Files.ReadWrite.AppFolder para OneDrive, App folder para Dropbox). Use {0} como URL de redireccionamiento.",
+  "pt": "Os proprietários do site podem salvar backups em sua própria nuvem. Crie um app OAuth na plataforma e solicite apenas permissões de pasta do app (drive.file para Google, Files.ReadWrite.AppFolder para OneDrive, App folder para Dropbox). Use {0} como URL de retorno.",
+  "ru": "Владельцы сайта могут сохранять резервные копии в своем облачном хранилище. Создайте OAuth-приложение на платформе и запросите только доступ к папке приложения (drive.file для Google, Files.ReadWrite.AppFolder для OneDrive, App folder для Dropbox). В качестве callback-адреса укажите {0}.",
+  "it": "I proprietari del sito possono salvare i backup nel proprio cloud. Crea un'app OAuth sulla piattaforma e richiedi solo i permessi per la cartella dell'app (drive.file per Google, Files.ReadWrite.AppFolder per OneDrive, App folder per Dropbox). Inserisci {0} come URL di callback.",
+  "vi": "Chủ sở hữu trang web có thể lưu bản sao lưu vào lưu trữ đám mây của riêng họ. Tạo ứng dụng OAuth trên nền tảng và chỉ yêu cầu quyền thư mục ứng dụng (drive.file cho Google, Files.ReadWrite.AppFolder cho OneDrive, App folder cho Dropbox). Nhập {0} làm URL callback.",
+  "th": "เจ้าของไซต์สามารถบันทึกการสำรองข้อมูลลงในคลาวด์ของตนเองได้ สร้างแอป OAuth บนแพลตฟอร์มและขอสิทธิ์เฉพาะโฟลเดอร์แอปเท่านั้น (Google ใช้ drive.file, OneDrive ใช้ Files.ReadWrite.AppFolder, Dropbox เลือก App folder) และระบุ URL callback เป็น {0}",
+  "id": "Pemilik situs dapat menyimpan cadangan ke penyimpanan cloud mereka sendiri. Buat aplikasi OAuth di platform dan hanya minta izin folder aplikasi (drive.file untuk Google, Files.ReadWrite.AppFolder untuk OneDrive, App folder untuk Dropbox). Isi URL callback dengan {0}.",
+  "ar": "يمكن لمالكي الموقع حفظ النسخ الاحتياطية في التخزين السحابي الخاص بهم. قم بإنشاء تطبيق OAuth على المنصة واطلب أذونات مجلد التطبيق فقط (drive.file لـ Google، و Files.ReadWrite.AppFolder لـ OneDrive، و App folder لـ Dropbox)، وأدخل {0} كعنوان URL للرد."
+ },
+ "网盘备份": {
+  "zh-Hant": "網盤備份",
+  "en": "Cloud Backup",
+  "ja": "クラウドバックアップ",
+  "ko": "클라우드 백업",
+  "fr": "Sauvegarde Cloud",
+  "de": "Cloud-Backup",
+  "es": "Copia de seguridad en la nube",
+  "pt": "Backup em Nuvem",
+  "ru": "Облачный бэкап",
+  "it": "Backup Cloud",
+  "vi": "Sao lưu đám mây",
+  "th": "สำรองข้อมูลบนคลาวด์",
+  "id": "Cadangan Cloud",
+  "ar": "نسخ احتياطي سحابي"
  }
 }

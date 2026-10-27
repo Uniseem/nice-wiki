@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -109,8 +110,8 @@ func (d SiteData) validateEndpoint(ctx context.Context, in BackupTargetInput) (*
 
 // PutBackupTarget 新建（targetID 为空）或修改备份目标。
 func (d SiteData) PutBackupTarget(ctx context.Context, op OperationContext, targetID string, in BackupTargetInput) (BackupTarget, error) {
-	if in.Kind != "s3" && in.Kind != "webdav" {
-		return BackupTarget{}, platform.NewError(platform.CodeValidation, false, "目标类型只支持 s3、webdav")
+	if in.Kind != "s3" && in.Kind != "webdav" && !isDriveKind(in.Kind) {
+		return BackupTarget{}, platform.NewError(platform.CodeValidation, false, "目标类型只支持 s3、webdav、gdrive、onedrive、dropbox")
 	}
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" || len([]rune(in.Name)) > 80 {
@@ -125,10 +126,18 @@ func (d SiteData) PutBackupTarget(ctx context.Context, op OperationContext, targ
 	if in.Kind == "s3" && (strings.TrimSpace(in.Bucket) == "" || strings.TrimSpace(in.Username) == "") {
 		return BackupTarget{}, platform.NewError(platform.CodeValidation, false, "S3 需要填桶名和访问密钥 ID")
 	}
-	endpoint, err := d.validateEndpoint(ctx, in)
-	if err != nil {
-		return BackupTarget{}, err
+	// 网盘目标没有地址、桶、账号和手填密钥：长期授权由身份域在授权回调后交来。
+	endpointURL := ""
+	if isDriveKind(in.Kind) {
+		in.Secret, in.Bucket, in.Username = nil, "", ""
+	} else {
+		endpoint, err := d.validateEndpoint(ctx, in)
+		if err != nil {
+			return BackupTarget{}, err
+		}
+		endpointURL = endpoint.String()
 	}
+	var err error
 	region := strings.TrimSpace(in.Region)
 	if in.Kind == "s3" && region == "" {
 		region = "us-east-1"
@@ -148,30 +157,31 @@ func (d SiteData) PutBackupTarget(ctx context.Context, op OperationContext, targ
 		}
 	}
 	db := d.db()
-	var exists int
-	if targetID != "" {
-		_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM backup_targets WHERE site_id=? AND target_id=?`, op.Actor.SiteID, targetID).Scan(&exists)
+	var oldKind string
+	exists := targetID != "" && db.QueryRowContext(ctx, `SELECT kind FROM backup_targets WHERE site_id=? AND target_id=?`, op.Actor.SiteID, targetID).Scan(&oldKind) == nil
+	if exists && oldKind != in.Kind && (isDriveKind(oldKind) || isDriveKind(in.Kind)) {
+		return BackupTarget{}, platform.NewError(platform.CodeValidation, false, "网盘备份目标的类型不能修改，请新建一个")
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	switch {
-	case exists == 0:
-		if nonce == nil {
+	case !exists:
+		if nonce == nil && !isDriveKind(in.Kind) {
 			return BackupTarget{}, platform.NewError(platform.CodeValidation, false, "新建备份目标需要填写密钥或密码")
 		}
 		if targetID == "" {
 			targetID = platform.NewIdentifier()
 		}
 		if _, err = db.ExecContext(ctx, `INSERT INTO backup_targets(target_id,site_id,kind,name,endpoint,bucket,region,path_prefix,username,secret_nonce,secret_cipher,schedule,keep,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			targetID, op.Actor.SiteID, in.Kind, in.Name, endpoint.String(), strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), nonce, cipher, in.Schedule, in.Keep, now); err != nil {
+			targetID, op.Actor.SiteID, in.Kind, in.Name, endpointURL, strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), nonce, cipher, in.Schedule, in.Keep, now); err != nil {
 			return BackupTarget{}, storageFailure()
 		}
 	default:
 		if nonce != nil {
 			_, err = db.ExecContext(ctx, `UPDATE backup_targets SET kind=?,name=?,endpoint=?,bucket=?,region=?,path_prefix=?,username=?,secret_nonce=?,secret_cipher=?,schedule=?,keep=? WHERE site_id=? AND target_id=?`,
-				in.Kind, in.Name, endpoint.String(), strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), nonce, cipher, in.Schedule, in.Keep, op.Actor.SiteID, targetID)
+				in.Kind, in.Name, endpointURL, strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), nonce, cipher, in.Schedule, in.Keep, op.Actor.SiteID, targetID)
 		} else {
 			_, err = db.ExecContext(ctx, `UPDATE backup_targets SET kind=?,name=?,endpoint=?,bucket=?,region=?,path_prefix=?,username=?,schedule=?,keep=? WHERE site_id=? AND target_id=?`,
-				in.Kind, in.Name, endpoint.String(), strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), in.Schedule, in.Keep, op.Actor.SiteID, targetID)
+				in.Kind, in.Name, endpointURL, strings.TrimSpace(in.Bucket), region, cleanPrefix(in.PathPrefix), strings.TrimSpace(in.Username), in.Schedule, in.Keep, op.Actor.SiteID, targetID)
 		}
 		if err != nil {
 			return BackupTarget{}, storageFailure()
@@ -219,15 +229,22 @@ func (d SiteData) openRemote(ctx context.Context, site, targetID string) (remote
 	if d.Box == nil {
 		return nil, t, platform.NewError(platform.CodeDependencyUnavailable, false, "部署没有配置主密钥")
 	}
+	if len(cipher) == 0 {
+		return nil, t, platform.NewError(platform.CodeValidation, false, "这个备份目标还没有授权网盘，请先点“授权”")
+	}
 	secret, err := d.Box.Open(nonce, cipher, "backup-target:"+targetID)
 	if err != nil {
 		return nil, t, platform.NewError(platform.CodeIntegrityError, false, "备份凭据无法解密，请重新填写")
+	}
+	client := remoteClient(d.AllowLocal)
+	if isDriveKind(t.Kind) {
+		store, err := d.openDrive(ctx, client, site, t, string(secret))
+		return store, t, err
 	}
 	endpoint, err := d.validateEndpoint(ctx, BackupTargetInput{Endpoint: t.Endpoint})
 	if err != nil {
 		return nil, t, err
 	}
-	client := remoteClient(d.AllowLocal)
 	switch t.Kind {
 	case "s3":
 		return newS3Store(client, endpoint, t.Bucket, t.Region, t.PathPrefix, t.Username, string(secret)), t, nil
@@ -330,4 +347,62 @@ func (d SiteData) RunScheduledBackups(ctx context.Context, sites []Identifier) {
 			_, _ = d.RunBackup(scoped, op, id)
 		}
 	}
+}
+
+// openDrive 经身份域把长期授权换成短期访问令牌，建出对应网盘的存储；服务商轮换了长期授权就换掉保存的那份。
+func (d SiteData) openDrive(ctx context.Context, client *http.Client, site string, t BackupTarget, refresh string) (remoteStore, error) {
+	if d.Drive == nil {
+		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "部署没有配置身份服务地址，不能使用网盘备份")
+	}
+	access, rotated, err := d.Drive.Refresh(ctx, ServiceOperation(site, d.Epoch), t.Kind, refresh)
+	if err != nil {
+		return nil, err
+	}
+	if rotated != "" {
+		if err := d.saveTargetSecret(ctx, site, t.TargetID, rotated); err != nil {
+			return nil, err
+		}
+	}
+	switch t.Kind {
+	case "gdrive":
+		return newGdriveStore(client, access, t.PathPrefix), nil
+	case "onedrive":
+		return newOnedriveStore(client, access, t.PathPrefix), nil
+	default:
+		return newDropboxStore(client, access, t.PathPrefix), nil
+	}
+}
+
+func (d SiteData) saveTargetSecret(ctx context.Context, site, targetID, secret string) error {
+	if d.Box == nil {
+		return platform.NewError(platform.CodeDependencyUnavailable, false, "部署没有配置主密钥，不能保存备份凭据")
+	}
+	nonce, cipher, err := d.Box.Seal([]byte(secret), "backup-target:"+targetID)
+	if err != nil {
+		return platform.NewError(platform.CodeInternal, false, "凭据加密失败")
+	}
+	result, err := d.db().ExecContext(ctx, `UPDATE backup_targets SET secret_nonce=?,secret_cipher=? WHERE site_id=? AND target_id=?`, nonce, cipher, site, targetID)
+	if err != nil {
+		return storageFailure()
+	}
+	if n, _ := result.RowsAffected(); n != 1 {
+		return platform.NewError(platform.CodeNotFound, false, "备份目标不存在")
+	}
+	return nil
+}
+
+// StoreDriveToken 接身份域交来的长期授权，加密存进指定的网盘备份目标（类型要和授权的网盘一致）。
+func (d SiteData) StoreDriveToken(ctx context.Context, op OperationContext, targetID, provider, refreshToken string) error {
+	var kind string
+	err := d.db().QueryRowContext(ctx, `SELECT kind FROM backup_targets WHERE site_id=? AND target_id=?`, op.Actor.SiteID, targetID).Scan(&kind)
+	if errors.Is(err, sql.ErrNoRows) {
+		return platform.NewError(platform.CodeNotFound, false, "备份目标不存在，请先保存目标再授权")
+	}
+	if err != nil {
+		return storageFailure()
+	}
+	if kind != provider {
+		return platform.NewError(platform.CodeValidation, false, "备份目标的类型和授权的网盘不一致")
+	}
+	return d.saveTargetSecret(ctx, op.Actor.SiteID, targetID, refreshToken)
 }

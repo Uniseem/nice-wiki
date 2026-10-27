@@ -16,7 +16,7 @@ func platformSettingsView(ctx context.Context, q sqlQuerier, settings platformSe
 	view := gen.PlatformSettings{RegistrationOpen: settings.RegistrationOpen, EmailRegistration: settings.EmailRegistration, InviteRequired: settings.InviteRequired,
 		DefaultMaxSites: settings.DefaultMaxSites, DefaultStorageBytes: int(settings.DefaultStorageBytes), DefaultVisitorQaDaily: settings.DefaultVisitorQaDaily,
 		PlatformHost: settings.PlatformHost, SitesDomain: settings.SitesDomain, Providers: []gen.ProviderConfig{}}
-	for _, name := range allProviders {
+	for _, name := range configurableProviders() {
 		conf := settings.Providers[name]
 		view.Providers = append(view.Providers, gen.ProviderConfig{Provider: gen.ProviderConfigProvider(name), Enabled: conf.Enabled, ClientId: conf.ClientID, ClientSecretSet: hasProviderSecret(ctx, q, name)})
 	}

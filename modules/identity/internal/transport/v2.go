@@ -86,6 +86,13 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 		return identity.RedeemPrivateAccessCmd{SiteID: r.PathValue("siteId"), Body: b}
 	})
 	handlers["allowTlsHost"] = v2Operation(a, identity.AllowTlsHost, func(_ none, r *http.Request) identity.HostRef { return identity.HostRef{Host: r.PathValue("host")} })
+	handlers["startDriveAuth"] = v2Operation(a, identity.StartDriveAuth, func(b gen.StartDriveAuthInput, r *http.Request) identity.StartDriveAuthCmd {
+		return identity.StartDriveAuthCmd{SiteID: r.PathValue("siteId"), Body: b}
+	})
+	handlers["completeDriveAuth"] = v2Operation(a, identity.CompleteDriveAuth, func(b gen.CompleteDriveAuthInput, r *http.Request) identity.CompleteDriveAuthCmd {
+		return identity.CompleteDriveAuthCmd{SiteID: r.PathValue("siteId"), Body: b}
+	})
+	handlers["refreshDriveToken"] = jsonOperation(a, identity.RefreshDriveToken)
 	handlers["readPlatformSettings"] = jsonOperation(a, identity.ReadPlatformSettings)
 	handlers["updatePlatformSettings"] = jsonOperation(a, identity.UpdatePlatformSettings)
 	handlers["createRegistrationInvite"] = jsonOperation(a, identity.CreateRegistrationInvite)

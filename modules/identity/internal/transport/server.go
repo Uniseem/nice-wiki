@@ -59,6 +59,7 @@ type Application struct {
 	shutdownErr         error
 	httpServer          *http.Server
 	backgroundTasks     []platform.BackgroundTask
+	contentGateway      *identity.ContentGateway
 }
 
 // NewApplication 组装真实认证组并要求公共入口核对完整OpenAPI覆盖。
@@ -77,6 +78,9 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		registrationRuntime: identity.RegistrationClient{Client: gen.NewSiteConfigClient(config.Dependencies["site-config"], moduleName, sessionRuntime.Key)},
 		snapshot:            snapshot,
 		dataProtection:      gen.NewDataProtectionClient(config.Dependencies["data-protection"], moduleName, sessionRuntime.Key)}
+	if endpoint := config.Dependencies["content"]; endpoint != "" {
+		application.contentGateway = identity.NewContentGateway(endpoint, moduleName, sessionRuntime.Key)
+	}
 	if config.MasterKeyRef != "" {
 		box, err := secretbox.Load(config.MasterKeyRef)
 		if err != nil {
@@ -103,6 +107,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	callers["redeemPrivateAccess"] = []string{"portal"}
 	callers["readSiteAiPolicy"] = []string{"model-gateway", "qa"}
 	callers["noteVisitorQaCap"] = []string{"qa"}
+	callers["refreshDriveToken"] = []string{"content"}
 	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
 	serviceCallers := map[string][]string{
 		"resolveHost":  {"portal", "public-site", "content", "qa", "traffic-guard"},
@@ -152,6 +157,9 @@ func (a *Application) identityContext(ctx context.Context) context.Context {
 	ctx = identity.WithSnapshotRuntime(ctx, a.runtime)
 	if a.secretBox != nil {
 		ctx = identity.WithSecretBox(ctx, a.secretBox)
+	}
+	if a.contentGateway != nil {
+		ctx = identity.WithContentGateway(ctx, a.contentGateway)
 	}
 	return identity.WithRestoreArchiveClient(ctx, a.dataProtection)
 }

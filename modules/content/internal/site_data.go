@@ -22,7 +22,9 @@ type SiteData struct {
 	Tree   TreeRuntime
 	Media  *MediaGateway
 	Box    *secretbox.Box
-	Epoch  Identifier
+	// Drive 用来经身份域换取网盘的短期访问令牌。
+	Drive *DriveGateway
+	Epoch Identifier
 	// AllowLocal 只在本地开发时为真：备份目标和 Git 远端允许 http 与环回地址。
 	AllowLocal bool
 }

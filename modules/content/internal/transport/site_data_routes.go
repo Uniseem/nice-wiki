@@ -19,7 +19,7 @@ func RegisterSiteDataRoutes(app *Application, data content.SiteData, identity *g
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "站点数据HTTP规格不可读")
 	}
-	keep := map[string]bool{"/v1/site-import": true, "/v1/site-export": true, "/v1/backup-targets": true, "/v1/backup-targets/{targetId}": true, "/v1/backup-targets/{targetId}:run": true,
+	keep := map[string]bool{"/v1/site-import": true, "/v1/site-export": true, "/v1/backup-targets": true, "/v1/backup-targets/{targetId}": true, "/v1/backup-targets/{targetId}/drive-token": true, "/v1/backup-targets/{targetId}:run": true,
 		"/v1/backup-runs": true, "/v1/site-git": true, "/v1/site-git:push": true, "/v1/site-git:pull": true}
 	for p := range spec.Paths.Map() {
 		if !keep[p] {
@@ -60,6 +60,14 @@ func RegisterSiteDataRoutes(app *Application, data content.SiteData, identity *g
 		"deleteBackupTarget": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			reply(w, ok, data.DeleteBackupTarget(r.Context(), op, r.PathValue("targetId")))
+		}),
+		"storeDriveToken": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			var in struct{ Provider, RefreshToken string }
+			if !decode(w, r, &in) {
+				return
+			}
+			reply(w, ok, data.StoreDriveToken(r.Context(), op, r.PathValue("targetId"), in.Provider, in.RefreshToken))
 		}),
 		"runBackup": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
@@ -133,7 +141,7 @@ func RegisterSiteDataRoutes(app *Application, data content.SiteData, identity *g
 	portal := []string{"portal"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch,
 		AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: apivalidate.NewIdentityAuthorizer(identity),
-		AllowedCallers: map[string][]string{"importSite": portal, "exportSite": portal, "listBackupTargets": portal, "putBackupTarget": portal, "deleteBackupTarget": portal, "runBackup": portal, "listBackupRuns": portal,
+		AllowedCallers: map[string][]string{"importSite": portal, "exportSite": portal, "listBackupTargets": portal, "putBackupTarget": portal, "deleteBackupTarget": portal, "runBackup": portal, "listBackupRuns": portal, "storeDriveToken": {"identity"},
 			"readGitRemote": portal, "putGitRemote": portal, "deleteGitRemote": portal, "pushGit": portal, "pullGit": portal}, OperationBodyLimits: map[string]int64{"importSite": 16 << 20}}, handlers)
 	if err != nil {
 		return err
@@ -143,6 +151,7 @@ func RegisterSiteDataRoutes(app *Application, data content.SiteData, identity *g
 	app.router.Handle("GET", "/v1/backup-targets", handler)
 	app.router.Handle("PUT", "/v1/backup-targets/{targetId}", handler)
 	app.router.Handle("DELETE", "/v1/backup-targets/{targetId}", handler)
+	app.router.Handle("PUT", "/v1/backup-targets/{targetId}/drive-token", handler)
 	app.router.Handle("POST", "/v1/backup-targets/{targetId}:run", handler)
 	app.router.Handle("GET", "/v1/backup-runs", handler)
 	app.router.Handle("GET", "/v1/site-git", handler)

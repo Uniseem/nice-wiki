@@ -24,9 +24,9 @@
     "AddSiteDomainInput": {"description": "绑定自定义域名", "props": {"host": "string:253:3"}},
     "SiteDomainResult": {"description": "单个域名", "props": {"domain": "SiteDomain"}},
     "ResolveHostResult": {"description": "域名对应的站点；只给入口与公开站使用", "props": {"siteId": "id", "slug": "string:63", "status": "enum:active|suspended|deleted", "visibility": "enum:public|private", "primaryHost": "string:253", "redirectHost": "string:253?", "platformHost": "string:253"}},
-    "ProviderConfig": {"description": "第三方登录配置（不含密钥）", "props": {"provider": "enum:github|google|linuxdo", "enabled": "bool", "clientId": "string:256", "clientSecretSet": "bool"}},
+    "ProviderConfig": {"description": "第三方登录配置（不含密钥）", "props": {"provider": "enum:github|google|linuxdo|gdrive|onedrive|dropbox", "enabled": "bool", "clientId": "string:256", "clientSecretSet": "bool"}},
     "PlatformSettings": {"description": "平台设置", "props": {"registrationOpen": "bool", "emailRegistration": "bool", "inviteRequired": "bool", "defaultMaxSites": "int:0:1000", "defaultStorageBytes": "int:0", "defaultVisitorQaDaily": "int:0:1000000", "platformHost": "string:253", "sitesDomain": "string:253", "providers": "[ProviderConfig]"}},
-    "ProviderUpdate": {"description": "第三方登录配置更新；clientSecret 省略表示不改", "props": {"provider": "enum:github|google|linuxdo", "enabled": "bool", "clientId": "string:256", "clientSecret": "string:512?"}},
+    "ProviderUpdate": {"description": "第三方登录配置更新；clientSecret 省略表示不改", "props": {"provider": "enum:github|google|linuxdo|gdrive|onedrive|dropbox", "enabled": "bool", "clientId": "string:256", "clientSecret": "string:512?"}},
     "UpdatePlatformSettingsInput": {"description": "更新平台设置；省略的字段不改", "props": {"registrationOpen": "bool?", "emailRegistration": "bool?", "inviteRequired": "bool?", "defaultMaxSites": "int:0:1000?", "defaultStorageBytes": "int:0?", "defaultVisitorQaDaily": "int:0:1000000?", "platformHost": "string:253?", "sitesDomain": "string:253?", "providers": "[ProviderUpdate]?"}},
     "RegistrationInvite": {"description": "注册邀请码（只存摘要）", "props": {"inviteId": "id", "note": "string:200", "maxUses": "int:1", "used": "int:0", "expiresAt": "ts?", "revoked": "bool", "createdAt": "ts"}},
     "CreateRegistrationInviteInput": {"description": "站主生成注册邀请码", "props": {"note": "string:200?", "maxUses": "int:1:10000", "expiresAt": "ts?"}},
@@ -56,6 +56,11 @@
     "MyAi": {"description": "当前用户的平台 AI 权益（已用额度在 model-gateway 的 /v1/ai/usage）", "props": {"entitled": "bool", "capMicros": "int:0", "period": "enum:once|monthly?", "tasks": "[string:64]", "redeemedAt": "ts?", "periodStart": "ts?"}},
     "MyAiResult": {"description": "当前用户的平台 AI 权益", "props": {"ai": "MyAi"}},
     "SiteAiPolicy": {"description": "站点的 AI 策略：谁付费、额度、哪些任务可用平台渠道、访客每日提问上限；只给 model-gateway 与 qa", "props": {"siteId": "id", "ownerUserId": "id", "platformOwner": "bool", "platformAllowed": "bool", "capMicros": "int:0", "periodStartNs": "int:0", "tasks": "[string:64]", "siteIds": "[id]", "visitorQaDaily": "int:0"}},
+    "StartDriveAuthInput": {"description": "为备份目标发起网盘授权", "props": {"provider": "enum:gdrive|onedrive|dropbox", "targetId": "id", "redirectUri": "string:512:1"}},
+    "StartDriveAuthResult": {"description": "网盘授权跳转地址", "props": {"authorizeUrl": "string:2048"}},
+    "CompleteDriveAuthInput": {"description": "网盘授权回调：用授权码换长期授权并交给内容域保存", "props": {"code": "string:2048:1", "state": "string:256:1", "redirectUri": "string:512:1"}},
+    "RefreshDriveTokenInput": {"description": "内容域用保存的长期授权换短期访问令牌", "props": {"provider": "enum:gdrive|onedrive|dropbox", "refreshToken": "string:4096:1"}},
+    "RefreshDriveTokenResult": {"description": "短期访问令牌；服务商换发了新的长期授权时一并带回", "props": {"accessToken": "string:4096", "refreshToken": "string:4096?"}},
     "OkResult": {"description": "无返回内容的确认", "props": {"ok": "bool"}},
     "PrivateAccessResult": {"description": "协作者进入私有站点用的一次性码（60 秒内有效）与站点主地址", "props": {"code": "string:128", "host": "string:253"}},
     "RedeemPrivateAccessInput": {"description": "站点域名上的入口用一次性码换取站点专用短期访问", "props": {"code": "string:128:1"}},
@@ -103,6 +108,9 @@
     {"id": "issuePrivateAccess", "method": "post", "path": "/v1/sites/{siteId}/private-access", "perm": "site.read", "summary": "取得进入私有站点的一次性码", "path_params": ["siteId"], "out": "PrivateAccessResult"},
     {"id": "redeemPrivateAccess", "method": "post", "path": "/v1/sites/{siteId}/private-access:redeem", "perm": "service", "summary": "站点域名入口兑换一次性码", "path_params": ["siteId"], "in": "RedeemPrivateAccessInput", "out": "PrivateAccessGrant"},
     {"id": "allowTlsHost", "method": "get", "path": "/v1/tls/hosts/{host}", "perm": "service", "summary": "域名是否可以签发证书", "path_params": ["host"], "out": "TlsHostResult"},
+    {"id": "startDriveAuth", "method": "post", "path": "/v1/sites/{siteId}/drive-auth/start", "perm": "backup.manage", "summary": "为备份目标发起网盘授权", "path_params": ["siteId"], "in": "StartDriveAuthInput", "out": "StartDriveAuthResult"},
+    {"id": "completeDriveAuth", "method": "post", "path": "/v1/sites/{siteId}/drive-auth/complete", "perm": "backup.manage", "summary": "完成网盘授权", "path_params": ["siteId"], "in": "CompleteDriveAuthInput", "out": "OkResult"},
+    {"id": "refreshDriveToken", "method": "post", "path": "/v1/drive-tokens:refresh", "perm": "service", "summary": "内容域换取网盘短期访问令牌", "in": "RefreshDriveTokenInput", "out": "RefreshDriveTokenResult"},
     {"id": "noteVisitorQaCap", "method": "post", "path": "/v1/sites/{siteId}/visitor-qa-cap", "perm": "service", "summary": "记录站点当天访客提问已达上限", "path_params": ["siteId"], "out": "OkResult"}
   ]
 }

@@ -163,7 +163,7 @@ var AdminRoutes = []AdminRouteEntry{
 	}, LabelZH: "账号权限", LabelEN: "Accounts", Navigation: true},
 	{Key: "backup", Path: "/admin/backup", Permissions: []string{
 		"backup.manage",
-	}, LabelZH: "备份恢复", LabelEN: "Backup", Navigation: true},
+	}, LabelZH: "数据与同步", LabelEN: "Data & sync", Navigation: true},
 	{Key: "sites", Path: "/admin/sites", Permissions: []string{
 		"account.self",
 	}, LabelZH: "我的站点", LabelEN: "My sites", Navigation: true},

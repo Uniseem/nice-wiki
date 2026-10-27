@@ -3,7 +3,7 @@ import { Button, Chip, Form, Modal, Table, Tabs } from '@heroui/react';
 import { api, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtMoney, FormGrid, LoadingBlock, Mono, Notice, notify, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
 import { useEffect, useState } from 'react';
 
-type Provider = { provider: 'github' | 'google' | 'linuxdo'; enabled: boolean; clientId: string; clientSecretSet: boolean };
+type Provider = { provider: 'github' | 'google' | 'linuxdo' | 'gdrive' | 'onedrive' | 'dropbox'; enabled: boolean; clientId: string; clientSecretSet: boolean };
 type Settings = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; defaultMaxSites: number; defaultStorageBytes: number; defaultVisitorQaDaily: number; platformHost: string; sitesDomain: string; providers: Provider[] };
 type RegInvite = { inviteId: string; note: string; maxUses: number; used: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type AiInvite = { inviteId: string; note: string; capMicros: number; period: 'once' | 'monthly'; tasks: string[]; maxUses: number; used: number; maxSites?: number; storageBytes?: number; expiresAt?: string; revoked: boolean; createdAt: string };
@@ -11,7 +11,8 @@ type User = { userId: string; email: string; displayName: string; status: 'activ
 type AdminSite = { siteId: string; slug: string; name: string; ownerEmail: string; status: 'active' | 'suspended' | 'deleted'; createdAt: string };
 type Report = { reportId: string; siteId: string; host: string; url: string; reason: string; detail: string; status: 'open' | 'dismissed' | 'takedown' | 'banned'; resolution: string; createdAt: string };
 
-const providerNames = { github: 'GitHub', google: 'Google', linuxdo: 'Linux DO' };
+const providerNames = { github: 'GitHub', google: 'Google', linuxdo: 'Linux DO', gdrive: 'Google Drive', onedrive: 'OneDrive', dropbox: 'Dropbox' };
+const driveProviders = ['gdrive', 'onedrive', 'dropbox'];
 const GB = 1 << 30;
 const taskOptions = [
   { value: 'qa', label: t('访客问答') }, { value: 'localization', label: t('翻译') }, { value: 'knowledge', label: t('知识库索引') },
@@ -61,6 +62,15 @@ function SettingsTab() {
     const saved = await run(() => api<Settings>('/v1/platform/settings', { method: 'PUT', body: { ...form, providers } }), t('平台设置已保存'));
     if (saved) { setSecrets({}); current.setData(saved); }
   };
+  const providerCard = (item: Provider) => (
+    <div key={item.provider} className="flex flex-col gap-3 rounded-xl border border-separator p-4">
+      <SwitchInput isSelected={item.enabled} label={providerNames[item.provider]} onChange={(value) => setProvider(item.provider, { enabled: value })} />
+      <FormGrid>
+        <TextInput label="Client ID" value={item.clientId} onChange={(value) => setProvider(item.provider, { clientId: value.trim() })} />
+        <TextInput autoComplete="off" label="Client secret" placeholder={item.clientSecretSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets[item.provider] ?? ''} onChange={(value) => setSecrets({ ...secrets, [item.provider]: value })} />
+      </FormGrid>
+    </div>
+  );
   return (
     <Form className="flex flex-col gap-6" onSubmit={(event) => { event.preventDefault(); void save(); }}>
       <Panel title={t('域名')} description={t('上线时在这里填写；改动后需要在入口（Caddy）侧解析对应的泛域名。')}>
@@ -84,17 +94,10 @@ function SettingsTab() {
         </FormGrid>
       </Panel>
       <Panel title={t('第三方登录')} description={t('在对应平台创建 OAuth 应用，回调地址填 {0}。密钥保存后不再显示。', `${location.origin}/admin/oauth/<provider>`)}>
-        <div className="flex flex-col gap-5">
-          {form.providers.map((item) => (
-            <div key={item.provider} className="flex flex-col gap-3 rounded-xl border border-separator p-4">
-              <SwitchInput isSelected={item.enabled} label={providerNames[item.provider]} onChange={(value) => setProvider(item.provider, { enabled: value })} />
-              <FormGrid>
-                <TextInput label="Client ID" value={item.clientId} onChange={(value) => setProvider(item.provider, { clientId: value.trim() })} />
-                <TextInput autoComplete="off" label="Client secret" placeholder={item.clientSecretSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets[item.provider] ?? ''} onChange={(value) => setSecrets({ ...secrets, [item.provider]: value })} />
-              </FormGrid>
-            </div>
-          ))}
-        </div>
+        <div className="flex flex-col gap-5">{form.providers.filter((item) => !driveProviders.includes(item.provider)).map(providerCard)}</div>
+      </Panel>
+      <Panel title={t('网盘备份')} description={t('站点所有者可以把备份存到自己的网盘。在对应平台创建 OAuth 应用并只申请应用文件夹权限（Google 用 drive.file，OneDrive 用 Files.ReadWrite.AppFolder，Dropbox 选 App folder），回调地址填 {0}。', `${location.origin}/admin/oauth/<gdrive|onedrive|dropbox>`)}>
+        <div className="flex flex-col gap-5">{form.providers.filter((item) => driveProviders.includes(item.provider)).map(providerCard)}</div>
       </Panel>
       <div><Button isPending={busy} type="submit">{t('保存')}</Button></div>
     </Form>

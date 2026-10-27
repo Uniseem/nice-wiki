@@ -13,7 +13,10 @@ export default function DataPage() {
   const canBackup = useHasGrant('backup.manage');
   const canGit = useHasGrant('site.manage');
   const isOperator = useHasGrant('system.manage');
-  const first = canImport ? 'import' : canBackup ? 'backup' : canGit ? 'git' : 'platform';
+  // 网盘授权跳回来时直接落在“导出与备份”。
+  let returning = false;
+  try { returning = !!sessionStorage.getItem('nw_drive_return'); } catch { /* 存储被禁用时按默认页签 */ }
+  const first = returning && canBackup ? 'backup' : canImport ? 'import' : canBackup ? 'backup' : canGit ? 'git' : 'platform';
   const [tab, setTab] = useState(first);
   if (!site && !isOperator) return <EmptyBlock title={t('先选一个站点')} description={t('在左上角切换到要管理的站点。')} />;
   return (

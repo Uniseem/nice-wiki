@@ -14,7 +14,7 @@
       "description": "备份目标（不含密钥）",
       "props": {
         "targetId": "id",
-        "kind": "enum:s3|webdav",
+        "kind": "enum:s3|webdav|gdrive|onedrive|dropbox",
         "name": "string:200",
         "endpoint": "string:1000",
         "bucket": "string:200",
@@ -38,9 +38,9 @@
     "PutBackupTargetInput": {
       "description": "新建或修改备份目标；secret 留空表示不改密钥",
       "props": {
-        "kind": "enum:s3|webdav",
+        "kind": "enum:s3|webdav|gdrive|onedrive|dropbox",
         "name": "string:80:1",
-        "endpoint": "string:1000:1",
+        "endpoint": "string:1000?",
         "bucket": "string:200?",
         "region": "string:100?",
         "pathPrefix": "string:300?",
@@ -63,6 +63,7 @@
         "message": "string:400"
       }
     },
+    "StoreDriveTokenInput": {"description": "身份域在网盘授权完成后交来的长期授权", "props": {"provider": "enum:gdrive|onedrive|dropbox", "refreshToken": "string:4096:1"}},
     "ListBackupRunsResult": {
       "description": "最近的备份记录",
       "props": {
@@ -167,7 +168,7 @@
         "targetId"
       ],
       "perm": "backup.manage",
-      "summary": "新建或修改备份目标（S3 兼容存储、WebDAV）",
+      "summary": "新建或修改备份目标（S3 兼容存储、WebDAV、Google Drive、OneDrive、Dropbox）",
       "in": "PutBackupTargetInput",
       "out": "BackupTarget"
     },
@@ -180,6 +181,16 @@
       ],
       "perm": "backup.manage",
       "summary": "删除备份目标（不删远端已有备份）",
+      "out": "SiteDataOk"
+    },
+    {
+      "id": "storeDriveToken",
+      "method": "put",
+      "path": "/v1/backup-targets/{targetId}/drive-token",
+      "path_params": ["targetId"],
+      "perm": "service",
+      "summary": "身份域把网盘长期授权交给备份目标保存",
+      "in": "StoreDriveTokenInput",
       "out": "SiteDataOk"
     },
     {

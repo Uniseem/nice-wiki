@@ -6901,7 +6901,10 @@
           "type": "string",
           "enum": [
             "s3",
-            "webdav"
+            "webdav",
+            "gdrive",
+            "onedrive",
+            "dropbox"
           ]
         },
         "name": {
@@ -7002,7 +7005,10 @@
           "type": "string",
           "enum": [
             "s3",
-            "webdav"
+            "webdav",
+            "gdrive",
+            "onedrive",
+            "dropbox"
           ]
         },
         "name": {
@@ -7012,8 +7018,7 @@
         },
         "endpoint": {
           "type": "string",
-          "maxLength": 1000,
-          "minLength": 1
+          "maxLength": 1000
         },
         "bucket": {
           "type": "string",
@@ -7052,7 +7057,6 @@
       "required": [
         "kind",
         "name",
-        "endpoint",
         "schedule",
         "keep"
       ],
@@ -7103,6 +7107,31 @@
         "objectName",
         "bytes",
         "message"
+      ],
+      "x-v2": true
+    },
+    "StoreDriveTokenInput": {
+      "type": "object",
+      "description": "身份域在网盘授权完成后交来的长期授权",
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "gdrive",
+            "onedrive",
+            "dropbox"
+          ]
+        },
+        "refreshToken": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+        }
+      },
+      "required": [
+        "provider",
+        "refreshToken"
       ],
       "x-v2": true
     },

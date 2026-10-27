@@ -780,8 +780,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * 新建或修改备份目标（S3 兼容存储、WebDAV）
-         * @description 新建或修改备份目标（S3 兼容存储、WebDAV）
+         * 新建或修改备份目标（S3 兼容存储、WebDAV、Google Drive、OneDrive、Dropbox）
+         * @description 新建或修改备份目标（S3 兼容存储、WebDAV、Google Drive、OneDrive、Dropbox）
          */
         put: operations["putBackupTarget"];
         post?: never;
@@ -790,6 +790,26 @@ export interface paths {
          * @description 删除备份目标（不删远端已有备份）
          */
         delete: operations["deleteBackupTarget"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backup-targets/{targetId}/drive-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 身份域把网盘长期授权交给备份目标保存
+         * @description 身份域把网盘长期授权交给备份目标保存
+         */
+        put: operations["storeDriveToken"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2345,7 +2365,7 @@ export interface components {
         BackupTarget: {
             targetId: components["schemas"]["Identifier"];
             /** @enum {string} */
-            kind: "s3" | "webdav";
+            kind: "s3" | "webdav" | "gdrive" | "onedrive" | "dropbox";
             name: string;
             endpoint: string;
             bucket: string;
@@ -2367,9 +2387,9 @@ export interface components {
         /** @description 新建或修改备份目标；secret 留空表示不改密钥 */
         PutBackupTargetInput: {
             /** @enum {string} */
-            kind: "s3" | "webdav";
+            kind: "s3" | "webdav" | "gdrive" | "onedrive" | "dropbox";
             name: string;
-            endpoint: string;
+            endpoint?: string;
             bucket?: string;
             region?: string;
             pathPrefix?: string;
@@ -2382,6 +2402,12 @@ export interface components {
         /** @description 操作成功 */
         SiteDataOk: {
             ok: boolean;
+        };
+        /** @description 身份域在网盘授权完成后交来的长期授权 */
+        StoreDriveTokenInput: {
+            /** @enum {string} */
+            provider: "gdrive" | "onedrive" | "dropbox";
+            refreshToken: string;
         };
         /** @description 一次备份的记录 */
         BackupRun: {
@@ -5601,7 +5627,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 新建或修改备份目标（S3 兼容存储、WebDAV）的成功回执 */
+            /** @description 新建或修改备份目标（S3 兼容存储、WebDAV、Google Drive、OneDrive、Dropbox）的成功回执 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5687,6 +5713,95 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 删除备份目标（不删远端已有备份）的成功回执 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDataOk"];
+                };
+            };
+            /** @description VALIDATION：字段、枚举、范围、格式或状态前置条件不合法；不记录敏感原值 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description UNAUTHENTICATED：会话、委托或服务证明缺失、失效或被撤销 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description FORBIDDEN：主体没有所需操作权限，或站点/资源作用域不匹配 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description NOT_FOUND：对象不存在或不可见 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description CONFLICT：状态冲突、唯一约束冲突或版本已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description RATE_LIMITED：频率或容量限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description DEPENDENCY_UNAVAILABLE：权威依赖、存储或密钥不可用；不可把未知状态当允许 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    storeDriveToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetId: components["schemas"]["Identifier"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreDriveTokenInput"];
+            };
+        };
+        responses: {
+            /** @description 身份域把网盘长期授权交给备份目标保存的成功回执 */
             200: {
                 headers: {
                     [name: string]: unknown;

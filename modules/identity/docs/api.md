@@ -74,6 +74,9 @@
 | POST `/v1/sites/{siteId}/private-access` | `issuePrivateAccess` | `identity.IssuePrivateAccess` | `site.read` | `—` → 200 `PrivateAccessResult` | 取得进入私有站点的一次性码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/sites/{siteId}/private-access:redeem` | `redeemPrivateAccess` | `identity.RedeemPrivateAccess` | `service` | `RedeemPrivateAccessInput` → 200 `PrivateAccessGrant` | 站点域名入口兑换一次性码 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/tls/hosts/{host}` | `allowTlsHost` | `identity.AllowTlsHost` | `service` | `—` → 200 `TlsHostResult` | 域名是否可以签发证书 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/sites/{siteId}/drive-auth/start` | `startDriveAuth` | `identity.StartDriveAuth` | `backup.manage` | `StartDriveAuthInput` → 200 `StartDriveAuthResult` | 为备份目标发起网盘授权 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/sites/{siteId}/drive-auth/complete` | `completeDriveAuth` | `identity.CompleteDriveAuth` | `backup.manage` | `CompleteDriveAuthInput` → 200 `OkResult` | 完成网盘授权 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/drive-tokens:refresh` | `refreshDriveToken` | `identity.RefreshDriveToken` | `service` | `RefreshDriveTokenInput` → 200 `RefreshDriveTokenResult` | 内容域换取网盘短期访问令牌 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/sites/{siteId}/visitor-qa-cap` | `noteVisitorQaCap` | `identity.NoteVisitorQaCap` | `service` | `—` → 200 `OkResult` | 记录站点当天访客提问已达上限 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 
