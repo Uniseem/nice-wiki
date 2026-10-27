@@ -687,22 +687,6 @@
   "id": "Bahasa dasar",
   "ar": "اللغة الأساسية"
  },
- "备份恢复": {
-  "zh-Hant": "備份還原",
-  "en": "Backup & restore",
-  "ja": "バックアップと復元",
-  "ko": "백업 및 복원",
-  "fr": "Sauvegarde et restauration",
-  "de": "Sicherung & Wiederherstellung",
-  "es": "Copia de seguridad",
-  "pt": "Backup e restauração",
-  "ru": "Резервное копирование",
-  "it": "Backup e ripristino",
-  "vi": "Sao lưu và khôi phục",
-  "th": "สำรองและกู้คืน",
-  "id": "Cadangan & pemulihan",
-  "ar": "النسخ الاحتياطي والاستعادة"
- },
  "多语言": {
   "zh-Hant": "多語言",
   "en": "Languages",
@@ -2414,5 +2398,21 @@
   "th": "เปิดไซต์ส่วนตัว",
   "id": "Buka situs privat",
   "ar": "فتح الموقع الخاص"
+ },
+ "数据与同步": {
+  "zh-Hant": "數據與同步",
+  "en": "Data & Sync",
+  "ja": "データと同期",
+  "ko": "데이터 및 동기화",
+  "fr": "Données et synchro",
+  "de": "Daten & Sync",
+  "es": "Datos y sincronización",
+  "pt": "Dados e Sincronização",
+  "ru": "Данные и синхронизация",
+  "it": "Dati e sincronizzazione",
+  "vi": "Dữ liệu & Đồng bộ",
+  "th": "ข้อมูลและการซิงค์",
+  "id": "Data & Sinkronisasi",
+  "ar": "البيانات والمزامنة"
  }
 }

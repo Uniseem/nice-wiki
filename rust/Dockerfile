@@ -1,0 +1,20 @@
+# Rust 进程镜像（检索 search、公开入口 edge）；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
+FROM rust:1.95-bookworm AS build
+WORKDIR /src
+COPY rust/ rust/
+WORKDIR /src/rust
+RUN cargo build --release -p nw-search -p nw-edge
+
+FROM debian:bookworm-slim AS search
+RUN useradd -u 10006 -m search && mkdir -p /data && chown 10006:10006 /data
+COPY --from=build /src/rust/target/release/nw-search /usr/local/bin/nw-search
+USER 10006:10006
+ENTRYPOINT ["/usr/local/bin/nw-search"]
+CMD ["/config/search.json"]
+
+FROM debian:bookworm-slim AS edge
+RUN useradd -u 10007 -m edge
+COPY --from=build /src/rust/target/release/nw-edge /usr/local/bin/nw-edge
+USER 10007:10007
+ENTRYPOINT ["/usr/local/bin/nw-edge"]
+CMD ["/config/edge.json"]

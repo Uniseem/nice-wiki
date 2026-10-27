@@ -1,0 +1,6 @@
+{
+  "listen": "0.0.0.0:8120",
+  "dataDir": "/data/index",
+  "secretFile": "/run/secrets/search-secret",
+  "databaseUrlFile": "/run/secrets/database-url"
+}

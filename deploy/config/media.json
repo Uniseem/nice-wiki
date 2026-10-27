@@ -3,22 +3,23 @@
   "listen": "0.0.0.0:8104",
   "dataRoot": "/data/media",
   "trustAnchorRef": "/run/secrets/trust-anchors.json",
-  "signingKeyRef": "/run/secrets/signing-key.json",
+  "signingKeyRef": "/run/secrets/media/signing-key.json",
   "dependencies": {
     "portal": "http://portal:8080",
-    "public-site": "http://public-site:8081",
-    "identity": "http://identity:8101",
-    "site-config": "http://site-config:8102",
+    "public-site": "http://content:8081",
+    "identity": "http://account:8101",
+    "site-config": "http://account:8102",
     "content": "http://content:8103",
-    "model-gateway": "http://model-gateway:8105",
+    "model-gateway": "http://ai:8105",
     "knowledge": "http://knowledge:8106",
-    "qa": "http://qa:8107",
-    "localization": "http://localization:8108",
-    "memory": "http://memory:8109",
-    "traffic-guard": "http://traffic-guard:8110",
-    "jobs": "http://jobs:8111",
-    "analytics": "http://analytics:8112",
-    "data-protection": "http://data-protection:8113",
-    "agent": "http://agent:8114"
-  }
+    "qa": "http://ai:8107",
+    "localization": "http://content:8108",
+    "memory": "http://ai:8109",
+    "traffic-guard": "http://ops:8110",
+    "jobs": "http://ops:8111",
+    "analytics": "http://ops:8112",
+    "data-protection": "http://ops:8113",
+    "agent": "http://ai:8114"
+  },
+  "databaseRef": "/run/secrets/database-url"
 }

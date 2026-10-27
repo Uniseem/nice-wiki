@@ -1,4 +1,4 @@
-# portal 域独立镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
+# portal 进程镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 FROM node:24-slim AS web
 RUN npm install -g pnpm@9.15.9
 WORKDIR /src
@@ -28,19 +28,18 @@ RUN NW_WEB_OUT=/out/web pnpm build:web
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY libs/platform/ libs/platform/
-COPY modules/portal/ modules/portal/
+COPY modules/ modules/
+COPY services/ services/
 WORKDIR /src/modules/portal
-RUN CGO_ENABLED=0 go build -trimpath -o /out/portal ./cmd/portal
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/portal ./cmd/portal
 
 FROM alpine:3.20
-RUN adduser -D -u 10000 portal && mkdir -p /data/portal && chown 10000:10000 /data/portal
+RUN adduser -D -u 10004 portal && mkdir -p /data && chown 10004:10004 /data
 COPY --from=build /out/portal /usr/local/bin/portal
 COPY --from=web /out/web /web
 COPY modules/portal/config/routes.json /config/routes.json
 ENV NW_WEB_DIR=/web
-USER 10000:10000
-EXPOSE 8080
-VOLUME ["/data/portal"]
+USER 10004:10004
 WORKDIR /
 ENTRYPOINT ["/usr/local/bin/portal"]
 CMD ["--config", "/config/portal.json"]

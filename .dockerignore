@@ -1,6 +1,7 @@
 # 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。
 **/node_modules
 **/dist
+**/target
 web-dist
 agent-dist
 libs/platform/zcode/upstream/dynamic-workflow/src/compiler/libs.generated.ts

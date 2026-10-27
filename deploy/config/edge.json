@@ -1,0 +1,5 @@
+{
+  "listen": "0.0.0.0:8090",
+  "upstream": "portal:8080",
+  "trustForwarded": true
+}

@@ -9,6 +9,149 @@ networks:
         - subnet: 10.231.97.0/24
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: nicewiki
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg-superuser-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./secrets/postgres/superuser-password:/run/secrets/pg-superuser-password:ro
+      - ./secrets/postgres/app-password:/run/secrets/pg-app-password:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nicewiki"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  account:
+    build:
+      context: ..
+      dockerfile: services/account/Dockerfile
+    image: nice-wiki/account:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    user: "0:0"
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/site-config.json:/config/site-config.json:ro
+      - ./config/identity.json:/config/identity.json:ro
+      - ./secrets/site-config:/run/secrets/site-config:ro
+      - ./secrets/identity:/run/secrets/identity:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - account-data:/data
+      - ./secrets/master-key:/run/secrets/master-key:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  content:
+    build:
+      context: ..
+      dockerfile: services/content/Dockerfile
+    image: nice-wiki/content:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    user: "0:0"
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+      NW_ALLOW_LOCAL_HTTP: "false"
+      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+    volumes:
+      - ./config/content.json:/config/content.json:ro
+      - ./config/media.json:/config/media.json:ro
+      - ./config/localization.json:/config/localization.json:ro
+      - ./config/public-site.json:/config/public-site.json:ro
+      - ./secrets/content:/run/secrets/content:ro
+      - ./secrets/media:/run/secrets/media:ro
+      - ./secrets/localization:/run/secrets/localization:ro
+      - ./secrets/public-site:/run/secrets/public-site:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - content-data:/data
+      - ./secrets/master-key:/run/secrets/master-key:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  ai:
+    build:
+      context: ..
+      dockerfile: services/ai/Dockerfile
+    image: nice-wiki/ai:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    user: "0:0"
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/model-gateway.json:/config/model-gateway.json:ro
+      - ./config/qa.json:/config/qa.json:ro
+      - ./config/agent.json:/config/agent.json:ro
+      - ./config/memory.json:/config/memory.json:ro
+      - ./secrets/model-gateway:/run/secrets/model-gateway:ro
+      - ./secrets/qa:/run/secrets/qa:ro
+      - ./secrets/agent:/run/secrets/agent:ro
+      - ./secrets/memory:/run/secrets/memory:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - ai-data:/data
+      - ./secrets/master-key:/run/secrets/master-key:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  ops:
+    build:
+      context: ..
+      dockerfile: services/ops/Dockerfile
+    image: nice-wiki/ops:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    user: "0:0"
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/jobs.json:/config/jobs.json:ro
+      - ./config/analytics.json:/config/analytics.json:ro
+      - ./config/data-protection.json:/config/data-protection.json:ro
+      - ./config/traffic-guard.json:/config/traffic-guard.json:ro
+      - ./secrets/jobs:/run/secrets/jobs:ro
+      - ./secrets/analytics:/run/secrets/analytics:ro
+      - ./secrets/data-protection:/run/secrets/data-protection:ro
+      - ./secrets/traffic-guard:/run/secrets/traffic-guard:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - ops-data:/data
+      - ./secrets/master-key:/run/secrets/master-key:ro
+      - ./secrets/budget:/run/secrets/budget:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  knowledge:
+    build:
+      context: ..
+      dockerfile: modules/knowledge/Dockerfile
+    image: nice-wiki/knowledge:${NW_VERSION:-dev}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
+    volumes:
+      - ./config/knowledge.json:/config/knowledge.json:ro
+      - ./secrets/knowledge:/run/secrets/knowledge:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - knowledge-data:/data
+      - ./secrets/search/secret:/run/secrets/search-secret:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+
   portal:
     build:
       context: ..
@@ -22,281 +165,43 @@ services:
       NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
     volumes:
       - ./config/portal.json:/config/portal.json:ro
-      - ./secrets/portal/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/portal/signing.pem:/run/secrets/signing.pem:ro
+      - ./secrets/portal:/run/secrets/portal:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - portal-data:/data/portal
-      - ./secrets/portal/delegation-key.json:/run/secrets/delegation-key.json:ro
-      - ./secrets/portal/delegation.pem:/run/secrets/delegation.pem:ro
-      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
-      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - portal-data:/data
+      - ./secrets/budget:/run/secrets/budget:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      account: {condition: service_started}
+      content: {condition: service_started}
 
-  public-site:
+  search:
     build:
       context: ..
-      dockerfile: modules/public-site/Dockerfile
-    image: nice-wiki/public-site:${NW_VERSION:-dev}
+      dockerfile: rust/Dockerfile
+      target: search
+    image: nice-wiki/search:${NW_VERSION:-dev}
     restart: unless-stopped
     networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
     volumes:
-      - ./config/public-site.json:/config/public-site.json:ro
-      - ./secrets/public-site/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/public-site/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - public-site-data:/data/public-site
+      - ./config/search.json:/config/search.json:ro
+      - ./secrets/search/secret:/run/secrets/search-secret:ro
+      - ./secrets/database-url:/run/secrets/database-url:ro
+      - search-data:/data
+    depends_on:
+      postgres: {condition: service_healthy}
 
-  identity:
+  edge:
     build:
       context: ..
-      dockerfile: modules/identity/Dockerfile
-    image: nice-wiki/identity:${NW_VERSION:-dev}
+      dockerfile: rust/Dockerfile
+      target: edge
+    image: nice-wiki/edge:${NW_VERSION:-dev}
     restart: unless-stopped
     networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-      NW_ALLOW_LOCAL_HTTP: "false"
-      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
     volumes:
-      - ./config/identity.json:/config/identity.json:ro
-      - ./secrets/identity/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/identity/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - identity-data:/data/identity
-
-  site-config:
-    build:
-      context: ..
-      dockerfile: modules/site-config/Dockerfile
-    image: nice-wiki/site-config:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-      NW_ALLOW_LOCAL_HTTP: "false"
-      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
-    volumes:
-      - ./config/site-config.json:/config/site-config.json:ro
-      - ./secrets/site-config/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/site-config/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - site-config-data:/data/site-config
-
-  content:
-    build:
-      context: ..
-      dockerfile: modules/content/Dockerfile
-    image: nice-wiki/content:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/content.json:/config/content.json:ro
-      - ./secrets/content/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/content/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - content-data:/data/content
-
-  media:
-    build:
-      context: ..
-      dockerfile: modules/media/Dockerfile
-    image: nice-wiki/media:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/media.json:/config/media.json:ro
-      - ./secrets/media/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/media/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - media-data:/data/media
-
-  model-gateway:
-    build:
-      context: ..
-      dockerfile: modules/model-gateway/Dockerfile
-    image: nice-wiki/model-gateway:${NW_VERSION:-dev}
-    restart: unless-stopped
-    user: "0:0"
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/model-gateway.json:/config/model-gateway.json:ro
-      - ./secrets/model-gateway/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/model-gateway/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - model-gateway-data:/data/model-gateway
-      - ./secrets/model-gateway/master-key:/run/secrets/master-key:ro
-
-  knowledge:
-    build:
-      context: ..
-      dockerfile: modules/knowledge/Dockerfile
-    image: nice-wiki/knowledge:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/knowledge.json:/config/knowledge.json:ro
-      - ./secrets/knowledge/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/knowledge/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - knowledge-data:/data/knowledge
-
-  qa:
-    build:
-      context: ..
-      dockerfile: modules/qa/Dockerfile
-    image: nice-wiki/qa:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/qa.json:/config/qa.json:ro
-      - ./secrets/qa/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/qa/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - qa-data:/data/qa
-
-  localization:
-    build:
-      context: ..
-      dockerfile: modules/localization/Dockerfile
-    image: nice-wiki/localization:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/localization.json:/config/localization.json:ro
-      - ./secrets/localization/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/localization/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - localization-data:/data/localization
-
-  memory:
-    build:
-      context: ..
-      dockerfile: modules/memory/Dockerfile
-    image: nice-wiki/memory:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/memory.json:/config/memory.json:ro
-      - ./secrets/memory/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/memory/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - memory-data:/data/memory
-
-  traffic-guard:
-    build:
-      context: ..
-      dockerfile: modules/traffic-guard/Dockerfile
-    image: nice-wiki/traffic-guard:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/traffic-guard.json:/config/traffic-guard.json:ro
-      - ./secrets/traffic-guard/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/traffic-guard/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - traffic-guard-data:/data/traffic-guard
-      - ./secrets/budget/budget-key.json:/run/secrets/budget-key.json:ro
-      - ./secrets/budget/budget.pem:/run/secrets/budget.pem:ro
-
-  jobs:
-    build:
-      context: ..
-      dockerfile: modules/jobs/Dockerfile
-    image: nice-wiki/jobs:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/jobs.json:/config/jobs.json:ro
-      - ./secrets/jobs/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/jobs/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - jobs-data:/data/jobs
-
-  analytics:
-    build:
-      context: ..
-      dockerfile: modules/analytics/Dockerfile
-    image: nice-wiki/analytics:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/analytics.json:/config/analytics.json:ro
-      - ./secrets/analytics/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/analytics/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - analytics-data:/data/analytics
-
-  data-protection:
-    build:
-      context: ..
-      dockerfile: modules/data-protection/Dockerfile
-    image: nice-wiki/data-protection:${NW_VERSION:-dev}
-    restart: unless-stopped
-    user: "0:0"
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/data-protection.json:/config/data-protection.json:ro
-      - ./secrets/data-protection/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/data-protection/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - data-protection-data:/data/data-protection
-      - ./secrets/data-protection/master-key:/run/secrets/master-key:ro
-      - backups:/backups
-      - ./secrets:/backup-secrets:ro
-      - portal-data:/sources/portal:ro
-      - public-site-data:/sources/public-site:ro
-      - identity-data:/sources/identity:ro
-      - site-config-data:/sources/site-config:ro
-      - content-data:/sources/content:ro
-      - media-data:/sources/media:ro
-      - model-gateway-data:/sources/model-gateway:ro
-      - knowledge-data:/sources/knowledge:ro
-      - qa-data:/sources/qa:ro
-      - localization-data:/sources/localization:ro
-      - memory-data:/sources/memory:ro
-      - traffic-guard-data:/sources/traffic-guard:ro
-      - jobs-data:/sources/jobs:ro
-      - analytics-data:/sources/analytics:ro
-      - agent-data:/sources/agent:ro
-
-  agent:
-    build:
-      context: ..
-      dockerfile: modules/agent/Dockerfile
-    image: nice-wiki/agent:${NW_VERSION:-dev}
-    restart: unless-stopped
-    networks: [internal]
-    environment:
-      GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
-    volumes:
-      - ./config/agent.json:/config/agent.json:ro
-      - ./secrets/agent/signing-key.json:/run/secrets/signing-key.json:ro
-      - ./secrets/agent/signing.pem:/run/secrets/signing.pem:ro
-      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
-      - agent-data:/data/agent
+      - ./config/edge.json:/config/edge.json:ro
+    depends_on: [portal]
 
   caddy:
     image: caddy:2-alpine
@@ -308,28 +213,18 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy/conf.d:/etc/caddy/conf.d:ro
-      - ./secrets/tls:/run/tls:ro
       - caddy-data:/data
       - caddy-config:/config
-    depends_on: [portal]
+    depends_on: [edge]
 
 volumes:
-  portal-data:
-  public-site-data:
-  identity-data:
-  site-config-data:
+  postgres-data:
+  account-data:
   content-data:
-  media-data:
-  model-gateway-data:
+  ai-data:
+  ops-data:
   knowledge-data:
-  qa-data:
-  localization-data:
-  memory-data:
-  traffic-guard-data:
-  jobs-data:
-  analytics-data:
-  data-protection-data:
-  agent-data:
-  backups:
+  portal-data:
+  search-data:
   caddy-data:
   caddy-config:

@@ -253,8 +253,8 @@
       "permissions": [
         "backup.manage"
       ],
-      "labelZH": "备份恢复",
-      "labelEN": "Backup",
+      "labelZH": "数据与同步",
+      "labelEN": "Data & sync",
       "navigation": true
     },
     {"key": "sites", "path": "/admin/sites", "permissions": ["account.self"], "labelZH": "我的站点", "labelEN": "My sites", "navigation": true},
