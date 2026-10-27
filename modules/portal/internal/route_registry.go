@@ -438,8 +438,9 @@ type ProxyRequestInput struct {
 	ContentLength int64
 }
 type ProxyRequestResult struct {
-	Status int
-	Owner  string
+	Status    int
+	Owner     string
+	Operation string
 }
 type ReadRuntimeStateInput struct{}
 type ReadRuntimeStateResult struct {

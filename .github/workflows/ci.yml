@@ -63,3 +63,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
+
+  rust:
+    name: Rust 服务检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: 编译检查
+        working-directory: rust
+        run: cargo check --locked --workspace

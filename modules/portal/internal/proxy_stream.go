@@ -224,7 +224,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 	if _, err := StreamResponse(ctx, op, StreamResponseInput{Upstream: forwarded.Response, WriterHandle: platform.NewIdentifier(), Route: route, CurrentSessionID: currentSessionID}); err != nil {
 		return ProxyRequestResult{}, err
 	}
-	return ProxyRequestResult{Status: forwarded.Response.Status, Owner: route.Definition.Owner}, nil
+	return ProxyRequestResult{Status: forwarded.Response.Status, Owner: route.Definition.Owner, Operation: route.Definition.UpstreamOperationID}, nil
 }
 
 // ForwardRequest 只把路由解析结果拼接到受配置约束的依赖基址，禁止

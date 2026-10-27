@@ -20,8 +20,43 @@ concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
 
 jobs:
+  # Rust 的检索与入口服务：各架构在原生机器上编成 musl 静态程序（与 alpine 基础镜像一致），交给下面的发版任务装进镜像。
+  rust:
+    name: 编译 Rust 服务（${{ matrix.arch }}）
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
+      - name: 编译
+        working-directory: rust
+        run: cargo build --release --locked --target ${{ matrix.target }} -p nw-search -p nw-edge
+      - run: |
+          mkdir rust-out
+          cp rust/target/${{ matrix.target }}/release/nw-search rust/target/${{ matrix.target }}/release/nw-edge rust-out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-${{ matrix.arch }}
+          path: rust-out/*
+          if-no-files-found: error
+
   release:
     name: 构建并发布
+    needs: rust
     runs-on: ubuntu-latest
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
@@ -52,6 +87,15 @@ jobs:
           wait "$web" || { cat "$RUNNER_TEMP/web.log"; exit 1; }
           cat "$RUNNER_TEMP/web.log"
           test -f web-dist/index.html
+      - uses: actions/download-artifact@v5
+        with:
+          name: rust-amd64
+          path: release/linux-amd64
+      - uses: actions/download-artifact@v5
+        with:
+          name: rust-arm64
+          path: release/linux-arm64
+      - run: chmod +x release/linux-*/nw-search release/linux-*/nw-edge
       - name: 登录 ghcr.io
         run: |
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"

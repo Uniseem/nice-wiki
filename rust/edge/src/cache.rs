@@ -13,6 +13,8 @@ pub struct Entry {
     pub body: Bytes,
     pub expires: Instant,
     pub host: String,
+    /// 上游（portal）在响应头 X-Nw-Site 里标明的站点，按站点清缓存时用。
+    pub site: String,
 }
 
 /// 内存缓存：总字节数有上限，超出时按写入先后淘汰最旧的（简单、够用）。
@@ -75,6 +77,16 @@ impl Cache {
     pub fn purge_host(&self, host: &str) -> usize {
         let mut inner = self.inner.lock().unwrap();
         let keys: Vec<String> = inner.map.iter().filter(|(_, entry)| entry.host == host).map(|(key, _)| key.clone()).collect();
+        for key in &keys {
+            Self::remove(&mut inner, key);
+        }
+        keys.len()
+    }
+
+    /// 清掉某个站点的全部缓存页面（站点的任何域名下的），返回清掉的个数。
+    pub fn purge_site(&self, site: &str) -> usize {
+        let mut inner = self.inner.lock().unwrap();
+        let keys: Vec<String> = inner.map.iter().filter(|(_, entry)| entry.site == site).map(|(key, _)| key.clone()).collect();
         for key in &keys {
             Self::remove(&mut inner, key);
         }

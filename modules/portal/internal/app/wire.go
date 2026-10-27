@@ -91,6 +91,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		application.SetTLSAllow(tlsAllower(identityClient, view.DataEpoch))
 		application.SetPrivateRedeemer(privateRedeemer(identityClient, view.DataEpoch))
 	}
+	// 部署时 portal 前面有 edge（页面缓存）：发布等写入成功后通知它清这个站点的缓存。
+	application.SetEdgePurge(os.Getenv("NW_EDGE_PURGE_URL"), os.Getenv("NW_EDGE_PURGE_SECRET_FILE"))
 	budgetKey, err := lifecycle.LoadBudgetKey(config)
 	if err != nil {
 		return nil, err

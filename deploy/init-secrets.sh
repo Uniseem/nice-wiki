@@ -16,7 +16,7 @@ cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget/budget.pem"}\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
 for dir in deploy/secrets/*/; do
 	slug=$(basename "$dir")
-	case "$slug" in budget|postgres|search) continue ;; esac
+	case "$slug" in budget|postgres|search|edge) continue ;; esac
 	pem=$(ls "$dir"signing-*.pem | head -n1)
 	keyid=$(basename "$pem" .pem | sed 's/^signing-//')
 	cp "$pem" "$dir/signing.pem"
@@ -28,12 +28,13 @@ for dir in deploy/secrets/*/; do
 		printf '{"keyId":"%s","privateKeyRef":"/run/secrets/portal/delegation.pem"}\n' "$did" > "$dir/delegation-key.json"
 	fi
 done
-mkdir -p deploy/secrets/postgres deploy/secrets/search
+mkdir -p deploy/secrets/postgres deploy/secrets/search deploy/secrets/edge
 rand() { head -c 24 /dev/urandom | base64 | tr -d '=+/\n'; }
 [ -f deploy/secrets/master-key ] || head -c 32 /dev/urandom > deploy/secrets/master-key
 [ -f deploy/secrets/postgres/superuser-password ] || rand > deploy/secrets/postgres/superuser-password
 [ -f deploy/secrets/postgres/app-password ] || rand > deploy/secrets/postgres/app-password
 [ -f deploy/secrets/search/secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > deploy/secrets/search/secret
+[ -f deploy/secrets/edge/purge-secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > deploy/secrets/edge/purge-secret
 printf 'postgres://nw_app:%s@postgres:5432/nicewiki?sslmode=disable' "$(cat deploy/secrets/postgres/app-password)" > deploy/secrets/database-url
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户；主密钥与数据库口令只给 root。
 find deploy/secrets -type d -exec chmod 755 {} +

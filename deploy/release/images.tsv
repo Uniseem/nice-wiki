@@ -1,6 +1,8 @@
-account	10000	8102	/config
-content	10001	8103	/config
-ai	10002	8105	/config
-ops	10003	8111	/config
-portal	10004	8080	/
-knowledge	10005	8106	/config
+account	10000	8102	/config	account	--config-dir,/config
+content	10001	8103	/config	content	--config-dir,/config
+ai	10002	8105	/config	ai	--config-dir,/config
+ops	10003	8111	/config	ops	--config-dir,/config
+portal	10004	8080	/	portal	--config,/config/portal.json
+knowledge	10005	8106	/config	knowledge	--config,/config/knowledge.json
+search	10006	8120	/config	nw-search	/config/search.json
+edge	10007	8090	/config	nw-edge	/config/edge.json

@@ -145,6 +145,8 @@ services:
       GOMEMLIMIT: ${GOMEMLIMIT:-256MiB}
       NW_ALLOW_LOCAL_HTTP: "false"
       NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}
+      NW_EDGE_PURGE_URL: http://edge:8090
+      NW_EDGE_PURGE_SECRET_FILE: /run/secrets/edge-purge-secret
     volumes:
       - ./config/portal.json:/config/portal.json:ro
       - ./secrets/portal:/run/secrets/portal:ro
@@ -152,6 +154,7 @@ services:
       - ./secrets/database-url:/run/secrets/database-url:ro
       - portal-data:/data
       - ./secrets/budget:/run/secrets/budget:ro
+      - ./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro
     depends_on:
       postgres: {condition: service_healthy}
       account: {condition: service_started}
@@ -175,6 +178,7 @@ services:
     networks: [internal]
     volumes:
       - ./config/edge.json:/config/edge.json:ro
+      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro
     depends_on: [portal]
 
   caddy:

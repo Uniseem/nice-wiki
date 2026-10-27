@@ -32,13 +32,13 @@ build)
 	# 再按 CPU 数并行编其余的。直接全部并行时每个进程都会各自重编一遍共用依赖，反而更慢。任一失败整步失败。
 	export ROOT="$PWD"
 	one='cd "$ROOT/${1%/cmd/*}" && CGO_ENABLED=0 GOOS=linux GOARCH="$0" go build -trimpath -ldflags "-s -w" -o "$ROOT/release/linux-$0/${1##*/}" "./cmd/${1##*/}"'
-	first=modules/content/cmd/content
+	first=services/content/cmd/content
 	for arch in $arches; do
 		mkdir -p "release/linux-$arch"
 		echo "$arch $first"
 	done | xargs -P 2 -n 2 sh -c "$one"
 	for arch in $arches; do
-		for cmd in modules/*/cmd/* libs/platform/cmd/nw-keys; do
+		for cmd in services/*/cmd/* modules/portal/cmd/portal modules/knowledge/cmd/knowledge libs/platform/cmd/nw-keys; do
 			[ "$cmd" = "$first" ] || echo "$arch $cmd"
 		done
 	done | xargs -P "$(getconf _NPROCESSORS_ONLN)" -n 2 sh -c "$one"
@@ -48,12 +48,12 @@ images)
 	# 直接在镜像仓库里组装，不需要 docker 守护进程，也不用模拟 arm64。各服务互不依赖、耗时在网络上，全部并行推送。
 	work=$(mktemp -d)
 	image() {
-		slug="$1" uid="$2" port="$3" workdir="$4"
+		slug="$1" uid="$2" port="$3" workdir="$4" binary="$5" cmd="$6"
 		for arch in $arches; do
 			files="$work/$slug-$arch/files"
 			data="$work/$slug-$arch/data"
 			mkdir -p "$files/usr/local/bin" "$data/data/$slug"
-			cp "release/linux-$arch/$slug" "$files/usr/local/bin/$slug"
+			cp "release/linux-$arch/$binary" "$files/usr/local/bin/$binary"
 			set -- usr
 			env=""
 			base=alpine:3.20
@@ -64,7 +64,7 @@ images)
 				set -- usr web config
 				env="--env=NW_WEB_DIR=/web"
 			fi
-			if [ "$slug" = agent ]; then
+			if [ "$slug" = ai ]; then
 				mkdir -p "$files/opt/agent/licenses"
 				cp -R agent-dist/. "$files/opt/agent/"
 				cp -R docs/licenses/. "$files/opt/agent/licenses/"
@@ -76,7 +76,7 @@ images)
 			mktar 0 "$files" "$work/$slug-$arch-files.tar" "$@"
 			mktar "$uid" "$data" "$work/$slug-$arch-data.tar" data
 			crane append --platform "linux/$arch" -b "$base" -f "$work/$slug-$arch-files.tar" -f "$work/$slug-$arch-data.tar" -t "$images-$slug:$tag-$arch"
-			crane mutate "$images-$slug:$tag-$arch" --entrypoint="/usr/local/bin/$slug" --cmd="--config,/config/$slug.json" --user="$uid:$uid" --workdir="$workdir" --exposed-ports="$port/tcp" $env \
+			crane mutate "$images-$slug:$tag-$arch" --entrypoint="/usr/local/bin/$binary" --cmd="$cmd" --user="$uid:$uid" --workdir="$workdir" --exposed-ports="$port/tcp" $env \
 				--label=org.opencontainers.image.source=https://github.com/Uniseem/nice-wiki --label="org.opencontainers.image.version=$tag" --label=org.opencontainers.image.licenses=AGPL-3.0-only \
 				-t "$images-$slug:$tag-$arch"
 		done
@@ -84,8 +84,8 @@ images)
 		crane tag "$images-$slug:$tag" latest
 	}
 	pids=""
-	while IFS="$(printf '\t')" read -r slug uid port workdir; do
-		image "$slug" "$uid" "$port" "$workdir" &
+	while IFS="$(printf '\t')" read -r slug uid port workdir binary cmd; do
+		image "$slug" "$uid" "$port" "$workdir" "$binary" "$cmd" &
 		pids="$pids $!"
 	done <deploy/release/images.tsv
 	failed=0
@@ -106,12 +106,13 @@ package)
 		cp -R "release/linux-$arch" "$root/bin"
 		cp -R web-dist "$root/web"
 		cp -R agent-dist "$root/agent"
+		# nw-search、nw-edge 是 Rust 程序（工作流里按架构原生编译），随 bin 一起放进包里。
 		cp modules/portal/config/routes.json "$root/config/routes.json"
-		cp -R deploy/config deploy/caddy "$root/deploy/"
+		cp -R deploy/config deploy/caddy deploy/postgres "$root/deploy/"
 		# 本机生成的公钥表和 Caddy 本地定制不属于发布包（CI 的干净检出里本来就没有）。
 		rm -f "$root/deploy/config/trust-anchors.json"
 		find "$root/deploy/caddy/conf.d" -type f ! -name README.md -exec rm -f {} +
-		cp deploy/init-secrets.sh deploy/backup.sh deploy/restore.sh deploy/restore-archive.sh "$root/deploy/"
+		cp deploy/init-secrets.sh deploy/backup.sh deploy/restore.sh "$root/deploy/"
 		cp deploy/release/docker-compose.yml "$root/deploy/docker-compose.yml"
 		sed "s/^NW_VERSION=.*/NW_VERSION=$tag/" deploy/.env.example >"$root/deploy/.env.example"
 		cp deploy/release/README.md "$root/README.md"

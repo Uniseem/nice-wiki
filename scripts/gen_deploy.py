@@ -196,10 +196,11 @@ def compose(release=False):
     lines += app("ai", HOSTS["ai"], user="0:0")
     lines += app("ops", HOSTS["ops"], user="0:0")
     lines += app("knowledge", ["knowledge"], extra_volumes=["./secrets/search/secret:/run/secrets/search-secret:ro"])
-    lines += app("portal", ["portal"], extra_env=public, depends=("postgres", "account", "content"))
+    lines += app("portal", ["portal"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret"},
+                 extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], depends=("postgres", "account", "content"))
     lines += ["  search:"] + image("search", "rust/Dockerfile", "search") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/search.json:/config/search.json:ro",
               "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
-    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "    depends_on: [portal]", ""]
+    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "    depends_on: [portal]", ""]
     lines += ["  caddy:", "    image: caddy:2-alpine", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - caddy-data:/data", "      - caddy-config:/config",
@@ -266,7 +267,7 @@ cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget/budget.pem"}\\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
 for dir in deploy/secrets/*/; do
 	slug=$(basename "$dir")
-	case "$slug" in budget|postgres|search) continue ;; esac
+	case "$slug" in budget|postgres|search|edge) continue ;; esac
 	pem=$(ls "$dir"signing-*.pem | head -n1)
 	keyid=$(basename "$pem" .pem | sed 's/^signing-//')
 	cp "$pem" "$dir/signing.pem"
@@ -278,12 +279,13 @@ for dir in deploy/secrets/*/; do
 		printf '{"keyId":"%s","privateKeyRef":"/run/secrets/portal/delegation.pem"}\\n' "$did" > "$dir/delegation-key.json"
 	fi
 done
-mkdir -p deploy/secrets/postgres deploy/secrets/search
+mkdir -p deploy/secrets/postgres deploy/secrets/search deploy/secrets/edge
 rand() { head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'; }
 [ -f deploy/secrets/master-key ] || head -c 32 /dev/urandom > deploy/secrets/master-key
 [ -f deploy/secrets/postgres/superuser-password ] || rand > deploy/secrets/postgres/superuser-password
 [ -f deploy/secrets/postgres/app-password ] || rand > deploy/secrets/postgres/app-password
 [ -f deploy/secrets/search/secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/search/secret
+[ -f deploy/secrets/edge/purge-secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/edge/purge-secret
 printf 'postgres://nw_app:%s@postgres:5432/nicewiki?sslmode=disable' "$(cat deploy/secrets/postgres/app-password)" > deploy/secrets/database-url
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户；主密钥与数据库口令只给 root。
 find deploy/secrets -type d -exec chmod 755 {} +
@@ -382,12 +384,14 @@ def main():
     for slug in PORTS:
         write(f"deploy/config/{slug}.json", json.dumps(component_config(slug), indent=2, ensure_ascii=False) + "\n")
     write("deploy/config/search.json", json.dumps({"listen": f"0.0.0.0:{SEARCH_PORT}", "dataDir": "/data/index", "secretFile": "/run/secrets/search-secret", "databaseUrlFile": "/run/secrets/database-url"}, indent=2) + "\n")
-    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "portal:8080", "trustForwarded": True}, indent=2) + "\n")
+    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "portal:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret"}, indent=2) + "\n")
     write("deploy/config/services.json", json.dumps({"version": 1, "services": [
         {"slug": s, "url": f"http://{PROCESS_OF[s]}:{p}", "port": p, "dataVolume": f"/data/{s}", "secretsDir": f"deploy/secrets/{s}"} for s, p in PORTS.items()]}, indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
     write("deploy/release/docker-compose.yml", compose(release=True))
-    write("deploy/release/images.tsv", "".join(f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t{'/' if p == 'portal' else '/config'}\n" for p in PROCESSES))
+    rows = [f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t{'/' if p == 'portal' else '/config'}\t{p}\t" + ("--config-dir,/config" if p in HOSTS else f"--config,/config/{p}.json") for p in PROCESSES]
+    rows += [f"search\t{UIDS['search']}\t{SEARCH_PORT}\t/config\tnw-search\t/config/search.json", f"edge\t{UIDS['edge']}\t{EDGE_PORT}\t/config\tnw-edge\t/config/edge.json"]
+    write("deploy/release/images.tsv", "\n".join(rows) + "\n")
     write("deploy/release/README.md", RELEASE_README)
     write("deploy/caddy/Caddyfile", CADDYFILE)
     write("deploy/postgres/init/01-app-role.sh", POSTGRES_INIT, 0o755)

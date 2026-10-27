@@ -36,34 +36,36 @@ const (
 )
 
 type Application struct {
-	tlsAllow           func(context.Context, string) (bool, error)
-	redeemPrivate      func(context.Context, platform.Identifier, string) error
-	hostMu             sync.Mutex
-	hostCache          map[string]hostEntry
-	resolveHost        func(context.Context, string) (HostSite, bool, error)
-	siteMu             sync.Mutex
-	siteID             platform.Identifier
-	budgetKey          platform.SigningKey
-	countries          *geoip.Countries
-	loadSite           func(context.Context) (platform.Identifier, error)
-	webDir             string
-	validateBeaconBody func(json.RawMessage) error
-	config             platform.ServiceConfig
-	anchors            platform.TrustAnchors
-	signingKey         platform.SigningKey
-	delegationKey      platform.SigningKey
-	runtime            portal.RuntimeReader
-	identity           portal.IdentityVerifier
-	authResolver       portal.AuthResolver
-	registry           portal.RouteRegistry
-	openedEpoch        platform.Identifier
-	localHandlersReady bool
-	gate               *portal.Gate
-	state              atomic.Int32
-	serveStarted       atomic.Bool
-	shutdownOnce       sync.Once
-	shutdownErr        error
-	httpServer         *http.Server
+	edgePurgeURL        string
+	edgePurgeSecretFile string
+	tlsAllow            func(context.Context, string) (bool, error)
+	redeemPrivate       func(context.Context, platform.Identifier, string) error
+	hostMu              sync.Mutex
+	hostCache           map[string]hostEntry
+	resolveHost         func(context.Context, string) (HostSite, bool, error)
+	siteMu              sync.Mutex
+	siteID              platform.Identifier
+	budgetKey           platform.SigningKey
+	countries           *geoip.Countries
+	loadSite            func(context.Context) (platform.Identifier, error)
+	webDir              string
+	validateBeaconBody  func(json.RawMessage) error
+	config              platform.ServiceConfig
+	anchors             platform.TrustAnchors
+	signingKey          platform.SigningKey
+	delegationKey       platform.SigningKey
+	runtime             portal.RuntimeReader
+	identity            portal.IdentityVerifier
+	authResolver        portal.AuthResolver
+	registry            portal.RouteRegistry
+	openedEpoch         platform.Identifier
+	localHandlersReady  bool
+	gate                *portal.Gate
+	state               atomic.Int32
+	serveStarted        atomic.Bool
+	shutdownOnce        sync.Once
+	shutdownErr         error
+	httpServer          *http.Server
 }
 
 func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, signingKey platform.SigningKey, delegationKey platform.SigningKey, runtime portal.RuntimeReader, identity portal.IdentityVerifier, authResolver portal.AuthResolver, registry portal.RouteRegistry, openedEpoch platform.Identifier, siteID platform.Identifier) (*Application, error) {
@@ -245,6 +247,10 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	if resolved, ok := a.hostSite(r); ok && resolved.PrimaryHost != "" {
 		hostSiteID = resolved.SiteID
 	}
+	// 公开页响应带上站点标记，edge 据此按站点清缓存（edge 不会把它交给浏览器）。
+	if r.Method == http.MethodGet && site != "" && site != "system" {
+		w.Header().Set("X-Nw-Site", string(site))
+	}
 	runtime := &portal.ProxyRuntime{
 		SiteID: site, HostSiteID: hostSiteID, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
@@ -268,6 +274,10 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if result.Status == 0 {
 		writeProblem(w, platform.NewError(platform.CodeInternal, false, "入口未取得响应状态"))
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && result.Status < 300 && purgeOperations[result.Owner+":"+result.Operation] {
+		a.purgeEdge(a.targetSiteOf(r, string(hostSiteID)))
 	}
 }
 

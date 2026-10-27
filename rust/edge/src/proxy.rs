@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::{IpAddr, SocketAddr};
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll};
 use std::time::Duration;
 
 use bytes::Bytes;
-use http_body_util::{combinators::BoxBody, BodyExt, Full, Limited};
-use hyper::body::Incoming;
+use http_body_util::{combinators::BoxBody, BodyExt, Full};
+use hyper::body::{Body as HttpBody, Frame, Incoming};
 use hyper::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::client::legacy::connect::HttpConnector;
@@ -126,12 +128,12 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
     let host = host_of(request.headers());
     let cache_it = matches!(method, Method::GET | Method::HEAD) && cacheable_path(&path, query.as_deref()) && !has_session(request.headers());
     if !cache_it {
-        return Ok(forward(state, peer, request).await?.map(|body| body.boxed()));
+        return Ok(passthrough(forward(state, peer, request).await?));
     }
     let language = request.headers().get(header::ACCEPT_LANGUAGE).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
     let cookie = request.headers().get(header::COOKIE).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
     if cookie.len() > 200 {
-        return Ok(forward(state, peer, request).await?.map(|body| body.boxed()));
+        return Ok(passthrough(forward(state, peer, request).await?));
     }
     let key = format!("{host}|{path}|{}|{language}|{cookie}", query.as_deref().unwrap_or_default());
     if let Some(entry) = state.cache.get(&key) {
@@ -153,24 +155,86 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
         if let Some(entry) = state.cache.get(&key) {
             return Ok(from_entry(entry, &method, "HIT"));
         }
-        return Ok(forward(state, peer, request).await?.map(|body| body.boxed()));
+        return Ok(passthrough(forward(state, peer, request).await?));
     }
     let _flight = Flight { state: state.clone(), key: key.clone() };
     let response = forward(state, peer, request).await?;
-    let (parts, body) = response.into_parts();
+    let (mut parts, body) = response.into_parts();
     if let Some(ttl) = ttl_for(state, &path, &parts.status, &parts.headers) {
+        let max = state.config.max_object_bytes;
         let length = parts.headers.get(header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<usize>().ok());
-        if length.map(|n| n <= state.config.max_object_bytes).unwrap_or(false) {
-            let collected = Limited::new(body, state.config.max_object_bytes).collect().await.map_err(|e| anyhow::anyhow!("读取上游响应失败：{e}"))?.to_bytes();
-            let mut headers = HeaderMap::new();
-            copy_headers(&parts.headers, &mut headers);
-            headers.remove(header::CONTENT_LENGTH);
-            let entry = Entry { status: parts.status, headers: headers.into_iter().filter_map(|(name, value)| name.map(|n| (n, value))).collect(), body: collected, expires: std::time::Instant::now(), host };
-            state.cache.put(key, entry.clone(), ttl);
-            return Ok(from_entry(entry, &method, "MISS"));
+        // 上游（portal）的页面是分块传输、没有 Content-Length：先攒到上限，攒得下就缓存，攒不下就把已读的部分接上剩余的继续流式转发。
+        let gathered = match length {
+            Some(n) if n > max => Gathered::Skip(body.boxed()),
+            _ => gather(body, max).await?,
+        };
+        match gathered {
+            Gathered::Full(collected) => {
+                let mut headers = HeaderMap::new();
+                copy_headers(&parts.headers, &mut headers);
+                headers.remove(header::CONTENT_LENGTH);
+                headers.remove(header::TRANSFER_ENCODING);
+                let site = headers.remove("x-nw-site").and_then(|v| v.to_str().ok().map(str::to_owned)).unwrap_or_default();
+                let entry = Entry { status: parts.status, headers: headers.into_iter().filter_map(|(name, value)| name.map(|n| (n, value))).collect(), body: collected, expires: std::time::Instant::now(), host, site };
+                state.cache.put(key, entry.clone(), ttl);
+                return Ok(from_entry(entry, &method, "MISS"));
+            }
+            Gathered::Skip(rest) => {
+                parts.headers.remove("x-nw-site");
+                return Ok(Response::from_parts(parts, rest));
+            }
         }
     }
+    parts.headers.remove("x-nw-site");
     Ok(Response::from_parts(parts, body.boxed()))
+}
+
+enum Gathered {
+    Full(Bytes),
+    Skip(Body),
+}
+
+/// 把响应体最多攒到 max 字节；攒不下时返回“已读部分 + 剩余”的流，调用方原样转发。
+async fn gather(mut body: Incoming, max: usize) -> anyhow::Result<Gathered> {
+    let mut buffer = bytes::BytesMut::new();
+    loop {
+        match body.frame().await {
+            None => return Ok(Gathered::Full(buffer.freeze())),
+            Some(Err(error)) => return Err(anyhow::anyhow!("读取上游响应失败：{error}")),
+            Some(Ok(frame)) => {
+                let Ok(data) = frame.into_data() else { continue };
+                if buffer.len() + data.len() > max {
+                    buffer.extend_from_slice(&data);
+                    return Ok(Gathered::Skip(Replay { prefix: Some(buffer.freeze()), rest: body }.boxed()));
+                }
+                buffer.extend_from_slice(&data);
+            }
+        }
+    }
+}
+
+/// 先吐出已经读出的前缀，再接着读剩余的响应体。
+struct Replay {
+    prefix: Option<Bytes>,
+    rest: Incoming,
+}
+
+impl HttpBody for Replay {
+    type Data = Bytes;
+    type Error = hyper::Error;
+
+    fn poll_frame(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Bytes>, hyper::Error>>> {
+        if let Some(prefix) = self.prefix.take() {
+            return Poll::Ready(Some(Ok(Frame::data(prefix))));
+        }
+        Pin::new(&mut self.rest).poll_frame(cx)
+    }
+}
+/// 不缓存的响应原样透传（流式），只去掉入口内部用的站点标记头。
+fn passthrough(response: Response<Incoming>) -> Response<Body> {
+    let (mut parts, body) = response.into_parts();
+    parts.headers.remove("x-nw-site");
+    Response::from_parts(parts, body.boxed())
 }
 
 /// 离开作用域时（无论成功失败）通知等待者。
@@ -255,11 +319,16 @@ fn purge(state: &State, request: &Request<Incoming>) -> Response<Body> {
     if supplied.len() != secret.len() || supplied.iter().zip(secret.iter()).fold(0u8, |acc, (a, b)| acc | (a ^ b)) != 0 {
         return text(StatusCode::UNAUTHORIZED, "unauthorized");
     }
-    let host = request.uri().query().and_then(|q| q.split('&').find_map(|pair| pair.strip_prefix("host="))).unwrap_or_default().to_ascii_lowercase();
-    if host.is_empty() {
-        return text(StatusCode::BAD_REQUEST, "missing host");
-    }
-    let count = state.cache.purge_host(&host);
+    let query = request.uri().query().unwrap_or_default();
+    let param = |name: &str| query.split('&').find_map(|pair| pair.strip_prefix(name)).unwrap_or_default().to_ascii_lowercase();
+    let (host, site) = (param("host="), param("site="));
+    let count = if !site.is_empty() {
+        state.cache.purge_site(&site)
+    } else if !host.is_empty() {
+        state.cache.purge_host(&host)
+    } else {
+        return text(StatusCode::BAD_REQUEST, "missing host or site");
+    };
     let (entries, bytes) = state.cache.stats();
     let body = format!("{{\"purged\":{count},\"entries\":{entries},\"bytes\":{bytes}}}");
     let mut response = Response::new(Full::new(Bytes::from(body)).map_err(|never| match never {}).boxed());
