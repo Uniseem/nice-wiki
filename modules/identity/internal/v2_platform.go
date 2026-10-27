@@ -249,6 +249,9 @@ func SetUserStatus(ctx context.Context, op OperationContext, input SetUserStatus
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET status=?, revision=revision+1, permission_revision=permission_revision+1, updated_at=? WHERE account_id=?`, status, platform.Now(), accountID); err != nil {
 		return gen.UserResult{}, identityDBError()
 	}
+	if err := setOwnerSitesSuspended(ctx, tx, op.DataEpoch, input.UserID, input.Body.Status == gen.SetUserStatusInputStatusDisabled); err != nil {
+		return gen.UserResult{}, err
+	}
 	if err := tx.Commit(); err != nil {
 		return gen.UserResult{}, identityDBError()
 	}
@@ -318,7 +321,7 @@ func SetSiteStatus(ctx context.Context, op OperationContext, input SetSiteStatus
 		return gen.AdminSiteResult{}, identityDBError()
 	}
 	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `UPDATE sites SET status=?, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted' AND status<>?`,
+	result, err := tx.ExecContext(ctx, `UPDATE sites SET status=?, suspended_with_owner=0, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted' AND status<>?`,
 		string(input.Body.Status), platform.Now(), input.SiteID, string(input.Body.Status))
 	if err != nil {
 		return gen.AdminSiteResult{}, identityDBError()
@@ -442,14 +445,20 @@ func ResolveReport(ctx context.Context, op OperationContext, input ResolveReport
 			return gen.ReportResult{}, platform.NewError(platform.CodeNotFound, false, "站点不存在")
 		}
 		status = "takedown"
-		affected := []string{report.SiteId}
-		if input.Body.Action == "ban_owner" {
-			status = "banned"
-			if affected, err = ownedSites(ctx, tx, ownerID, "active"); err != nil {
+		// 被举报的站点不打连带标记：之后恢复所有者也不会放回它。
+		changed, err := tx.ExecContext(ctx, `UPDATE sites SET status='suspended', suspended_with_owner=0, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted'`, platform.Now(), report.SiteId)
+		if err != nil {
+			return gen.ReportResult{}, identityDBError()
+		}
+		if n, _ := changed.RowsAffected(); n > 0 {
+			if err := announceSite(ctx, tx, op.DataEpoch, report.SiteId); err != nil {
 				return gen.ReportResult{}, err
 			}
-			if _, err := tx.ExecContext(ctx, `UPDATE sites SET status='suspended', revision=revision+1, updated_at=? WHERE owner_user_id=? AND status='active'`, platform.Now(), ownerID); err != nil {
-				return gen.ReportResult{}, identityDBError()
+		}
+		if input.Body.Action == "ban_owner" {
+			status = "banned"
+			if err := setOwnerSitesSuspended(ctx, tx, op.DataEpoch, ownerID, true); err != nil {
+				return gen.ReportResult{}, err
 			}
 			if _, err := tx.ExecContext(ctx, `UPDATE users SET status='disabled', updated_at=? WHERE user_id=?`, platform.Now(), ownerID); err != nil {
 				return gen.ReportResult{}, identityDBError()
@@ -457,13 +466,6 @@ func ResolveReport(ctx context.Context, op OperationContext, input ResolveReport
 			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET status='disabled', revision=revision+1, permission_revision=permission_revision+1, updated_at=?
                 WHERE account_id=(SELECT account_id FROM users WHERE user_id=?) AND is_superadmin=0`, platform.Now(), ownerID); err != nil {
 				return gen.ReportResult{}, identityDBError()
-			}
-		} else if _, err := tx.ExecContext(ctx, `UPDATE sites SET status='suspended', revision=revision+1, updated_at=? WHERE site_id=?`, platform.Now(), report.SiteId); err != nil {
-			return gen.ReportResult{}, identityDBError()
-		}
-		for _, site := range affected {
-			if err := announceSite(ctx, tx, op.DataEpoch, site); err != nil {
-				return gen.ReportResult{}, err
 			}
 		}
 		if err := tx.Commit(); err != nil {

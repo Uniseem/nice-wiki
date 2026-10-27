@@ -55,22 +55,37 @@ func announceSite(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier
 	return publishSiteEvent(tx, siteChangedEvent, dataEpoch, siteID, status, revision)
 }
 
-// ownedSites 列出某用户名下处于某状态的站点。
-func ownedSites(ctx context.Context, q sqlQuerier, ownerID, status string) ([]string, error) {
-	rows, err := q.QueryContext(ctx, `SELECT site_id FROM sites WHERE owner_user_id=? AND status=?`, ownerID, status)
-	if err != nil {
-		return nil, identityDBError()
+// setOwnerSitesSuspended 停用用户时下架其全部上线站点并打标记；恢复用户时只放回带标记的站点，与用户状态变化同一事务。
+func setOwnerSitesSuspended(ctx context.Context, tx *sql.Tx, dataEpoch platform.Identifier, ownerID string, suspend bool) error {
+	query := `SELECT site_id FROM sites WHERE owner_user_id=? AND status='active'`
+	update := `UPDATE sites SET status='suspended', suspended_with_owner=1, revision=revision+1, updated_at=? WHERE site_id=?`
+	if !suspend {
+		query = `SELECT site_id FROM sites WHERE owner_user_id=? AND status='suspended' AND suspended_with_owner=1`
+		update = `UPDATE sites SET status='active', suspended_with_owner=0, revision=revision+1, updated_at=? WHERE site_id=?`
 	}
-	defer rows.Close()
+	rows, err := tx.QueryContext(ctx, query, ownerID)
+	if err != nil {
+		return identityDBError()
+	}
 	var sites []string
 	for rows.Next() {
 		var site string
 		if err := rows.Scan(&site); err != nil {
-			return nil, identityDBError()
+			rows.Close()
+			return identityDBError()
 		}
 		sites = append(sites, site)
 	}
-	return sites, nil
+	rows.Close()
+	for _, site := range sites {
+		if _, err := tx.ExecContext(ctx, update, platform.Now(), site); err != nil {
+			return identityDBError()
+		}
+		if err := announceSite(ctx, tx, dataEpoch, site); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // purgeAt 是已删除站点的清除时间。

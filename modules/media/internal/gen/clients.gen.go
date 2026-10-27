@@ -310,6 +310,11 @@ func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
 }
 
+// ReadSiteStoragePolicy GET /v1/sites/{siteId}/storage-policy（identity:readSiteStoragePolicy）。
+func (c *IdentityClient) ReadSiteStoragePolicy(ctx context.Context, siteId string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/sites/"+url.PathEscape(siteId)+"/storage-policy", nil, "")
+}
+
 // JobsClient 调用jobs服务（自动附服务断言）。
 type JobsClient struct{ *producerClient }
 

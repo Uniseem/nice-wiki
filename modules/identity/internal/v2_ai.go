@@ -302,6 +302,38 @@ func ReadSiteAiPolicy(ctx context.Context, op OperationContext, input SiteRef) (
 	return policy, nil
 }
 
+// ReadSiteStoragePolicy 告诉 media：这个站点的所有者存储上限多少、名下有哪些站点，media 按这些站点合计用量。
+func ReadSiteStoragePolicy(ctx context.Context, op OperationContext, input SiteRef) (gen.SiteStoragePolicy, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.SiteStoragePolicy{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	policy := gen.SiteStoragePolicy{SiteId: input.SiteID, SiteIds: []string{}}
+	var storage int64
+	err := store.db.QueryRowContext(ctx, `SELECT s.owner_user_id,l.storage_bytes FROM sites s JOIN user_limits l ON l.user_id=s.owner_user_id WHERE s.site_id=? AND s.status<>'deleted'`, input.SiteID).
+		Scan(&policy.OwnerUserId, &storage)
+	if errors.Is(err, sql.ErrNoRows) {
+		return policy, platform.NewError(platform.CodeNotFound, false, "站点不存在")
+	}
+	if err != nil {
+		return policy, identityDBError()
+	}
+	policy.StorageBytes = int(storage)
+	rows, err := store.db.QueryContext(ctx, `SELECT site_id FROM sites WHERE owner_user_id=? AND status<>'deleted'`, policy.OwnerUserId)
+	if err != nil {
+		return policy, identityDBError()
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return policy, identityDBError()
+		}
+		policy.SiteIds = append(policy.SiteIds, id)
+	}
+	return policy, nil
+}
+
 // NoteVisitorQaCap 记录站点当天访客提问已达上限（站点所有者在后台能看到“今天已暂停”）。
 func NoteVisitorQaCap(ctx context.Context, op OperationContext, input SiteRef) (gen.OkResult, error) {
 	store, ok := identityStoreFromContext(ctx)

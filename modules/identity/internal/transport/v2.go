@@ -119,6 +119,7 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	handlers["redeemAiCode"] = jsonOperation(a, identity.RedeemAiCode)
 	handlers["readMyAi"] = jsonOperation(a, identity.ReadMyAi)
 	handlers["readSiteAiPolicy"] = v2Operation(a, identity.ReadSiteAiPolicy, site)
+	handlers["readSiteStoragePolicy"] = v2Operation(a, identity.ReadSiteStoragePolicy, site)
 	handlers["noteVisitorQaCap"] = v2Operation(a, identity.NoteVisitorQaCap, site)
 	handlers["submitReport"] = jsonOperation(a, identity.SubmitReport)
 	handlers["listReports"] = jsonOperation(a, identity.ListReports)

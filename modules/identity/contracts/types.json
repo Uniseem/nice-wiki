@@ -3848,6 +3848,37 @@
       ],
       "x-v2": true
     },
+    "SiteStoragePolicy": {
+      "type": "object",
+      "description": "站点所有者的存储上限和名下站点（不含已删除的）；只给 media，用来按用户合计存储用量",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "ownerUserId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "storageBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "siteIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "siteId",
+        "ownerUserId",
+        "storageBytes",
+        "siteIds"
+      ],
+      "x-v2": true
+    },
     "StartDriveAuthInput": {
       "type": "object",
       "description": "为备份目标发起网盘授权",

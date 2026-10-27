@@ -62,6 +62,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := mediaDomain.InstallSiteConfigReader(siteConfig); err != nil {
 		return nil, err
 	}
+	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
+	mediaDomain.InstallStoragePolicyReader(identity)
 	view, err := lifecycle.ReadRuntime(ctx, runtimeClient)
 	if err != nil {
 		return nil, err
@@ -113,7 +115,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err := mediaDomain.RecoverUploadChunks(system, startup); err != nil {
 		return nil, err
 	}
-	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	application, err := transport.NewApplication(config, anchors, runtimeClient, view.DataEpoch, apivalidate.NewIdentityAuthorizer(identity))
 	if err != nil {
 		return nil, err

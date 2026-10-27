@@ -54,6 +54,9 @@ type uploadQuota struct {
 	MaxUploadBytes       int
 	SiteStorageBytes     int64
 	MaxUploadConcurrency int
+	// OwnerStorageBytes 是站点所有者的存储上限，由名下 OwnerSites 共用。
+	OwnerStorageBytes int64
+	OwnerSites        []string
 }
 
 const (
@@ -509,6 +512,30 @@ func (s *localBlobStore) replayBeginUpload(ctx context.Context, op OperationCont
 	return result, true, nil
 }
 
+// ownerStorageUsed 合计所有者名下各站点已占用和正在上传的字节数；跨站点读取，用系统视角。
+// 调用方持有 s.mu，同一进程内的上传按顺序检查；不能在已开的事务里调用。
+func (s *localBlobStore) ownerStorageUsed(ctx context.Context, sites []string) (int64, error) {
+	if len(sites) == 0 {
+		return 0, nil
+	}
+	marks := strings.TrimSuffix(strings.Repeat("?,", len(sites)), ",")
+	args := make([]any, 0, 2*len(sites))
+	for _, site := range sites {
+		args = append(args, site)
+	}
+	for _, site := range sites {
+		args = append(args, site)
+	}
+	var used int64
+	err := s.db.QueryRowContext(pgdb.WithSite(ctx, ""), `SELECT
+        (SELECT COALESCE(SUM(byte_size),0) FROM assets WHERE state='ready' AND site_id IN (`+marks+`)) +
+        (SELECT COALESCE(SUM(expected_bytes),0) FROM upload_sessions WHERE state IN ('receiving','blocked') AND site_id IN (`+marks+`))`, args...).Scan(&used)
+	if err != nil {
+		return 0, mapMediaDBError(err, "读取用户存储用量失败")
+	}
+	return used, nil
+}
+
 func (s *localBlobStore) CreateUpload(ctx context.Context, op OperationContext, session gen.UploadSession, quota uploadQuota, requestHash Hash) (gen.UploadSession, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -521,6 +548,14 @@ func (s *localBlobStore) CreateUpload(ctx context.Context, op OperationContext, 
 		return gen.UploadSession{}, err
 	}
 	defer cancel()
+	// 跨站点合计要在开事务前做：连接池只有一条连接，事务占着时再查会一直等。
+	ownerUsed, err := s.ownerStorageUsed(work, quota.OwnerSites)
+	if err != nil {
+		return gen.UploadSession{}, err
+	}
+	if ownerUsed > quota.OwnerStorageBytes-int64(session.ExpectedBytes) {
+		return gen.UploadSession{}, platform.NewError(platform.CodeConflict, false, "用户存储空间已满")
+	}
 	tx, err := s.db.BeginTx(work, nil)
 	if err != nil {
 		return gen.UploadSession{}, mapMediaDBError(err, "开始上传会话事务失败")

@@ -28,6 +28,11 @@ type siteConfigReader interface {
 	ReadSiteConfig(ctx context.Context) (json.RawMessage, error)
 }
 
+// storagePolicyReader 是 identity 的 readSiteStoragePolicy：站点所有者的存储上限和名下站点。
+type storagePolicyReader interface {
+	ReadSiteStoragePolicy(ctx context.Context, siteId string) (json.RawMessage, error)
+}
+
 type uploadSessionStore interface {
 	CreateUpload(ctx context.Context, op OperationContext, session gen.UploadSession, quota uploadQuota, requestHash Hash) (gen.UploadSession, error)
 	ReadUpload(ctx context.Context, uploadID Identifier) (gen.UploadSession, Identifier, error)
@@ -36,6 +41,7 @@ type uploadSessionStore interface {
 
 var (
 	activeSiteConfigReader   siteConfigReader
+	activeStoragePolicy      storagePolicyReader
 	activeSiteConfigReaderMu sync.RWMutex
 )
 
@@ -49,6 +55,13 @@ func InstallSiteConfigReader(reader siteConfigReader) error {
 	activeSiteConfigReader = reader
 	activeSiteConfigReaderMu.Unlock()
 	return nil
+}
+
+// InstallStoragePolicyReader 装配 identity 客户端：上传时按所有者名下全部站点合计存储用量。
+func InstallStoragePolicyReader(reader storagePolicyReader) {
+	activeSiteConfigReaderMu.Lock()
+	activeStoragePolicy = reader
+	activeSiteConfigReaderMu.Unlock()
 }
 
 func currentSiteConfigReader() siteConfigReader {
@@ -113,6 +126,25 @@ func BeginUpload(ctx context.Context, op OperationContext, input BeginUploadInpu
 	if err != nil {
 		return BeginUploadResult{}, err
 	}
+	activeSiteConfigReaderMu.RLock()
+	policyReader := activeStoragePolicy
+	activeSiteConfigReaderMu.RUnlock()
+	if policyReader == nil {
+		return BeginUploadResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "用户存储上限未装配")
+	}
+	raw, err := policyReader.ReadSiteStoragePolicy(quotaCtx, string(op.Actor.SiteID))
+	if err != nil {
+		return BeginUploadResult{}, mapBlobStoreError(err, "读取用户存储上限失败")
+	}
+	var policy struct {
+		SiteId       string   `json:"siteId"`
+		StorageBytes int64    `json:"storageBytes"`
+		SiteIds      []string `json:"siteIds"`
+	}
+	if json.Unmarshal(raw, &policy) != nil || policy.SiteId != string(op.Actor.SiteID) {
+		return BeginUploadResult{}, platform.NewError(platform.CodeIntegrityError, false, "用户存储上限响应不合法")
+	}
+	quota.OwnerStorageBytes, quota.OwnerSites = policy.StorageBytes, policy.SiteIds
 	session := gen.UploadSession{ExpectedBytes: input.ByteSize, ExpectedSha256: input.Sha256, ExpiresAt: time.Now().UTC().Add(24 * time.Hour), Kind: gen.UploadSessionKind(input.Kind), OriginalName: name.SafeName, ReceivedBytes: 0, Revision: 0, SiteId: op.Actor.SiteID, State: gen.Receiving, UploadId: platform.NewIdentifier()}
 	created, err := store.CreateUpload(ctx, op, session, quota, requestHash)
 	return BeginUploadResult{Upload: created}, err
