@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -185,7 +186,7 @@ func (Driver) openConnector(name string) (driver.Connector, error) {
 	if err := ensureSchema(ctx, config, schema); err != nil {
 		return nil, err
 	}
-	loadSingletons(ctx, config, c.module, schema)
+	loadTables(ctx, config, c.module, schema)
 	config = config.Copy()
 	config.RuntimeParams["search_path"] = quoteIdent(schema) + ",public"
 	config.RuntimeParams["application_name"] = "nw-" + c.module
@@ -226,7 +227,7 @@ func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) er
 	if _, err := conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS "+quoteIdent(schema)+".nw_pragma(name text PRIMARY KEY, value bigint NOT NULL)"); err != nil {
 		return err
 	}
-	return nil
+	return upgradePolicies(ctx, conn, schema)
 }
 
 type connector struct {
@@ -255,8 +256,8 @@ type conn struct {
 	driver.Conn
 	owner     *connector
 	inTx      bool
-	site      string // 会话变量 nw.site 当前值
-	template  bool   // 会话变量 nw.tpl 当前值：只看模板行
+	site      string   // 会话变量 nw.site 当前值
+	mode      viewMode // 会话变量对应的视角
 	siteSet   bool
 	described map[string][]uint32 // 语句文本 -> 服务端推断的参数类型
 }
@@ -299,7 +300,8 @@ const (
 	templateViewKey
 )
 
-// WithSite 让后台循环以指定站点的身份访问租户表（默认取请求上下文里的站点）。
+// WithSite 指定访问租户表的站点（默认取请求上下文里的站点）。site 为空表示系统视角：看得到全部站点，
+// 只给确实要跨站点工作的后台代码用（列出站点、迁移、跨站点汇总）。
 func WithSite(ctx context.Context, site string) context.Context {
 	return context.WithValue(ctx, siteOverrideKey, site)
 }
@@ -309,47 +311,132 @@ func WithTemplateView(ctx context.Context) context.Context {
 	return context.WithValue(ctx, templateViewKey, true)
 }
 
-// siteOf 取访问视角：站点（请求上下文或 WithSite 指定；没有时为空，表示系统视角能看到全部行）、是否只看模板行，
-// 以及上下文有没有给出站点信息。事务里某条语句用了不带任何站点信息的上下文（比如发件箱入队用的 Background），
-// 沿用事务开始时的站点，不要把会话站点清掉。
-func siteOf(ctx context.Context) (site string, template bool, given bool) {
-	template, _ = ctx.Value(templateViewKey).(bool)
+// viewMode 是访问租户表的视角。
+type viewMode int
+
+const (
+	viewMissing  viewMode = iota // 上下文没给站点：租户表读不到也写不进
+	viewSystem                   // WithSite(ctx, "")：全部站点
+	viewTemplate                 // 只看单例表的模板行
+	viewSite                     // 某个站点
+)
+
+// viewOf 取访问视角，以及上下文有没有给出视角信息。事务里某条语句用了不带任何站点信息的上下文
+// （比如入队事件用的 Background），沿用事务开始时的视角，不要把会话站点清掉。
+func viewOf(ctx context.Context) (mode viewMode, site string, given bool) {
+	template, _ := ctx.Value(templateViewKey).(bool)
 	if site, ok := ctx.Value(siteOverrideKey).(string); ok {
-		return site, template, true
+		switch {
+		case site != "":
+			return viewSite, site, true
+		case template:
+			return viewTemplate, "", true
+		}
+		return viewSystem, "", true
 	}
-	if op, ok := platform.OperationContextFrom(ctx); ok {
-		return string(op.Actor.SiteID), template, true
+	op, ok := platform.OperationContextFrom(ctx)
+	switch {
+	case ok && op.Actor.SiteID != "":
+		return viewSite, string(op.Actor.SiteID), true
+	case template:
+		return viewTemplate, "", true
 	}
-	return "", template, template
+	return viewMissing, "", ok
 }
 
-// useSite 让本连接的会话变量 nw.site 与请求站点一致；站点第一次出现时先复制单例模板行。
-func (c *conn) useSite(ctx context.Context) error {
+// useSite 让本连接的会话变量（nw.site、nw.tpl、nw.sys）与访问视角一致；站点第一次出现时先复制单例模板行。
+func (c *conn) useSite(ctx context.Context, statement string) error {
 	if !c.owner.tenant {
 		return nil
 	}
-	site, template, given := siteOf(ctx)
+	mode, site, given := viewOf(ctx)
 	if !given && c.inTx && c.siteSet {
-		return nil
+		mode, site = c.mode, c.site
 	}
-	if c.siteSet && c.site == site && c.template == template {
+	if mode == viewMissing && touchesTenant(c.owner.module, statement) {
+		c.owner.noteMissingSite(statement)
+	}
+	if c.siteSet && c.site == site && c.mode == mode {
 		return nil
 	}
 	execer := c.Conn.(driver.ExecerContext)
-	if site != "" {
+	if mode == viewSite {
 		if err := c.owner.ensureProvisioned(ctx, c, site); err != nil {
 			return err
 		}
 	}
-	tpl := ""
-	if template {
+	// 没有站点信息（viewMissing）时三个变量都为空，租户表读不到也写不进。
+	var tpl, sys string
+	switch mode {
+	case viewTemplate:
 		tpl = "on"
+	case viewSystem:
+		sys = "on"
 	}
-	if _, err := execer.ExecContext(ctx, "SELECT set_config('nw.site', $1, false), set_config('nw.tpl', $2, false)", []driver.NamedValue{{Ordinal: 1, Value: site}, {Ordinal: 2, Value: tpl}}); err != nil {
+	if _, err := execer.ExecContext(ctx, "SELECT set_config('nw.site', $1, false), set_config('nw.tpl', $2, false), set_config('nw.sys', $3, false)",
+		[]driver.NamedValue{{Ordinal: 1, Value: site}, {Ordinal: 2, Value: tpl}, {Ordinal: 3, Value: sys}}); err != nil {
 		return err
 	}
-	c.site, c.template, c.siteSet = site, template, true
+	c.site, c.mode, c.siteSet = site, mode, true
 	return nil
+}
+
+var touchCache sync.Map // 组件+语句 -> 是否引用租户表
+
+// touchesTenant 判断语句是否引用了本组件的租户表；建表、改表这类结构语句不受行级安全影响，不算。
+func touchesTenant(module, statement string) bool {
+	key := module + "\x00" + statement
+	if cached, ok := touchCache.Load(key); ok {
+		return cached.(bool)
+	}
+	tokens := tokenize(statement)
+	found := false
+	if first := nextSig(tokens, -1); first < len(tokens) && !tokens[first].is("CREATE") && !tokens[first].is("ALTER") && !tokens[first].is("DROP") {
+		for _, t := range tokens {
+			if t.kind != tkWord && t.kind != tkQuoted {
+				continue
+			}
+			if _, ok := tenantTables.Load(module + "." + strings.ToLower(strings.Trim(t.text, `"`))); ok {
+				found = true
+				break
+			}
+		}
+	}
+	touchCache.Store(key, found)
+	return found
+}
+
+var missingSeen sync.Map // 组件+调用位置 -> struct{}
+
+// noteMissingSite 记下没带站点信息就访问租户表的调用位置（这类访问被行级安全拒绝），每个位置只记一次；
+// 语句只取开头，不含参数。
+func (o *connector) noteMissingSite(statement string) {
+	where := callers()
+	if _, seen := missingSeen.LoadOrStore(o.module+"\x00"+where, struct{}{}); seen {
+		return
+	}
+	statement = strings.Join(strings.Fields(statement), " ")
+	if len(statement) > 120 {
+		statement = statement[:120] + "…"
+	}
+	fmt.Fprintf(os.Stderr, "pgdb[%s] 租户表访问没有站点信息，已拒绝：%s | %s\n", o.module, where, statement)
+}
+
+// callers 取调用栈里 database/sql 与本包之外的前三层。
+func callers() string {
+	pcs := make([]uintptr, 48)
+	frames := runtime.CallersFrames(pcs[:runtime.Callers(3, pcs)])
+	var out []string
+	for len(out) < 3 {
+		frame, more := frames.Next()
+		if frame.Function != "" && !strings.HasPrefix(frame.Function, "database/sql.") && !strings.HasPrefix(frame.Function, "nice-wiki/libs/platform/pgdb.") {
+			out = append(out, strings.TrimPrefix(frame.Function, "nice-wiki/")+":"+strconv.Itoa(frame.Line))
+		}
+		if !more {
+			break
+		}
+	}
+	return strings.Join(out, " < ")
 }
 
 // ensureProvisioned 在系统视角下，把本组件各单例表里 nw_site=” 的模板行复制给新站点（幂等）。
@@ -367,7 +454,7 @@ func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string)
 		return err
 	}
 	defer pgxConn.Close(context.Background())
-	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.site', '', false), set_config('nw.tpl', '', false)"); err != nil {
+	if _, err := pgxConn.Exec(ctx, "SELECT set_config('nw.sys', 'on', false)"); err != nil {
 		return err
 	}
 	rows, err := pgxConn.Query(ctx, `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name IN (SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site') ORDER BY table_name, ordinal_position`, o.schema)
@@ -410,23 +497,28 @@ func (o *connector) ensureProvisioned(ctx context.Context, c *conn, site string)
 	return nil
 }
 
-// loadSingletons 启动时从已有表结构里登记单例表（建表语句不再执行时靠它）。
-func loadSingletons(ctx context.Context, config *pgx.ConnConfig, module, schema string) {
+// loadTables 启动时从已有表结构里登记单例表与租户表（建表语句不再执行时靠它）。
+func loadTables(ctx context.Context, config *pgx.ConnConfig, module, schema string) {
 	conn, err := pgx.ConnectConfig(ctx, config)
 	if err != nil {
 		return
 	}
 	defer conn.Close(ctx)
-	rows, err := conn.Query(ctx, `SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site'`, schema)
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var table string
-		if rows.Scan(&table) == nil {
-			singletons.Store(module+"."+strings.ToLower(table), true)
+	for registry, query := range map[*sync.Map]string{
+		&singletons:   `SELECT table_name FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'nw_site'`,
+		&tenantTables: `SELECT tablename FROM pg_policies WHERE schemaname = $1 AND policyname = 'nw_tenant'`,
+	} {
+		rows, err := conn.Query(ctx, query, schema)
+		if err != nil {
+			return
 		}
+		for rows.Next() {
+			var table string
+			if rows.Scan(&table) == nil {
+				registry.Store(module+"."+strings.ToLower(table), true)
+			}
+		}
+		rows.Close()
 	}
 }
 
@@ -447,7 +539,7 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 		_ = stmt.Close()
 		return nil, mapError(err)
 	}
-	return &bytesStmt{Stmt: stmt, oids: oids, c: c}, nil
+	return &bytesStmt{Stmt: stmt, oids: oids, c: c, statement: statements[0]}, nil
 }
 
 // paramTypes 让服务端描述语句，取得各参数的类型（每条连接上每个语句文本只描述一次，并作为命名预编译语句复用）。
@@ -502,12 +594,13 @@ func (r *bytesRows) Next(dest []driver.Value) error {
 
 type bytesStmt struct {
 	driver.Stmt
-	oids []uint32
-	c    *conn
+	oids      []uint32
+	c         *conn
+	statement string
 }
 
 func (s *bytesStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	if err := s.c.useSite(ctx); err != nil {
+	if err := s.c.useSite(ctx, s.statement); err != nil {
 		return nil, mapError(err)
 	}
 	coerceArgs(s.oids, args)
@@ -519,7 +612,7 @@ func (s *bytesStmt) QueryContext(ctx context.Context, args []driver.NamedValue) 
 }
 
 func (s *bytesStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	if err := s.c.useSite(ctx); err != nil {
+	if err := s.c.useSite(ctx, s.statement); err != nil {
 		return nil, mapError(err)
 	}
 	coerceArgs(s.oids, args)
@@ -534,7 +627,7 @@ func (c *conn) Prepare(query string) (driver.Stmt, error) {
 func (c *conn) Begin() (driver.Tx, error) { return c.BeginTx(context.Background(), driver.TxOptions{}) }
 
 func (c *conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	if err := c.useSite(ctx); err != nil {
+	if err := c.useSite(ctx, "BEGIN"); err != nil {
 		return nil, mapError(err)
 	}
 	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, opts)
@@ -557,7 +650,7 @@ func (c *conn) ExecContext(ctx context.Context, query string, args []driver.Name
 		debugf(c.owner.module, err, query)
 		return nil, err
 	}
-	if err := c.useSite(ctx); err != nil {
+	if err := c.useSite(ctx, query); err != nil {
 		return nil, mapError(err)
 	}
 	execer := c.Conn.(driver.ExecerContext)
@@ -608,7 +701,7 @@ func (c *conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	if len(statements) != 1 {
 		return nil, errors.New("pgdb: 查询只能是单条语句")
 	}
-	if err := c.useSite(ctx); err != nil {
+	if err := c.useSite(ctx, query); err != nil {
 		return nil, mapError(err)
 	}
 	if len(args) > 0 {

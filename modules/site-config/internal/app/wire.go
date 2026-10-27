@@ -13,6 +13,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/serviceauth"
 	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
@@ -107,7 +108,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			return nil, err
 		}
 	}
-	if err := activeStore.RecoverHomeReferenceState(ctx, startupOperation); err != nil {
+	// 首页引用恢复跨全部站点，显式用系统视角。
+	if err := activeStore.RecoverHomeReferenceState(pgdb.WithSite(ctx, ""), startupOperation); err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err

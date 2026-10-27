@@ -16,6 +16,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/analytics/internal/transport"
 )
 
@@ -60,11 +61,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	store, err := analytics.OpenStore(ctx, config.DataRoot, siteID, view.DataEpoch, key)
+	// 启动时的迁移、时区绑定跨全部站点，显式用系统视角（之后新出现的站点按站点各自绑定）。
+	system := pgdb.WithSite(ctx, "")
+	store, err := analytics.OpenStore(system, config.DataRoot, siteID, view.DataEpoch, key)
 	if err != nil {
 		return nil, err
 	}
-	if err = analytics.BindReportingTimeZone(ctx, store, config.ReportingTimeZone, view); err != nil {
+	if err = analytics.BindReportingTimeZone(system, store, config.ReportingTimeZone, view); err != nil {
 		_ = store.Close()
 		return nil, err
 	}

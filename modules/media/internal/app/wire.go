@@ -14,6 +14,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
 	mediaDomain "nice-wiki/modules/media/internal"
@@ -103,10 +104,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	id := platform.NewIdentifier()
 	startup := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, DataEpoch: view.DataEpoch,
 		Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system"}}
-	if _, err := mediaDomain.RecoverBlobJournal(ctx, startup, mediaDomain.RecoverBlobJournalInput{}); err != nil {
+	// 启动恢复跨全部站点，显式用系统视角。
+	system := pgdb.WithSite(ctx, "")
+	if _, err := mediaDomain.RecoverBlobJournal(system, startup, mediaDomain.RecoverBlobJournalInput{}); err != nil {
 		return nil, err
 	}
-	if err := mediaDomain.RecoverUploadChunks(ctx, startup); err != nil {
+	if err := mediaDomain.RecoverUploadChunks(system, startup); err != nil {
 		return nil, err
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)

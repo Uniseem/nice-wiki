@@ -7,15 +7,19 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
-// 租户隔离：多个站点共用同一批表，靠 PostgreSQL 行级安全（RLS）隔离。
+// 租户隔离：多个站点共用同一批表，靠 PostgreSQL 行级安全（RLS）隔离，默认拒绝。
 //
-//   - 驱动按请求上下文里的站点设置会话变量 nw.site；没有站点（后台循环、启动）时为空，表示系统视角，能看到全部行；
-//     WithTemplateView 再设置 nw.tpl，系统视角就只剩模板行（组件启动、就绪检查读自己的状态用）。
-//   - 建表时给每张租户表加站点列并启用 RLS（FORCE，表属主也受限）；策略是：会话站点为空，或行的站点列等于会话站点。
+//   - 驱动按访问视角设置会话变量：站点视角（请求上下文或 WithSite 给出的站点）设 nw.site，只看该站点的行；
+//     系统视角只能用 WithSite(ctx, "") 显式声明，设 nw.sys，看得到全部行（列出站点、迁移、跨站点恢复）；
+//     模板视角（WithTemplateView 且没有站点）设 nw.tpl，只看单例表的模板行（组件启动、就绪检查读自己的状态用）。
+//   - 上下文没给站点（Background、请求里站点为空）时三个变量都为空：租户表一行也看不到、写不进，并记下调用位置。
+//   - 建表时给每张租户表加站点列并启用 RLS（FORCE，表属主也受限），策略见 policyExpr。
 //   - 只有一行的“单例”表（singleton=1）改成每站点一行：新增列 nw_site，主键改为 (nw_site, singleton)；
-//     站点第一次出现时由驱动把系统视角（nw_site=''）的模板行复制一份给该站点。
+//     站点第一次出现时由驱动把模板行（nw_site=''）复制一份给该站点。
 //   - 自然键会在站点间重复的表（siteKeyTables）把 site_id 并入主键和唯一约束。
 //
 // 连接必须用非超级用户、无 BYPASSRLS 的数据库角色，否则 RLS 不生效。
@@ -38,14 +42,49 @@ var siteKeyTables = map[string]bool{
 	"aggregate_jobs": true, "languages": true, "interface_catalog": true, "interface_sources": true, "audit_anchors": true,
 }
 
-var singletons sync.Map // "<模块>.<表>" -> true
+var (
+	singletons   sync.Map // "<模块>.<表>" -> true
+	tenantTables sync.Map // "<模块>.<表>" -> true：启用了行级安全的表
+)
 
 func isTenant(module string) bool { return tenantModules[module] }
 
 const siteDefault = `COALESCE(current_setting('nw.site', true), '')`
 
+// policyExpr 是租户表的读写条件：系统视角看全部；模板视角只看模板行；否则只看会话站点的行。
+// 会话变量都没设时三项都不成立（结果为假或 NULL），读不到也写不进。
 func policyExpr(column string) string {
-	return `((NULLIF(current_setting('nw.site', true), '') IS NULL AND COALESCE(current_setting('nw.tpl', true), '') = '') OR "` + column + `" = current_setting('nw.site', true))`
+	return `(current_setting('nw.sys', true) = 'on' OR (current_setting('nw.tpl', true) = 'on' AND "` + column + `" = '') OR "` + column + `" = NULLIF(current_setting('nw.site', true), ''))`
+}
+
+// upgradePolicies 把已有库里的旧版策略（没有站点信息时按系统视角放行）换成 policyExpr。
+func upgradePolicies(ctx context.Context, conn *pgx.Conn, schema string) error {
+	rows, err := conn.Query(ctx, `SELECT p.tablename, EXISTS (SELECT 1 FROM information_schema.columns c WHERE c.table_schema = p.schemaname AND c.table_name = p.tablename AND c.column_name = 'nw_site')
+		FROM pg_policies p WHERE p.schemaname = $1 AND p.policyname = 'nw_tenant' AND position('nw.sys' in p.qual) = 0`, schema)
+	if err != nil {
+		return err
+	}
+	outdated := map[string]string{}
+	for rows.Next() {
+		var table string
+		var singleton bool
+		if err := rows.Scan(&table, &singleton); err != nil {
+			rows.Close()
+			return err
+		}
+		outdated[table] = "site_id"
+		if singleton {
+			outdated[table] = "nw_site"
+		}
+	}
+	rows.Close()
+	for table, column := range outdated {
+		name := quoteIdent(schema) + "." + quoteIdent(table)
+		if _, err := conn.Exec(ctx, "ALTER POLICY nw_tenant ON "+name+" USING "+policyExpr(column)+" WITH CHECK "+policyExpr(column)); err != nil {
+			return fmt.Errorf("pgdb: 更新 %s 的租户策略失败：%w", table, err)
+		}
+	}
+	return nil
 }
 
 func isConstraintItem(item []token) bool {
@@ -167,6 +206,7 @@ func tenantizeTable(module, statement string) ([]string, error) {
 	}
 	body = append(body, extra...)
 	create := render(tokens[:open+1]) + "\n  " + strings.Join(body, ",\n  ") + "\n)" + render(tokens[closeAt+1:])
+	tenantTables.Store(module+"."+strings.ToLower(table), true)
 	quoted := `"` + table + `"`
 	return []string{
 		create,

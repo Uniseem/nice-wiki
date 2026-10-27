@@ -70,7 +70,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		DataEpoch:       view.DataEpoch,
 		CostClass:       platform.CostClassBackground,
 	}
-	if _, err := localizationruntime.LoadRuntime(ctx, startupOperation, loadInput); err != nil {
+	// 启动时的迁移、校验和租约恢复跨全部站点，显式用系统视角。
+	if _, err := localizationruntime.LoadRuntime(pgdb.WithSite(ctx, ""), startupOperation, loadInput); err != nil {
 		_ = store.Close()
 		return nil, err
 	}

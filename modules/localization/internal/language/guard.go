@@ -77,7 +77,8 @@ func openLanguage(ctx context.Context, op OperationContext) (*sql.Tx, error) {
 	if view.DataEpoch != op.DataEpoch {
 		return nil, platform.NewError(platform.CodeVersionMismatch, false, "数据代次与当前站点不一致")
 	}
-	tx, err := store.DB().BeginTx(ctx, nil)
+	// 后台翻译用 Background 起协程、op 单独传入：事务按 op 的站点开，不能落到无站点的视角。
+	tx, err := store.DB().BeginTx(platform.WithOperationContext(ctx, op), nil)
 	if err != nil {
 		return nil, platform.NormalizeIOError(err, platform.CodeInternal, true, "开始语言配置事务失败")
 	}

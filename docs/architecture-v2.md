@@ -383,7 +383,7 @@
 与上文设计相比，当前代码的实际状态如下；没写的部分按设计实现。
 
 - **服务划分**：共 6 个进程——edge（Rust）、account（含 portal 组件）、content、ai（含 knowledge 组件）、search（Rust）、ops。portal 的代理与鉴权、knowledge 的分块与索引编排仍是 Go 代码，只是并进了 account、ai 两个宿主进程；edge 放在 portal 前面，没有取代它；search 是 knowledge 的 Rust 检索后端。Rust 服务与 Go 之间用共享密钥 HMAC 认证，没有用服务断言（密钥在部署的私有卷里）。
-- **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全（会话变量 `nw.site`）；事件走 PostgreSQL 队列（`queue` schema，`libs/platform/queue`）：生产方在业务事务内直接写事件，消费者按可见超时领取、本地去重后确认，已经没有 outbox 转发和 jobs 的事件中转；任务（claim、heartbeat 等）暂时仍经 ops 里 jobs 的 HTTP 接口。旧的跨域屏障、封口、快照、换目录恢复协议（含 data-protection 服务）已整体删除，运行状态只剩数据代次和修订号（site-config 的 `runtime_state` 表里旧版的阶段、屏障等列保留着固定初值，迁移只追加）。任务表和事件表是各站点共用的，带 `site_id`：人只能列出、读取、取消、重放当前站点的任务和死信，定时调度只有平台管理员（`system.manage`）能管。
+- **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全并默认拒绝：请求与后台任务按所属站点读写（会话变量 `nw.site`），上下文没给站点的访问读不到也写不进（日志记下调用位置），列出站点、迁移、跨站点恢复这类工作要用 `pgdb.WithSite(ctx, "")` 显式声明系统视角；事件走 PostgreSQL 队列（`queue` schema，`libs/platform/queue`）：生产方在业务事务内直接写事件，消费者按可见超时领取、本地去重后确认，已经没有 outbox 转发和 jobs 的事件中转；任务（claim、heartbeat 等）暂时仍经 ops 里 jobs 的 HTTP 接口。旧的跨域屏障、封口、快照、换目录恢复协议（含 data-protection 服务）已整体删除，运行状态只剩数据代次和修订号（site-config 的 `runtime_state` 表里旧版的阶段、屏障等列保留着固定初值，迁移只追加）。任务表和事件表是各站点共用的，带 `site_id`：人只能列出、读取、取消、重放当前站点的任务和死信，定时调度只有平台管理员（`system.manage`）能管。
 - **用户与站点**：注册（邀请码，不验证邮箱）、第三方登录（只写代码，没有联调）、站点上限与存储上限、成员角色、平台子域名与自定义域名（DNS 验证）、私有站点（一次性码换站点专用短期凭据）、举报与下架都已实现并在 NL 测试实例上验证。邮件相关（验证、通知）没有做。
 - **AI**：自带渠道优先、平台兜底、AI 邀请码额度、访客问答每日上限、按用户记账都已实现并用假供应方与 OpenRouter 免费模型验证。
 - **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点（旧账本观察管线已在 PostgreSQL 上跑通），站点主人的 AI 用量走 identity 的 `readAiUsage`。

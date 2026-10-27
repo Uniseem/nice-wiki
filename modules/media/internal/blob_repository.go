@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
@@ -239,7 +239,7 @@ func openLocalBlobStore(activeRoot string, openedEpoch Identifier) (*localBlobSt
 		_ = db.Close()
 		return nil, err
 	}
-	if err := store.migrateLibraryNames(context.Background()); err != nil {
+	if err := store.migrateLibraryNames(pgdb.WithSite(context.Background(), "")); err != nil {
 		_ = db.Close()
 		return nil, err
 	}

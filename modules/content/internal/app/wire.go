@@ -11,6 +11,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/secretbox"
 	"nice-wiki/libs/platform/serviceauth"
 	content "nice-wiki/modules/content/internal"
@@ -46,7 +47,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 
-	store, err := content.OpenDatabase(ctx, config.DataRoot, runtimeView.DataEpoch)
+	// 启动时的迁移和本域状态读取跨全部站点，显式用系统视角。
+	store, err := content.OpenDatabase(pgdb.WithSite(ctx, ""), config.DataRoot, runtimeView.DataEpoch)
 	if err != nil {
 		return nil, err
 	}

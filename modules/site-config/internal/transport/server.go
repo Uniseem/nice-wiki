@@ -16,6 +16,7 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/problem"
 	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
@@ -83,7 +84,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: runtimeAuthority.ReadRuntimeState, AdmitBatch: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, openedEpoch),
 			WriteWindow: lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState), Recover: func(work context.Context) error {
 				op, _ := application.homeRecoveryOperation(work)
-				result, err := siteconfig.RecoverHomeReferences(work, op, siteconfig.RecoverHomeReferencesInput{})
+				result, err := siteconfig.RecoverHomeReferences(pgdb.WithSite(work, ""), op, siteconfig.RecoverHomeReferencesInput{})
 				if err == nil && result.PendingCount > 0 {
 					return platform.NewError(platform.CodeDependencyUnavailable, true, "首页资源引用仍待收敛")
 				}

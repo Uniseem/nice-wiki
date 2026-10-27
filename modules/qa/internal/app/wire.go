@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	_ "nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
@@ -153,36 +153,40 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		}
 	}
 	application := NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
-	// serviceOp 后台任务以本服务身份操作本站数据；还没有任何请求建立站点身份时返回 false。
-	serviceOp := func(tick context.Context) (context.Context, platform.OperationContext, bool) {
-		var site string
-		if err := db.QueryRowContext(tick, `SELECT site_id FROM qa_identity WHERE singleton=1`).Scan(&site); err != nil {
-			return nil, platform.OperationContext{}, false
-		}
+	// serviceOp 后台任务以本服务身份操作某个站点的数据。
+	serviceOp := func(tick context.Context, site string) (context.Context, platform.OperationContext) {
 		deadline := time.Now().UTC().Add(30 * time.Second)
 		id := platform.NewIdentifier()
 		op := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, Deadline: deadline.Format(time.RFC3339Nano), DataEpoch: view.DataEpoch,
 			Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: site, ExpiresAt: deadline.Format(time.RFC3339Nano), Grants: []string{}}}
 		ctx := platform.WithOperationContext(tick, op)
-		return qaruntime.WithRuntime(ctx, withBaseLanguage(ctx, op)), op, true
+		return qaruntime.WithRuntime(ctx, withBaseLanguage(ctx, op)), op
 	}
 	started := time.Now().UnixNano()
-	interruptedHandled := false
+	interruptedHandled := map[string]bool{}
 	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.housekeeping", Run: func(work context.Context) error {
-		// 启动后先收尾上次进程中断的轮次，之后每分钟按保留期清理过期会话、诊断记录和已终止轮次的事件。
+		// 逐站点：启动后先收尾上次进程中断的轮次，之后每分钟按保留期清理过期会话、诊断记录和已终止轮次的事件。
+		// 一个站点出错不挡其他站点。
 		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 60000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
-			ctx, op, ok := serviceOp(tick)
-			if !ok {
-				return nil
+			sites, err := pgdb.Sites(tick, db)
+			if err != nil {
+				return err
 			}
-			if !interruptedHandled {
-				if err := turn.FailInterruptedTurns(ctx, op, started); err != nil {
-					return err
+			var errs []error
+			for _, site := range sites {
+				ctx, op := serviceOp(tick, site)
+				if !interruptedHandled[site] {
+					if err := turn.FailInterruptedTurns(ctx, op, started); err != nil {
+						errs = append(errs, err)
+						continue
+					}
+					interruptedHandled[site] = true
 				}
-				interruptedHandled = true
+				if _, err := qaruntime.PruneExpiredRecords(ctx, op, qaruntime.PruneExpiredRecordsInput{Now: time.Now(), Limit: 200}); err != nil {
+					errs = append(errs, err)
+				}
 			}
-			_, err := qaruntime.PruneExpiredRecords(ctx, op, qaruntime.PruneExpiredRecordsInput{Now: time.Now(), Limit: 200})
-			return err
+			return errors.Join(errs...)
 		}})
 	}}})
 	retain = true

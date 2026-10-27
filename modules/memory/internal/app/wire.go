@@ -13,6 +13,7 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/modelclient"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/modules/memory/internal/gen"
 	memoryruntime "nice-wiki/modules/memory/internal/runtime"
@@ -67,7 +68,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	id := platform.NewIdentifier()
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
 	startup := platform.OperationContext{RequestID: id, OperationID: id, RootOperationID: id, CallerService: ModuleSlug, DataEpoch: view.DataEpoch, Deadline: deadline, Actor: platform.AuthContext{Kind: "service", SubjectID: ModuleSlug, SiteID: "system", ExpiresAt: deadline}}
-	if _, err = memoryruntime.LoadRuntime(ctx, startup, memoryruntime.LoadRuntimeInput{ServiceID: ModuleSlug, DataDirectory: config.DataRoot}); err != nil {
+	// 启动时的迁移和校验跨全部站点，显式用系统视角。
+	if _, err = memoryruntime.LoadRuntime(pgdb.WithSite(ctx, ""), startup, memoryruntime.LoadRuntimeInput{ServiceID: ModuleSlug, DataDirectory: config.DataRoot}); err != nil {
 		return nil, err
 	}
 	fail := func(cause error) (*transport.Application, error) {

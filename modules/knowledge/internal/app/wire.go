@@ -93,7 +93,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "站点配置权威不可读")
 	}
 	operation.Actor.SiteID = site.Config.SiteID
-	db, err := indexer.OpenRepository(ctx, config.DataRoot, site.Config.SiteID, view.DataEpoch)
+	// 启动时的迁移和本域状态读取跨全部站点，显式用系统视角。
+	db, err := indexer.OpenRepository(pgdb.WithSite(ctx, ""), config.DataRoot, site.Config.SiteID, view.DataEpoch)
 	if err != nil {
 		return nil, err
 	}
