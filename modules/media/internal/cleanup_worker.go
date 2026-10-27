@@ -504,6 +504,12 @@ func (s *localBlobStore) removeDecidedBlob(ctx context.Context, decision cleanup
 	name := "blobs/" + decision.Asset.SiteId + "/" + ref.Sha256[:2] + "/" + s.libraryFileName(decision.Asset.SiteId, ref.Sha256)
 	before, err := root.Lstat(name)
 	if errors.Is(err, os.ErrNotExist) {
+		// 本机没有：可能已搬到存储桶，一并删掉（不存在不算错）。
+		if client := objectStorage(ctx); client != nil {
+			if err := client.Delete(ctx, objectKey(client, decision.Asset.SiteId, ref.Sha256)); err != nil {
+				return err
+			}
+		}
 		if err := syncDirectory(filepath.Dir(s.blobPath(decision.Asset.SiteId, ref.Sha256))); err != nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, true, "确认已决定blob缺失的目录失败")
 		}

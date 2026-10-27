@@ -51,7 +51,21 @@ type platformSettings struct {
 	PlatformHost          string                  `json:"platformHost"`
 	SitesDomain           string                  `json:"sitesDomain"`
 	Providers             map[string]providerConf `json:"providers"`
+	MediaStorage          mediaStorageConf        `json:"mediaStorage"`
 }
+
+// mediaStorageConf 是媒体文件的 S3 兼容存储（访问密钥在 platform_secrets 的 mediaSecretName）；Since 是开启的时间。
+type mediaStorageConf struct {
+	Enabled     bool   `json:"enabled"`
+	Endpoint    string `json:"endpoint"`
+	Bucket      string `json:"bucket"`
+	Region      string `json:"region"`
+	Prefix      string `json:"prefix"`
+	AccessKeyID string `json:"accessKeyId"`
+	Since       string `json:"since,omitempty"`
+}
+
+const mediaSecretName = "s3:media"
 
 type providerConf struct {
 	Enabled  bool   `json:"enabled"`

@@ -412,6 +412,7 @@
     ],
     "identity": [
       "checkAuthorization",
+      "readMediaStorage",
       "readSiteStoragePolicy"
     ],
     "jobs": [

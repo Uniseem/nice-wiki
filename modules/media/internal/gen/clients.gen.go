@@ -310,6 +310,11 @@ func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
 }
 
+// ReadMediaStorage GET /v1/platform/media-storage（identity:readMediaStorage）。
+func (c *IdentityClient) ReadMediaStorage(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/platform/media-storage", nil, "")
+}
+
 // ReadSiteStoragePolicy GET /v1/sites/{siteId}/storage-policy（identity:readSiteStoragePolicy）。
 func (c *IdentityClient) ReadSiteStoragePolicy(ctx context.Context, siteId string) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/sites/"+url.PathEscape(siteId)+"/storage-policy", nil, "")

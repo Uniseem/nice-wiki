@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 // 管理员（media.read / superadmin）可读本站任一就绪资源；知识库/模型网关按版本读已确认引用的资源；
 // 其余调用方必须带正确的 sha，且这个版本出现过在已发布页面上，或正被站点配置使用。草稿引用不算公开。
 // public 表示这个版本按公开规则可读、可以进共享缓存；管理员读到的若是还没发布的草稿资源则为 false，只能 no-store。
-func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*os.File, gen.AssetVersionRef, bool, error) {
+func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (blobSource, gen.AssetVersionRef, bool, error) {
 	s, ok := currentBlobStore().(*localBlobStore)
 	if !ok {
 		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeDependencyUnavailable, true, "媒体存储未装配")
@@ -27,9 +26,9 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 	if op.DataEpoch != s.openedEpoch {
 		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeVersionMismatch, false, "资源不属于已打开数据代次")
 	}
-	var site, sha, mediaType, state string
+	var site, sha, mediaType, state, storage string
 	var size, version int
-	err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,byte_size,media_type,state,json_extract(asset_json,'$.ref.version') FROM assets WHERE asset_id=?`, assetID).Scan(&site, &sha, &size, &mediaType, &state, &version)
+	err := s.db.QueryRowContext(r.Context(), `SELECT site_id,sha256,byte_size,media_type,state,json_extract(asset_json,'$.ref.version'),storage FROM assets WHERE asset_id=?`, assetID).Scan(&site, &sha, &size, &mediaType, &state, &version, &storage)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && (site != op.Actor.SiteID || state != "ready")) {
 		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 	}
@@ -61,20 +60,20 @@ func openAssetBytes(r *http.Request, op OperationContext, assetID Identifier) (*
 	if !admin && !public {
 		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeNotFound, false, "资源不存在")
 	}
-	file, err := os.Open(s.blobPath(site, sha))
+	source, err := s.openBlob(r.Context(), site, sha, storage)
 	if err != nil {
-		return nil, gen.AssetVersionRef{}, false, platform.NewError(platform.CodeIntegrityError, false, "资源文件缺失")
+		return nil, gen.AssetVersionRef{}, false, err
 	}
-	return file, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, public, nil
+	return source, gen.AssetVersionRef{AssetId: assetID, Version: version, Sha256: sha, MediaType: mediaType, ByteSize: size}, public, nil
 }
 
 // ServeAssetBytes 输出不可变资源字节，支持单个 Range；head 为 true 时只写响应头。
 func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext, assetID Identifier, head bool) error {
-	file, ref, public, err := openAssetBytes(r, op, assetID)
+	source, ref, public, err := openAssetBytes(r, op, assetID)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer source.Close()
 	etag := `"` + ref.Sha256 + `"`
 	byteRange := ByteRange{Start: 0, End: int64(ref.ByteSize) - 1, Total: int64(ref.ByteSize)}
 	if header := r.Header.Get("Range"); header != "" {
@@ -109,6 +108,14 @@ func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext
 		return nil
 	}
 	length := byteRange.End - byteRange.Start + 1
+	var body io.ReadCloser
+	if !head {
+		// 先拿到字节再写状态：存储桶读不到时还能回错误。
+		if body, err = source.Range(r.Context(), byteRange.Start, length); err != nil {
+			return err
+		}
+		defer body.Close()
+	}
 	headers.Set("Content-Length", strconv.FormatInt(length, 10))
 	if byteRange.Partial {
 		headers.Set("Content-Range", "bytes "+strconv.FormatInt(byteRange.Start, 10)+"-"+strconv.FormatInt(byteRange.End, 10)+"/"+strconv.FormatInt(byteRange.Total, 10))
@@ -119,7 +126,7 @@ func ServeAssetBytes(w http.ResponseWriter, r *http.Request, op OperationContext
 	if head {
 		return nil
 	}
-	_, _ = io.Copy(w, io.NewSectionReader(file, byteRange.Start, length))
+	_, _ = io.Copy(w, body)
 	return nil
 }
 

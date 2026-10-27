@@ -92,13 +92,14 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	callers["redeemPrivateAccess"] = []string{"portal"}
 	callers["readSiteAiPolicy"] = []string{"model-gateway", "qa"}
 	callers["readSiteStoragePolicy"] = []string{"media"}
+	callers["readMediaStorage"] = []string{"media"}
 	callers["noteVisitorQaCap"] = []string{"qa"}
 	callers["refreshDriveToken"] = []string{"content"}
 	callers["checkAuthorization"] = []string{"portal", "identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics"}
 	serviceCallers := map[string][]string{
 		"resolveHost":  {"portal", "public-site", "content", "qa", "traffic-guard"},
 		"allowTlsHost": {"portal"}, "redeemPrivateAccess": {"portal"}, "readSiteAiPolicy": {"model-gateway", "qa"}, "noteVisitorQaCap": {"qa"},
-		"readSiteStoragePolicy": {"media"},
+		"readSiteStoragePolicy": {"media"}, "readMediaStorage": {"media"},
 	}
 	limits := map[string]int64{}
 	for id := range handlers {

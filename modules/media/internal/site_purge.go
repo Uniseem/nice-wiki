@@ -42,7 +42,7 @@ func SiteLifecycle() (*sql.DB, func(context.Context, string) error, error) {
 				return mapBlobStoreError(err, "删除站点媒体文件失败")
 			}
 		}
-		return nil
+		return purgeObjects(ctx, site)
 	}
 	return store.db, purge, nil
 }

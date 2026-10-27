@@ -13,7 +13,9 @@ import (
 // 站主后台：平台设置、注册邀请码、用户、全部站点、举报。
 
 func platformSettingsView(ctx context.Context, q sqlQuerier, settings platformSettings) gen.PlatformSettings {
-	view := gen.PlatformSettings{RegistrationOpen: settings.RegistrationOpen, EmailRegistration: settings.EmailRegistration, InviteRequired: settings.InviteRequired,
+	media := settings.MediaStorage
+	view := gen.PlatformSettings{MediaStorage: gen.MediaStorage{Enabled: media.Enabled, Endpoint: media.Endpoint, Bucket: media.Bucket, Region: media.Region, Prefix: media.Prefix, AccessKeyId: media.AccessKeyID, SecretSet: hasSecret(ctx, q, mediaSecretName)},
+		RegistrationOpen: settings.RegistrationOpen, EmailRegistration: settings.EmailRegistration, InviteRequired: settings.InviteRequired,
 		DefaultMaxSites: settings.DefaultMaxSites, DefaultStorageBytes: int(settings.DefaultStorageBytes), DefaultVisitorQaDaily: settings.DefaultVisitorQaDaily,
 		PlatformHost: settings.PlatformHost, SitesDomain: settings.SitesDomain, Providers: []gen.ProviderConfig{}, CloudflareTokenSet: hasSecret(ctx, q, dnsSecretName)}
 	for _, name := range configurableProviders() {
@@ -79,6 +81,26 @@ func UpdatePlatformSettings(ctx context.Context, op OperationContext, input gen.
 			}
 		}
 	}
+	if update := input.MediaStorage; update != nil {
+		next := mediaStorageConf{Enabled: update.Enabled, Endpoint: strings.TrimSpace(update.Endpoint), Bucket: strings.TrimSpace(update.Bucket), Region: strings.TrimSpace(update.Region),
+			Prefix: strings.Trim(strings.TrimSpace(update.Prefix), "/"), AccessKeyID: strings.TrimSpace(update.AccessKeyId), Since: settings.MediaStorage.Since}
+		if next.Enabled && (next.Endpoint == "" || next.Bucket == "" || next.AccessKeyID == "") {
+			return gen.PlatformSettings{}, platform.NewError(platform.CodeValidation, false, "开启媒体存储要填地址、存储桶和访问密钥 ID")
+		}
+		if update.SecretAccessKey != nil && *update.SecretAccessKey != "" {
+			if err := saveSecret(ctx, store.db, mediaSecretName, *update.SecretAccessKey); err != nil {
+				return gen.PlatformSettings{}, err
+			}
+		}
+		if next.Enabled && !hasSecret(ctx, store.db, mediaSecretName) {
+			return gen.PlatformSettings{}, platform.NewError(platform.CodeValidation, false, "开启媒体存储要填访问密钥")
+		}
+		// 从关到开记下开启时间：这之后上传的文件才放到存储桶，之前的留在本机。
+		if next.Enabled && !settings.MediaStorage.Enabled {
+			next.Since = platform.Now()
+		}
+		settings.MediaStorage = next
+	}
 	if input.CloudflareToken != nil {
 		token := strings.TrimSpace(*input.CloudflareToken)
 		if token == "" {
@@ -94,6 +116,32 @@ func UpdatePlatformSettings(ctx context.Context, op OperationContext, input gen.
 		return gen.PlatformSettings{}, err
 	}
 	return platformSettingsView(ctx, store.db, settings), nil
+}
+
+// ReadMediaStorage 给 media 媒体存储的连接信息（含解密后的访问密钥），只走内部服务调用。
+func ReadMediaStorage(ctx context.Context, op OperationContext, _ struct{}) (gen.MediaStorageConfig, error) {
+	store, ok := identityStoreFromContext(ctx)
+	if !ok {
+		return gen.MediaStorageConfig{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
+	}
+	settings, err := loadSettings(ctx, store.db)
+	if err != nil {
+		return gen.MediaStorageConfig{}, err
+	}
+	media := settings.MediaStorage
+	result := gen.MediaStorageConfig{Enabled: media.Enabled, Endpoint: media.Endpoint, Bucket: media.Bucket, Region: media.Region, Prefix: media.Prefix, AccessKeyId: media.AccessKeyID}
+	if media.Since != "" {
+		since := parseTS(media.Since)
+		result.Since = &since
+	}
+	if media.Enabled {
+		secret, _, err := loadSecret(ctx, store.db, mediaSecretName)
+		if err != nil {
+			return result, err
+		}
+		result.SecretAccessKey = secret
+	}
+	return result, nil
 }
 
 // ---- 注册邀请码 ----

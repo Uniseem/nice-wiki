@@ -4,7 +4,8 @@ import { api, askText, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, f
 import { useEffect, useState } from 'react';
 
 type Provider = { provider: 'github' | 'google' | 'linuxdo' | 'gdrive' | 'onedrive' | 'dropbox'; enabled: boolean; clientId: string; clientSecretSet: boolean };
-type Settings = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; defaultMaxSites: number; defaultStorageBytes: number; defaultVisitorQaDaily: number; platformHost: string; sitesDomain: string; providers: Provider[]; cloudflareTokenSet: boolean };
+type Settings = { registrationOpen: boolean; emailRegistration: boolean; inviteRequired: boolean; defaultMaxSites: number; defaultStorageBytes: number; defaultVisitorQaDaily: number; platformHost: string; sitesDomain: string; providers: Provider[]; cloudflareTokenSet: boolean; mediaStorage: MediaStorage };
+type MediaStorage = { enabled: boolean; endpoint: string; bucket: string; region: string; prefix: string; accessKeyId: string; secretSet: boolean };
 type RegInvite = { inviteId: string; note: string; maxUses: number; used: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type AiInvite = { inviteId: string; note: string; capMicros: number; period: 'once' | 'monthly'; tasks: string[]; maxUses: number; used: number; maxSites?: number; storageBytes?: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type User = { userId: string; email: string; displayName: string; status: 'active' | 'disabled' | 'deleted'; siteCount: number; createdAt: string };
@@ -60,10 +61,10 @@ function SettingsTab() {
   const setProvider = (provider: Provider['provider'], patch: Partial<Provider>) => set('providers', form.providers.map((item) => (item.provider === provider ? { ...item, ...patch } : item)));
   const save = async () => {
     const providers = form.providers.map((item) => ({ provider: item.provider, enabled: item.enabled, clientId: item.clientId, ...(secrets[item.provider] ? { clientSecret: secrets[item.provider] } : {}) }));
-    const { cloudflareTokenSet: _, ...settings } = form;
+    const { cloudflareTokenSet: _, mediaStorage: { secretSet: __, ...media }, ...settings } = form;
     // 令牌框留空保持不变；点了“清除令牌”才清掉。
     const token = secrets.cloudflare ? { cloudflareToken: secrets.cloudflare } : clearToken ? { cloudflareToken: '' } : {};
-    const saved = await run(() => api<Settings>('/v1/platform/settings', { method: 'PUT', body: { ...settings, providers, ...token } }), t('平台设置已保存'));
+    const saved = await run(() => api<Settings>('/v1/platform/settings', { method: 'PUT', body: { ...settings, providers, ...token, mediaStorage: { ...media, ...(secrets.media ? { secretAccessKey: secrets.media } : {}) } } }), t('平台设置已保存'));
     if (saved) { setSecrets({}); setClearToken(false); current.setData(saved); }
   };
   const providerCard = (item: Provider) => (
@@ -85,6 +86,19 @@ function SettingsTab() {
             description={form.cloudflareTokenSet ? clearToken ? t('保存后清除令牌，平台子域名回到逐个签证书。') : t('已设置：平台子域名用一张泛域名证书（DNS 验证）。') : t('子域名后缀的 DNS 托管在 Cloudflare 时填写（令牌只需该域名的 DNS 编辑权限），平台子域名就改用一张泛域名证书，不再逐个签。')} />
         </FormGrid>
         {form.cloudflareTokenSet && <div><Button isDisabled={clearToken} size="sm" variant="secondary" onPress={() => { setClearToken(true); setSecrets({ ...secrets, cloudflare: '' }); }}>{t('清除令牌')}</Button></div>}
+      </Panel>
+      <Panel title={t('媒体存储')} description={t('默认放在本机磁盘。开启 S3 兼容存储后，之后上传的图片、视频和附件会在后台搬到存储桶，之前的文件仍从本机读。')}>
+        <SwitchInput isSelected={form.mediaStorage.enabled} label={t('使用 S3 兼容存储')} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, enabled: value })} />
+        {form.mediaStorage.enabled && (
+          <FormGrid>
+            <TextInput isRequired label={t('服务地址')} placeholder="https://s3.example.com" value={form.mediaStorage.endpoint} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, endpoint: value.trim() })} />
+            <TextInput isRequired label={t('存储桶')} value={form.mediaStorage.bucket} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, bucket: value.trim() })} />
+            <TextInput label={t('区域')} placeholder="us-east-1" value={form.mediaStorage.region} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, region: value.trim() })} />
+            <TextInput label={t('路径前缀')} placeholder="media" value={form.mediaStorage.prefix} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, prefix: value.trim() })} />
+            <TextInput isRequired label={t('访问密钥 ID')} value={form.mediaStorage.accessKeyId} onChange={(value) => set('mediaStorage', { ...form.mediaStorage, accessKeyId: value.trim() })} />
+            <TextInput autoComplete="off" isRequired={!form.mediaStorage.secretSet} label={t('访问密钥')} placeholder={form.mediaStorage.secretSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets.media ?? ''} onChange={(value) => setSecrets({ ...secrets, media: value })} />
+          </FormGrid>
+        )}
       </Panel>
       <Panel title={t('注册')}>
         <div className="flex flex-col gap-4">

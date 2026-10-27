@@ -3,21 +3,17 @@ package content
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"time"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/netguard"
+	"nice-wiki/libs/platform/objectstore"
 )
 
 // remoteStore 是备份目标的最小抽象：写入、列出、删除。S3 兼容存储与 WebDAV 各一个实现。
@@ -62,136 +58,36 @@ func firstN(s string, n int) string {
 	return s
 }
 
-// ---- S3 兼容存储（AWS Signature V4，路径式寻址） ----
+// ---- S3 兼容存储（客户端在 libs/platform/objectstore） ----
 
-type s3Store struct {
-	client     *http.Client
-	endpoint   *url.URL
-	bucket     string
-	region     string
-	prefix     string
-	accessKey  string
-	secretKey  string
-	pathPrefix string
-}
+type s3Store struct{ client *objectstore.Client }
 
-func newS3Store(client *http.Client, endpoint *url.URL, bucket, region, prefix, accessKey, secretKey string) *s3Store {
-	return &s3Store{client: client, endpoint: endpoint, bucket: bucket, region: region, prefix: cleanPrefix(prefix), accessKey: accessKey, secretKey: secretKey}
-}
-
-func awsEscape(s string, keepSlash bool) string {
-	var out strings.Builder
-	for _, b := range []byte(s) {
-		switch {
-		case b >= 'A' && b <= 'Z', b >= 'a' && b <= 'z', b >= '0' && b <= '9', b == '-', b == '_', b == '.', b == '~':
-			out.WriteByte(b)
-		case b == '/' && keepSlash:
-			out.WriteByte(b)
-		default:
-			fmt.Fprintf(&out, "%%%02X", b)
-		}
-	}
-	return out.String()
-}
-
-func hmacSHA256(key []byte, data string) []byte {
-	mac := hmac.New(sha256.New, key)
-	mac.Write([]byte(data))
-	return mac.Sum(nil)
-}
-
-func (s *s3Store) do(ctx context.Context, method, key string, query url.Values, body []byte) (*http.Response, error) {
-	basePath := strings.TrimRight(s.endpoint.Path, "/")
-	canonicalPath := basePath + "/" + awsEscape(s.bucket, false)
-	if key != "" {
-		canonicalPath += "/" + awsEscape(key, true)
-	}
-	var pairs []string
-	for k, values := range query {
-		for _, v := range values {
-			pairs = append(pairs, awsEscape(k, false)+"="+awsEscape(v, false))
-		}
-	}
-	sort.Strings(pairs)
-	canonicalQuery := strings.Join(pairs, "&")
-	target := s.endpoint.Scheme + "://" + s.endpoint.Host + canonicalPath
-	if canonicalQuery != "" {
-		target += "?" + canonicalQuery
-	}
-	req, err := http.NewRequestWithContext(ctx, method, target, bytes.NewReader(body))
-	if err != nil {
-		return nil, platform.NewError(platform.CodeValidation, false, "存储地址不合法")
-	}
-	now := time.Now().UTC()
-	amzDate, date := now.Format("20060102T150405Z"), now.Format("20060102")
-	sum := sha256.Sum256(body)
-	payloadHash := hex.EncodeToString(sum[:])
-	host := s.endpoint.Host
-	canonicalRequest := strings.Join([]string{method, canonicalPath, canonicalQuery,
-		"host:" + host + "\nx-amz-content-sha256:" + payloadHash + "\nx-amz-date:" + amzDate + "\n", "host;x-amz-content-sha256;x-amz-date", payloadHash}, "\n")
-	scope := date + "/" + s.region + "/s3/aws4_request"
-	requestHash := sha256.Sum256([]byte(canonicalRequest))
-	stringToSign := "AWS4-HMAC-SHA256\n" + amzDate + "\n" + scope + "\n" + hex.EncodeToString(requestHash[:])
-	signingKey := hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256([]byte("AWS4"+s.secretKey), date), s.region), "s3"), "aws4_request")
-	signature := hex.EncodeToString(hmacSHA256(signingKey, stringToSign))
-	req.Header.Set("x-amz-date", amzDate)
-	req.Header.Set("x-amz-content-sha256", payloadHash)
-	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential="+s.accessKey+"/"+scope+", SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature="+signature)
-	if method == http.MethodPut {
-		req.ContentLength = int64(len(body))
-		req.Header.Set("Content-Type", "application/octet-stream")
-	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "备份目标不可达")
-	}
-	return resp, nil
-}
-
-func (s *s3Store) Put(ctx context.Context, name string, data []byte) error {
-	resp, err := s.do(ctx, http.MethodPut, joinKey(s.prefix, name), nil, data)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return responseError(resp, "写入备份")
-	}
-	return nil
-}
-
-func (s *s3Store) Delete(ctx context.Context, name string) error {
-	resp, err := s.do(ctx, http.MethodDelete, joinKey(s.prefix, name), nil, nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 && resp.StatusCode != http.StatusNotFound {
-		return responseError(resp, "删除旧备份")
-	}
-	return nil
-}
-
-func (s *s3Store) List(ctx context.Context, prefix string) ([]string, error) {
-	query := url.Values{"list-type": {"2"}, "prefix": {joinKey(s.prefix, prefix)}, "max-keys": {"1000"}}
-	resp, err := s.do(ctx, http.MethodGet, "", query, nil)
+func newS3Store(client *http.Client, endpoint *url.URL, bucket, region, prefix, accessKey, secretKey string) (*s3Store, error) {
+	c, err := objectstore.New(client, objectstore.Config{Endpoint: endpoint.String(), Bucket: bucket, Region: region, Prefix: prefix, AccessKey: accessKey, SecretKey: secretKey})
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return nil, responseError(resp, "列出备份")
+	return &s3Store{client: c}, nil
+}
+
+func (s *s3Store) Put(ctx context.Context, name string, data []byte) error {
+	return s.client.Put(ctx, s.client.Key(name), bytes.NewReader(data), int64(len(data)))
+}
+
+func (s *s3Store) Delete(ctx context.Context, name string) error {
+	return s.client.Delete(ctx, s.client.Key(name))
+}
+
+func (s *s3Store) List(ctx context.Context, prefix string) ([]string, error) {
+	keys, err := s.client.List(ctx, s.client.Key(prefix))
+	if err != nil {
+		return nil, err
 	}
-	var listing struct {
-		Keys []string `xml:"Contents>Key"`
-	}
-	if err := xml.NewDecoder(io.LimitReader(resp.Body, 8<<20)).Decode(&listing); err != nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "备份目标返回的列表不能解析")
-	}
-	var names []string
-	for _, key := range listing.Keys {
-		if s.prefix != "" {
-			key = strings.TrimPrefix(key, s.prefix+"/")
+	base := strings.TrimSuffix(s.client.Key(""), "/")
+	names := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if base != "" {
+			key = strings.TrimPrefix(key, base+"/")
 		}
 		names = append(names, key)
 	}

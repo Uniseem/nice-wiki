@@ -3030,6 +3030,9 @@
         },
         "cloudflareTokenSet": {
           "type": "boolean"
+        },
+        "mediaStorage": {
+          "$ref": "#/$defs/MediaStorage"
         }
       },
       "required": [
@@ -3042,7 +3045,141 @@
         "platformHost",
         "sitesDomain",
         "providers",
-        "cloudflareTokenSet"
+        "cloudflareTokenSet",
+        "mediaStorage"
+      ],
+      "x-v2": true
+    },
+    "MediaStorage": {
+      "type": "object",
+      "description": "媒体文件的 S3 兼容存储（密钥不回显）：开启后新上传的文件放到存储桶，旧文件仍从本机读",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "bucket": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "prefix": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "accessKeyId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "secretSet": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "endpoint",
+        "bucket",
+        "region",
+        "prefix",
+        "accessKeyId",
+        "secretSet"
+      ],
+      "x-v2": true
+    },
+    "MediaStorageUpdate": {
+      "type": "object",
+      "description": "媒体存储设置更新；secretAccessKey 省略表示不改",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "bucket": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "prefix": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "accessKeyId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "secretAccessKey": {
+          "type": "string",
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "enabled",
+        "endpoint",
+        "bucket",
+        "region",
+        "prefix",
+        "accessKeyId"
+      ],
+      "x-v2": true
+    },
+    "MediaStorageConfig": {
+      "type": "object",
+      "description": "给 media 的存储连接信息（含密钥）；since 是开启的时间，之后上传的文件才放到存储桶",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "bucket": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "prefix": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "accessKeyId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "secretAccessKey": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "since": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "enabled",
+        "endpoint",
+        "bucket",
+        "region",
+        "prefix",
+        "accessKeyId",
+        "secretAccessKey"
       ],
       "x-v2": true
     },
@@ -3127,6 +3264,9 @@
         "cloudflareToken": {
           "type": "string",
           "maxLength": 512
+        },
+        "mediaStorage": {
+          "$ref": "#/$defs/MediaStorageUpdate"
         }
       },
       "x-v2": true

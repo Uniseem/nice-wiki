@@ -180,6 +180,7 @@ func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient, events *
 	eventClient := events.Consumer()
 	eventAdmission := newMediaEventAdmission(s.window)
 	return []platform.BackgroundTask{
+		{Name: "media.ObjectOffload", Run: RunObjectOffload},
 		{Name: "media.ConsumeEvents", Run: func(ctx context.Context) error {
 			work := platform.WithOperationContext(platform.WithPortalProof(ctx, ""), op)
 			_, err := ConsumeEvents(work, op, ConsumeEventsInput{

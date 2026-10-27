@@ -248,7 +248,8 @@ func (d SiteData) openRemote(ctx context.Context, site, targetID string) (remote
 	}
 	switch t.Kind {
 	case "s3":
-		return newS3Store(client, endpoint, t.Bucket, t.Region, t.PathPrefix, t.Username, string(secret)), t, nil
+		store, err := newS3Store(client, endpoint, t.Bucket, t.Region, t.PathPrefix, t.Username, string(secret))
+		return store, t, err
 	default:
 		return newDavStore(client, endpoint, t.Username, string(secret), t.PathPrefix), t, nil
 	}

@@ -806,7 +806,7 @@ func (s *localBlobStore) CommitVerifiedBlob(ctx context.Context, op OperationCon
 		if err != nil {
 			return gen.Asset{}, platform.NewError(platform.CodeIntegrityError, false, "资源元数据无法编码")
 		}
-		if _, err := tx.ExecContext(work, `INSERT INTO assets(asset_id,site_id,sha256,byte_size,media_type,state,asset_json,updated_at) VALUES(?,?,?,?,?,'ready',?,?)`, asset.Ref.AssetId, asset.SiteId, asset.Ref.Sha256, asset.Ref.ByteSize, asset.Ref.MediaType, string(raw), platform.Now()); err != nil {
+		if _, err := tx.ExecContext(work, `INSERT INTO assets(asset_id,site_id,sha256,byte_size,media_type,state,asset_json,updated_at,storage) VALUES(?,?,?,?,?,'ready',?,?,?)`, asset.Ref.AssetId, asset.SiteId, asset.Ref.Sha256, asset.Ref.ByteSize, asset.Ref.MediaType, string(raw), platform.Now(), newAssetStorage(work)); err != nil {
 			return gen.Asset{}, mapMediaDBError(err, "写入资源元数据失败")
 		}
 		if _, err := tx.ExecContext(work, `INSERT INTO reference_objects(asset_id,deletion_fence,reference_generation) VALUES(?,0,0)`, asset.Ref.AssetId); err != nil {

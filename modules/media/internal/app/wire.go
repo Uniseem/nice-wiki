@@ -64,6 +64,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	identity := gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)
 	mediaDomain.InstallStoragePolicyReader(identity)
+	mediaDomain.InstallMediaStorageReader(identity)
 	view, err := lifecycle.ReadRuntime(ctx, runtimeClient)
 	if err != nil {
 		return nil, err
