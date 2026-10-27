@@ -455,7 +455,15 @@ func rewriteCall(name string, rawArgs [][]token, tokens []token, at, end int) (r
 			return replacement{tokens: joinTokens("jsonb_array_length(public.nw_jsonb(", args[0], "))")}, true
 		}
 	case "json_object":
-		return replacement{tokens: joinTokens("jsonb_build_object(", joinArgs(args), ")")}, true
+		// SQLite 里 NOT EXISTS(...) 这类布尔表达式是整数 0/1，PostgreSQL 里是 JSON 布尔；读取方按整数解码，所以转成整数。
+		wrapped := make([][]token, len(args))
+		for i, a := range args {
+			wrapped[i] = a
+			if i%2 == 1 && (startsWithWord(a, "NOT") || startsWithWord(a, "EXISTS")) {
+				wrapped[i] = joinTokens("(", a, ")::int")
+			}
+		}
+		return replacement{tokens: joinTokens("jsonb_build_object(", joinArgs(wrapped), ")")}, true
 	case "json_array":
 		return replacement{tokens: joinTokens("jsonb_build_array(", joinArgs(args), ")")}, true
 	case "json_each":
