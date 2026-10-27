@@ -573,13 +573,7 @@
     ],
     "jobs": [
       "cancelJob",
-      "checkLease",
-      "claimJob",
-      "completeJob",
-      "createJob",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createJob"
     ],
     "memory": [
       "resolveContext"

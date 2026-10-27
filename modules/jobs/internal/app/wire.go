@@ -200,9 +200,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	for id, handler := range jobs.NewEventHandlers() {
 		handlers[id] = handler
 	}
-	for id, handler := range jobs.NewLeaseHandlers() {
-		handlers[id] = handler
-	}
 	for id, handler := range jobs.NewQueueHandlers() {
 		handlers[id] = handler
 	}
@@ -261,8 +258,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		AdmitBusiness:   admitBusiness,
 		OpenedDataEpoch: openedDataEpoch,
 		AllowedCallers: map[string][]string{
-			"createJob": queueCallers,
-			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
+			"createJob":    queueCallers,
 			"publishEvent": producerCallers, "acknowledgeEvent": consumerCallers, "subscribeEvents": consumerCallers,
 			"listJobs":       {"portal"},
 			"cancelJob":      {"portal", "knowledge", "memory", "qa"},
@@ -276,10 +272,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"updateSchedule": {"portal"},
 		},
 		ServiceActorCallers: map[string][]string{
-			"cancelJob": {"knowledge", "memory", "qa"},
-			"createJob": queueCallers,
-			"readJob":   queueCallers,
-			"claimJob":  queueCallers, "startJob": queueCallers, "heartbeatJob": queueCallers, "checkLease": queueCallers, "completeJob": queueCallers, "failJob": queueCallers,
+			"cancelJob":      {"knowledge", "memory", "qa"},
+			"createJob":      queueCallers,
+			"readJob":        queueCallers,
 			"createSchedule": scheduleOwners,
 		},
 		Authorize: apivalidate.NewIdentityAuthorizer(identity),

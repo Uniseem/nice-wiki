@@ -31,48 +31,26 @@ const (
 
 // Defines values for ErrorCode.
 const (
-	ErrorCodeBUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
-	ErrorCodeCANCELLED             ErrorCode = "CANCELLED"
-	ErrorCodeCHALLENGEREQUIRED     ErrorCode = "CHALLENGE_REQUIRED"
-	ErrorCodeCONFLICT              ErrorCode = "CONFLICT"
-	ErrorCodeDEADLINEEXCEEDED      ErrorCode = "DEADLINE_EXCEEDED"
-	ErrorCodeDEPENDENCYUNAVAILABLE ErrorCode = "DEPENDENCY_UNAVAILABLE"
-	ErrorCodeFORBIDDEN             ErrorCode = "FORBIDDEN"
-	ErrorCodeGONE                  ErrorCode = "GONE"
-	ErrorCodeINTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
-	ErrorCodeINTERNAL              ErrorCode = "INTERNAL"
-	ErrorCodeINVOCATIONNOTACCEPTED ErrorCode = "INVOCATION_NOT_ACCEPTED"
-	ErrorCodeLOCKED                ErrorCode = "LOCKED"
-	ErrorCodeNOTFOUND              ErrorCode = "NOT_FOUND"
-	ErrorCodeRATELIMITED           ErrorCode = "RATE_LIMITED"
-	ErrorCodeSTALERESULT           ErrorCode = "STALE_RESULT"
-	ErrorCodeUNAUTHENTICATED       ErrorCode = "UNAUTHENTICATED"
-	ErrorCodeUNSUPPORTEDCAPABILITY ErrorCode = "UNSUPPORTED_CAPABILITY"
-	ErrorCodeUNSUPPORTEDSCHEMA     ErrorCode = "UNSUPPORTED_SCHEMA"
-	ErrorCodeVALIDATION            ErrorCode = "VALIDATION"
-	ErrorCodeVERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
-)
-
-// Defines values for FailJobRequestBodyErrorCode.
-const (
-	FailJobRequestBodyErrorCodeBUDGETEXCEEDED        FailJobRequestBodyErrorCode = "BUDGET_EXCEEDED"
-	FailJobRequestBodyErrorCodeCANCELLED             FailJobRequestBodyErrorCode = "CANCELLED"
-	FailJobRequestBodyErrorCodeCONFLICT              FailJobRequestBodyErrorCode = "CONFLICT"
-	FailJobRequestBodyErrorCodeDEADLINEEXCEEDED      FailJobRequestBodyErrorCode = "DEADLINE_EXCEEDED"
-	FailJobRequestBodyErrorCodeDEPENDENCYUNAVAILABLE FailJobRequestBodyErrorCode = "DEPENDENCY_UNAVAILABLE"
-	FailJobRequestBodyErrorCodeFORBIDDEN             FailJobRequestBodyErrorCode = "FORBIDDEN"
-	FailJobRequestBodyErrorCodeINTEGRITYERROR        FailJobRequestBodyErrorCode = "INTEGRITY_ERROR"
-	FailJobRequestBodyErrorCodeINTERNAL              FailJobRequestBodyErrorCode = "INTERNAL"
-	FailJobRequestBodyErrorCodeINVOCATIONNOTACCEPTED FailJobRequestBodyErrorCode = "INVOCATION_NOT_ACCEPTED"
-	FailJobRequestBodyErrorCodeLOCKED                FailJobRequestBodyErrorCode = "LOCKED"
-	FailJobRequestBodyErrorCodeNOTFOUND              FailJobRequestBodyErrorCode = "NOT_FOUND"
-	FailJobRequestBodyErrorCodeRATELIMITED           FailJobRequestBodyErrorCode = "RATE_LIMITED"
-	FailJobRequestBodyErrorCodeSTALERESULT           FailJobRequestBodyErrorCode = "STALE_RESULT"
-	FailJobRequestBodyErrorCodeUNAUTHENTICATED       FailJobRequestBodyErrorCode = "UNAUTHENTICATED"
-	FailJobRequestBodyErrorCodeUNSUPPORTEDCAPABILITY FailJobRequestBodyErrorCode = "UNSUPPORTED_CAPABILITY"
-	FailJobRequestBodyErrorCodeUNSUPPORTEDSCHEMA     FailJobRequestBodyErrorCode = "UNSUPPORTED_SCHEMA"
-	FailJobRequestBodyErrorCodeVALIDATION            FailJobRequestBodyErrorCode = "VALIDATION"
-	FailJobRequestBodyErrorCodeVERSIONMISMATCH       FailJobRequestBodyErrorCode = "VERSION_MISMATCH"
+	BUDGETEXCEEDED        ErrorCode = "BUDGET_EXCEEDED"
+	CANCELLED             ErrorCode = "CANCELLED"
+	CHALLENGEREQUIRED     ErrorCode = "CHALLENGE_REQUIRED"
+	CONFLICT              ErrorCode = "CONFLICT"
+	DEADLINEEXCEEDED      ErrorCode = "DEADLINE_EXCEEDED"
+	DEPENDENCYUNAVAILABLE ErrorCode = "DEPENDENCY_UNAVAILABLE"
+	FORBIDDEN             ErrorCode = "FORBIDDEN"
+	GONE                  ErrorCode = "GONE"
+	INTEGRITYERROR        ErrorCode = "INTEGRITY_ERROR"
+	INTERNAL              ErrorCode = "INTERNAL"
+	INVOCATIONNOTACCEPTED ErrorCode = "INVOCATION_NOT_ACCEPTED"
+	LOCKED                ErrorCode = "LOCKED"
+	NOTFOUND              ErrorCode = "NOT_FOUND"
+	RATELIMITED           ErrorCode = "RATE_LIMITED"
+	STALERESULT           ErrorCode = "STALE_RESULT"
+	UNAUTHENTICATED       ErrorCode = "UNAUTHENTICATED"
+	UNSUPPORTEDCAPABILITY ErrorCode = "UNSUPPORTED_CAPABILITY"
+	UNSUPPORTEDSCHEMA     ErrorCode = "UNSUPPORTED_SCHEMA"
+	VALIDATION            ErrorCode = "VALIDATION"
+	VERSIONMISMATCH       ErrorCode = "VERSION_MISMATCH"
 )
 
 // AcceptedJob 已持久登记的异步任务引用，不代表任务执行成功
@@ -85,99 +63,6 @@ type AcceptedJob struct {
 
 	// State 精确枚举状态，未知值拒绝
 	State interface{} `json:"state"`
-}
-
-// CheckLeaseResult 写回前检验执行权成功结果；失败不返回半成功结果
-type CheckLeaseResult struct {
-	// Valid valid 的明确真假结果，不可 null
-	Valid bool `json:"valid"`
-}
-
-// ClaimJobRequestBody 所属owner worker领取租约与fencingToken；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
-type ClaimJobRequestBody struct {
-	// JobTypes 可选实际领取类型集合；必须全部属于调用owner已登记类型，SQL筛选，不得领后丢弃。省略保留旧全owner语义。
-	JobTypes *[]string `json:"jobTypes,omitempty"`
-
-	// Limit 省略时默认10；显式值1～10；实际还受owner在途上限8限制
-	Limit *int `json:"limit,omitempty"`
-
-	// Owner owner；UTF-8；不得为 null
-	Owner string `json:"owner"`
-
-	// WorkerId workerId；UTF-8；不得为 null
-	WorkerId string `json:"workerId"`
-}
-
-// ClaimJobResult 领取待执行任务成功结果；失败不返回半成功结果
-type ClaimJobResult struct {
-	// FencingTokens 有序列表；空列表表示没有可用项
-	FencingTokens []int `json:"fencingTokens"`
-
-	// Jobs 有序列表；空列表表示没有可用项
-	Jobs []ClaimedJob `json:"jobs"`
-}
-
-// ClaimedJob 领取任务引用和fencing；job.state在领取时由任务状态响应说明，AcceptedJob为创建结果
-type ClaimedJob struct {
-	// Attempt 第几次领取；写回与重投节奏依据
-	Attempt int `json:"attempt"`
-
-	// DataEpoch 系统生成的不透明 ID，不含个人信息
-	DataEpoch Identifier `json:"dataEpoch"`
-
-	// ExpiresAt RFC3339 UTC 时间
-	ExpiresAt Timestamp `json:"expiresAt"`
-
-	// FencingToken 对象单调修订号
-	FencingToken Revision `json:"fencingToken"`
-
-	// InputRef 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径
-	InputRef ObjectRef `json:"inputRef"`
-
-	// Job 当前领取任务
-	Job struct {
-		// JobId 系统生成的不透明 ID，不含个人信息
-		JobId Identifier `json:"jobId"`
-
-		// OperationId 系统生成的不透明 ID，不含个人信息
-		OperationId Identifier `json:"operationId"`
-
-		// State 领取时任务状态
-		State interface{} `json:"state"`
-	} `json:"job"`
-
-	// Owner owner；UTF-8；不得为 null
-	Owner string `json:"owner"`
-
-	// RootOperationId 系统生成的不透明 ID，不含个人信息
-	RootOperationId Identifier `json:"rootOperationId"`
-
-	// Type type；UTF-8；不得为 null
-	Type string `json:"type"`
-}
-
-// CompleteJobRequestBody 同fence写不可变结果引用，不传正文；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
-type CompleteJobRequestBody struct {
-	// FencingToken 对象单调修订号
-	FencingToken Revision `json:"fencingToken"`
-
-	// PaidResultRefs 有序列表；空列表表示没有可用项
-	PaidResultRefs *[]string `json:"paidResultRefs,omitempty"`
-
-	// ResultRef 可选；已有持久结果的不可变引用。无结果任务省略或null，不生成空引用
-	ResultRef *ObjectRef `json:"resultRef"`
-
-	// WorkerId 本次租约的workerId；必须与当前租约持有者相同
-	WorkerId string `json:"workerId"`
-}
-
-// CompleteJobResult 提交成功结果成功结果；失败不返回半成功结果
-type CompleteJobResult struct {
-	// Revision 对象单调修订号
-	Revision Revision `json:"revision"`
-
-	// State state；UTF-8；不得为 null
-	State string `json:"state"`
 }
 
 // CreateJobRequestBody 提交不可变引用与owner/type，202 AcceptedJob，epoch必须当前；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
@@ -262,33 +147,6 @@ type DeliverySummary struct {
 // ErrorCode ErrorCode的公共协议类型；字段及范围按本schema
 type ErrorCode string
 
-// FailJobRequestBody 错误分类决定重试或dead-letter；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
-type FailJobRequestBody struct {
-	// ErrorCode 只接受公共错误码，不传原始错误或正文
-	ErrorCode FailJobRequestBodyErrorCode `json:"errorCode"`
-
-	// FencingToken 对象单调修订号
-	FencingToken Revision `json:"fencingToken"`
-
-	// PaidResultRefs 可选；owner在持久安全点确认的已有付费结果引用，与已存引用合并保留
-	PaidResultRefs *[]string `json:"paidResultRefs,omitempty"`
-
-	// WorkerId 本次租约的workerId；必须与当前租约持有者相同
-	WorkerId string `json:"workerId"`
-}
-
-// FailJobRequestBodyErrorCode 只接受公共错误码，不传原始错误或正文
-type FailJobRequestBodyErrorCode string
-
-// FailJobResult 失败写回成功结果；失败不返回半成功结果
-type FailJobResult struct {
-	// RetryAt RFC3339 UTC 时间
-	RetryAt *Timestamp `json:"retryAt,omitempty"`
-
-	// State state；UTF-8；不得为 null
-	State string `json:"state"`
-}
-
 // FieldIssue FieldIssue的公共协议类型；字段及范围按本schema
 type FieldIssue struct {
 	// Field 字段路径，不包含字段值
@@ -314,27 +172,6 @@ type HealthStatus struct {
 
 	// Version 对象或协议版本
 	Version string `json:"version"`
-}
-
-// HeartbeatJobRequestBody 同worker/fence续租30秒；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
-type HeartbeatJobRequestBody struct {
-	// FencingToken 对象单调修订号
-	FencingToken Revision `json:"fencingToken"`
-
-	// Progress 可选心跳进度；checkpointKey按job幂等，同阶段完成数量不能倒退
-	Progress *ProgressCheckpoint `json:"progress,omitempty"`
-
-	// WorkerId workerId；UTF-8；不得为 null
-	WorkerId string `json:"workerId"`
-}
-
-// HeartbeatJobResult 维持租约成功结果；失败不返回半成功结果
-type HeartbeatJobResult struct {
-	// CancelRequested cancelRequested 的明确真假结果，不可 null
-	CancelRequested bool `json:"cancelRequested"`
-
-	// ExpiresAt RFC3339 UTC 时间
-	ExpiresAt Timestamp `json:"expiresAt"`
 }
 
 // Identifier 系统生成的不透明 ID，不含个人信息
@@ -466,17 +303,6 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
-// ProgressCheckpoint 可选心跳进度；checkpointKey按job幂等，同阶段完成数量不能倒退
-type ProgressCheckpoint struct {
-	// CheckpointKey 系统生成的不透明 ID，不含个人信息
-	CheckpointKey  Identifier `json:"checkpointKey"`
-	CompletedUnits int        `json:"completedUnits"`
-
-	// Phase 注册执行器使用的安全阶段代码；不得传入正文、提示词或原始错误
-	Phase      string `json:"phase"`
-	TotalUnits int    `json:"totalUnits"`
-}
-
 // ReadJobResult 读取管理任务状态成功结果；失败不返回半成功结果
 type ReadJobResult struct {
 	// ResultRefs 有序列表；空列表表示没有可用项
@@ -576,21 +402,6 @@ type ServiceReadiness struct {
 	RuntimeRevision Revision `json:"runtimeRevision"`
 }
 
-// StartJobRequestBody 所属owner主动领取后确认running，不由jobs执行领域算法；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明
-type StartJobRequestBody struct {
-	// FencingToken 对象单调修订号
-	FencingToken Revision `json:"fencingToken"`
-
-	// WorkerId workerId；UTF-8；不得为 null
-	WorkerId string `json:"workerId"`
-}
-
-// StartJobResult 确认开始执行成功结果；失败不返回半成功结果
-type StartJobResult struct {
-	// State state；UTF-8；不得为 null
-	State string `json:"state"`
-}
-
 // Timestamp RFC3339 UTC 时间
 type Timestamp = time.Time
 
@@ -666,18 +477,6 @@ type ReadJobParams struct {
 	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
 }
 
-// CheckLeaseParams defines parameters for CheckLease.
-type CheckLeaseParams struct {
-	// WorkerId 当前worker执行权；由owner领取结果构造
-	WorkerId string `form:"workerId" json:"workerId"`
-
-	// FencingToken 当前worker执行权；由owner领取结果构造
-	FencingToken Revision `form:"fencingToken" json:"fencingToken"`
-
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-}
-
 // StreamProgressParams defines parameters for StreamProgress.
 type StreamProgressParams struct {
 	// LastEventId 兼容查询别名；与afterSequence及Last-Event-ID同时给出时必须相同，不设单别名默认值
@@ -702,53 +501,8 @@ type CancelJobParams struct {
 	IdempotencyKey Identifier `json:"Idempotency-Key"`
 }
 
-// CompleteJobParams defines parameters for CompleteJob.
-type CompleteJobParams struct {
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-
-	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
-	IdempotencyKey Identifier `json:"Idempotency-Key"`
-}
-
-// FailJobParams defines parameters for FailJob.
-type FailJobParams struct {
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-
-	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
-	IdempotencyKey Identifier `json:"Idempotency-Key"`
-}
-
-// HeartbeatJobParams defines parameters for HeartbeatJob.
-type HeartbeatJobParams struct {
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-
-	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
-	IdempotencyKey Identifier `json:"Idempotency-Key"`
-}
-
 // RetryJobParams defines parameters for RetryJob.
 type RetryJobParams struct {
-	IdempotencyKey Identifier `json:"Idempotency-Key"`
-}
-
-// StartJobParams defines parameters for StartJob.
-type StartJobParams struct {
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-
-	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
-	IdempotencyKey Identifier `json:"Idempotency-Key"`
-}
-
-// ClaimJobParams defines parameters for ClaimJob.
-type ClaimJobParams struct {
-	// XRequestId 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash
-	XRequestId *Identifier `json:"X-Request-Id,omitempty"`
-
-	// IdempotencyKey 本操作幂等键，同键不同规范body hash返回409
 	IdempotencyKey Identifier `json:"Idempotency-Key"`
 }
 
@@ -779,23 +533,8 @@ type CreateJobJSONRequestBody = CreateJobRequestBody
 // CancelJobJSONRequestBody defines body for CancelJob for application/json ContentType.
 type CancelJobJSONRequestBody = RequestCancelRequestBody
 
-// CompleteJobJSONRequestBody defines body for CompleteJob for application/json ContentType.
-type CompleteJobJSONRequestBody = CompleteJobRequestBody
-
-// FailJobJSONRequestBody defines body for FailJob for application/json ContentType.
-type FailJobJSONRequestBody = FailJobRequestBody
-
-// HeartbeatJobJSONRequestBody defines body for HeartbeatJob for application/json ContentType.
-type HeartbeatJobJSONRequestBody = HeartbeatJobRequestBody
-
 // RetryJobJSONRequestBody defines body for RetryJob for application/json ContentType.
 type RetryJobJSONRequestBody = RetryJobInput
-
-// StartJobJSONRequestBody defines body for StartJob for application/json ContentType.
-type StartJobJSONRequestBody = StartJobRequestBody
-
-// ClaimJobJSONRequestBody defines body for ClaimJob for application/json ContentType.
-type ClaimJobJSONRequestBody = ClaimJobRequestBody
 
 // CreateScheduleJSONRequestBody defines body for CreateSchedule for application/json ContentType.
 type CreateScheduleJSONRequestBody = CreateScheduleRequestBody
@@ -826,33 +565,15 @@ type ServerInterface interface {
 	// 读取当前管理授权或本域所属任务状态
 	// (GET /v1/jobs/{jobId})
 	ReadJob(w http.ResponseWriter, r *http.Request, jobId string, params ReadJobParams)
-	// 写回前检验执行权
-	// (GET /v1/jobs/{jobId}/lease)
-	CheckLease(w http.ResponseWriter, r *http.Request, jobId string, params CheckLeaseParams)
 	// 任务进度SSE
 	// (GET /v1/jobs/{jobId}/progress)
 	StreamProgress(w http.ResponseWriter, r *http.Request, jobId Identifier, params StreamProgressParams)
 	// 请求取消任务
 	// (POST /v1/jobs/{jobId}:cancel)
 	CancelJob(w http.ResponseWriter, r *http.Request, jobId string, params CancelJobParams)
-	// 提交成功结果
-	// (POST /v1/jobs/{jobId}:complete)
-	CompleteJob(w http.ResponseWriter, r *http.Request, jobId string, params CompleteJobParams)
-	// 失败写回
-	// (POST /v1/jobs/{jobId}:fail)
-	FailJob(w http.ResponseWriter, r *http.Request, jobId string, params FailJobParams)
-	// 维持租约
-	// (POST /v1/jobs/{jobId}:heartbeat)
-	HeartbeatJob(w http.ResponseWriter, r *http.Request, jobId string, params HeartbeatJobParams)
 	// 重试失败任务
 	// (POST /v1/jobs/{jobId}:retry)
 	RetryJob(w http.ResponseWriter, r *http.Request, jobId string, params RetryJobParams)
-	// 确认开始执行
-	// (POST /v1/jobs/{jobId}:start)
-	StartJob(w http.ResponseWriter, r *http.Request, jobId string, params StartJobParams)
-	// 领取待执行任务
-	// (POST /v1/jobs:claim)
-	ClaimJob(w http.ResponseWriter, r *http.Request, params ClaimJobParams)
 	// 查看定时任务
 	// (GET /v1/schedules)
 	ListSchedules(w http.ResponseWriter, r *http.Request)
@@ -1198,91 +919,6 @@ func (siw *ServerInterfaceWrapper) ReadJob(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r)
 }
 
-// CheckLease operation middleware
-func (siw *ServerInterfaceWrapper) CheckLease(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "jobId" -------------
-	var jobId string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CheckLeaseParams
-
-	// ------------- Required query parameter "workerId" -------------
-
-	if paramValue := r.URL.Query().Get("workerId"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workerId"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "workerId", r.URL.Query(), &params.WorkerId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workerId", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "fencingToken" -------------
-
-	if paramValue := r.URL.Query().Get("fencingToken"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fencingToken"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "fencingToken", r.URL.Query(), &params.FencingToken)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fencingToken", Err: err})
-		return
-	}
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CheckLease(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // StreamProgress operation middleware
 func (siw *ServerInterfaceWrapper) StreamProgress(w http.ResponseWriter, r *http.Request) {
 
@@ -1455,240 +1091,6 @@ func (siw *ServerInterfaceWrapper) CancelJob(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
-// CompleteJob operation middleware
-func (siw *ServerInterfaceWrapper) CompleteJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "jobId" -------------
-	var jobId string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CompleteJobParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	// ------------- Required header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = IdempotencyKey
-
-	} else {
-		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CompleteJob(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// FailJob operation middleware
-func (siw *ServerInterfaceWrapper) FailJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "jobId" -------------
-	var jobId string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params FailJobParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	// ------------- Required header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = IdempotencyKey
-
-	} else {
-		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.FailJob(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// HeartbeatJob operation middleware
-func (siw *ServerInterfaceWrapper) HeartbeatJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "jobId" -------------
-	var jobId string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params HeartbeatJobParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	// ------------- Required header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = IdempotencyKey
-
-	} else {
-		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.HeartbeatJob(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // RetryJob operation middleware
 func (siw *ServerInterfaceWrapper) RetryJob(w http.ResponseWriter, r *http.Request) {
 
@@ -1741,153 +1143,6 @@ func (siw *ServerInterfaceWrapper) RetryJob(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RetryJob(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// StartJob operation middleware
-func (siw *ServerInterfaceWrapper) StartJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "jobId" -------------
-	var jobId string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params StartJobParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	// ------------- Required header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = IdempotencyKey
-
-	} else {
-		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.StartJob(w, r, jobId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// ClaimJob operation middleware
-func (siw *ServerInterfaceWrapper) ClaimJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, ServiceAssertionScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ClaimJobParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "X-Request-Id" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("X-Request-Id")]; found {
-		var XRequestId Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Request-Id", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "X-Request-Id", valueList[0], &XRequestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Request-Id", Err: err})
-			return
-		}
-
-		params.XRequestId = &XRequestId
-
-	}
-
-	// ------------- Required header parameter "Idempotency-Key" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
-		var IdempotencyKey Identifier
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
-			return
-		}
-
-		params.IdempotencyKey = IdempotencyKey
-
-	} else {
-		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
-		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ClaimJob(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2197,15 +1452,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/v1/jobs", wrapper.ListJobs)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs", wrapper.CreateJob)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/jobs/{jobId}", wrapper.ReadJob)
-	m.HandleFunc("GET "+options.BaseURL+"/v1/jobs/{jobId}/lease", wrapper.CheckLease)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/jobs/{jobId}/progress", wrapper.StreamProgress)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:cancel", wrapper.CancelJob)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:complete", wrapper.CompleteJob)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:fail", wrapper.FailJob)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:heartbeat", wrapper.HeartbeatJob)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:retry", wrapper.RetryJob)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs/{jobId}:start", wrapper.StartJob)
-	m.HandleFunc("POST "+options.BaseURL+"/v1/jobs:claim", wrapper.ClaimJob)
 	m.HandleFunc("GET "+options.BaseURL+"/v1/schedules", wrapper.ListSchedules)
 	m.HandleFunc("POST "+options.BaseURL+"/v1/schedules", wrapper.CreateSchedule)
 	m.HandleFunc("PUT "+options.BaseURL+"/v1/schedules/{scheduleId}", wrapper.UpdateSchedule)
@@ -2577,33 +1826,6 @@ func (response ReadJob503ApplicationProblemPlusJSONResponse) VisitReadJobRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CheckLeaseRequestObject struct {
-	JobId  string `json:"jobId"`
-	Params CheckLeaseParams
-}
-
-type CheckLeaseResponseObject interface {
-	VisitCheckLeaseResponse(w http.ResponseWriter) error
-}
-
-type CheckLease200JSONResponse CheckLeaseResult
-
-func (response CheckLease200JSONResponse) VisitCheckLeaseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CheckLease409ApplicationProblemPlusJSONResponse Problem
-
-func (response CheckLease409ApplicationProblemPlusJSONResponse) VisitCheckLeaseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type StreamProgressRequestObject struct {
 	JobId  Identifier `json:"jobId"`
 	Params StreamProgressParams
@@ -2768,126 +1990,6 @@ func (response CancelJob503ApplicationProblemPlusJSONResponse) VisitCancelJobRes
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CompleteJobRequestObject struct {
-	JobId  string `json:"jobId"`
-	Params CompleteJobParams
-	Body   *CompleteJobJSONRequestBody
-}
-
-type CompleteJobResponseObject interface {
-	VisitCompleteJobResponse(w http.ResponseWriter) error
-}
-
-type CompleteJob200JSONResponse CompleteJobResult
-
-func (response CompleteJob200JSONResponse) VisitCompleteJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CompleteJob400ApplicationProblemPlusJSONResponse Problem
-
-func (response CompleteJob400ApplicationProblemPlusJSONResponse) VisitCompleteJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CompleteJob409ApplicationProblemPlusJSONResponse Problem
-
-func (response CompleteJob409ApplicationProblemPlusJSONResponse) VisitCompleteJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CompleteJob503ApplicationProblemPlusJSONResponse Problem
-
-func (response CompleteJob503ApplicationProblemPlusJSONResponse) VisitCompleteJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(503)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FailJobRequestObject struct {
-	JobId  string `json:"jobId"`
-	Params FailJobParams
-	Body   *FailJobJSONRequestBody
-}
-
-type FailJobResponseObject interface {
-	VisitFailJobResponse(w http.ResponseWriter) error
-}
-
-type FailJob200JSONResponse FailJobResult
-
-func (response FailJob200JSONResponse) VisitFailJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FailJob400ApplicationProblemPlusJSONResponse Problem
-
-func (response FailJob400ApplicationProblemPlusJSONResponse) VisitFailJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FailJob409ApplicationProblemPlusJSONResponse Problem
-
-func (response FailJob409ApplicationProblemPlusJSONResponse) VisitFailJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type FailJob503ApplicationProblemPlusJSONResponse Problem
-
-func (response FailJob503ApplicationProblemPlusJSONResponse) VisitFailJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(503)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeartbeatJobRequestObject struct {
-	JobId  string `json:"jobId"`
-	Params HeartbeatJobParams
-	Body   *HeartbeatJobJSONRequestBody
-}
-
-type HeartbeatJobResponseObject interface {
-	VisitHeartbeatJobResponse(w http.ResponseWriter) error
-}
-
-type HeartbeatJob200JSONResponse HeartbeatJobResult
-
-func (response HeartbeatJob200JSONResponse) VisitHeartbeatJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeartbeatJob409ApplicationProblemPlusJSONResponse Problem
-
-func (response HeartbeatJob409ApplicationProblemPlusJSONResponse) VisitHeartbeatJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type RetryJobRequestObject struct {
 	JobId  string `json:"jobId"`
 	Params RetryJobParams
@@ -2975,61 +2077,6 @@ type RetryJob503ApplicationProblemPlusJSONResponse Problem
 func (response RetryJob503ApplicationProblemPlusJSONResponse) VisitRetryJobResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(503)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StartJobRequestObject struct {
-	JobId  string `json:"jobId"`
-	Params StartJobParams
-	Body   *StartJobJSONRequestBody
-}
-
-type StartJobResponseObject interface {
-	VisitStartJobResponse(w http.ResponseWriter) error
-}
-
-type StartJob200JSONResponse StartJobResult
-
-func (response StartJob200JSONResponse) VisitStartJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StartJob409ApplicationProblemPlusJSONResponse Problem
-
-func (response StartJob409ApplicationProblemPlusJSONResponse) VisitStartJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ClaimJobRequestObject struct {
-	Params ClaimJobParams
-	Body   *ClaimJobJSONRequestBody
-}
-
-type ClaimJobResponseObject interface {
-	VisitClaimJobResponse(w http.ResponseWriter) error
-}
-
-type ClaimJob200JSONResponse ClaimJobResult
-
-func (response ClaimJob200JSONResponse) VisitClaimJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ClaimJob409ApplicationProblemPlusJSONResponse Problem
-
-func (response ClaimJob409ApplicationProblemPlusJSONResponse) VisitClaimJobResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -3155,33 +2202,15 @@ type StrictServerInterface interface {
 	// 读取当前管理授权或本域所属任务状态
 	// (GET /v1/jobs/{jobId})
 	ReadJob(ctx context.Context, request ReadJobRequestObject) (ReadJobResponseObject, error)
-	// 写回前检验执行权
-	// (GET /v1/jobs/{jobId}/lease)
-	CheckLease(ctx context.Context, request CheckLeaseRequestObject) (CheckLeaseResponseObject, error)
 	// 任务进度SSE
 	// (GET /v1/jobs/{jobId}/progress)
 	StreamProgress(ctx context.Context, request StreamProgressRequestObject) (StreamProgressResponseObject, error)
 	// 请求取消任务
 	// (POST /v1/jobs/{jobId}:cancel)
 	CancelJob(ctx context.Context, request CancelJobRequestObject) (CancelJobResponseObject, error)
-	// 提交成功结果
-	// (POST /v1/jobs/{jobId}:complete)
-	CompleteJob(ctx context.Context, request CompleteJobRequestObject) (CompleteJobResponseObject, error)
-	// 失败写回
-	// (POST /v1/jobs/{jobId}:fail)
-	FailJob(ctx context.Context, request FailJobRequestObject) (FailJobResponseObject, error)
-	// 维持租约
-	// (POST /v1/jobs/{jobId}:heartbeat)
-	HeartbeatJob(ctx context.Context, request HeartbeatJobRequestObject) (HeartbeatJobResponseObject, error)
 	// 重试失败任务
 	// (POST /v1/jobs/{jobId}:retry)
 	RetryJob(ctx context.Context, request RetryJobRequestObject) (RetryJobResponseObject, error)
-	// 确认开始执行
-	// (POST /v1/jobs/{jobId}:start)
-	StartJob(ctx context.Context, request StartJobRequestObject) (StartJobResponseObject, error)
-	// 领取待执行任务
-	// (POST /v1/jobs:claim)
-	ClaimJob(ctx context.Context, request ClaimJobRequestObject) (ClaimJobResponseObject, error)
 	// 查看定时任务
 	// (GET /v1/schedules)
 	ListSchedules(ctx context.Context, request ListSchedulesRequestObject) (ListSchedulesResponseObject, error)
@@ -3416,33 +2445,6 @@ func (sh *strictHandler) ReadJob(w http.ResponseWriter, r *http.Request, jobId s
 	}
 }
 
-// CheckLease operation middleware
-func (sh *strictHandler) CheckLease(w http.ResponseWriter, r *http.Request, jobId string, params CheckLeaseParams) {
-	var request CheckLeaseRequestObject
-
-	request.JobId = jobId
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CheckLease(ctx, request.(CheckLeaseRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CheckLease")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CheckLeaseResponseObject); ok {
-		if err := validResponse.VisitCheckLeaseResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // StreamProgress operation middleware
 func (sh *strictHandler) StreamProgress(w http.ResponseWriter, r *http.Request, jobId Identifier, params StreamProgressParams) {
 	var request StreamProgressRequestObject
@@ -3504,108 +2506,6 @@ func (sh *strictHandler) CancelJob(w http.ResponseWriter, r *http.Request, jobId
 	}
 }
 
-// CompleteJob operation middleware
-func (sh *strictHandler) CompleteJob(w http.ResponseWriter, r *http.Request, jobId string, params CompleteJobParams) {
-	var request CompleteJobRequestObject
-
-	request.JobId = jobId
-	request.Params = params
-
-	var body CompleteJobJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CompleteJob(ctx, request.(CompleteJobRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CompleteJob")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CompleteJobResponseObject); ok {
-		if err := validResponse.VisitCompleteJobResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// FailJob operation middleware
-func (sh *strictHandler) FailJob(w http.ResponseWriter, r *http.Request, jobId string, params FailJobParams) {
-	var request FailJobRequestObject
-
-	request.JobId = jobId
-	request.Params = params
-
-	var body FailJobJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.FailJob(ctx, request.(FailJobRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "FailJob")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(FailJobResponseObject); ok {
-		if err := validResponse.VisitFailJobResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// HeartbeatJob operation middleware
-func (sh *strictHandler) HeartbeatJob(w http.ResponseWriter, r *http.Request, jobId string, params HeartbeatJobParams) {
-	var request HeartbeatJobRequestObject
-
-	request.JobId = jobId
-	request.Params = params
-
-	var body HeartbeatJobJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.HeartbeatJob(ctx, request.(HeartbeatJobRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeartbeatJob")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(HeartbeatJobResponseObject); ok {
-		if err := validResponse.VisitHeartbeatJobResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // RetryJob operation middleware
 func (sh *strictHandler) RetryJob(w http.ResponseWriter, r *http.Request, jobId string, params RetryJobParams) {
 	var request RetryJobRequestObject
@@ -3633,73 +2533,6 @@ func (sh *strictHandler) RetryJob(w http.ResponseWriter, r *http.Request, jobId 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RetryJobResponseObject); ok {
 		if err := validResponse.VisitRetryJobResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// StartJob operation middleware
-func (sh *strictHandler) StartJob(w http.ResponseWriter, r *http.Request, jobId string, params StartJobParams) {
-	var request StartJobRequestObject
-
-	request.JobId = jobId
-	request.Params = params
-
-	var body StartJobJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.StartJob(ctx, request.(StartJobRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "StartJob")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(StartJobResponseObject); ok {
-		if err := validResponse.VisitStartJobResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ClaimJob operation middleware
-func (sh *strictHandler) ClaimJob(w http.ResponseWriter, r *http.Request, params ClaimJobParams) {
-	var request ClaimJobRequestObject
-
-	request.Params = params
-
-	var body ClaimJobJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ClaimJob(ctx, request.(ClaimJobRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ClaimJob")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ClaimJobResponseObject); ok {
-		if err := validResponse.VisitClaimJobResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3801,154 +2634,127 @@ func (sh *strictHandler) UpdateSchedule(w http.ResponseWriter, r *http.Request, 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AgAA//+V0J+zhc0AAA==",
+	"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",
+	"AP//dKei2VqNAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

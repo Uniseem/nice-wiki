@@ -3,9 +3,7 @@ package runtime
 import (
 	"context"
 	"nice-wiki/libs/platform"
-	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/worker"
-	"nice-wiki/modules/knowledge/internal/gen"
 	indexer "nice-wiki/modules/knowledge/internal/index"
 	"sync"
 )
@@ -22,21 +20,9 @@ type WorkerRuntime struct {
 }
 type workerRuntimeKey struct{}
 
-// NewWorkerRuntime 只装配真实生成客户端和严格生产schema，不模拟jobs接口。
-func NewWorkerRuntime(raw *gen.JobsClient, executors platform.JobExecutorRegistry, runtime func(context.Context) (platform.RuntimeView, error)) (WorkerRuntime, error) {
-	validators := worker.ResponseValidators{}
-	for _, name := range []string{"ClaimJobResult", "StartJobResult", "HeartbeatJobResult", "CheckLeaseResult", "CompleteJobResult", "FailJobResult"} {
-		validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "Jobs"+name)
-		if err != nil {
-			return WorkerRuntime{}, err
-		}
-		validators[name] = validate
-	}
-	client, err := worker.NewJobsClient(raw, validators)
-	if err != nil {
-		return WorkerRuntime{}, err
-	}
-	return WorkerRuntime{Jobs: client, Executors: executors, Runtime: runtime}, nil
+// NewWorkerRuntime 装配任务执行端（直接用共用任务表）和本域执行器。
+func NewWorkerRuntime(jobs platform.WorkerJobsClient, executors platform.JobExecutorRegistry, runtime func(context.Context) (platform.RuntimeView, error)) WorkerRuntime {
+	return WorkerRuntime{Jobs: jobs, Executors: executors, Runtime: runtime}
 }
 func WithWorkerRuntime(ctx context.Context, runtime WorkerRuntime) context.Context {
 	return context.WithValue(ctx, workerRuntimeKey{}, runtime)

@@ -193,14 +193,6 @@
     "identity": [
       "checkAuthorization"
     ],
-    "jobs": [
-      "checkLease",
-      "claimJob",
-      "completeJob",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
-    ],
     "model-gateway": [
       "cancelInference",
       "createInference",

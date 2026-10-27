@@ -929,7 +929,7 @@
     "ClaimedJob": {
       "type": "object",
       "x-internal": true,
-      "description": "平台任务领取材料；完整jobId/operationId/rootOperationId/type/ObjectRef/fence/attempt/dataEpoch/expiresAt投影，来源为jobs:claimJob"
+      "description": "平台任务领取材料；完整jobId/operationId/rootOperationId/type/ObjectRef/fence/attempt/dataEpoch/expiresAt投影，来源为共用任务表的领取（libs/platform/queue/tasks）"
     },
     "WorkerJobsClient": {
       "type": "object",
@@ -1149,7 +1149,7 @@
     "TypedWorkerJobsClient": {
       "type": "object",
       "additionalProperties": false,
-      "description": "进程内可选强类型领取能力，不序列化；继承WorkerJobsClient且ClaimJobTypes经原claimJob操作按owner登记类型筛选。",
+      "description": "进程内可选强类型领取能力，不序列化；继承WorkerJobsClient且ClaimJobTypes按owner与任务类型领取。",
       "properties": {}
     },
     "snapshotCountedReader": {

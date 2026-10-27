@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/queue"
-	"nice-wiki/libs/platform/worker"
+	"nice-wiki/libs/platform/queue/tasks"
 	analytics "nice-wiki/modules/analytics/internal"
 	"nice-wiki/modules/analytics/internal/gen"
 	"os"
@@ -100,20 +100,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "jobs地址未配置")
 	}
 	jobs := gen.NewJobsClient(config.Dependencies["jobs"], ModuleSlug, key)
-	validators := worker.ResponseValidators{}
-	for _, name := range []string{"ClaimJobResult", "StartJobResult", "HeartbeatJobResult", "CheckLeaseResult", "CompleteJobResult", "FailJobResult"} {
-		validator, e := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "AnalyticsJobs"+name)
-		if e != nil {
-			_ = store.Close()
-			return nil, e
-		}
-		validators[name] = validator
-	}
-	store.Jobs, err = worker.NewJobsClient(jobs, validators)
+	taskStore, err := tasks.Open(config.DataRoot, store.Window.Runtime)
 	if err != nil {
 		_ = store.Close()
 		return nil, err
 	}
+	store.Jobs = tasks.NewClient(taskStore)
 	store.Submitter = jobs
 	store.ValidateCreateJob, err = apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "AnalyticsJobsCreateJobResult")
 	if err != nil {

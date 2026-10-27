@@ -690,14 +690,8 @@
     ],
     "jobs": [
       "cancelJob",
-      "checkLease",
-      "claimJob",
-      "completeJob",
       "createJob",
-      "failJob",
-      "heartbeatJob",
-      "readJob",
-      "startJob"
+      "readJob"
     ],
     "media": [
       "readAsset",

@@ -466,13 +466,7 @@
     ],
     "jobs": [
       "cancelJob",
-      "checkLease",
-      "claimJob",
-      "completeJob",
-      "createJob",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createJob"
     ],
     "knowledge": [
       "createQueryEmbedding",

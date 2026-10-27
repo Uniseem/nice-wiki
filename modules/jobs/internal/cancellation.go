@@ -17,16 +17,6 @@ type RequestCancelInput struct {
 
 type RequestCancelResult = gen.RequestCancelResult
 
-type ConfirmCancelledInput struct {
-	JobID        platform.Identifier
-	WorkerID     string
-	FencingToken int64
-	ResultRefs   []string
-	DataEpoch    platform.Identifier
-}
-
-type ConfirmCancelledResult struct{ State string }
-
 // RequestCancel 只记录取消意图；owner负责停止模型、结算及确认持久安全点。
 func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInput) (RequestCancelResult, error) {
 	authorized, err := authorizeJobManagement(ctx, op, in.JobID)
@@ -96,19 +86,4 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 		return RequestCancelResult{}, mapQueueDBError(err)
 	}
 	return result, nil
-}
-
-// ConfirmCancelled 只复用FailJob已经验证的事务、租约和owner安全取消确认。
-func ConfirmCancelled(ctx context.Context, op OperationContext, work *leaseOperation, in ConfirmCancelledInput) (ConfirmCancelledResult, error) {
-	job, err := work.readJobRecord(ctx, in.JobID, in.DataEpoch)
-	if err != nil {
-		return ConfirmCancelledResult{}, err
-	}
-	if err := work.mergePaidResults(ctx, in.JobID, in.ResultRefs, nil); err != nil {
-		return ConfirmCancelledResult{}, err
-	}
-	if err := work.finishJob(ctx, job, "cancelled", nil, platform.CodeCancelled); err != nil {
-		return ConfirmCancelledResult{}, err
-	}
-	return ConfirmCancelledResult{State: "cancelled"}, nil
 }

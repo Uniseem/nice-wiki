@@ -493,13 +493,7 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "checkLease",
-      "claimJob",
-      "completeJob",
-      "createJob",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createJob"
     ],
     "localization": [
       "listLanguages",

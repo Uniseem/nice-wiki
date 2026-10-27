@@ -183,7 +183,8 @@ func (Driver) openConnector(name string) (driver.Connector, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := ensureSchema(ctx, config, schema); err != nil {
+	asShared, err := ensureSchema(ctx, config, schema)
+	if err != nil {
 		return nil, err
 	}
 	loadTables(ctx, config, c.module, schema)
@@ -192,7 +193,7 @@ func (Driver) openConnector(name string) (driver.Connector, error) {
 	config.RuntimeParams["application_name"] = "nw-" + c.module
 	hash := fnv.New64a()
 	hash.Write([]byte(schema))
-	return &connector{inner: stdlib.GetConnector(*config), config: config, lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema, tenant: isTenant(c.module)}, nil
+	return &connector{inner: stdlib.GetConnector(*config), config: config, lockKey: int64(hash.Sum64() >> 1), module: c.module, schema: schema, tenant: isTenant(c.module), asShared: asShared}, nil
 }
 
 // InstallHelpers 在 public schema 安装翻译后语句依赖的辅助函数。
@@ -227,41 +228,47 @@ func useSharedRole(ctx context.Context, conn *pgx.Conn) (bool, error) {
 
 func quoteIdent(name string) string { return `"` + strings.ReplaceAll(name, `"`, `""`) + `"` }
 
-func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) error {
+// sharedSchemas 是各组件共用的 schema：jobs 里的任务表由 jobs 组件迁移，各服务的 worker 直接读写（libs/platform/queue/tasks）。
+// 部署时这些 schema 里的对象都以共享角色 nw_shared 建立和访问，各组件角色作为成员都能用。
+var sharedSchemas = map[string]bool{"jobs": true}
+
+// ensureSchema 建 schema 与辅助对象；返回连接是否要切到共享角色（共享 schema 且部署了 nw_shared）。
+func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) (bool, error) {
 	conn, err := pgx.ConnectConfig(ctx, config)
 	if err != nil {
-		return fmt.Errorf("pgdb: 连接 PostgreSQL 失败：%w", err)
+		return false, fmt.Errorf("pgdb: 连接 PostgreSQL 失败：%w", err)
 	}
 	defer conn.Close(ctx)
 	// 多个组件同时启动时串行化建 schema 与辅助函数，避免并发建同名对象。
 	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock(7242001)"); err != nil {
-		return err
+		return false, err
 	}
 	defer conn.Exec(ctx, "SELECT pg_advisory_unlock(7242001)")
 	// 部署时每个组件一个数据库角色：公共辅助函数归共享角色 nw_shared 所有（各组件角色都是它的成员），
 	// 不然第二个组件 CREATE OR REPLACE 别人建的函数会因不是所有者失败。开发时只有一个角色，没有 nw_shared。
 	shared, err := useSharedRole(ctx, conn)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if err := InstallHelpers(ctx, conn); err != nil {
-		return err
+		return false, err
 	}
-	if shared {
+	// 共享 schema 整个以共享角色建立；组件自己的 schema 回到本角色。
+	if shared && !sharedSchemas[schema] {
 		if _, err := conn.Exec(ctx, "RESET ROLE"); err != nil {
-			return err
+			return false, err
 		}
 	}
 	if _, err := conn.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS "+quoteIdent(schema)); err != nil {
-		return err
+		return false, err
 	}
 	if _, err := conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS "+quoteIdent(schema)+".nw_pragma(name text PRIMARY KEY, value bigint NOT NULL)"); err != nil {
-		return err
+		return false, err
 	}
 	if _, err := conn.Exec(ctx, siteStateSQL(schema)); err != nil {
-		return err
+		return false, err
 	}
-	return upgradePolicies(ctx, conn, schema)
+	return shared && sharedSchemas[schema], upgradePolicies(ctx, conn, schema)
 }
 
 type connector struct {
@@ -271,6 +278,7 @@ type connector struct {
 	module      string
 	schema      string
 	tenant      bool
+	asShared    bool // 共享 schema：连接建好后切到共享角色
 	provMu      sync.Mutex
 	provisioned sync.Map // 站点 -> 已在本组件复制过单例模板行
 }
@@ -279,6 +287,12 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	inner, err := c.inner.Connect(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if c.asShared {
+		if _, err := inner.(driver.ExecerContext).ExecContext(ctx, "SET ROLE "+SharedRole, nil); err != nil {
+			inner.Close()
+			return nil, err
+		}
 	}
 	return &conn{Conn: inner, owner: c, described: map[string][]uint32{}}, nil
 }

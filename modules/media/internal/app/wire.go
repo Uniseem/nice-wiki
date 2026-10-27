@@ -16,6 +16,7 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/queue"
+	"nice-wiki/libs/platform/queue/tasks"
 	"nice-wiki/libs/platform/serviceauth"
 	"nice-wiki/libs/platform/sitestate"
 	mediaDomain "nice-wiki/modules/media/internal"
@@ -124,7 +125,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	background, err := mediaDomain.NewMediaBackgroundTasks(startup, jobs, events)
+	taskStore, err := tasks.Open(config.DataRoot, runtimeClient.ReadRuntimeState)
+	if err != nil {
+		return nil, err
+	}
+	background, err := mediaDomain.NewMediaBackgroundTasks(startup, tasks.NewClient(taskStore), events)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/queue"
+	"nice-wiki/libs/platform/queue/tasks"
 	"nice-wiki/libs/platform/searchclient"
 	"nice-wiki/libs/platform/sitestate"
 	"nice-wiki/modules/knowledge/internal/admin"
@@ -145,10 +146,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			return extract.ExecuteExtraction(work, op, input)
 		},
 	}
-	workers, err := domainruntime.NewWorkerRuntime(indexes.Jobs, executors, window.Runtime)
+	taskStore, err := tasks.Open(config.DataRoot, window.Runtime)
 	if err != nil {
 		return nil, err
 	}
+	workers := domainruntime.NewWorkerRuntime(tasks.NewClient(taskStore), executors, window.Runtime)
 	bind := func(work context.Context) context.Context {
 		work = indexer.WithIndexRuntime(work, indexes)
 		work = modelruntime.WithModelRuntime(work, model)

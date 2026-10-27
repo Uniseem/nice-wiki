@@ -416,13 +416,7 @@
       "readSiteStoragePolicy"
     ],
     "jobs": [
-      "checkLease",
-      "claimJob",
-      "completeJob",
-      "createJob",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createJob"
     ],
     "site-config": [
       "listResourceReferences",

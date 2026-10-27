@@ -446,14 +446,8 @@
     ],
     "jobs": [
       "cancelJob",
-      "checkLease",
-      "claimJob",
-      "completeJob",
       "createJob",
-      "createSchedule",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createSchedule"
     ],
     "localization": [
       "applyApprovedGlossaryProposal"

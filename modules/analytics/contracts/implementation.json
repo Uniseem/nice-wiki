@@ -528,14 +528,8 @@
       "checkAuthorization"
     ],
     "jobs": [
-      "checkLease",
-      "claimJob",
-      "completeJob",
       "createJob",
-      "createSchedule",
-      "failJob",
-      "heartbeatJob",
-      "startJob"
+      "createSchedule"
     ],
     "model-gateway": [
       "readUsageStatisticsPage"

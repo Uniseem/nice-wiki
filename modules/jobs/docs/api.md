@@ -11,18 +11,12 @@
 |---|---|---|---|---|---|---|
 | GET `/v1/jobs` | `listJobs` | `jobs.ListJobs` | `job.manage` | `—` → 200 `ListJobsResult` | 查看任务队列 | `FORBIDDEN`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`INTEGRITY_ERROR`、`DEPENDENCY_UNAVAILABLE`、`LOCKED`、`INTERNAL` |
 | POST `/v1/jobs` | `createJob` | `jobs.CreateJob` | `service` | `CreateJobRequestBody` → 202 `CreateJobResult` | 持久提交任务 | `CONFLICT` |
-| POST `/v1/jobs:claim` | `claimJob` | `jobs.ClaimJob` | `service` | `ClaimJobRequestBody` → 200 `ClaimJobResult` | 领取待执行任务 | `VERSION_MISMATCH` |
-| POST `/v1/jobs/{jobId}:heartbeat` | `heartbeatJob` | `jobs.HeartbeatJob` | `service` | `HeartbeatJobRequestBody` → 200 `HeartbeatJobResult` | 维持租约 | `STALE_RESULT` |
-| POST `/v1/jobs/{jobId}:complete` | `completeJob` | `jobs.CompleteJob` | `service` | `CompleteJobRequestBody` → 200 `CompleteJobResult` | 提交成功结果 | `STALE_RESULT`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
-| POST `/v1/jobs/{jobId}:fail` | `failJob` | `jobs.FailJob` | `service` | `FailJobRequestBody` → 200 `FailJobResult` | 失败写回 | `STALE_RESULT`、`VALIDATION`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/jobs/{jobId}:cancel` | `cancelJob` | `jobs.RequestCancel` | `job.manage` | `RequestCancelRequestBody` → 200 `RequestCancelResult` | 请求取消任务 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/jobs/{jobId}` | `readJob` | `jobs.ReadJob` | `job.manage` | `—` → 200 `ReadJobResult` | 读取当前管理授权或本域所属任务状态 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE`、`CONFLICT`、`VERSION_MISMATCH`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/jobs/{jobId}/progress` | `streamProgress` | `jobs.StreamProgress` | `job.manage` | `—` → 200 `string` | 任务进度SSE | `FORBIDDEN`、`VALIDATION`、`VERSION_MISMATCH`、`UNAUTHENTICATED`、`NOT_FOUND`、`RATE_LIMITED`、`INTEGRITY_ERROR`、`INTERNAL`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/v1/schedules` | `listSchedules` | `jobs.ListSchedules` | `job.manage` | `—` → 200 `ListSchedulesResult` | 查看定时任务 | `FORBIDDEN` |
 | POST `/v1/schedules` | `createSchedule` | `jobs.CreateSchedule` | `job.manage` | `CreateScheduleRequestBody` → 200 `CreateScheduleResult` | 创建定时任务 | `FORBIDDEN`、`VALIDATION` |
 | PUT `/v1/schedules/{scheduleId}` | `updateSchedule` | `jobs.UpdateSchedule` | `job.manage` | `UpdateScheduleRequestBody` → 200 `UpdateScheduleResult` | 修改定时CAS | `CONFLICT`、`FORBIDDEN` |
-| POST `/v1/jobs/{jobId}:start` | `startJob` | `jobs.StartJob` | `service` | `StartJobRequestBody` → 200 `StartJobResult` | 确认开始执行 | `STALE_RESULT` |
-| GET `/v1/jobs/{jobId}/lease` | `checkLease` | `jobs.CheckLease` | `service` | `—` → 200 `CheckLeaseResult` | 写回前检验执行权 | `STALE_RESULT` |
 | GET `/healthz` | `health` | `jobs.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `jobs.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | POST `/v1/deliveries/{deliveryId}:replay` | `replayDelivery` | `jobs.ReplayDelivery` | `job.manage` | `ReplayDeliveryRequestBody` → 200 `ReplayDeliveryResult` | 重放死信投递 | `FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`VERSION_MISMATCH`、`LOCKED`、`VALIDATION`、`DEPENDENCY_UNAVAILABLE`、`UNSUPPORTED_CAPABILITY`、`INTEGRITY_ERROR` |

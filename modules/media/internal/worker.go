@@ -144,25 +144,8 @@ func (s *localBlobStore) cleanupWorkerFailure(ctx context.Context, op OperationC
 	return platform.JobExecutionResult{State: platform.JobCancelled, ErrorCode: platform.CodeCancelled}, nil
 }
 
-// NewCleanupWorkerClient只装配生产方schema，HTTP字段转换和租约机制统一由平台负责。
-func NewCleanupWorkerClient(client *gen.JobsClient) (platform.WorkerJobsClient, error) {
-	if client == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源任务真实jobs客户端未装配")
-	}
-	document := []byte(gen.PayloadValidationSpec)
-	validators := make(worker.ResponseValidators, 6)
-	for _, name := range []string{"ClaimJobResult", "StartJobResult", "HeartbeatJobResult", "CheckLeaseResult", "CompleteJobResult", "FailJobResult"} {
-		validate, err := apivalidate.NewPayloadValidator(document, "Jobs"+name)
-		if err != nil {
-			return nil, err
-		}
-		validators[name] = validate
-	}
-	return worker.NewJobsClient(client, validators)
-}
-
 // NewMediaBackgroundTasks仅构造闭包，完整应用门槛失败时不会启动任何业务后台。
-func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient, events *queue.Queue) ([]platform.BackgroundTask, error) {
+func NewMediaBackgroundTasks(op OperationContext, workerJobs platform.WorkerJobsClient, events *queue.Queue) ([]platform.BackgroundTask, error) {
 	if op.CallerService != "media" || op.Actor.Kind != "service" || op.Actor.SubjectID != "media" {
 		return nil, platform.NewError(platform.CodeForbidden, false, "资源后台装配仅接受本域可信启动")
 	}
@@ -170,12 +153,8 @@ func NewMediaBackgroundTasks(op OperationContext, jobs *gen.JobsClient, events *
 	if err != nil {
 		return nil, err
 	}
-	if jobs == nil || events == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
+	if workerJobs == nil || events == nil || s.cleanupJobs == nil || s.window.Runtime == nil || s.window.WriteWindow == nil {
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "资源后台真实客户端或窗口未装配")
-	}
-	workerJobs, err := NewCleanupWorkerClient(jobs)
-	if err != nil {
-		return nil, err
 	}
 	eventClient := events.Consumer()
 	eventAdmission := newMediaEventAdmission(s.window)
