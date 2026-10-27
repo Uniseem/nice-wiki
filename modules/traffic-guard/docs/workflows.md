@@ -6,7 +6,6 @@
 
 挑战完成后仍需重新 admission；PoW 难度固定上限22 bits，外部captcha失败不给放行，匿名HTML读取可独立继续。
 
-恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
 old D22/D23/D50 产品保留：Turnstile首选，加载失败PoW；可疑交互重验；确定滥用10分钟IP AI禁令，IPv6 /64；1会话1个问题排队。问题500字/输出500-800-1500token/4子问题/3轮5工具由qa和gateway实现，不在guard复制费用权威。
 

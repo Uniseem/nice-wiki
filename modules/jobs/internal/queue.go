@@ -237,9 +237,6 @@ func (s *Store) createJob(ctx context.Context, op OperationContext, in CreateJob
 		return CreateJobResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return CreateJobResult{}, platform.NewError(platform.CodeLocked, false, "维护或屏障期间停止创建任务")
-	}
 	tx := work.tx
 	rollback := func(cause error) (CreateJobResult, error) {
 		_ = tx.Rollback()

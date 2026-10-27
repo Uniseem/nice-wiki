@@ -194,11 +194,9 @@ type ServiceReadiness struct {
 	Health                HealthStatus `json:"health"`
 	ActiveDataEpoch       *string      `json:"activeDataEpoch"`
 	RuntimeRevision       int64        `json:"runtimeRevision"`
-	Maintenance           bool         `json:"maintenance"`
 	PublicRequestsAllowed bool         `json:"publicRequestsAllowed"`
 	Initialized           bool         `json:"initialized"`
 	JournalRecovered      bool         `json:"journalRecovered"`
-	SafePoint             bool         `json:"safePoint"`
 }
 
 // NewApplication 核完整路由和后台入口；缺worker或控制操作时不返回假就绪容器。
@@ -218,7 +216,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "本域HTTP合同不可读")
 	}
 	router, err := apivalidate.NewServiceHandler(schema, platform.ServiceBoundaryConfig{Self: "knowledge", Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, authority) }, OpenedDataEpoch: epoch, Authorize: authorize, MaxBodyBytes: 2 << 20, AllowedCallers: map[string][]string{
-		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "refreshSiteOverview": {"portal"}, "createQueryEmbedding": {"qa"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}, MaintenanceOperations: map[string]bool{"inspectEvidence": true, "readJobRecovery": true}}, handlers)
+		"readIndexConfig": {"portal"}, "putIndexConfig": {"portal"}, "readIndexOptions": {"portal"}, "createBuild": {"portal"}, "cancelBuild": {"portal"}, "listBuilds": {"portal"}, "getBuild": {"portal"}, "redactDiagnostics": {"portal"}, "estimateRebuildPlan": {"portal"}, "approveRebuildPlan": {"portal"}, "searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "refreshSiteOverview": {"portal"}, "createQueryEmbedding": {"qa"}, "inspectEvidence": {"data-protection"}, "readJobRecovery": {"jobs"}}, ServiceActorCallers: map[string][]string{"searchKnowledge": {"qa"}, "readSections": {"qa"}, "readDocumentIndex": {"qa"}, "readDocumentChunks": {"qa"}, "readSiteOverview": {"qa"}, "createQueryEmbedding": {"qa"}, "readJobRecovery": {"jobs"}}}, handlers)
 	if err != nil {
 		return nil, err
 	}
@@ -305,5 +303,5 @@ func Ready(ctx context.Context, app *Application) (ServiceReadiness, error) {
 	}
 	health, _ := Health(work, app)
 	epoch := app.epoch
-	return ServiceReadiness{Health: health, ActiveDataEpoch: &epoch, RuntimeRevision: view.Revision, Maintenance: view.Maintenance, PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning, Initialized: true, JournalRecovered: true, SafePoint: false}, nil
+	return ServiceReadiness{Health: health, ActiveDataEpoch: &epoch, RuntimeRevision: view.Revision, PublicRequestsAllowed: true, Initialized: true, JournalRecovered: true}, nil
 }

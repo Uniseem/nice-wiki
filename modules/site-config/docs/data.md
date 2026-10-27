@@ -21,12 +21,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | PublicationValidation | PublicationValidation |
 | AssetRef | AssetRef |
 | ObjectRef | ObjectRef |
-| BarrierRequest | BarrierRequest |
-| BarrierStatus | BarrierStatus |
-| SnapshotRef | SnapshotRef |
-| SnapshotExportRequest | SnapshotExportRequest |
-| SnapshotExportResult | SnapshotExportResult |
-| SnapshotStageResult | SnapshotStageResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | LanguageTag | 规范 BCP47 语言 tag；大小写按语言/脚本/区域规范，不代表需要模型验证 |
@@ -36,9 +30,7 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | SecurityPolicy | 会话/预览非业务功能新增 |
 | SiteConfig | 版本化站点设置权威文件；既有功能不增添多内容首页 |
 | RuntimePhase | 独立控制库状态 |
-| ActivationReceipt | 恢复切换/换回回执；只接受对应服务身份 |
 | RuntimeState | 运行状态权威；独立 control.db，不进入业务快照恢复覆盖 |
-| RuntimeTransition | 严格控制迁移；不能任意设置phase/maintenance/dataEpoch |
 | InitializationState | 首超管注册后的站点/语言两步向导；没有AI和owner reservation |
 | AnnouncementBody | 只有一条可关闭公告横幅 |
 | Announcement | 单条站点公告横幅；无富文公告列表产品 |
@@ -64,8 +56,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | TransitionRuntimeStateResult | 按CAS切换epoch与维护阶段的结果 |
 | ValidateRuntimeTransitionInput | 验证维护与恢复状态迁移矩阵的输入 |
 | ValidateRuntimeTransitionResult | 验证维护与恢复状态迁移矩阵的结果 |
-| RegisterActivationInput | 登记域恢复切换/换回回执的输入 |
-| RegisterActivationResult | 登记域恢复切换/换回回执的结果 |
 | CheckWriteEpochInput | 所有业务写入执行epoch与屏障检查的输入 |
 | CheckWriteEpochResult | 所有业务写入执行epoch与屏障检查的结果 |
 | InitializeSiteInput | D55初始化仅站点和基准语言两步；默认zh-Hans |
@@ -94,8 +84,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | PublishConfigEventResult | 将配置事件与业务提交原子登记的结果 |
 | ReadConfigObjectInput | 经协议读取本域正文或快照对象的输入 |
 | ReadConfigObjectResult | 经协议读取本域正文或快照对象的结果 |
-| ReleaseBarrierInput | 释放已协调完成的屏障的输入 |
-| ReleaseBarrierResult | 释放已协调完成的屏障的结果 |
 | LinkTarget | 站点链接判别联合体 |
 | HeroButton | 首页0–3按钮 |
 | HeroBackground | 首页背景完整联合体 |
@@ -117,7 +105,6 @@ site-config私有settings/siteId/revisionId.json是站点设置权威文件，ba
 | RestoreConfigRevisionResult | 回滚首页/公告/品牌/页脚历史的结果 |
 | ListResourceReferencesInput | 向媒体返回站点设置权威资源引用快照的输入 |
 | ListResourceReferencesResult | 向媒体返回站点设置权威资源引用快照的结果 |
-| releaseBarrierRequest | 释放屏障请求体 |
 | restoreConfigRevisionRequest | 回滚站点设置请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。

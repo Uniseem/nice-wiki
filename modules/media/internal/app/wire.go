@@ -95,9 +95,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if current.DataEpoch != view.DataEpoch {
 			return time.Time{}, platform.NewError(platform.CodeVersionMismatch, false, "媒体写窗口已切换数据代次")
 		}
-		if current.Maintenance || current.Phase != platform.PhaseRunning {
-			return time.Time{}, platform.NewError(platform.CodeLocked, true, "媒体维护写窗口已关闭")
-		}
 		return time.Time{}, nil
 	}}); err != nil {
 		return nil, err

@@ -42,13 +42,6 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 		runtime.Writer.Header().Set("Cache-Control", "no-store")
 		runtime.Writer.Header().Set("Pragma", "no-cache")
 	}
-	gate, err := CheckEntranceGate(ctx, op, CheckEntranceGateInput{Route: route, RuntimeRevision: 0})
-	if err != nil {
-		return ProxyRequestResult{}, err
-	}
-	if !gate.Allowed {
-		return ProxyRequestResult{}, platform.NewError(platform.CodeLocked, true, "站点正在维护")
-	}
 	bodyLimit := route.Definition.MaxBodyBytes
 	if bodyLimit == 0 {
 		bodyLimit = 16 << 20

@@ -104,14 +104,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}()
 	window := platform.WriteWindowConfig{Runtime: func(work context.Context) (platform.RuntimeView, error) {
 		return lifecycle.ReadRuntime(work, authority)
-	}, WriteWindow: func(work context.Context) (time.Time, error) {
-		current, err := lifecycle.ReadRuntime(work, authority)
-		if err != nil {
-			return time.Time{}, err
-		}
-		if current.Maintenance {
-			return time.Time{}, platform.NewError(platform.CodeLocked, false, "本域维护写窗口关闭")
-		}
+	}, WriteWindow: func(context.Context) (time.Time, error) {
 		return time.Time{}, nil
 	}}
 	gateway := gen.NewModelGatewayClient(config.Dependencies["model-gateway"], ModuleSlug, key)

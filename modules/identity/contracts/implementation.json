@@ -4132,7 +4132,7 @@
         {
           "id": "identity.NewBackgroundTasks",
           "name": "NewBackgroundTasks",
-          "signature": "func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error)",
+          "signature": "func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error)",
           "inputs": [
             {
               "name": "store",
@@ -4145,12 +4145,6 @@
               "type": "platform.SiteConfigClient",
               "description": "site-config运行权威客户端",
               "constraints": "非nil可信客户端"
-            },
-            {
-              "name": "snapshot",
-              "type": "*lifecycle.SnapshotManager",
-              "description": "本域唯一SnapshotManager",
-              "constraints": "非nil真实scope"
             },
             {
               "name": "publisher",
@@ -4200,7 +4194,7 @@
         {
           "id": "identity.runSuperadminResetObserver",
           "name": "runSuperadminResetObserver",
-          "signature": "func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, dataEpoch platform.Identifier) error",
+          "signature": "func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) error",
           "inputs": [
             {
               "name": "ctx",
@@ -4218,12 +4212,6 @@
               "name": "siteConfig",
               "type": "platform.SiteConfigClient",
               "description": "运行权威客户端",
-              "constraints": "非nil"
-            },
-            {
-              "name": "snapshot",
-              "type": "*lifecycle.SnapshotManager",
-              "description": "本域保护scope",
               "constraints": "非nil"
             },
             {
@@ -4264,7 +4252,7 @@
         {
           "id": "identity.runOutboxRelay",
           "name": "runOutboxRelay",
-          "signature": "func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) error",
+          "signature": "func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) error",
           "inputs": [
             {
               "name": "ctx",
@@ -4282,12 +4270,6 @@
               "name": "siteConfig",
               "type": "platform.SiteConfigClient",
               "description": "运行权威客户端",
-              "constraints": "非nil"
-            },
-            {
-              "name": "snapshot",
-              "type": "*lifecycle.SnapshotManager",
-              "description": "本域保护scope",
               "constraints": "非nil"
             },
             {
@@ -4697,7 +4679,7 @@
         {
           "id": "identity.WithRelayRuntime",
           "name": "WithRelayRuntime",
-          "signature": "func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, snapshot *lifecycle.SnapshotManager, siteConfig platform.SiteConfigClient) context.Context",
+          "signature": "func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, siteConfig platform.SiteConfigClient) context.Context",
           "inputs": [
             {
               "name": "ctx",
@@ -4716,12 +4698,6 @@
               "type": "platform.EventPublisher",
               "description": "jobs事件发布端口",
               "constraints": "必须为非nil版本化客户端"
-            },
-            {
-              "name": "snapshot",
-              "type": "*lifecycle.SnapshotManager",
-              "description": "本域唯一SnapshotManager",
-              "constraints": "必须为非nil真实scope"
             },
             {
               "name": "siteConfig",
@@ -5646,7 +5622,7 @@
         {
           "id": "identity.InstallBackgroundTasks",
           "name": "InstallBackgroundTasks",
-          "signature": "func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher) error",
+          "signature": "func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, publisher platform.EventPublisher) error",
           "inputs": [
             {
               "name": "a",
@@ -5659,12 +5635,6 @@
               "type": "platform.SiteConfigClient",
               "description": "运行权威客户端",
               "constraints": "非nil真实客户端"
-            },
-            {
-              "name": "snapshot",
-              "type": "*lifecycle.SnapshotManager",
-              "description": "本域唯一SnapshotManager",
-              "constraints": "必须与Application内指针相同"
             },
             {
               "name": "publisher",

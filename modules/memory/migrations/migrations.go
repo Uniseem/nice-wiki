@@ -17,7 +17,7 @@ import (
 )
 
 // files 内嵌 active 业务库迁移；controlFiles 内嵌 control 区控制库迁移。
-// control 库不随恢复换目录替换，两套迁移各自编号。
+// active 与 control 两套迁移各自编号。
 //
 //go:embed *.sql
 var files embed.FS

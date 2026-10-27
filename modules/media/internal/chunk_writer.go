@@ -59,10 +59,6 @@ func (s *localBlobStore) mediaWriteContext(ctx context.Context, op OperationCont
 		cancel()
 		return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "媒体写入不属于已打开数据代次")
 	}
-	if view.Maintenance || view.Phase != platform.PhaseRunning {
-		cancel()
-		return nil, nil, platform.NewError(platform.CodeLocked, true, "维护期间暂停媒体写入")
-	}
 	return work, cancel, nil
 }
 

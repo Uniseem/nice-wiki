@@ -8,7 +8,6 @@ old D31：浏览器加载sendBeacon一次→UA过滤已知爬虫→可信peer/IP
 
 费用V2消费候选：model-gateway事件只提供引用；analytics按固定watermark收齐V2 `changes+observations`，每页经 `AnalyticsUsageStatisticsPageResult` 生成的严格schema与 pageHash 核验，只有末页游标为空且throughRevision到达watermark才形成完整快照。settled须匹配同entry权威账项，reconciled not_charged须匹配同attempt观察；随后以inbox首写和V2事实投影同一事务提交，提交后才确认事件。金额unknown、held和charge_unknown保留原未知状态，不从事件金额或revision补猜。源码候选为blocked，待GitLab恢复统一gen/build。
 
-恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
 状态迁移：
 
@@ -93,7 +92,7 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 | `analytics.SchedulePageAggregates` | 每分钟，完整封闭小时5分钟/本地日10分钟后，迟到真实period水位修订补新输入 | 统计任务参考支持：SchedulePageAggregates |
 <!-- flows:end -->
 
-R1收尾首切片：私有SQLite V1只在空未版本化库事务建表，未知旧库维护拒绝；siteId严格来自site-config:readSiteConfig，epoch来自runtime，不造身份。控制屏障由公共机制持有，不放active表；盐不进入快照。日报总PV/UV独立于source/country维度表，UV不可SUM维度distinct。
+R1收尾首切片：私有SQLite V1只在空未版本化库事务建表，未知旧库维护拒绝；siteId严格来自site-config:readSiteConfig，epoch来自runtime，不造身份。盐不进入快照。日报总PV/UV独立于source/country维度表，UV不可SUM维度distinct。
 
 页面查询兼容粒度hour/day：完整UTC小时或唯一部署ReportingTimeZone的完整日历日，默认7完整日/168小时；显式边界必须对齐，day以日历366日和DST计算。返回真实粒度/fromUTC/toUTC，水位取已聚合pages，不拿新beacon水位冒充已聚合。日盐与日汇总共用可信报表时区，未配不假设UTC。审计游标签名复用平台，固定seq上界和保留锚；身份/过滤/锚变化拒混页。审计链V1以UTF8前hash十六进制串拼固定canonical payload，含内部安全metadata但不将原metadata作为HTTP输出。
 

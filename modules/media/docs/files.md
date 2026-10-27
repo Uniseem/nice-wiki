@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 60 个：手写 47、UI 1、生成 3、配置 6、迁移 3。函数 185 个：约束 38，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 57 个：手写 44、UI 1、生成 3、配置 6、迁移 3。函数 185 个：约束 38，参考 147。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -35,8 +35,6 @@
 | `modules/media/internal/cover_import.go` | 手写 | 下载平台封面到本地内容寻址资源 | `media.ImportRemoteCover`（参考） |
 | `modules/media/internal/blob_recovery.go` | 手写 | 恢复blob完成/删除持久日志：读取私有库blob_journal，隔离无COMMITTED的PREPARED产物 | `media.RecoverBlobJournal`（参考） |
 | `modules/media/internal/outbox_repository.go` | 手写 | 原子写最小资源状态outbox | `media.PublishAssetEvent`（参考）、`media.RelayOutbox` |
-| `modules/media/internal/barrier_service.go` | 手写 | 取得可恢复的数据屏障 | 无 |
-| `modules/media/internal/snapshot_service.go` | 手写 | 导出屏障水位的一致快照 | 无 |
 | `modules/media/cmd/media/main.go` | 手写 | 本域唯一Go可执行入口；不放产品算法 | `media.main` |
 | `modules/media/internal/app/wire.go` | 手写 | 本域依赖装配和完整HTTP路由绑定；不共享存储 | `media.BuildApplication` |
 | `modules/media/internal/transport/server.go` | 手写 | HTTP/worker生命周期、优雅关闭、匿名健康与就绪 | `media.Serve`、`media.Shutdown`、`media.Health`、`media.Ready`、`media.NewApplication`（参考）、`media.serviceHandlers`（参考）、`media.serveUploadChunk`（参考）、`media.writeRequestProblem`（参考）、`media.InstallBackgroundTasks`（参考）、`media.BackgroundTasks`（参考）、`media.Drain`（参考） |
@@ -60,7 +58,6 @@
 | `modules/media/migrations/0006_cleanup_approvals.sql` | 手写 | 只追加人工计划一次批准、固定延迟任务输入、原任务回执和原waiting结果桥接；取消保留批准证据 | 无 |
 | `modules/media/migrations/0007_cleanup_execution.sql` | 手写 | 只追加人工执行/逐资产决定及有限reader租约权威，不产生自动清理授权 | 无 |
 | `modules/media/migrations/0008_asset_listing.sql` | 手写 | 只追加独立int64资产列表水位与稳定排序索引，资产/对象变更在原事务推进；不是引用源水位或删除许可 | 无 |
-| `modules/media/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/media/migrations/0009_upload_expiration.sql` | 迁移 | 仅已过期未完成上传删除意图与续清，不触碰ready资产 | 无 |
 | `modules/media/migrations/0010_public_assets.sql` | 迁移 | 原图→变体依赖、已公开资源版本登记、含变体的当前引用视图 | 无 |
 | `modules/media/web/src/index.tsx` | UI | 资源库：全部/未被引用资源、引用详情、清理计划与确认 | `media.LibraryPage` |

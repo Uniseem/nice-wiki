@@ -21,12 +21,6 @@
 | PublicationValidation | PublicationValidation |
 | AssetRef | AssetRef |
 | ObjectRef | ObjectRef |
-| BarrierRequest | BarrierRequest |
-| BarrierStatus | BarrierStatus |
-| SnapshotRef | SnapshotRef |
-| SnapshotExportRequest | SnapshotExportRequest |
-| SnapshotExportResult | SnapshotExportResult |
-| SnapshotStageResult | SnapshotStageResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | PermissionRequirement | 路由权限 |
@@ -149,9 +143,6 @@
 | ReadRuntimeStateResult | 读取唯一权威运行状态的结果 |
 | CheckEntranceGateInput | 对维护和恢复 epoch 实施入口屏障的输入 |
 | CheckEntranceGateResult | 对维护和恢复 epoch 实施入口屏障的结果 |
-| ReleaseBarrierInput | 按权威状态恢复业务入口的输入 |
-| ReleaseBarrierResult | 按权威状态恢复业务入口的结果 |
-| releaseBarrierRequest | 释放入口屏障请求体 |
 
 恢复重建必须验证 manifest 哈希和私有事务水位。derived cache 可重建；权威记录缺失或 schema 未知应隔离并停止对外发布。
 

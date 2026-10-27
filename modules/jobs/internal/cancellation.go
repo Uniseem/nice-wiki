@@ -57,12 +57,6 @@ func RequestCancel(ctx context.Context, op OperationContext, in RequestCancelInp
 		}
 		return result, nil
 	}
-	if (work.runtime.Runtime.Maintenance && !work.runtime.SafePointRequested) || (work.runtime.SafePointRequested && work.runtime.BarrierDeadline.IsZero()) {
-		return RequestCancelResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "维护安全点或屏障截止尚不可用")
-	}
-	if work.runtime.SafePointRequested && !work.runtime.BarrierDeadline.After(work.now) {
-		return RequestCancelResult{}, platform.NewError(platform.CodeLocked, false, "屏障安全点后不接受任务状态写入")
-	}
 	state := job.state
 	switch job.state {
 	case "queued", "retry-wait":

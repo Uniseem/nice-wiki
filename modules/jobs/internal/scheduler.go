@@ -96,9 +96,6 @@ func collectOrphans(ctx context.Context, op OperationContext, in ReapExpiredLeas
 		return nil, 0, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return nil, 0, nil
-	}
 	rows, err := work.tx.QueryContext(ctx, `SELECT j.job_id,j.owner,j.state,j.revision,j.attempt,j.fencing_counter,COALESCE(l.worker_id,''),l.expires_at,COALESCE(l.fencing_token,j.fencing_counter),j.root_operation_id,j.cancel_requested
 		FROM jobs j LEFT JOIN leases l ON l.job_id=j.job_id WHERE j.data_epoch=?
 		AND ((j.root_operation_id='' AND j.state IN ('queued','leased','running','retry-wait','cancel-requested'))
@@ -215,9 +212,6 @@ func reconcileOrphan(ctx context.Context, op OperationContext, candidate orphanC
 		return false, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return false, nil
-	}
 	job, err := work.readJobRecord(ctx, candidate.job.id, candidate.job.epoch)
 	if err != nil {
 		return false, err
@@ -282,9 +276,6 @@ func RequeueDue(ctx context.Context, op OperationContext, in RequeueDueInput) (R
 		return RequeueDueResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return RequeueDueResult{}, nil
-	}
 	rows, err := work.tx.QueryContext(ctx, `SELECT job_id,owner,revision,not_before FROM jobs WHERE data_epoch=? AND state='retry-wait' AND cancel_requested=0
 		AND julianday(not_before)<=julianday(?) ORDER BY julianday(not_before),job_id LIMIT ?`, in.DataEpoch, in.Now.Format(time.RFC3339Nano), min(in.BatchSize, 100))
 	if err != nil {
@@ -365,10 +356,6 @@ func TickSchedules(ctx context.Context, op OperationContext, in TickSchedulesInp
 	work, err := beginLeaseOperation(ctx, op, in.DataEpoch)
 	if err != nil {
 		return TickSchedulesResult{}, err
-	}
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		work.close()
-		return TickSchedulesResult{}, nil
 	}
 	due, readErr := readDueSchedules(ctx, work, in)
 	work.close()

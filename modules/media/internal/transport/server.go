@@ -59,9 +59,8 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "媒体HTTP规格不可读")
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: runtimeAuthority.ReadRuntimeState, OpenedDataEpoch: activeDataEpoch, AdmitBusiness: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, activeDataEpoch),
-		AllowedCallers:        map[string][]string{"listAssetGroups": {"portal"}, "createAssetGroup": {"portal"}, "deleteAssetGroup": {"portal"}, "setAssetGroup": {"portal"}, "beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway", "content"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "importAsset": {"content"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
-		ServiceActorCallers:   map[string][]string{"readJobRecovery": {"jobs"}, "buildDeliveryManifest": {"public-site", "content"}, "readAsset": {"content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}},
-		MaintenanceOperations: map[string]bool{"putUploadChunk": true, "beginUpload": true, "completeUpload": true, "attachImageVariants": true, "acquireResourceReferences": true, "confirmResourceReferences": true, "releaseResourceReferences": true, "proposeManualCleanup": true, "confirmManualCleanup": true, "cancelManualCleanup": true, "readJobRecovery": true}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20, "importAsset": 128 << 20}, Authorize: authorize}, application.serviceHandlers())
+		AllowedCallers:      map[string][]string{"listAssetGroups": {"portal"}, "createAssetGroup": {"portal"}, "deleteAssetGroup": {"portal"}, "setAssetGroup": {"portal"}, "beginUpload": {"portal"}, "readUpload": {"portal"}, "abortUpload": {"portal"}, "putUploadChunk": {"portal"}, "completeUpload": {"portal"}, "attachImageVariants": {"portal"}, "readAsset": {"portal", "content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "readAssetBytes": {"portal", "knowledge", "model-gateway", "content"}, "headAssetBytes": {"portal", "knowledge", "model-gateway"}, "importAsset": {"content"}, "buildDeliveryManifest": {"public-site", "content", "portal"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}, "readAssetReferences": {"portal"}, "listAssets": {"portal"}, "listUnusedAssets": {"portal"}, "listCleanupPlans": {"portal"}, "proposeManualCleanup": {"portal"}, "confirmManualCleanup": {"portal"}, "cancelManualCleanup": {"portal"}, "readJobRecovery": {"jobs"}},
+		ServiceActorCallers: map[string][]string{"readJobRecovery": {"jobs"}, "buildDeliveryManifest": {"public-site", "content"}, "readAsset": {"content", "site-config", "public-site", "localization", "knowledge", "model-gateway"}, "acquireResourceReferences": {"content", "site-config"}, "confirmResourceReferences": {"content", "site-config"}, "releaseResourceReferences": {"content", "site-config"}}, OperationBodyLimits: map[string]int64{"putUploadChunk": 8 << 20, "importAsset": 128 << 20}, Authorize: authorize}, application.serviceHandlers())
 	if err != nil {
 		return nil, err
 	}
@@ -503,10 +502,8 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		ActiveDataEpoch:       epoch,
 		Initialized:           false,
 		JournalRecovered:      app.journalRecovered,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: true,
 		RuntimeRevision:       0,
-		SafePoint:             true,
 	}, nil
 }
 

@@ -129,9 +129,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			if err != nil {
 				return time.Time{}, err
 			}
-			if view.Runtime.Maintenance {
-				return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间未开放后台写窗口")
-			}
+			_ = view
 			return time.Time{}, nil
 		}
 		operation := func(work context.Context, epoch platform.Identifier) (context.Context, platform.OperationContext, error) {
@@ -344,13 +342,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if err := json.Unmarshal(raw, &response); err != nil {
 			return transport.ReadinessEvidence{}, platform.NewError(platform.CodeIntegrityError, false, "就绪读取的站点配置不可解码")
 		}
-		journalRecovered, safePoint, publicRequestsAllowed, err := store.ReadReadinessEvidence(runtimeView, response.Config.Initialized)
+		journalRecovered, publicRequestsAllowed, err := store.ReadReadinessEvidence(response.Config.Initialized)
 		if err != nil {
 			return transport.ReadinessEvidence{}, err
 		}
 		return transport.ReadinessEvidence{
 			Runtime: runtimeView, Initialized: response.Config.Initialized,
-			JournalRecovered: journalRecovered, SafePoint: safePoint, PublicRequestsAllowed: publicRequestsAllowed,
+			JournalRecovered: journalRecovered, PublicRequestsAllowed: publicRequestsAllowed,
 		}, nil
 	}
 	if err = application.Install(router, store, backgroundTasks, readiness); err != nil {

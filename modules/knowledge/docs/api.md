@@ -34,7 +34,7 @@
 
 SSE：id严格递增，重连从Last-Event-ID排他续读；15秒comment heartbeat；终态completed/error/cancelled后关闭。读流不重启业务；超过保留期410，不自动补跑模型。
 
-控制API：superadmin委托和service身份双验证；备份恢复只用barrier/export/stage/discard，切换在进程重启时完成（ADR0003）。
+控制API：superadmin委托和service身份双验证
 
 
 全量重建费用闭包：`POST /v1/rebuild-plans`只免费估价，返回真实多组件`RebuildQuote`，不复用单一PriceSnapshot形状。`chunkCountKnown=false`时分块数只描述已知材料；`pricingKnown=false`省略`maximumCost`并给warning，前端不显示零费用。`POST /v1/rebuild-plans/{planId}:approve`必须原planId/quoteHash、有效期与管理员一致；明确勾选未知提示后仍可明批，但不跳过真实MG额度或route/price CAS。重复批准返回真实原任务数，不再创建任务。HTTP均180秒完整预算，任何超预算/缺事实错误不截断。

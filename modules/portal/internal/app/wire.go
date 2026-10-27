@@ -22,7 +22,7 @@ import (
 const ModuleSlug = "portal"
 
 // BuildApplication 完成 portal 无状态入口的装配。入口没有业务DB，
-// active/control/restore 目录仅为部署布局与后续恢复屏障保留。
+// active/control/restore 目录仅为部署布局保留。
 func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*transport.Application, error) {
 	if config.Module != ModuleSlug {
 		return nil, platform.NewError(platform.CodeValidation, false, "配置module与本域服务身份不符")
@@ -178,7 +178,6 @@ func loadRouteRegistry() (portal.RouteRegistry, error) {
 	}
 	local := map[string]bool{
 		"GET\x00/healthz": true, "GET\x00/readyz": true,
-		"POST\x00/v1/barriers": true, "DELETE\x00/v1/barriers/{barrierId}": true,
 		"GET\x00/v1/bootstrap": true, "GET\x00/v1/events": true,
 		"GET\x00/v1/preferences": true, "PUT\x00/v1/preferences": true,
 		"GET\x00/v1/readiness": true,

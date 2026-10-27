@@ -54,11 +54,7 @@ func NewWriteContext(ctx context.Context, config platform.WriteWindowConfig) (co
 		cancel()
 		return nil, view, nil, platform.NewError(platform.CodeDependencyUnavailable, true, "运行权威数据代次未知")
 	}
-	if view.Phase != platform.PhaseRunning {
-		cancel()
-		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "当前运行阶段不接受后台写入")
-	}
-	if (view.Maintenance && deadline.IsZero()) || (!deadline.IsZero() && !deadline.After(time.Now())) {
+	if !deadline.IsZero() && !deadline.After(time.Now()) {
 		cancel()
 		return nil, view, nil, platform.NewError(platform.CodeLocked, true, "后台维护安全窗口已关闭")
 	}
@@ -140,7 +136,7 @@ func ReadRuntime(ctx context.Context, client platform.SiteConfigClient) (platfor
 	if err != nil {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeDependencyUnavailable, true, "site-config不可达")
 	}
-	if view.DataEpoch == "" || view.Phase == "" || view.Revision < 1 {
+	if view.DataEpoch == "" || view.Revision < 1 {
 		return platform.RuntimeView{}, platform.NewError(platform.CodeIntegrityError, false, "运行状态不完整")
 	}
 	runtimeCache.Store(client, cacheEntry{view: view, readAt: time.Now()})
@@ -155,8 +151,7 @@ const maxRuntimeStateBytes = 1 << 20
 
 // NewSiteConfigClient 构造各域共用的 site-config 运行状态客户端：以本服务
 // 断言调用 GET /v1/runtime-state，并解开响应 {"state": RuntimeState} 外层；
-// RuntimeState 的 dataEpoch/phase/restoreId/targetDataEpoch/maintenance 与
-// RuntimeView 同名。各域 NewRuntimeClient 只装配参数，不再自写适配。
+// RuntimeState 的 dataEpoch/revision 与 RuntimeView 同名。各域 NewRuntimeClient 只装配参数，不再自写适配。
 func NewSiteConfigClient(cfg platform.ServiceConfig, key platform.SigningKey) (platform.SiteConfigClient, error) {
 	base := strings.TrimRight(strings.TrimSpace(cfg.Dependencies["site-config"]), "/")
 	parsed, err := url.Parse(base)

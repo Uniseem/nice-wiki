@@ -6,7 +6,6 @@
 
 预览：后台已签入身份→content明确草稿修订grant→本人每次content重验→公开样式noindex/no-store HTML；有效期内刷新可重复，token不进入快照/git/访问日志。
 
-恢复管理（ADR0003）：本域control区（屏障、恢复日志）不随业务恢复替换。stage/discard只接受data-protection服务身份与superadmin委托；runtime进入restore_switching或restore_rolling_back后，本服务安全退出并由进程守护重启，启动时换入或换回active目录并向site-config登记回执。
 
 来源：old docs/design/{site,home,i18n,editor,security-ops,admin}.md；ADR D12/13/14/16/17/19/20/23/26/28/29/31/32/34/54/55。后续ADR优先；产品细节保留，存储/事务重新按微服务划分。
 

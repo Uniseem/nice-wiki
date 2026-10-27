@@ -46,20 +46,16 @@ type serverAccountIndexContextKey struct{}
 // serverAccountIndexContext 是本机运维调用的受信存储边界。数据根和活动
 // 代次由进程装配层提供，不能由账号索引输入或浏览器请求自声明。
 type serverAccountIndexContext struct {
-	dataRoot    string
-	dataEpoch   platform.Identifier
-	phase       string
-	maintenance bool
+	dataRoot  string
+	dataEpoch platform.Identifier
 }
 
 // WithServerAccountIndexContext 为本机账号索引操作装入固定数据根和运行代次。
 // 这是启动入口与后续身份业务装配之间的内部边界，不是HTTP输入。
-func WithServerAccountIndexContext(ctx context.Context, dataRoot string, dataEpoch platform.Identifier, phase string, maintenance bool) context.Context {
+func WithServerAccountIndexContext(ctx context.Context, dataRoot string, dataEpoch platform.Identifier) context.Context {
 	return context.WithValue(ctx, serverAccountIndexContextKey{}, serverAccountIndexContext{
-		dataRoot:    dataRoot,
-		dataEpoch:   dataEpoch,
-		phase:       phase,
-		maintenance: maintenance,
+		dataRoot:  dataRoot,
+		dataEpoch: dataEpoch,
 	})
 }
 
@@ -300,14 +296,11 @@ func accountIndexContext(ctx context.Context, op OperationContext, writing bool)
 		return serverAccountIndexContext{}, err
 	}
 	state, ok := ctx.Value(serverAccountIndexContextKey{}).(serverAccountIndexContext)
-	if !ok || !filepath.IsAbs(state.dataRoot) || !platform.ValidIdentifier(state.dataEpoch) || state.phase == "" {
+	if !ok || !filepath.IsAbs(state.dataRoot) || !platform.ValidIdentifier(state.dataEpoch) {
 		return serverAccountIndexContext{}, platform.NewError(platform.CodeDependencyUnavailable, true, "账号索引运行权威未装配")
 	}
 	if state.dataEpoch != op.DataEpoch {
 		return serverAccountIndexContext{}, platform.NewError(platform.CodeVersionMismatch, true, "账号索引数据代次不一致")
-	}
-	if writing && (state.maintenance || state.phase != platform.PhaseRunning) {
-		return serverAccountIndexContext{}, platform.NewError(platform.CodeLocked, true, "恢复或维护期间禁止写账号索引")
 	}
 	return state, nil
 }

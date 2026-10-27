@@ -40,9 +40,6 @@ func PurgeExpiredHistory(ctx context.Context, op OperationContext, in PurgeExpir
 		return PurgeExpiredHistoryResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return PurgeExpiredHistoryResult{}, nil
-	}
 	now := in.Now.UTC()
 	progressCutoff := now.Add(-progressRetention)
 	eventCutoff := now.Add(-eventRetention)

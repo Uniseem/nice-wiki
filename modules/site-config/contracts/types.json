@@ -56,14 +56,6 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
       "description": "ObjectRef"
     },
-    "SnapshotRef": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
-      "description": "SnapshotRef"
-    },
-    "SnapshotStageResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
-      "description": "SnapshotStageResult"
-    },
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
       "description": "EventEnvelope"
@@ -376,83 +368,6 @@
         "updatedAt"
       ]
     },
-    "RuntimePhase": {
-      "type": "string",
-      "description": "独立控制库状态",
-      "enum": [
-        "running",
-        "backup_barrier",
-        "restore_staging",
-        "restore_switching",
-        "restore_rolling_back",
-        "restore_blocked"
-      ]
-    },
-    "ActivationReceipt": {
-      "type": "object",
-      "description": "恢复切换/换回回执；只接受对应服务身份",
-      "additionalProperties": false,
-      "properties": {
-        "module": {
-          "type": "string",
-          "description": "全部注册域",
-          "enum": [
-            "identity",
-            "site-config",
-            "content",
-            "media",
-            "public-site",
-            "model-gateway",
-            "knowledge",
-            "qa",
-            "localization",
-            "memory",
-            "traffic-guard",
-            "jobs",
-            "analytics"
-          ]
-        },
-        "stageId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "本域暂存回执ID：sha256(canonical JSON [restoreId,snapshotId])完整64位十六进制；portal gate分支使用其登记配置证明。"
-        },
-        "targetDataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "全部域已换入的目标epoch"
-        },
-        "state": {
-          "type": "string",
-          "description": "结果",
-          "enum": [
-            "switched",
-            "rolled-back"
-          ]
-        },
-        "manifestHash": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Hash",
-          "description": "域激活证明绑定迁移后完整目标文件与目录树指纹，必须等于该stage回执manifestHash；源清单hash及归档checksum不可替代。portal gate独立按配置hash证明。"
-        },
-        "recordedAt": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
-          "description": "时间"
-        },
-        "signature": {
-          "type": "string",
-          "description": "域服务签名",
-          "minLength": 1,
-          "maxLength": 4096
-        }
-      },
-      "required": [
-        "module",
-        "stageId",
-        "targetDataEpoch",
-        "state",
-        "manifestHash",
-        "recordedAt",
-        "signature"
-      ]
-    },
     "RuntimeState": {
       "type": "object",
       "description": "运行状态权威；独立 control.db，不进入业务快照恢复覆盖",
@@ -462,75 +377,9 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "所有普通请求当前 epoch"
         },
-        "targetDataEpoch": {
-          "anyOf": [
-            {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "待恢复 epoch"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "无恢复 null"
-        },
-        "phase": {
-          "$ref": "#/$defs/RuntimePhase",
-          "description": "RuntimePhase"
-        },
-        "maintenance": {
-          "type": "boolean",
-          "description": "由phase推导；running=false，其余true"
-        },
-        "restoreId": {
-          "anyOf": [
-            {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "恢复"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "无恢复 null"
-        },
-        "barrierId": {
-          "anyOf": [
-            {
-              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-              "description": "屏障"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "正常 null"
-        },
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "控制CAS"
-        },
-        "requiredModules": {
-          "type": "array",
-          "description": "需登记切换回执的有状态域集合",
-          "items": {
-            "type": "string",
-            "description": "14个有状态注册module slug（portal无状态，不登记回执）",
-            "minLength": 1,
-            "maxLength": 64
-          },
-          "minItems": 14,
-          "maxItems": 14
-        },
-        "activationReceipts": {
-          "type": "array",
-          "description": "签名回执",
-          "items": {
-            "$ref": "#/$defs/ActivationReceipt",
-            "description": "ActivationReceipt"
-          },
-          "minItems": 0,
-          "maxItems": 30
         },
         "updatedAt": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp",
@@ -539,14 +388,7 @@
       },
       "required": [
         "dataEpoch",
-        "targetDataEpoch",
-        "phase",
-        "maintenance",
-        "restoreId",
-        "barrierId",
         "revision",
-        "requiredModules",
-        "activationReceipts",
         "updatedAt"
       ]
     },
@@ -1817,25 +1659,6 @@
         "reader"
       ]
     },
-    "ReleaseBarrierInput": {
-      "type": "object",
-      "description": "释放已协调完成的屏障的输入",
-      "additionalProperties": false,
-      "properties": {
-        "barrierId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "当前屏障"
-        },
-        "expectedEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "活动 epoch"
-        }
-      },
-      "required": [
-        "barrierId",
-        "expectedEpoch"
-      ]
-    },
     "LinkTarget": {
       "oneOf": [
         {
@@ -2929,10 +2752,6 @@
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "当前全站维护，公开读写仍被门禁阻止"
-        },
         "publicRequestsAllowed": {
           "type": "boolean",
           "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
@@ -2944,21 +2763,15 @@
         "journalRecovered": {
           "type": "boolean",
           "description": "journal完整恢复"
-        },
-        "safePoint": {
-          "type": "boolean",
-          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
         }
       },
       "required": [
         "health",
         "activeDataEpoch",
         "runtimeRevision",
-        "maintenance",
         "publicRequestsAllowed",
         "initialized",
-        "journalRecovered",
-        "safePoint"
+        "journalRecovered"
       ],
       "description": "就绪响应不含secret、服务端点、IP或问答正文"
     },
@@ -3394,24 +3207,11 @@
     "OutboxStore": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/OutboxStore"
     },
-    "SnapshotCleanup": {
-      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotCleanup"
-    },
-    "SnapshotManager": {
-      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotManager"
-    },
     "SiteConfigClient": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/SiteConfigClient"
     },
     "SigningKey": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/SigningKey"
-    },
-    "SwapResult": {
-      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SwapResult"
-    },
-    "SnapshotSwapEvidence": {
-      "$ref": "../../../libs/platform/contracts/types.json#/$defs/SnapshotSwapEvidence",
-      "description": "公共平台合同类型；实际Go类型为lifecycle.SnapshotSwapEvidence，由lifecycle.ReadRestoreSwapState返回"
     },
     "SnapshotRuntime": {
       "type": "object",
@@ -3426,14 +3226,6 @@
     "TrustAnchors": {
       "$ref": "../../../libs/platform/contracts/types.json#/$defs/TrustAnchors",
       "description": "可信Build装配的服务公钥表"
-    },
-    "SnapshotArchiveReadInput": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
-      "description": "本域已完成归档精确引用"
-    },
-    "SnapshotArchiveReadResult": {
-      "x-internal": true,
-      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     },
     "HomeHeaderLink": {
       "type": "object",

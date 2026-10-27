@@ -31,7 +31,7 @@
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 
-屏障请求持久draining并等待真实在途安全点；export要求safe；stage只写restore/<restoreId>/staged，不动active；discard只删本次恢复的暂存或旧目录；切换在进程重启时完成（ADR0003）。
+export要求safe；discard只删本次恢复的暂存或旧目录
 
 `POST /v1/internal/beacons`仅portal纯服务签名完整IngestBeaconInput，可信IP/UA只内存；正文epoch必须等于op，成功统一204。公共`/v1/beacons`直接到本域仍缺可信元数据失败关闭。
 

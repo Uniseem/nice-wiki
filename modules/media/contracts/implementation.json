@@ -6796,18 +6796,6 @@
       ]
     },
     {
-      "path": "modules/media/internal/barrier_service.go",
-      "kind": "handwritten",
-      "purpose": "取得可恢复的数据屏障",
-      "functions": []
-    },
-    {
-      "path": "modules/media/internal/snapshot_service.go",
-      "kind": "handwritten",
-      "purpose": "导出屏障水位的一致快照",
-      "functions": []
-    },
-    {
       "path": "modules/media/cmd/media/main.go",
       "kind": "handwritten",
       "purpose": "本域唯一Go可执行入口；不放产品算法",
@@ -7884,12 +7872,6 @@
       "kind": "handwritten",
       "purpose": "只追加独立int64资产列表水位与稳定排序索引，资产/对象变更在原事务推进；不是引用源水位或删除许可",
       "functions": []
-    },
-    {
-      "path": "modules/media/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/media/migrations/0009_upload_expiration.sql",

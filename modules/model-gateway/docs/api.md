@@ -50,7 +50,7 @@
 
 SSE：id严格递增，重连从Last-Event-ID排他续读；15秒comment heartbeat；终态completed/error/cancelled后关闭。读流不重启业务；超过保留期410，不自动补跑模型。
 
-控制API：superadmin委托和service身份双验证；备份恢复只用barrier/export/stage/discard，切换在进程重启时完成（ADR0003）。
+控制API：superadmin委托和service身份双验证
 
 ## 免费配置读取边界
 
@@ -70,7 +70,7 @@ putProfile仅portal携当前superadmin委托；统一入口严格schema及即时
 
 putCredential/rotateCredential仅portal当前superadmin委托；HTTP核providerId路径/正文和非空幂等头/正文一致，响应no-store。Put返回201及新版本/掩码指纹，Rotate返回200及新/旧版本；secret超过8个Unicode字符才显示末4位，其余只掩码及HMAC摘要。expectedVersion指凭据当前版本；Rotate至少1，成功结果版本必须仍在公共整数范围内。
 
-同代同HMAC的7天原回执先返回；新操作才核屏障及真实provider双版本CAS。未配主密钥/存储未知失败关闭，缺供应方NOT_FOUND，凭据历史/active材料损坏INTEGRITY_ERROR，不探测供应方或调用模型。Rotate版本切换已写，最后引用释放销毁尚未完成，不构成完整生命周期验收。
+同代同HMAC的7天原回执先返回；未配主密钥/存储未知失败关闭，缺供应方NOT_FOUND，凭据历史/active材料损坏INTEGRITY_ERROR，不探测供应方或调用模型。Rotate版本切换已写，最后引用释放销毁尚未完成，不构成完整生命周期验收。
 
 ## 管理读取与费用策略入口
 

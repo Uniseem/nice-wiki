@@ -141,15 +141,6 @@ func (work *leaseOperation) readEventRecord(ctx context.Context, eventID string)
 }
 
 func (work *leaseOperation) requireEventWrite(draining bool) error {
-	if (work.runtime.Runtime.Maintenance && !work.runtime.SafePointRequested) || (work.runtime.SafePointRequested && work.runtime.BarrierDeadline.IsZero()) {
-		return platform.NewError(platform.CodeDependencyUnavailable, true, "事件维护安全点或屏障截止尚不可用")
-	}
-	if work.runtime.SafePointRequested && !work.runtime.BarrierDeadline.After(work.now) {
-		return platform.NewError(platform.CodeLocked, false, "事件屏障安全点后停止写入")
-	}
-	if !draining && (work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested) {
-		return platform.NewError(platform.CodeLocked, false, "维护或屏障期间暂停事件调度")
-	}
 	return nil
 }
 
@@ -214,15 +205,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, client EventPublisher
 			if err != nil {
 				return time.Time{}, err
 			}
-			if view.SafePointRequested {
-				if view.BarrierDeadline.IsZero() {
-					return time.Time{}, platform.NewError(platform.CodeDependencyUnavailable, true, "事件转发缺少control屏障截止")
-				}
-				return view.BarrierDeadline, nil
-			}
-			if view.Runtime.Maintenance {
-				return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间未开放事件转发写窗口")
-			}
+			_ = view
 			return time.Time{}, nil
 		},
 	})

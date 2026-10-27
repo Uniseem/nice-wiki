@@ -77,9 +77,6 @@ func openLanguage(ctx context.Context, op OperationContext) (*sql.Tx, error) {
 	if view.DataEpoch != op.DataEpoch {
 		return nil, platform.NewError(platform.CodeVersionMismatch, false, "数据代次与当前站点不一致")
 	}
-	if view.Maintenance || view.Phase != platform.PhaseRunning {
-		return nil, platform.NewError(platform.CodeLocked, false, "当前维护阶段不接受语言配置")
-	}
 	tx, err := store.DB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, platform.NormalizeIOError(err, platform.CodeInternal, true, "开始语言配置事务失败")

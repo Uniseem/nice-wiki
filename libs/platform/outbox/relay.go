@@ -25,8 +25,7 @@ const (
 // RunRelay 是outbox转发循环的通用实现：
 // 按提交顺序以30秒行租约领取pending行，逐条调用jobs:publishEvent，
 // 确认后标relayed；失败按1/2/4秒退避（上限60秒）；同eventId异hash
-// 或信封非法标quarantined；屏障draining时继续转发直到空；
-// 恢复换入后丢弃旧dataEpoch行。ctx取消即退出。
+// 或信封非法标quarantined；数据代次变化后丢弃旧dataEpoch行。ctx取消即退出。
 func RunRelay(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) error {
 	if config.PollMillis < minPollMillis || config.PollMillis > maxPollMillis {
 		return platform.NewError(platform.CodeValidation, false, "outbox轮询间隔不合法")
@@ -94,7 +93,7 @@ func (p eventPublisher) PublishEvent(ctx context.Context, event platform.EventEn
 
 // RunRelayBatch领取并处理一批已提交事件；每次写入都重新取得安全窗口。
 func RunRelayBatch(ctx context.Context, store platform.OutboxStore, client platform.EventPublisher, config platform.RelayConfig) (platform.RelayBatchResult, error) {
-	// 未接入快照屏障的服务可以不提供准入与逐事件作用域，此时直接放行。
+	// 不提供准入与逐事件作用域时直接放行。
 	if config.AdmitBatch == nil {
 		config.AdmitBatch = func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
 	}

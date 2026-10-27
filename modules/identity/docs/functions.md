@@ -2863,7 +2863,7 @@ func encodeAccountIndex(input WriteAccountIndexInput) (AccountIndex, []byte, err
 - 作用：装配本域后台重置观察与outbox转发入口
 
 ```go
-func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error)
+func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) ([]platform.BackgroundTask, error)
 ```
 
 **输入**
@@ -2872,7 +2872,6 @@ func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snap
 |---|---|---|---|
 | `store` | `*Store` | identity active业务库句柄 | 非nil且数据库已打开 |
 | `siteConfig` | `platform.SiteConfigClient` | site-config运行权威客户端 | 非nil可信客户端 |
-| `snapshot` | `*lifecycle.SnapshotManager` | 本域唯一SnapshotManager | 非nil真实scope |
 | `publisher` | `platform.EventPublisher` | jobs事件发布端口 | 非nil版本化客户端 |
 | `dataEpoch` | `platform.Identifier` | 启动时绑定的数据代次 | 有效非空标识 |
 
@@ -2904,7 +2903,7 @@ func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, snap
 - 作用：观察固定超管重置文件
 
 ```go
-func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, dataEpoch platform.Identifier) error
+func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, dataEpoch platform.Identifier) error
 ```
 
 **输入**
@@ -2914,7 +2913,6 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 | `ctx` | `context.Context` | 后台任务上下文 | 取消即停止 |
 | `store` | `*Store` | identity active业务库 | 非nil已打开 |
 | `siteConfig` | `platform.SiteConfigClient` | 运行权威客户端 | 非nil |
-| `snapshot` | `*lifecycle.SnapshotManager` | 本域保护scope | 非nil |
 | `dataEpoch` | `platform.Identifier` | 任务绑定代次 | 有效且不从请求自报 |
 
 **输出**
@@ -2944,7 +2942,7 @@ func runSuperadminResetObserver(ctx context.Context, store *Store, siteConfig pl
 - 作用：持续转发已提交outbox
 
 ```go
-func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher, dataEpoch platform.Identifier) error
+func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteConfigClient, publisher platform.EventPublisher, dataEpoch platform.Identifier) error
 ```
 
 **输入**
@@ -2954,7 +2952,6 @@ func runOutboxRelay(ctx context.Context, store *Store, siteConfig platform.SiteC
 | `ctx` | `context.Context` | 后台任务上下文 | 取消即停止 |
 | `store` | `*Store` | identity active业务库 | 非nil已打开 |
 | `siteConfig` | `platform.SiteConfigClient` | 运行权威客户端 | 非nil |
-| `snapshot` | `*lifecycle.SnapshotManager` | 本域保护scope | 非nil |
 | `publisher` | `platform.EventPublisher` | jobs发布端口 | 非nil |
 | `dataEpoch` | `platform.Identifier` | 任务绑定代次 | 有效且不从请求自报 |
 
@@ -3246,7 +3243,7 @@ func RelayOutbox(ctx context.Context, op OperationContext, input RelayOutboxInpu
 - 作用：向后台RelayOutbox注入真实存储、jobs、运行权威和Manager scope
 
 ```go
-func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, snapshot *lifecycle.SnapshotManager, siteConfig platform.SiteConfigClient) context.Context
+func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.EventPublisher, siteConfig platform.SiteConfigClient) context.Context
 ```
 
 **输入**
@@ -3256,7 +3253,6 @@ func WithRelayRuntime(ctx context.Context, store *Store, publisher platform.Even
 | `ctx` | `context.Context` | 后台转发可信上下文 | 仅进程内上下文；不接受网络输入 |
 | `store` | `*Store` | identity active业务库句柄 | 必须为非nil且持有数据库 |
 | `publisher` | `platform.EventPublisher` | jobs事件发布端口 | 必须为非nil版本化客户端 |
-| `snapshot` | `*lifecycle.SnapshotManager` | 本域唯一SnapshotManager | 必须为非nil真实scope |
 | `siteConfig` | `platform.SiteConfigClient` | site-config运行权威客户端 | 必须为非nil可信客户端 |
 
 **输出**
@@ -4042,7 +4038,7 @@ func (a *Application) BackgroundTasks() []platform.BackgroundTask
 - 作用：在完整启动阶段一次性登记真实后台任务
 
 ```go
-func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, snapshot *lifecycle.SnapshotManager, publisher platform.EventPublisher) error
+func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClient, publisher platform.EventPublisher) error
 ```
 
 **输入**
@@ -4051,7 +4047,6 @@ func (a *Application) InstallBackgroundTasks(siteConfig platform.SiteConfigClien
 |---|---|---|---|
 | `a` | `*Application` | identity应用容器接收者 | 已由NewApplication装配 |
 | `siteConfig` | `platform.SiteConfigClient` | 运行权威客户端 | 非nil真实客户端 |
-| `snapshot` | `*lifecycle.SnapshotManager` | 本域唯一SnapshotManager | 必须与Application内指针相同 |
 | `publisher` | `platform.EventPublisher` | jobs发布端口 | 非nil版本化客户端 |
 
 **输出**

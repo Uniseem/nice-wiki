@@ -48,7 +48,7 @@ func runAccounts(args []string) int {
 	if err != nil {
 		return reportAccountsError(err)
 	}
-	ctx = identity.WithServerAccountIndexContext(ctx, config.DataRoot, view.DataEpoch, view.Phase, view.Maintenance)
+	ctx = identity.WithServerAccountIndexContext(ctx, config.DataRoot, view.DataEpoch)
 	deadline := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339Nano)
 	result, err := identity.ReadServerAccountIndex(ctx, platform.OperationContext{
 		CallerService: "identity",

@@ -1,6 +1,6 @@
 # jobs 数据与持久化
 
-未来私有目录 `data/jobs/active/` 保存SQLite和领域对象；`data/jobs/restore/<restoreId>/staged|before/` 为恢复暂存与换出的旧数据；`data/jobs/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
+未来私有目录 `data/jobs/active/` 保存SQLite和领域对象；`data/jobs/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
 
 - `jobs(job_id PK, operation_id, root_operation_id, owner, type, immutable_input_ref, input_hash, dedupe_key UNIQUE per owner/epoch, state, attempt, not_before, data_epoch, revision, fencing_counter, last_error_code, cancel_requested)`
 
@@ -26,7 +26,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
-快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
+control区不随恢复替换。
 
 租约实施补充（R1-03）：`fencing_counter` 属于job权威记录，不随释放lease归零；领取时原子递增，后续回收也须递增同一计数。claim回执保存完整原批次，heartbeat回执固定原expiry；回执只存安全引用及控制状态。可选心跳进度在同一租约事务内按checkpointKey/inputHash幂等，seq单调且同phase完成数不得倒退，事件经平台outbox记录。
 

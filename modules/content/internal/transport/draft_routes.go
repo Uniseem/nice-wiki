@@ -144,8 +144,7 @@ func RegisterDraftRoutes(app *Application, drafts content.DraftRuntime, locks co
 	authorize := func(ctx context.Context, op platform.OperationContext, permission, action string) error { return nil }
 	portal := []string{"portal"}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
-		AllowedCallers:        map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal, "createPreviewGrant": {"public-site"}, "rollbackPublishedRevision": portal, "validatePreviewGrant": {"public-site"}},
-		MaintenanceOperations: map[string]bool{"readDraft": true}}, handlers)
+		AllowedCallers: map[string][]string{"createDocument": portal, "acquireEditLock": portal, "renewEditLock": portal, "releaseEditLock": portal, "forceReleaseEditLock": portal, "readDraft": portal, "saveDraft": portal, "createPreviewGrant": {"public-site"}, "rollbackPublishedRevision": portal, "validatePreviewGrant": {"public-site"}}}, handlers)
 	if err != nil {
 		return err
 	}

@@ -46,8 +46,8 @@
 
 ## M11-R08
 
-entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；文件保存原子temp/fsync/rename并manifest可恢复，纳入data-protection内容git镜像而非跨域读写。readonly条目助手只能建议人手动修改。
+entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；readonly条目助手只能建议人手动修改。
 
-验收规格：契约验证行为：entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；文件保存原子temp/fsync/rename并manifest可恢复，纳入data-protection内容git镜像而非跨域读写。readonly条目助手只能建议人手动修改。；实现阶段才可执行验证，不在设计阶段宣称通过。
+验收规格：契约验证行为：entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；readonly条目助手只能建议人手动修改。；实现阶段才可执行验证，不在设计阶段宣称通过。
 
 所有用户可观察错误均通过公共Problem；本阶段仅设计。

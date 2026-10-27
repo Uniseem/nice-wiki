@@ -2440,27 +2440,6 @@
         "forbidden"
       ]
     },
-    "ReleaseBarrierInput": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "解除统计维护输入；未标可选字段均必填，空集合用[]，不传null",
-      "properties": {
-        "barrierId": {
-          "type": "string",
-          "description": "barrierId；UTF-8；不得为 null",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "dataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "不可复用的站点代次/密钥代次标识；不使用整数比较新旧"
-        }
-      },
-      "required": [
-        "barrierId",
-        "dataEpoch"
-      ]
-    },
     "LoadStatisticsInput": {
       "type": "object",
       "additionalProperties": false,
@@ -3380,10 +3359,6 @@
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "当前全站维护，公开读写仍被门禁阻止"
-        },
         "publicRequestsAllowed": {
           "type": "boolean",
           "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
@@ -3395,21 +3370,15 @@
         "journalRecovered": {
           "type": "boolean",
           "description": "journal完整恢复"
-        },
-        "safePoint": {
-          "type": "boolean",
-          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
         }
       },
       "required": [
         "health",
         "activeDataEpoch",
         "runtimeRevision",
-        "maintenance",
         "publicRequestsAllowed",
         "initialized",
-        "journalRecovered",
-        "safePoint"
+        "journalRecovered"
       ],
       "description": "就绪响应不含secret、服务端点、IP或问答正文"
     },
@@ -3672,7 +3641,6 @@
             "active",
             "approved",
             "archived",
-            "backup_barrier",
             "blocked",
             "cancelled",
             "charge_unknown",
@@ -3694,24 +3662,11 @@
             "rejected",
             "released",
             "requested",
-            "restore_blocked",
-            "restore_rolling_back",
-            "restore_staging",
-            "restore_switching",
-            "restored",
             "retired",
             "reversed",
-            "rolled-back",
-            "rolled_back",
-            "rolling-back",
             "running",
-            "safe",
             "settled",
-            "staged",
-            "staging",
             "succeeded",
-            "switched",
-            "switching",
             "withdrawn"
           ]
         },
@@ -3721,7 +3676,6 @@
             "active",
             "approved",
             "archived",
-            "backup_barrier",
             "blocked",
             "cancelled",
             "charge_unknown",
@@ -3743,24 +3697,11 @@
             "rejected",
             "released",
             "requested",
-            "restore_blocked",
-            "restore_rolling_back",
-            "restore_staging",
-            "restore_switching",
-            "restored",
             "retired",
             "reversed",
-            "rolled-back",
-            "rolled_back",
-            "rolling-back",
             "running",
-            "safe",
             "settled",
-            "staged",
-            "staging",
             "succeeded",
-            "switched",
-            "switching",
             "withdrawn"
           ]
         }
@@ -3947,14 +3888,6 @@
         "from",
         "to"
       ]
-    },
-    "SnapshotArchiveReadInput": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
-      "description": "本域已完成归档精确引用"
-    },
-    "SnapshotArchiveReadResult": {
-      "x-internal": true,
-      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     },
     "UsageGatewayFetchInput": {
       "type": "object",

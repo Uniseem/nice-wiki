@@ -143,9 +143,6 @@ func (stream *eventSubscription) nextDelivery(ctx context.Context) (platform.Eve
 		return platform.EventEnvelope{}, 0, false, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return platform.EventEnvelope{}, 0, false, nil
-	}
 	var id, eventID, retryAt string
 	var revision int64
 	err = work.tx.QueryRowContext(ctx, `SELECT d.delivery_id,d.event_id,d.revision,d.retry_at FROM deliveries d JOIN events e ON e.event_id=d.event_id

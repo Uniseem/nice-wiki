@@ -557,12 +557,6 @@
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope"
     },
-    "SnapshotRef": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef"
-    },
-    "SnapshotStageResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult"
-    },
     "ServiceDependencies": {
       "type": "object",
       "additionalProperties": false,
@@ -3174,10 +3168,6 @@
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "当前全站维护，公开读写仍被门禁阻止"
-        },
         "publicRequestsAllowed": {
           "type": "boolean",
           "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
@@ -3189,21 +3179,15 @@
         "journalRecovered": {
           "type": "boolean",
           "description": "journal完整恢复"
-        },
-        "safePoint": {
-          "type": "boolean",
-          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
         }
       },
       "required": [
         "health",
         "activeDataEpoch",
         "runtimeRevision",
-        "maintenance",
         "publicRequestsAllowed",
         "initialized",
-        "journalRecovered",
-        "safePoint"
+        "journalRecovered"
       ],
       "description": "就绪响应不含secret、服务端点、IP或问答正文"
     },
@@ -3898,14 +3882,6 @@
     },
     "ReadJobRecoveryResult": {
       "$ref": "../../../contracts/common.schema.json#/$defs/OwnerRecoveryResult"
-    },
-    "SnapshotArchiveReadInput": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
-      "description": "本域已完成归档精确引用"
-    },
-    "SnapshotArchiveReadResult": {
-      "x-internal": true,
-      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     },
     "ModelNonAcceptance": {
       "type": "object",

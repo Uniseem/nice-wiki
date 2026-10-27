@@ -16,11 +16,10 @@
 
 - [ ] M11-R07 记忆不保存供应方密钥、费用余额、匿名IP或完整访客问答；导入条目必须人工确认正文来源。
 
-- [ ] M11-R08 entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；文件保存原子temp/fsync/rename并manifest可恢复，纳入data-protection内容git镜像而非跨域读写。readonly条目助手只能建议人手动修改。
+- [ ] M11-R08 entry正文权威为本域Markdown文件含frontmatter，数据库仅索引；readonly条目助手只能建议人手动修改。
 
 - [ ] 同幂等键同payload不产生重复副作用，不同payload返回CONFLICT。
 - [ ] CAS冲突/旧租约/旧dataEpoch不修改新状态。
 - [ ] 取消贯穿所有子调用；收费未知仍可追踪原MG invocation。
-- [ ] 非released屏障拒绝新业务写；备份恢复控制操作只接受data-protection服务身份与superadmin委托。
 - [ ] 快照暂存与丢弃可重放；暂存失败不改active目录，切换后可整体换回。
 - [ ] JSON额外字段/null、越界值、非法权限均返回公共Problem。

@@ -190,11 +190,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		ActiveDataEpoch:       activeEpoch,
 		RuntimeRevision:       0,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: true,
 		Initialized:           true,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             true,
 	}, nil
 }
 
@@ -273,9 +271,8 @@ func RegisterReferenceRoutes(app *Application, runtime content.ReferenceRuntime,
 		}),
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch),
-		AllowedCallers:        map[string][]string{"listResourceReferences": {"media", "site-config", "portal"}, "readReferenceDecision": {"media"}},
-		ServiceActorCallers:   map[string][]string{"listResourceReferences": {"media", "site-config"}},
-		MaintenanceOperations: map[string]bool{"listResourceReferences": true, "readReferenceDecision": true}}, handlers)
+		AllowedCallers:      map[string][]string{"listResourceReferences": {"media", "site-config", "portal"}, "readReferenceDecision": {"media"}},
+		ServiceActorCallers: map[string][]string{"listResourceReferences": {"media", "site-config"}}}, handlers)
 	if err != nil {
 		return err
 	}
@@ -380,8 +377,7 @@ func RegisterTreeRoutes(app *Application, runtime content.TreeRuntime, anchors p
 		return generalAuthorize(ctx, op, permission, action)
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: app.runtime.ReadRuntimeState, OpenedDataEpoch: app.openedEpoch, AdmitBusiness: lifecycle.SimpleAdmission(app.runtime.ReadRuntimeState, app.openedEpoch), Authorize: authorize,
-		AllowedCallers:        map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}, "updateDocumentMetadata": {"portal"}},
-		MaintenanceOperations: map[string]bool{"readDocumentTree": true, "listDocuments": true}}, handlers)
+		AllowedCallers: map[string][]string{"readDocumentTree": {"portal"}, "listDocuments": {"portal"}, "moveDocument": {"portal"}, "reorderChildren": {"portal"}, "updateDocumentMetadata": {"portal"}}}, handlers)
 	if err != nil {
 		return err
 	}
@@ -605,8 +601,7 @@ func RegisterPublicationRoutes(app *Application, runtime content.TreeRuntime, an
 			"validatePublications": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
 			"readPublicTree":       {"public-site", "knowledge", "qa", "localization", "site-config", "memory"}, "resolvePublicPath": {"public-site", "knowledge", "qa", "localization", "site-config", "memory"},
 			"readPublishedRevision": {"public-site", "knowledge", "qa", "localization", "memory"},
-		},
-		MaintenanceOperations: map[string]bool{"validatePublications": true, "readPublishedRevision": true}}, handlers)
+		}}, handlers)
 	if err != nil {
 		return err
 	}

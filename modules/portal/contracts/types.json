@@ -56,22 +56,6 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
       "description": "ObjectRef"
     },
-    "SnapshotRef": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
-      "description": "SnapshotRef"
-    },
-    "SnapshotExportRequest": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportRequest",
-      "description": "SnapshotExportRequest"
-    },
-    "SnapshotExportResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotExportResult",
-      "description": "SnapshotExportResult"
-    },
-    "SnapshotStageResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
-      "description": "SnapshotStageResult"
-    },
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
       "description": "EventEnvelope"
@@ -3126,10 +3110,6 @@
           "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
           "description": "活动 epoch"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "是否维护"
-        },
         "revision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision",
           "description": "Revision"
@@ -3137,7 +3117,6 @@
       },
       "required": [
         "dataEpoch",
-        "maintenance",
         "revision"
       ]
     },
@@ -3179,25 +3158,6 @@
       "required": [
         "allowed",
         "retryAfterSeconds"
-      ]
-    },
-    "ReleaseBarrierInput": {
-      "type": "object",
-      "description": "按权威状态恢复业务入口的输入",
-      "additionalProperties": false,
-      "properties": {
-        "barrierId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "屏障"
-        },
-        "expectedEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "全部域已切换完成的 epoch"
-        }
-      },
-      "required": [
-        "barrierId",
-        "expectedEpoch"
       ]
     },
     "ServiceConfig": {
@@ -3432,10 +3392,6 @@
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "当前全站维护，公开读写仍被门禁阻止"
-        },
         "publicRequestsAllowed": {
           "type": "boolean",
           "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
@@ -3447,21 +3403,15 @@
         "journalRecovered": {
           "type": "boolean",
           "description": "journal完整恢复"
-        },
-        "safePoint": {
-          "type": "boolean",
-          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
         }
       },
       "required": [
         "health",
         "activeDataEpoch",
         "runtimeRevision",
-        "maintenance",
         "publicRequestsAllowed",
         "initialized",
-        "journalRecovered",
-        "safePoint"
+        "journalRecovered"
       ],
       "description": "就绪响应不含secret、服务端点、IP或问答正文"
     },

@@ -315,24 +315,9 @@ type DelegationExpectation struct {
 
 // RuntimeView site-config权威运行状态摘要。
 type RuntimeView struct {
-	Revision        Revision   `json:"revision"`
-	BarrierID       Identifier `json:"barrierId,omitempty"`
-	DataEpoch       Identifier `json:"dataEpoch"`
-	Phase           string     `json:"phase"`
-	RestoreID       Identifier `json:"restoreId,omitempty"`
-	TargetDataEpoch Identifier `json:"targetDataEpoch,omitempty"`
-	Maintenance     bool       `json:"maintenance"`
+	Revision  Revision   `json:"revision"`
+	DataEpoch Identifier `json:"dataEpoch"`
 }
-
-// 运行阶段，与site-config RuntimePhase枚举一致。
-const (
-	PhaseRunning            = "running"
-	PhaseBackupBarrier      = "backup_barrier"
-	PhaseRestoreStaging     = "restore_staging"
-	PhaseRestoreSwitching   = "restore_switching"
-	PhaseRestoreRollingBack = "restore_rolling_back"
-	PhaseRestoreBlocked     = "restore_blocked"
-)
 
 // WorkAdmission签发独立的进程内真实scope，调用者等实际IO与确认全结束才释放。
 type WorkAdmission func(context.Context) (context.Context, func(), error)
@@ -366,7 +351,6 @@ type RecoveryLoopConfig struct {
 
 // ConsumerConfig 事件订阅循环参数；事件为“名称@版本”。
 type ConsumerConfig struct {
-	AllowDrain    func(context.Context, RuntimeView) (bool, error)
 	AdmitBatch    WorkAdmission `json:"-"`
 	AdmitDelivery WorkAdmission `json:"-"`
 	// SiteID由本域受信装配提供；空值仅用于system控制命名空间。
@@ -374,7 +358,7 @@ type ConsumerConfig struct {
 	ConsumerID  string   `json:"consumerId"`
 	Events      []string `json:"events"`
 	MaxInFlight int      `json:"maxInFlight"`
-	// Runtime必需；读取失败或屏障期间暂停，不按running放行。
+	// Runtime必需；读取失败时暂停，不按running放行。
 	Runtime func(ctx context.Context) (RuntimeView, error) `json:"-"`
 	// ValidatePayload必需；生产方schema不符时不确认，等待修复或死信。
 	ValidatePayload func(eventType string, version int, payload json.RawMessage) error `json:"-"`
@@ -404,17 +388,16 @@ type WorkerConfig struct {
 
 // ServiceBoundaryConfig 只由服务启动时从合同装配，不接受请求自报策略。
 type ServiceBoundaryConfig struct {
-	AdmitBusiness         WorkAdmission
-	Self                  string
-	Anchors               TrustAnchors
-	Runtime               func(context.Context) (RuntimeView, error)
-	OpenedDataEpoch       Identifier
-	AllowedCallers        map[string][]string
-	ServiceActorCallers   map[string][]string
-	MaintenanceOperations map[string]bool
-	MaxBodyBytes          int64
-	OperationBodyLimits   map[string]int64
-	Authorize             func(context.Context, OperationContext, string, string) error
+	AdmitBusiness       WorkAdmission
+	Self                string
+	Anchors             TrustAnchors
+	Runtime             func(context.Context) (RuntimeView, error)
+	OpenedDataEpoch     Identifier
+	AllowedCallers      map[string][]string
+	ServiceActorCallers map[string][]string
+	MaxBodyBytes        int64
+	OperationBodyLimits map[string]int64
+	Authorize           func(context.Context, OperationContext, string, string) error
 }
 
 type AuthorizationClient interface {
@@ -731,9 +714,8 @@ type ClaimedJob struct {
 
 // HeartbeatInfo 续租响应；cancelRequested表示jobs要求停止。
 type HeartbeatInfo struct {
-	ExpiresAt          Timestamp `json:"expiresAt"`
-	CancelRequested    bool      `json:"cancelRequested"`
-	SafePointRequested bool      `json:"safePointRequested"`
+	ExpiresAt       Timestamp `json:"expiresAt"`
+	CancelRequested bool      `json:"cancelRequested"`
 }
 
 // JobExecutionInput 任务执行函数的统一输入。

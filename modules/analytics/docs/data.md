@@ -1,6 +1,6 @@
 # analytics 数据与持久化
 
-未来私有目录 `data/analytics/active/` 保存SQLite和领域对象；`data/analytics/restore/<restoreId>/staged|before/` 为恢复暂存与换出的旧数据；`data/analytics/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
+未来私有目录 `data/analytics/active/` 保存SQLite和领域对象；`data/analytics/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
 
 - `beacon_inbox(beacon_id PK, document_id, locale, event_type, status_class, elapsed_bucket, daily_visitor_hash, source_domain, country_code, occurred_at, data_epoch；不存IP/UA原文，保留30天)`
 
@@ -26,7 +26,7 @@ V6迁移连续跟随V5。旧 `usage_projection`、`daily_usage` 或 usage 水位
 
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
-快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
+control区不随恢复替换。
 
 R1收尾首切片：私有SQLite V1只在空未版本化库事务建表，未知旧库维护拒绝；siteId严格来自site-config:readSiteConfig，epoch来自runtime，不造身份。控制屏障由公共机制持有，不放active表；盐不进入快照。日报总PV/UV独立于source/country维度表，UV不可SUM维度distinct。
 

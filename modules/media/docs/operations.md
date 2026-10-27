@@ -4,11 +4,10 @@ SVG（上传和Excalidraw）CSP sandbox/nosniff，不在HTML内联执行；链�
 
 snapshot包含所有COMMITTEDblob/meta/refWatermarks/确认人工plans和journals，不把内存stream句柄导入。control区不随恢复替换；旧下载proof因epoch无效。历史手动清理造成缺资源保留墓碑，并提供明确缺失给rollback而不造图像。
 
-服务启动顺序：验证配置/schema → 打开本服务私有存储 → 恢复未完成决定日志 → 读取 site-config runtimeState → 校验活动 epoch → 接受允许的读取 → 仅在无维护/屏障时接受业务写入。
 
 超时的写请求必须使用同 operationId 获取原结果。依赖失败不可假定权限、可见性或引用为空。日志记录 requestId、operationId、状态与安全字段，不记录正文、密码、token、原始文件路径或用户 IP。备份导出经只读 ObjectRef API；导出内容与 staging 根由本服务拥有。
 
-快照协议各阶段在 API/函数中登记；portal 仅 gate 屏障。stage/discard 均需 data-protection 服务证明、superadmin 委托及维护状态；只要有域未登记切换回执，site-config 不能退出维护。
+快照协议各阶段在 API/函数中登记；只要有域未登记切换回执，site-config 不能退出维护。
 
 ## 本轮人工删除代码边界
 

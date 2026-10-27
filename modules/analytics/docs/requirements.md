@@ -40,7 +40,6 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M14-R011** 所有有状态域实现统一barrier/export/stage/discard；恢复时重启换入暂存数据，全部域登记switched回执后才解除维护
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 

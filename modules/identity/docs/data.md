@@ -23,12 +23,6 @@
 | PublicationValidation | PublicationValidation |
 | AssetRef | AssetRef |
 | ObjectRef | ObjectRef |
-| BarrierRequest | BarrierRequest |
-| BarrierStatus | BarrierStatus |
-| SnapshotRef | SnapshotRef |
-| SnapshotExportRequest | SnapshotExportRequest |
-| SnapshotExportResult | SnapshotExportResult |
-| SnapshotStageResult | SnapshotStageResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | AccountName | 创建后不可修改；NFC、不可有控制字符/首尾空白；明文可供服务器查账号 |
@@ -107,11 +101,6 @@
 | ApplySuperadminResetResult | 用服务器文件恢复唯一超管口令的结果 |
 | PublishIdentityEventInput | 与身份提交原子登记事件的输入 |
 | PublishIdentityEventResult | 与身份提交原子登记事件的结果 |
-| InvalidateRestoredSessionsInput | 恢复数据后使备份登录失效的输入 |
-| InvalidateRestoredSessionsResult | 恢复数据后使备份登录失效的结果 |
-| ReleaseBarrierInput | 释放已协调完成的屏障的输入 |
-| ReleaseBarrierResult | 释放已协调完成的屏障的结果 |
-| releaseBarrierRequest | 释放屏障请求体 |
 | setAccountStatusRequest | 停用/恢复/删除子账号请求体 |
 | setAccountPermissionsRequest | 修改10项功能权限请求体 |
 | resetAccountPasswordRequest | 超管重置子账号初始口令请求体 |

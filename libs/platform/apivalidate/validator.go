@@ -78,10 +78,9 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 	handlers = normalized
 	config.AllowedCallers = lowerKeys(config.AllowedCallers)
 	config.ServiceActorCallers = lowerKeys(config.ServiceActorCallers)
-	config.MaintenanceOperations = lowerKeys(config.MaintenanceOperations)
 	config.OperationBodyLimits = lowerKeys(config.OperationBodyLimits)
 	if config.AdmitBusiness == nil {
-		// 未接入快照屏障的服务：只确认代次一致且处于运行阶段。
+		// 默认准入：只确认数据代次一致。
 		config.AdmitBusiness = simpleAdmission(config.Runtime, config.OpenedDataEpoch)
 	}
 	rewrite := rewriteColonRoutes(spec)
@@ -180,9 +179,6 @@ func NewServiceHandler(spec *openapi3.T, config platform.ServiceBoundaryConfig, 
 			if os.Getenv("NW_DEBUG") != "" {
 				fmt.Fprintf(os.Stderr, "调用方不在允许列表 operation=%s caller=%s\n", id, op.CallerService)
 			}
-		}
-		if err == nil && (view.Maintenance || view.Phase != platform.PhaseRunning) && !config.MaintenanceOperations[id] {
-			err = platform.NewError(platform.CodeLocked, true, "当前维护阶段不开放该接口")
 		}
 		if err != nil {
 			requestID := op.RequestID
@@ -567,9 +563,6 @@ func simpleAdmission(runtime func(context.Context) (platform.RuntimeView, error)
 		}
 		if openedEpoch != "" && view.DataEpoch != openedEpoch {
 			return nil, nil, platform.NewError(platform.CodeVersionMismatch, false, "进程数据代次已变化，等待重启")
-		}
-		if view.Phase != platform.PhaseRunning || view.Maintenance {
-			return nil, nil, platform.NewError(platform.CodeLocked, true, "维护中不接受新业务")
 		}
 		return ctx, func() {}, nil
 	}

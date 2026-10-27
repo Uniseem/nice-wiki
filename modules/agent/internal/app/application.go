@@ -70,7 +70,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	}
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: ModuleSlug, Anchors: anchors, Runtime: func(work context.Context) (platform.RuntimeView, error) {
 		return lifecycle.ReadRuntime(work, authority)
-	}, OpenedDataEpoch: view.DataEpoch, AllowedCallers: callers, MaxBodyBytes: 64 << 20, MaintenanceOperations: map[string]bool{"readAgentEvents": true, "replyAgentRequest": true, "cancelAgentRun": true}}, handlers)
+	}, OpenedDataEpoch: view.DataEpoch, AllowedCallers: callers, MaxBodyBytes: 64 << 20}, handlers)
 	if err != nil {
 		return nil, err
 	}
@@ -162,5 +162,5 @@ func (a *Application) Ready(w http.ResponseWriter, r *http.Request) {
 		write(w, nil, platform.NewError(platform.CodeDependencyUnavailable, false, "Agent 运行代次待更新"))
 		return
 	}
-	write(w, map[string]any{"health": gen.HealthStatus{Module: ModuleSlug, Version: "1", Status: "ready", Capabilities: []string{"zcode-native"}}, "activeDataEpoch": a.epoch, "runtimeRevision": view.Revision, "maintenance": view.Maintenance, "publicRequestsAllowed": !view.Maintenance, "initialized": view.DataEpoch != "", "journalRecovered": true, "safePoint": false}, nil)
+	write(w, map[string]any{"health": gen.HealthStatus{Module: ModuleSlug, Version: "1", Status: "ready", Capabilities: []string{"zcode-native"}}, "activeDataEpoch": a.epoch, "runtimeRevision": view.Revision, "publicRequestsAllowed": true, "initialized": view.DataEpoch != "", "journalRecovered": true, "safePoint": false}, nil)
 }

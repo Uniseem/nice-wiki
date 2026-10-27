@@ -22,12 +22,9 @@ const (
 	ownerClaimLimit = 8
 )
 
-// LeaseRuntimeView 由装配层从运行权威及control屏障读取；不读取active区旧屏障表。
-// 请求安全点时必须同时提供屏障截止，避免维护期间无限续租。
+// LeaseRuntimeView 由装配层从运行权威读取。
 type LeaseRuntimeView struct {
-	Runtime            platform.RuntimeView
-	SafePointRequested bool
-	BarrierDeadline    time.Time
+	Runtime platform.RuntimeView
 }
 
 type LeaseRuntimeProvider = func(context.Context) (LeaseRuntimeView, error)
@@ -80,9 +77,6 @@ func ClaimJob(ctx context.Context, op OperationContext, in ClaimJobInput) (Claim
 		return ClaimJobResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return ClaimJobResult{}, platform.NewError(platform.CodeLocked, false, "维护或屏障期间停止领取任务")
-	}
 	request, _ := json.Marshal(in)
 	prior, err := work.receipt(ctx, op, "claim", request)
 	if err != nil {
@@ -150,9 +144,6 @@ func StartJob(ctx context.Context, op OperationContext, in StartJobInput) (Start
 		return StartJobResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return StartJobResult{}, platform.NewError(platform.CodeLocked, false, "维护或屏障期间不开始新任务")
-	}
 	lease, err := work.readLease(ctx, op, in)
 	if err != nil {
 		return StartJobResult{}, err
@@ -205,9 +196,6 @@ func HeartbeatJob(ctx context.Context, op OperationContext, in HeartbeatJobInput
 			return HeartbeatJobResult{}, platform.NewError(platform.CodeIntegrityError, false, "任务心跳回执损坏")
 		}
 	}
-	if work.runtime.SafePointRequested && work.runtime.BarrierDeadline.Before(result.ExpiresAt) {
-		result.ExpiresAt = work.runtime.BarrierDeadline
-	}
 	if prior == nil {
 		updated, err := work.tx.ExecContext(ctx, `UPDATE leases SET expires_at=?,last_heartbeat=?
 			WHERE job_id=? AND worker_id=? AND fencing_token=? AND expires_at=?`,
@@ -227,9 +215,8 @@ func HeartbeatJob(ctx context.Context, op OperationContext, in HeartbeatJobInput
 			return HeartbeatJobResult{}, err
 		}
 	}
-	// 标志按当前状态返回，避免旧回执掩盖后来发生的取消或屏障。
+	// 标志按当前状态返回，避免旧回执掩盖后来发生的取消。
 	result.CancelRequested = lease.cancelRequested
-	result.SafePointRequested = work.runtime.SafePointRequested
 	if err := work.tx.Commit(); err != nil {
 		return HeartbeatJobResult{}, mapQueueDBError(err)
 	}
@@ -299,9 +286,6 @@ type leaseRecord struct {
 }
 
 func (work *leaseOperation) readLease(ctx context.Context, op OperationContext, in StartJobInput) (leaseRecord, error) {
-	if (work.runtime.Runtime.Maintenance && !work.runtime.SafePointRequested) || (work.runtime.SafePointRequested && work.runtime.BarrierDeadline.IsZero()) {
-		return leaseRecord{}, platform.NewError(platform.CodeDependencyUnavailable, true, "维护安全点或屏障截止尚不可用")
-	}
 	var lease leaseRecord
 	var owner, epoch string
 	var currentFence int64
@@ -331,7 +315,7 @@ func (work *leaseOperation) readLease(ctx context.Context, op OperationContext, 
 	if err != nil {
 		return leaseRecord{}, platform.NewError(platform.CodeIntegrityError, false, "任务租约截止损坏")
 	}
-	if !expiry.After(work.now) || (work.runtime.SafePointRequested && !work.runtime.BarrierDeadline.After(work.now)) {
+	if !expiry.After(work.now) {
 		return leaseRecord{}, leaseLost()
 	}
 	lease.expiresAt = expires.String

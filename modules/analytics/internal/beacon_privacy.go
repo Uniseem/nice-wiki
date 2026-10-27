@@ -34,9 +34,6 @@ func BindReportingTimeZone(ctx context.Context, rt *Runtime, name string, view p
 		return platform.NewError(platform.CodeVersionMismatch, false, "当前代次已有不同报表时区")
 	}
 	if stored == "" {
-		if view.Maintenance || view.Phase != platform.PhaseRunning {
-			return platform.NewError(platform.CodeLocked, true, "维护阶段不能首次绑定报表时区")
-		}
 		tx, e := rt.DB.BeginTx(ctx, nil)
 		if e != nil {
 			return storageError(e)

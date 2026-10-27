@@ -7,7 +7,5 @@
 - 未执行 M02-R03：无文档scope/角色继承；超管专属项不能赋予子账号。
 - 未执行 M02-R04：私有明文account-index可查；固定reset文件提交后删除；不新增邮箱恢复/MFA。
 - 未执行 M02-R05：disabled/deleted/permission change旧session立即失效，SameSite=Strict和Origin核对。
-- 未执行 M02-R06：服务签名密钥在control区不随恢复替换；换入后全部会话失效，需用备份中的账号重新登录。
 
-- 未执行：越权、撤回后陈旧缓存、并发 revision、event 重复/乱序、进程崩溃恢复及 epoch 恢复屏障行为。
 - 未执行：输入未知字段、schema 升级/不支持版本与完整性破坏时拒绝/隔离行为。

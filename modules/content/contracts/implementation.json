@@ -7290,18 +7290,6 @@
       ]
     },
     {
-      "path": "modules/content/internal/barrier_service.go",
-      "kind": "handwritten",
-      "purpose": "取得可恢复的数据屏障",
-      "functions": []
-    },
-    {
-      "path": "modules/content/internal/snapshot_service.go",
-      "kind": "handwritten",
-      "purpose": "导出屏障水位的一致快照",
-      "functions": []
-    },
-    {
       "path": "modules/content/internal/public_route_reader.go",
       "kind": "handwritten",
       "purpose": "公开导航读取已发布文档树",
@@ -10095,12 +10083,6 @@
       "kind": "handwritten",
       "purpose": "记录已向资源服务发出空引用集合释放事件的彻底删除文档；引用列表只跳过这些文档，未释放的旧文档由事件转发循环补发",
       "functions": []
-    },
-    {
-      "path": "modules/content/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/content/web/src/index.tsx",

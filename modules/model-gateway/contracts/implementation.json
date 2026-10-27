@@ -12121,12 +12121,6 @@
       ]
     },
     {
-      "path": "modules/model-gateway/internal/protection/protocol.go",
-      "kind": "handwritten",
-      "purpose": "取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": []
-    },
-    {
       "path": "modules/model-gateway/internal/catalog/task.go",
       "kind": "handwritten",
       "purpose": "任务分配配置读写与QA免费可用性读取；真实本域SQL、权限、CAS、回执和平台outbox，不调用供应方。",
@@ -21591,12 +21585,6 @@
       "kind": "handwritten",
       "purpose": "创建键投影及不自动生产的tracking来源",
       "functions": []
-    },
-    {
-      "path": "modules/model-gateway/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/model-gateway/internal/admin/statistics.go",

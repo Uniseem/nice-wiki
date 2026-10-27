@@ -1,6 +1,6 @@
 # traffic-guard 数据与持久化
 
-未来私有目录 `data/traffic-guard/active/` 保存SQLite和领域对象；`data/traffic-guard/restore/<restoreId>/staged|before/` 为恢复暂存与换出的旧数据；`data/traffic-guard/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
+未来私有目录 `data/traffic-guard/active/` 保存SQLite和领域对象；`data/traffic-guard/control/` 保存不随业务恢复替换的barrier、恢复回执和操作journal。外域不得直接读这些路径。
 
 - `guard_policy(site_id, revision, policy_json, data_epoch; PK site_id)`
 
@@ -22,7 +22,7 @@ SQLite WAL、foreign_keys=ON、busy_timeout=3000ms；同一服务使用串行短
 
 修订单调；代次opaque Identifier只比较相等；唯一约束绑定epoch，旧epoch索引/lease/token禁止复活。金额只出现analytics派生投影，按USD整数micros处理。
 
-快照只经HTTP管理协议（barrier/export/stage/discard），在safe屏障固定revisionWatermark；恢复先全域暂存，写切换决定后各服务重启换入，全部域登记回执才解维护。control区不随恢复替换。换入后先schema迁移与完整性验证，失败拒绝启动并可整体换回。
+control区不随恢复替换。
 
 登录失败保护由identity提交账号私有HMAC与portal已签名来源的当前/前一日网络HMAC。仅接受`CallerService=identity`且`Actor.Kind=service`；本域库在启动时固定active代次，每个事务匹配`op.DataEpoch`。统一HTTP入口一次核验当前runtime、维护、严格schema；本域不重新查询身份或解析deadline。
 

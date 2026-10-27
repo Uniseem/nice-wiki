@@ -2929,18 +2929,6 @@
       ]
     },
     {
-      "path": "modules/analytics/internal/barrier.go",
-      "kind": "handwritten",
-      "purpose": "进入analytics一致屏障；同文件职责限本域以下登记函数",
-      "functions": []
-    },
-    {
-      "path": "modules/analytics/internal/snapshot.go",
-      "kind": "handwritten",
-      "purpose": "导出统计快照；同文件职责限本域以下登记函数",
-      "functions": []
-    },
-    {
       "path": "modules/analytics/internal/import.go",
       "kind": "handwritten",
       "purpose": "校验统计恢复；同文件职责限本域以下登记函数",
@@ -6407,12 +6395,6 @@
       "kind": "handwritten",
       "purpose": "V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移",
       "functions": []
-    },
-    {
-      "path": "modules/analytics/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/analytics/internal/usage_gateway_types.go",

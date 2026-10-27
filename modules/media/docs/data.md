@@ -21,12 +21,6 @@
 | PublicationValidation | PublicationValidation |
 | AssetRef | AssetRef |
 | ObjectRef | ObjectRef |
-| BarrierRequest | BarrierRequest |
-| BarrierStatus | BarrierStatus |
-| SnapshotRef | SnapshotRef |
-| SnapshotExportRequest | SnapshotExportRequest |
-| SnapshotExportResult | SnapshotExportResult |
-| SnapshotStageResult | SnapshotStageResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | AssetVersionRef | 完整不可变资源引用；正文按SHA内容寻址，文件版本不覆盖 |
@@ -133,9 +127,6 @@
 | RecoverBlobJournalResult | 恢复blob完成/删除持久日志的结果 |
 | PublishAssetEventInput | 原子写最小资源状态outbox的输入 |
 | PublishAssetEventResult | 原子写最小资源状态outbox的结果 |
-| ReleaseBarrierInput | 释放已协调完成的屏障的输入 |
-| ReleaseBarrierResult | 释放已协调完成的屏障的结果 |
-| releaseBarrierRequest | 释放屏障请求体 |
 | putUploadChunkRequest | 顺序原子写有界上传块请求体 |
 | completeUploadRequest | 完成hash/MIME验证后发布ready资源请求体 |
 | abortUploadRequest | 取消未完成上传释放配额请求体 |

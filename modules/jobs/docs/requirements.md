@@ -1,6 +1,6 @@
 # jobs 需求
 
-**M13-R001** 提供持久任务、带版本事件、租约、重试、进度与定时触发，协调安全点屏障；领域算法由所属服务通过 HTTP 执行。
+领域算法由所属服务通过 HTTP 执行。
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -12,7 +12,6 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M13-R004** 定时触发及维护屏障调度暂停
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -40,7 +39,6 @@
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
-**M13-R011** 所有有状态域实现统一barrier/export/stage/discard；恢复时重启换入暂存数据，全部域登记switched回执后才解除维护
 
 验收观察：按acceptance.md观察该行为与对应故障分支；本阶段未实现、未运行业务验收
 
@@ -89,7 +87,6 @@
   "scheduleTickSeconds": 60,
   "scheduleMissedTickPolicy": "coalesce-latest-one",
   "scheduleTimezoneDefault": "Asia/Shanghai",
-  "barrierDeadlineSeconds": 360,
   "maxConcurrentClaimsPerOwner": 8,
   "eventDeliveryTimeoutMs": 5000,
   "sseKeepaliveSeconds": 15

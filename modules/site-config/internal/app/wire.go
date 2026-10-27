@@ -114,7 +114,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
-	if !view.Maintenance && initialization.Coordination != nil && initialization.Coordination.Decision == gen.Commit && initialization.Coordination.Phase != gen.InitializationStatePhaseCompleted {
+	if initialization.Coordination != nil && initialization.Coordination.Decision == gen.Commit && initialization.Coordination.Phase != gen.InitializationStatePhaseCompleted {
 		if _, err := siteconfig.ResumeInitialization(ctx, startupOperation, gen.ResumeInitializationInput{OperationId: *initialization.Coordination.OperationId}); err != nil {
 			_ = activeStore.Close()
 			_ = closeRuntime(runtimeAuthority)
@@ -133,7 +133,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, platform.NewError(platform.CodeDependencyUnavailable, false, "身份权威地址未配置")
 	}
 	identity := gen.NewIdentityClient(identityBase, ModuleSlug, key)
-	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, relayRuntime, openedEpoch, !view.Maintenance, apivalidate.NewIdentityAuthorizer(identity))
+	application, err := transport.NewApplication(config, anchors, runtimeAuthority, activeStore, relayRuntime, openedEpoch, apivalidate.NewIdentityAuthorizer(identity))
 	if err != nil {
 		_ = activeStore.Close()
 		_ = closeRuntime(runtimeAuthority)

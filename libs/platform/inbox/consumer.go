@@ -29,7 +29,7 @@ func RunConsumer(ctx context.Context, client platform.EventConsumerClient, confi
 
 // RunConsumerWithResult退出时等待分片结束，再返回实际累计计数。
 func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerClient, config platform.ConsumerConfig, handlers platform.EventHandlerRegistry) (result platform.ConsumerRunResult, err error) {
-	// 未接入快照屏障的服务可以不提供准入，此时直接放行。
+	// 不提供准入时直接放行。
 	passthrough := func(ctx context.Context) (context.Context, func(), error) { return ctx, func() {}, nil }
 	if config.AdmitBatch == nil {
 		config.AdmitBatch = passthrough
@@ -64,7 +64,7 @@ func RunConsumerWithResult(ctx context.Context, client platform.EventConsumerCli
 			return result, nil
 		}
 		view, ok := readRuntime(ctx, config.Runtime)
-		if !ok || c.pauseFor(ctx, view) {
+		if !ok {
 			if !sleep(ctx, holdPause) {
 				return result, nil
 			}
@@ -209,7 +209,7 @@ func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, str
 }
 func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnvelope, skipped bool) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx, view) {
+	if !ok {
 		c.failed.Add(1)
 		return
 	}
@@ -227,7 +227,7 @@ func (c *consumerLoop) acknowledge(ctx context.Context, event platform.EventEnve
 }
 func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope) {
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx, view) || event.DataEpoch != view.DataEpoch {
+	if !ok || event.DataEpoch != view.DataEpoch {
 		c.failed.Add(1)
 		return
 	}
@@ -255,7 +255,7 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 		return outcomeFailed
 	}
 	view, ok := readRuntime(ctx, c.config.Runtime)
-	if !ok || c.pauseFor(ctx, view) {
+	if !ok {
 		return outcomeHold
 	}
 	if event.DataEpoch != view.DataEpoch {
@@ -267,22 +267,12 @@ func (c *consumerLoop) classify(ctx context.Context, event platform.EventEnvelop
 	return outcomeProcess
 }
 func eventKey(name string, version int) string { return name + "@" + strconv.Itoa(version) }
-func (c *consumerLoop) pauseFor(ctx context.Context, view platform.RuntimeView) bool {
-	if !view.Maintenance && view.Phase == platform.PhaseRunning {
-		return false
-	}
-	if c.config.AllowDrain == nil {
-		return true
-	}
-	allowed, err := c.config.AllowDrain(ctx, view)
-	return err != nil || !allowed
-}
 func readRuntime(ctx context.Context, provider func(context.Context) (platform.RuntimeView, error)) (platform.RuntimeView, bool) {
 	if provider == nil {
 		return platform.RuntimeView{}, false
 	}
 	view, err := provider(ctx)
-	return view, err == nil && view.DataEpoch != "" && view.Phase != ""
+	return view, err == nil && view.DataEpoch != ""
 }
 func sleep(ctx context.Context, d time.Duration) bool {
 	timer := time.NewTimer(d)

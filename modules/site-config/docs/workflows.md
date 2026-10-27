@@ -1,14 +1,14 @@
 # 生命周期与工作流
 
-初始化 uninitialized→preparing→config_committed→completed；持久commit后恢复完成或blocked。持久化函数的 commit 结果仍停 preparing，不代表配置已提交；config_committed 表示权威文件、COMMITTED、head 和 SQL 水位已提交但初始化完成事务尚未结束；同决定同准备配置摘要重试返回原版本，异摘要或终局决定冲突失败。abort 前不能存在 commit，abort 不删除身份账号或重开注册。单条banner enabled/timewindow决定是否可见，无额外富文公告产品。runtime running→restore_staging→restore_switching→running（或restore_rolling_back→running），任一域未登记回执保持维护。
+初始化 uninitialized→preparing→config_committed→completed；持久commit后恢复完成或blocked。持久化函数的 commit 结果仍停 preparing，不代表配置已提交；config_committed 表示权威文件、COMMITTED、head 和 SQL 水位已提交但初始化完成事务尚未结束；同决定同准备配置摘要重试返回原版本，异摘要或终局决定冲突失败。abort 前不能存在 commit，abort 不删除身份账号或重开注册。单条banner enabled/timewindow决定是否可见，无额外富文公告产品。
 
 初始化只需已登录唯一超管填写站点名和基准语言，默认中文zh-Hans。publicBaseURL/部署参数来自受控环境，AI不配置不探测不调用。PrepareDefaultConfig 接受显式 publicBaseURL 与可信 preparedAt，不读取请求 Host 或当前时钟；公开地址通过公共 ServiceConfig 的 publicBaseURL/allowLocalHTTP 边界校验后，启动时调用 ConfigureInitialization 注入；缺少地址不阻止既有读取启动，但初始化使用时失败关闭。先同事务持久完整准备配置、commit 决定和原始业务回执，再由 ResumeInitialization 写 config 权威文件并完成 initialized。
 
 UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted loop playsinline、图片preload，prefers-reduced-motion视频只poster。UpdateBanner保存唯一公告文字/安全链接/起止时间，文字进localization；前端关闭只localStorage。
 
-恢复由data-protection服务身份携带superadmin委托驱动（ADR0003）；各域control区不随恢复替换。全部有状态域switched到同一targetEpoch才退出维护；整体换回时全部rolled-back才恢复正常。
+各域control区不随恢复替换。全部有状态域switched到同一targetEpoch才退出维护；整体换回时全部rolled-back才恢复正常。
 
-业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。
 
 <!-- flows:start -->
 ## 入口与后台流程
@@ -46,8 +46,7 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 
 构造只做本地引用恢复；全部真实handler齐备后才通过BackgroundTasks交公共RunRecoveryLoop周期收敛。每个RPC前后复用NewWriteContext核安全窗口与active epoch；维护暂停，未知保留。退出时公共生命周期先取消、Drain停止HTTP并等待请求，再等后台退出，最后Shutdown关闭DB。
 
-Outbox 单批转发：完整 Application 从同一 SnapshotManager 装配真实 Store、jobs publisher、Runtime/WriteWindow、AdmitBatch 与 BindEventScope → RelayOutbox 只调用平台 RunRelayBatch → 平台完成领取、发布、确认、退避、隔离和旧 epoch 处理。单批返回只描述本批，不代表全域事件已送达；启动补发与轮询循环仍属于完整 Application 装配。
+单批返回只描述本批，不代表全域事件已送达；启动补发与轮询循环仍属于完整 Application 装配。
 
-屏障工作流：`prepare` 由公共 Manager 建立 draining，`drain` 排空本域已登记旧事件，`observe` 在同一 active 事务读取公共 outbox revision、本域 pending work 和业务 watermark，`seal` 重新观察后以同一事务 CAS 封口，`resume-drain` 只按原 proofHash 重开旧清理门。Ready 与业务写门只读取 Manager 的内存 barrier snapshot，不解析其私有 barrier 文件。
 
-恢复暂存工作流：data-protection 提供受控归档流后，公共 Manager 认证 owner、snapshot、hash、stage 和目标 epoch，再调用本域迁移回调。回调通过 `outbox.MigrateRestoredDatabase` 在隔离库内执行本域已登记迁移、更新目标 active epoch、核验配置状态并重建公告派生索引；公共内核负责旧 outbox 资格隔离和 hostHash 重封，site-config 不把旧事件重标当前 epoch，也不改写原 payload、root 或费用事实。
+回调通过 `outbox.MigrateRestoredDatabase` 在隔离库内执行本域已登记迁移、更新目标 active epoch、核验配置状态并重建公告派生索引；公共内核负责旧 outbox 资格隔离和 hostHash 重封，site-config 不把旧事件重标当前 epoch，也不改写原 payload、root 或费用事实。

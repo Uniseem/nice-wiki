@@ -60,7 +60,6 @@ type Application struct {
 	registry            portal.RouteRegistry
 	openedEpoch         platform.Identifier
 	localHandlersReady  bool
-	gate                *portal.Gate
 	state               atomic.Int32
 	serveStarted        atomic.Bool
 	shutdownOnce        sync.Once
@@ -76,7 +75,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	application := &Application{
 		siteID: siteID, validateBeaconBody: validateBeacon,
 		config: config, anchors: anchors, signingKey: signingKey, delegationKey: delegationKey, runtime: runtime,
-		identity: identity, authResolver: authResolver, registry: registry, openedEpoch: openedEpoch, gate: portal.NewGate(),
+		identity: identity, authResolver: authResolver, registry: registry, openedEpoch: openedEpoch,
 	}
 	mux := http.NewServeMux()
 	if err := application.registerLocalRoutes(mux); err != nil {
@@ -121,7 +120,7 @@ func (a *Application) registerLocalRoutes(mux *http.ServeMux) error {
 			writeJSON(w, http.StatusOK, status)
 		}),
 	}
-	// 屏障、bootstrap、events、preferences、readiness 等本地路由留待后续装配，不阻止启动。
+	// bootstrap、events、preferences、readiness 等本地路由留待后续装配，不阻止启动。
 	required := []string{"GET /healthz", "GET /readyz"}
 	for _, pattern := range required {
 		if handlers[pattern] == nil {
@@ -254,7 +253,7 @@ func (a *Application) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	runtime := &portal.ProxyRuntime{
 		SiteID: site, HostSiteID: hostSiteID, ValidateBeaconBody: a.validateBeaconBody, Registry: a.registry, Dependencies: a.config.Dependencies, SigningKey: a.signingKey, DelegationKey: a.delegationKey,
 		Issuer: moduleName, Request: r, Body: body, Query: r.URL.RawQuery, Headers: headers,
-		Writer: w, Runtime: a.runtime, Identity: a.identity, Gate: a.gate,
+		Writer: w, Runtime: a.runtime, Identity: a.identity,
 		ConfiguredOrigins: origins, TrustedProxyCIDRs: a.config.TrustedProxyCIDRs, Countries: a.countries,
 	}
 	runtime.Anchors = a.anchors
@@ -339,7 +338,7 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	epoch := string(view.DataEpoch)
 	return gen.ServiceReadiness{
 		Health: health, ActiveDataEpoch: &epoch, Initialized: app.currentSite(ctx) != "", JournalRecovered: true,
-		Maintenance: view.Maintenance, PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning, SafePoint: true,
+		PublicRequestsAllowed: true,
 	}, nil
 }
 

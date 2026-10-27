@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 64 个：手写 51、UI 1、生成 4、配置 6、迁移 2。函数 121 个：约束 29，参考 92。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 61 个：手写 48、UI 1、生成 4、配置 6、迁移 2。函数 121 个：约束 29，参考 92。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -25,8 +25,6 @@
 | `modules/analytics/internal/csv.go` | 手写 | 安全CSV单元格；同文件职责限本域以下登记函数 | `analytics.ValidateCSVCell`（参考） |
 | `modules/analytics/internal/retention.go` | 手写 | 清理短期匿名行；同文件职责限本域以下登记函数 | `analytics.PurgeBeacons`（参考）、`analytics.PurgeAuditHistory`（参考）、`analytics.PruneDaySalts`（参考） |
 | `modules/analytics/internal/outbox.go` | 手写 | 派生事件outbox派发；同文件职责限本域以下登记函数 | `analytics.PublishAggregateEvents` |
-| `modules/analytics/internal/barrier.go` | 手写 | 进入analytics一致屏障；同文件职责限本域以下登记函数 | 无 |
-| `modules/analytics/internal/snapshot.go` | 手写 | 导出统计快照；同文件职责限本域以下登记函数 | 无 |
 | `modules/analytics/internal/import.go` | 手写 | 校验统计恢复；同文件职责限本域以下登记函数 | 无 |
 | `modules/analytics/internal/crawler.go` | 手写 | 内存识别已知爬虫；同文件职责限本域以下登记函数 | `analytics.ClassifyCrawler`（参考） |
 | `modules/analytics/internal/geoip.go` | 手写 | 离线GeoIP国家；同文件职责限本域以下登记函数 | `analytics.LookupCountry`（参考）、`analytics.trustedPeer`（参考） |
@@ -62,7 +60,6 @@
 | `modules/analytics/internal/usage_queries.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.QueryUsageStatistics` |
 | `modules/analytics/internal/export_recovery.go` | 手写 | 本域私有导出/保留期参考支持 | `analytics.PurgeExports`（参考）、`analytics.RecoverExports`（参考）、`analytics.ExportKind`（参考）、`analytics.exportObjectNameValid`（参考） |
 | `modules/analytics/migrations/0005_export_journal.sql` | 手写 | V5导出原主体/类型/代次/准备安装journal；旧未知记录拒绝静默迁移 | 无 |
-| `modules/analytics/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/analytics/internal/usage_gateway_types.go` | 手写 | model-gateway V2安全统计页、完整范围和可信注入窄接口的本域无损类型；HTTP机器来源仍引用生产方types | 无 |
 | `modules/analytics/internal/usage_events.go` | 手写 | 费用事件原引用解析与权威页绑定；不接受事件金额或修订为账项真相 | `analytics.parseUsageEventReference`（参考）、`analytics.validateUsageEventReference`（参考） |
 | `modules/analytics/internal/usage_models.go` | 手写 | model-gateway V2费用账项、观察和投影输入的单一本域无损事实模型 | 无 |

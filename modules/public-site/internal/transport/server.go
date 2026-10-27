@@ -150,9 +150,7 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		return gen.ServiceReadiness{}, err
 	}
 	if app.openedEpoch != "" && view.DataEpoch != app.openedEpoch {
-		if !(view.Maintenance && view.TargetDataEpoch == app.openedEpoch) {
-			return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启换入")
-		}
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "数据代次已变化，等待重启")
 	}
 	var activeEpoch *string
 	if app.openedEpoch != "" {
@@ -163,11 +161,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		ActiveDataEpoch:       activeEpoch,
 		RuntimeRevision:       0,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: true,
 		Initialized:           app.openedEpoch != "",
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             true,
 	}, nil
 }
 

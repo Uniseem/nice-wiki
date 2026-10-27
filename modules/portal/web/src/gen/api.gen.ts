@@ -425,16 +425,12 @@ export interface components {
             /** @description 未初始化null；恢复切换期间用于确认本域已换入的目标epoch */
             activeDataEpoch: string | null;
             runtimeRevision: components["schemas"]["Revision"];
-            /** @description 当前全站维护，公开读写仍被门禁阻止 */
-            maintenance: boolean;
             /** @description 维护时false；ready只表明本域安全可参与控制，不提前开放公开业务 */
             publicRequestsAllowed: boolean;
             /** @description 未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪 */
             initialized: boolean;
             /** @description journal完整恢复 */
             journalRecovered: boolean;
-            /** @description 恢复/备份协调实际安全点，不能仅等任务调度暂停 */
-            safePoint: boolean;
         };
         /** @description Identifier */
         types_Identifier: components["schemas"]["Identifier"];

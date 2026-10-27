@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 49 个函数：约束 13 个，参考 36 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 47 个函数：约束 13 个，参考 34 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -601,7 +601,7 @@ func ProxyRequest(ctx context.Context, op OperationContext, input ProxyRequestIn
 - 授权：permission：anonymous；rule：入口本身匿名可达；路由权限按路由表与上游服务二次校验
 - 并发：每请求独立；上游取消随客户端断开传播
 - 幂等：幂等由上游operationId保证；入口不重放写请求
-- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.CheckEntranceGate`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`、`platform.ResolveVisitorAddress`、`portal.prepareTrustedBeacon`、`analytics:ingestTrustedBeacon`
+- 依赖：`portal.ResolveRoute`、`portal.ValidateEnvelope`、`portal.AssertSameOrigin`、`portal.VerifyCSRF`、`portal.ResolveAuthContext`、`portal.AuthorizeRoute`、`portal.BuildInternalProof`、`traffic-guard:createAdmission`、`portal.ForwardRequest`、`portal.StreamResponse`、`portal.RedactRequest`、`portal.EmitAccessAudit`、`platform.PrivateNetworkScopes`、`portal.authenticationOperation`、`portal.prepareAuthenticationRequest`、`platform.PrivateBudgetNetworkScopes`、`platform.ResolveVisitorAddress`、`portal.prepareTrustedBeacon`、`analytics:ingestTrustedBeacon`
 
 ## portal.authenticationOperation
 
@@ -1439,91 +1439,6 @@ func EmitAccessAudit(ctx context.Context, op OperationContext, input EmitAccessA
 - 并发：requestId 唯一键；审计失败时管理写请求返回受控不可用
 - 幂等：requestId 去重
 - 依赖：`analytics:appendAudit`
-
-## portal.ReadRuntimeState
-
-- 级别：参考
-- 文件：`modules/portal/internal/runtime_state_client.go`
-- 作用：读取唯一权威运行状态
-
-```go
-func ReadRuntimeState(ctx context.Context, op OperationContext, input ReadRuntimeStateInput) (ReadRuntimeStateResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `ReadRuntimeStateInput` | 读取唯一权威运行状态的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `ReadRuntimeStateResult` | 读取唯一权威运行状态的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许；INTEGRITY_ERROR: 哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布 |
-
-**步骤**
-
-1. 调用 site-config readRuntimeState
-2. 验证返回 epoch、维护状态与签名
-3. 仅缓存最多 1 秒；失联时写请求关闭
-
-**错误**
-
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-- `INTEGRITY_ERROR`：哈希、引用、覆盖网格或提交日志不一致；隔离并禁止发布（不可重试）
-
-- 副作用：无
-- 授权：service:portal
-- 并发：短期单飞；维护开始事件立即失效缓存
-- 幂等：只读
-- 依赖：`site-config:readRuntimeState`
-
-## portal.CheckEntranceGate
-
-- 级别：参考
-- 文件：`modules/portal/internal/maintenance_gate.go`
-- 作用：对维护和恢复 epoch 实施入口屏障
-
-```go
-func CheckEntranceGate(ctx context.Context, op OperationContext, input CheckEntranceGateInput) (CheckEntranceGateResult, error)
-```
-
-**输入**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `ctx` | `context.Context` | 取消与截止传播；不得携带正文到日志 | 用户取消、进程退出或截止到达即停止新副作用 |
-| `op` | `OperationContext` | 调用方、委托主体、operationId、期限与 dataEpoch；服务边界验签且禁止浏览器自造 | deadline 未过期；dataEpoch 与 site-config 活动 epoch 一致；权限按资源再次检查 |
-| `input` | `CheckEntranceGateInput` | 对维护和恢复 epoch 实施入口屏障的已声明参数 | 必须通过 types.json 对应 schema；拒绝未知字段；字节/范围/空值按 schema |
-
-**输出**
-
-| 名称 | 类型 | 说明 | 约束 |
-|---|---|---|---|
-| `result` | `CheckEntranceGateResult` | 对维护和恢复 epoch 实施入口屏障的完整成功值 | 无 error 时才有效；满足 types.json schema |
-| `error` | `Error` | 失败时 result 无效，返回标准 Problem；已提交但客户端超时必须用相同 operationId 查询/重试 | LOCKED: 锁、屏障、删除 fence 或正在处理的互斥操作阻止执行；VERSION_MISMATCH: expectedRevision、对象版本或 dataEpoch 已改变；DEPENDENCY_UNAVAILABLE: 权威依赖、存储或密钥不可用；不可把未知状态当允许 |
-
-**步骤**
-
-1. 读取当前权威 runtimeState
-2. 维护时仅允许登录/恢复/健康固定路由
-3. 业务写入携带活动 dataEpoch；不匹配或处于恢复维护时拒绝请求
-
-**错误**
-
-- `LOCKED`：锁、屏障、删除 fence 或正在处理的互斥操作阻止执行（不可重试）
-- `VERSION_MISMATCH`：expectedRevision、对象版本或 dataEpoch 已改变（不可重试）
-- `DEPENDENCY_UNAVAILABLE`：权威依赖、存储或密钥不可用；不可把未知状态当允许（可重试）
-
-- 副作用：无
-- 授权：所有请求按路由自身权限
-- 并发：每请求检查，缓存维护变更必须立即失效
-- 幂等：读取判定
-- 依赖：`portal.ReadRuntimeState`
 
 ## portal.main
 

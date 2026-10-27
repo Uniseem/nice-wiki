@@ -10,9 +10,9 @@ Withdraw/trash先权威增visibility并清发布引用再发失效事件。公�
 
 媒体历史文件可经管理员手动清理并有风险提示。回滚先列缺失文件，需要显式承认后按历史恢复，新发布可能有缺资源占位；不得造bytes。预览只有已登录管理账号，public样式但noindex/no-store，不提供匿名分享。
 
-业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。恢复屏障拒绝新业务写入，排空已登记事务后才返回 safe；快照仅覆盖屏障水位；恢复暂存不修改active数据，active目录只在进程重启时整体换入或换回。
+业务操作在提交前检查取消和期限；提交后返回已记录回执，客户端超时并不等于未提交。
 
-当前发布只公开精确共享草稿：人工slug/SEO优先，本轮不调用模型也不制造slug或SEO；首次空slug提示补填，已有合法元数据不因缺模型而阻塞。非空就绪引用在本地SQL锁之外，用来源身份为已提交草稿保存操作，经现有媒体客户端先acquire再confirm；找不到该决定或摘要不一致则整次失败。空引用不造pin，pin失败则整次发布失败。原回执、metadata/tree或发布CAS、快照、引用和outbox同一事务；未知提交只回放原回执。曾发布路径写入私有SQL版本化redirect manifest，Move/Update读取同一清单。分享图实际变更仍因精确metadata pin合同未齐返回503。历史回滚、回收站、预览、屏障和完整启动仍未交付。下文较早轮次记录保留当时的检查结论。
+当前发布只公开精确共享草稿：人工slug/SEO优先，本轮不调用模型也不制造slug或SEO；首次空slug提示补填，已有合法元数据不因缺模型而阻塞。非空就绪引用在本地SQL锁之外，用来源身份为已提交草稿保存操作，经现有媒体客户端先acquire再confirm；找不到该决定或摘要不一致则整次失败。空引用不造pin，pin失败则整次发布失败。原回执、metadata/tree或发布CAS、快照、引用和outbox同一事务；未知提交只回放原回执。曾发布路径写入私有SQL版本化redirect manifest，Move/Update读取同一清单。分享图实际变更仍因精确metadata pin合同未齐返回503。下文较早轮次记录保留当时的检查结论。
 
 <!-- flows:start -->
 ## 入口与后台流程
@@ -74,7 +74,7 @@ SaveDraft初始短guard核真实lease与head后释放；固定完整引用源意
 
 current_draft与history取真实索引分类；pending_pin来自Acquire前已持久的完整保存意图，retained=true只表示保护，不是COMMITTED。精确COMMITTED资格优先，即使原intent终态尚未补齐；明确aborted/rejected且无COMMITTED才排除。未知已发布/分享图生产资格、缺索引、缺原回执或坏材料均失败关闭。本轮没有实现发布或元数据分享图生产者，也不通过空结果掩盖它们。
 
-两个只读来源HTTP路由使用平台统一服务身份/当前epoch/schema边界；media源决定限定纯服务，列表固定media/site-config/data-protection纯服务或portal即时content.read。RelayOutbox只把真实本域outbox与jobs客户端交给平台单批机制；后台循环和完整启动继续未完成。本轮源码已通过根自部署GitLab CI pipeline 12生成/格式/重复生成、三个实际同时分片覆盖14模块readonly build/vet/gofmt及完整make check（878文件/1435函数/379HTTP/2328类型），未执行SQL/HTTP行为验收或部署。
+两个只读来源HTTP路由使用平台统一服务身份/当前epoch/schema边界；RelayOutbox只把真实本域outbox与jobs客户端交给平台单批机制；后台循环和完整启动继续未完成。本轮源码已通过根自部署GitLab CI pipeline 12生成/格式/重复生成、三个实际同时分片覆盖14模块readonly build/vet/gofmt及完整make check（878文件/1435函数/379HTTP/2328类型），未执行SQL/HTTP行为验收或部署。
 
 
 COMMITTED是不可撤销历史决定；后来正文/文档隔离不撤销完整精确资格、原回执与refs的媒体保护。当前正文读取仍拒绝隔离，缺资格或材料矛盾仍INTEGRITY_ERROR，绝不降pending/abort。

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 48 个：手写 35、UI 1、生成 4、配置 6、迁移 2。函数 84 个：约束 27，参考 57。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 46 个：手写 33、UI 1、生成 4、配置 6、迁移 2。函数 84 个：约束 27，参考 57。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -26,8 +26,6 @@
 | `modules/traffic-guard/internal/events.go` | 手写 | 处理权限撤销通知；同文件职责限本域以下登记函数 | `traffic-guard.ConsumeIdentityEvent`、`traffic-guard.ConsumeEvents` |
 | `modules/traffic-guard/internal/outbox.go` | 手写 | 可靠派发风控引用事件；同文件职责限本域以下登记函数 | `traffic-guard.PublishGuardEvents` |
 | `modules/traffic-guard/internal/retention.go` | 手写 | 清理匿名风控状态；同文件职责限本域以下登记函数 | `traffic-guard.PurgeAnonymousSignals`（参考） |
-| `modules/traffic-guard/internal/barrier.go` | 手写 | 停止准入并等安全点；同文件职责限本域以下登记函数 | 无 |
-| `modules/traffic-guard/internal/snapshot.go` | 手写 | 导出风控一致快照；同文件职责限本域以下登记函数 | 无 |
 | `modules/traffic-guard/internal/import.go` | 手写 | 校验恢复输入；同文件职责限本域以下登记函数 | 无 |
 | `modules/traffic-guard/internal/question_signals.go` | 手写 | 接收qa已有检测信号；同文件职责限本域以下登记函数 | `traffic-guard.ReportQuestionSignals` |
 | `modules/traffic-guard/internal/session_queue.go` | 手写 | 每会话1并发其余排队；同文件职责限本域以下登记函数 | `traffic-guard.QueueSessionAdmission` |

@@ -39,7 +39,6 @@ type ReadinessEvidence struct {
 	Runtime               platform.RuntimeView
 	Initialized           bool
 	JournalRecovered      bool
-	SafePoint             bool
 	PublicRequestsAllowed bool
 }
 
@@ -250,16 +249,13 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if !evidence.JournalRecovered {
 		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域journal尚未完成恢复")
 	}
-	if evidence.Runtime.Maintenance && !evidence.SafePoint {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, true, "本域安全点证据尚未完成")
-	}
 	var activeEpoch *string
 	if evidence.Initialized {
 		value := string(app.openedEpoch)
 		activeEpoch = &value
 	}
 	publicRequestsAllowed := evidence.PublicRequestsAllowed
-	if !evidence.Initialized || evidence.Runtime.Maintenance || evidence.Runtime.Phase != platform.PhaseRunning {
+	if !evidence.Initialized {
 		publicRequestsAllowed = false
 	}
 	return gen.ServiceReadiness{
@@ -267,10 +263,8 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Initialized:           evidence.Initialized,
 		JournalRecovered:      evidence.JournalRecovered,
 		ActiveDataEpoch:       activeEpoch,
-		Maintenance:           evidence.Runtime.Maintenance,
 		PublicRequestsAllowed: publicRequestsAllowed,
 		RuntimeRevision:       gen.Revision(evidence.Runtime.Revision),
-		SafePoint:             evidence.SafePoint,
 	}, nil
 }
 

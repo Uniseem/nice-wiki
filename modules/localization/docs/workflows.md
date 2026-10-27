@@ -67,7 +67,7 @@ ApproveLanguagePlan在批准时重新读取公开树、语言配置、术语/界
 
 术语以 NFC/去首尾空白、规范源/目标BCP47及scope+documentId+sourceTerm建立唯一活动身份。软删不删除历史身份和版本；全站 glossaryGeneration 持久单调，删除最后词条后不回退为0。分页游标绑定源/目标/epoch/首屏代数，变化返回版本冲突。解析以document范围优先global、同范围冲突失败关闭、原词长者优先。任一改动与代数/outbox同事务，只令相关目标机翻manifest stale，protected/human文本保持，仅置review；不自动重译或发生费用。未登记源语言的旧manifest按目标语言保守失效。
 
-memory异步批准命令的人工授权发生在memory批准入口：命令通过memory服务断言携带持久的approvedBy/approvalRevision/proposalHash，受同站/同根/同代绑定保护。本域只接受该来源，不接受浏览器或其他服务自称批准；不依赖原用户10秒委托或要求已过期会话重新批准。术语执行仍核对本域当前代次、维护屏障、expectedGlossaryGeneration及term版本/唯一身份；代数或术语冲突持久记rejected并发布终态，成功记applied及原结果代数。proposalId终身幂等；相同ID但批准人/修订/hash/完整词条/expected代数/根/站/epoch不同均拒绝，不因七天普通回执过期而重做。批准人之后撤销会话不撤销已持久批准事实；新的未批准操作仍由即时权限阻止。
+memory异步批准命令的人工授权发生在memory批准入口：命令通过memory服务断言携带持久的approvedBy/approvalRevision/proposalHash，受同站/同根/同代绑定保护。本域只接受该来源，不接受浏览器或其他服务自称批准；不依赖原用户10秒委托或要求已过期会话重新批准。代数或术语冲突持久记rejected并发布终态，成功记applied及原结果代数。proposalId终身幂等；相同ID但批准人/修订/hash/完整词条/expected代数/根/站/epoch不同均拒绝，不因七天普通回执过期而重做。批准人之后撤销会话不撤销已持久批准事实；新的未批准操作仍由即时权限阻止。
 
 ## R1 第二组算法边界（2026-10-18）
 
@@ -97,7 +97,7 @@ ReadTranslationUnits管理分页使用平台serviceauth.SignCursor/VerifyCursor�
 
 ### 明确保存语言偏好
 
-public-site转发已核访客请求；本域核对同一伪名owner，在dataEpoch与屏障下确认所选语言已启用，并以一个事务写30天偏好和七天幂等回执。新命令可更改选择；相同命令返回原到期时刻。该链不调用模型、不根据推测信号保存偏好。SuggestLanguage的快速模型缓存分支与全局付费批准边界仍待设计收口，本轮没有以规则降级代替完整模型行为。
+public-site转发已核访客请求；新命令可更改选择；相同命令返回原到期时刻。该链不调用模型、不根据推测信号保存偏好。SuggestLanguage的快速模型缓存分支与全局付费批准边界仍待设计收口，本轮没有以规则降级代替完整模型行为。
 
 ### 人工保护的稳定节点投影
 

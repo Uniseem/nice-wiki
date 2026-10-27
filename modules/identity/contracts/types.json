@@ -56,14 +56,6 @@
       "$ref": "../../../contracts/common.schema.json#/$defs/ObjectRef",
       "description": "ObjectRef"
     },
-    "SnapshotRef": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotRef",
-      "description": "SnapshotRef"
-    },
-    "SnapshotStageResult": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotStageResult",
-      "description": "SnapshotStageResult"
-    },
     "EventEnvelope": {
       "$ref": "../../../contracts/common.schema.json#/$defs/EventEnvelope",
       "description": "EventEnvelope"
@@ -1784,60 +1776,6 @@
         "queued"
       ]
     },
-    "InvalidateRestoredSessionsInput": {
-      "type": "object",
-      "description": "恢复数据后使备份登录失效的输入",
-      "additionalProperties": false,
-      "properties": {
-        "targetDataEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "目标"
-        }
-      },
-      "required": [
-        "targetDataEpoch"
-      ]
-    },
-    "InvalidateRestoredSessionsResult": {
-      "type": "object",
-      "description": "恢复数据后使备份登录失效的结果",
-      "additionalProperties": false,
-      "properties": {
-        "invalidatedCount": {
-          "type": "integer",
-          "description": "数量",
-          "minimum": 0,
-          "maximum": 10000000
-        },
-        "newAuthEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "新auth epoch"
-        }
-      },
-      "required": [
-        "invalidatedCount",
-        "newAuthEpoch"
-      ]
-    },
-    "ReleaseBarrierInput": {
-      "type": "object",
-      "description": "释放已协调完成的屏障的输入",
-      "additionalProperties": false,
-      "properties": {
-        "barrierId": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "当前屏障"
-        },
-        "expectedEpoch": {
-          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
-          "description": "活动 epoch"
-        }
-      },
-      "required": [
-        "barrierId",
-        "expectedEpoch"
-      ]
-    },
     "setAccountStatusRequest": {
       "type": "object",
       "description": "停用/恢复/删除子账号请求体",
@@ -2139,10 +2077,6 @@
         "runtimeRevision": {
           "$ref": "../../../contracts/common.schema.json#/$defs/Revision"
         },
-        "maintenance": {
-          "type": "boolean",
-          "description": "当前全站维护，公开读写仍被门禁阻止"
-        },
         "publicRequestsAllowed": {
           "type": "boolean",
           "description": "维护时false；ready只表明本域安全可参与控制，不提前开放公开业务"
@@ -2154,21 +2088,15 @@
         "journalRecovered": {
           "type": "boolean",
           "description": "journal完整恢复"
-        },
-        "safePoint": {
-          "type": "boolean",
-          "description": "恢复/备份协调实际安全点，不能仅等任务调度暂停"
         }
       },
       "required": [
         "health",
         "activeDataEpoch",
         "runtimeRevision",
-        "maintenance",
         "publicRequestsAllowed",
         "initialized",
-        "journalRecovered",
-        "safePoint"
+        "journalRecovered"
       ],
       "description": "就绪响应不含secret、服务端点、IP或问答正文"
     },
@@ -2246,14 +2174,6 @@
       "x-internal": true,
       "x-go-type": "RestoreArchiveClient",
       "description": "data-protection受控归档读取端口，不序列化或接受路径输入"
-    },
-    "SnapshotArchiveReadInput": {
-      "$ref": "../../../contracts/common.schema.json#/$defs/SnapshotArchiveReadInput",
-      "description": "本域已完成归档精确引用"
-    },
-    "SnapshotArchiveReadResult": {
-      "x-internal": true,
-      "description": "本域只读io.ReadCloser归档流及固定tar元数据；不序列化或暴露路径"
     },
     "AuthProvider": {
       "type": "object",

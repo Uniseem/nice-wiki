@@ -19,6 +19,5 @@
 - [ ] 同幂等键同payload不产生重复副作用，不同payload返回CONFLICT。
 - [ ] CAS冲突/旧租约/旧dataEpoch不修改新状态。
 - [ ] 取消贯穿所有子调用；收费未知仍可追踪原MG invocation。
-- [ ] 非released屏障拒绝新业务写；备份恢复控制操作只接受data-protection服务身份与superadmin委托。
 - [ ] 快照暂存与丢弃可重放；暂存失败不改active目录，切换后可整体换回。
 - [ ] JSON额外字段/null、越界值、非法权限均返回公共Problem。

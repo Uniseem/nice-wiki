@@ -100,9 +100,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if view.DataEpoch != runtimeView.DataEpoch {
 			return time.Time{}, platform.NewError(platform.CodeStaleResult, false, "模型写窗口代际已变化")
 		}
-		if view.Phase != platform.PhaseRunning && view.Phase != platform.PhaseBackupBarrier && view.Phase != platform.PhaseRestoreStaging {
-			return time.Time{}, platform.NewError(platform.CodeLocked, true, "模型写窗口已关闭")
-		}
 		return time.Time{}, nil
 	}}}
 	if base := config.Dependencies["localization"]; base != "" {
@@ -244,7 +241,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	initialized := func(work context.Context) (bool, error) {
 		return ReadInitializationState(work, siteClient, validators["SiteInitializationStatusResult"])
 	}
-	application.ConfigureBusiness(handler, nil, func(context.Context) error { return store.Close() }, func(context.Context) (bool, error) { return true, nil }, initialized)
+	application.ConfigureBusiness(handler, nil, func(context.Context) error { return store.Close() }, initialized)
 	return application, nil
 }
 

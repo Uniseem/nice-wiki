@@ -610,8 +610,6 @@ export interface components {
             expiresAt: components["schemas"]["Timestamp"];
             /** @description cancelRequested 的明确真假结果，不可 null */
             cancelRequested: boolean;
-            /** @description safePointRequested 的明确真假结果，不可 null */
-            safePointRequested: boolean;
         };
         /** @description 可选心跳进度；checkpointKey按job幂等，同阶段完成数量不能倒退 */
         ProgressCheckpoint: {
@@ -846,16 +844,12 @@ export interface components {
             /** @description 未初始化null；恢复切换期间用于确认本域已换入的目标epoch */
             activeDataEpoch: string | null;
             runtimeRevision: components["schemas"]["Revision"];
-            /** @description 当前全站维护，公开读写仍被门禁阻止 */
-            maintenance: boolean;
             /** @description 维护时false；ready只表明本域安全可参与控制，不提前开放公开业务 */
             publicRequestsAllowed: boolean;
             /** @description 未初始化只能暴露已有初始化能力；AI配置缺项不改变基础能力就绪 */
             initialized: boolean;
             /** @description journal完整恢复 */
             journalRecovered: boolean;
-            /** @description 恢复/备份协调实际安全点，不能仅等任务调度暂停 */
-            safePoint: boolean;
         };
         /** @description 重放死信通知成功结果；失败不返回半成功结果 */
         ReplayDeliveryResult: {

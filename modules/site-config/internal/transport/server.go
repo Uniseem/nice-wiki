@@ -55,7 +55,7 @@ type Application struct {
 
 // NewApplication 只向统一入口提供真实已实现的handler；缺登记操作时
 // 平台工厂返回错误，不能把部分业务接线伪装成完整服务就绪。
-func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, relayRuntime siteconfig.RelayRuntime, openedEpoch platform.Identifier, startBackgroundTasks bool,
+func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors, runtimeAuthority platform.SiteConfigClient, activeStore *siteconfig.ActiveStore, relayRuntime siteconfig.RelayRuntime, openedEpoch platform.Identifier,
 	authorize func(context.Context, platform.OperationContext, string, string) error) (*Application, error) {
 	application := &Application{config: config, anchors: anchors, runtime: runtimeAuthority, active: activeStore, relay: relayRuntime, openedEpoch: openedEpoch}
 	spec, err := gen.GetSwagger()
@@ -80,9 +80,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 		return nil, err
 	}
 	application.httpServer = &http.Server{Addr: config.Listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, MaxHeaderBytes: 64 << 10}
-	if !startBackgroundTasks {
-		return application, nil
-	}
 	application.backgroundTasks = []platform.BackgroundTask{{Name: "site-config.home-reference-recovery", Run: func(ctx context.Context) error {
 		return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 1000, Runtime: runtimeAuthority.ReadRuntimeState, AdmitBatch: lifecycle.SimpleAdmission(runtimeAuthority.ReadRuntimeState, openedEpoch),
 			WriteWindow: lifecycle.SimpleWriteWindow(runtimeAuthority.ReadRuntimeState), Recover: func(work context.Context) error {
@@ -427,10 +424,8 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		Initialized:           initialized,
 		JournalRecovered:      true,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: true,
 		RuntimeRevision:       0,
-		SafePoint:             true,
 	}
 	if initialized {
 		readiness.ActiveDataEpoch = &activeEpoch

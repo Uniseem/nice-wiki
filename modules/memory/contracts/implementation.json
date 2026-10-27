@@ -4644,12 +4644,6 @@
       ]
     },
     {
-      "path": "modules/memory/internal/protection/protocol.go",
-      "kind": "handwritten",
-      "purpose": "取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": []
-    },
-    {
       "path": "modules/memory/internal/context/preflight.go",
       "kind": "handwritten",
       "purpose": "保存前完整投影注入预算所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -7830,12 +7824,6 @@
       "kind": "handwritten",
       "purpose": "业务回执、提交manifest、派生清单及助手固定输入的只追加迁移。",
       "functions": []
-    },
-    {
-      "path": "modules/memory/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/memory/web/src/index.tsx",

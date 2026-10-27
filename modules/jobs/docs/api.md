@@ -35,6 +35,6 @@
 
 普通错误使用公共Problem，含requestId/code/retryable/安全detail。事件载荷遵守events.json；public字段不包括IP、提问或secret。服务deadline默认2500ms，长流程只返回accepted引用，实际进度经jobs SSE；取消停止新副作用，已提交结果由恢复日志收敛。
 
-屏障请求持久draining并等待真实在途安全点；export要求safe；stage只写restore/<restoreId>/staged，不动active；discard只删本次恢复的暂存或旧目录；切换在进程重启时完成（ADR0003）。
+export要求safe；discard只删本次恢复的暂存或旧目录
 
 claimJob可选jobTypes真实SQL筛选且只本owner登记类型；用于分开父构建/子提取worker执行名额，禁止领取后本地丢弃。省略保留旧全owner语义。六个worker租约HTTP入口只绑定已严格校验输入，epoch来自可信op，维护期间仅原heartbeat/check/complete/fail收尾由原租约权威裁定。完整服务装配仍未齐。

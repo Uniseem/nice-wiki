@@ -31,9 +31,6 @@ func CheckWriteEpoch(ctx context.Context, op platform.OperationContext, input Ch
 	if err != nil {
 		return CheckWriteEpochResult{}, err
 	}
-	if state.Phase != gen.Running {
-		return CheckWriteEpochResult{}, platform.NewError(platform.CodeLocked, false, "运行状态处于维护阶段")
-	}
 	if input.DataEpoch == "" || input.DataEpoch != state.DataEpoch || op.DataEpoch != input.DataEpoch {
 		return CheckWriteEpochResult{}, platform.NewError(platform.CodeVersionMismatch, false, "写入dataEpoch已变化")
 	}

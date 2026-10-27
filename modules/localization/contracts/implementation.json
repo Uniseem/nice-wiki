@@ -4982,12 +4982,6 @@
       ]
     },
     {
-      "path": "modules/localization/internal/protection/protocol.go",
-      "kind": "handwritten",
-      "purpose": "取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": []
-    },
-    {
       "path": "modules/localization/internal/translation/tm.go",
       "kind": "handwritten",
       "purpose": "精确翻译记忆复用所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -12417,12 +12411,6 @@
       "kind": "handwritten",
       "purpose": "只追加语言估价计划、发布revision快照、原批准scope与逐任务持久意图",
       "functions": []
-    },
-    {
-      "path": "modules/localization/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/localization/web/src/index.tsx",

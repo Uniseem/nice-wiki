@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 105 个：手写 93、UI 1、生成 4、配置 6、迁移 1。函数 208 个：约束 33，参考 175。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 103 个：手写 91、UI 1、生成 4、配置 6、迁移 1。函数 208 个：约束 33，参考 175。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -40,7 +40,6 @@
 | `modules/knowledge/internal/runtime/gc.go` | 手写 | 回收失活索引代数所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.CollectRetiredIndexes`（参考） |
 | `modules/knowledge/internal/admin/diagnostics.go` | 手写 | 返回安全诊断所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.RedactDiagnostics` |
 | `modules/knowledge/internal/search/sections.go` | 手写 | 按引用读取证据片段所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.ReadSections`、`knowledge.ReadDocumentChunks` |
-| `modules/knowledge/internal/protection/protocol.go` | 手写 | 取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | 无 |
 | `modules/knowledge/internal/chunk/context.go` | 手写 | 发布后补检索片段上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.EnrichChunkContext`（参考）、`knowledge.ReadContextPrefixes`（参考）、`knowledge.ContextSourceKey`（参考）、`knowledge.ClaimContextIntents`（参考）、`knowledge.ApplyChunkContext`（参考）、`knowledge.ContextSemanticKey`（参考）、`knowledge.FreezeContextPlan`（参考）、`knowledge.ContextResultHash`（参考） |
 | `modules/knowledge/internal/search/inspect.go` | 手写 | 快速检索员有限核查所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.InspectEvidence` |
 | `modules/knowledge/internal/search/query-embedding.go` | 手写 | 统一生成并复用查询嵌入所属未来实现文件；Go包，禁止直接访问其他域私有存储。 | `knowledge.CreateQueryEmbedding`、`knowledge.acquireQueryFlight`（参考） |
@@ -98,7 +97,6 @@
 | `modules/knowledge/internal/source/material.go` | 手写 | 完整机器文字NFKC真实稳定边界续读，4MiB/1Mi字符BPE片段与原页路径偏移不改 | `knowledge.BuildMaterialBlocks`（参考） |
 | `modules/knowledge/migrations/009_execution_ownership.sql` | 手写 | 真实原任务拥有者/独立提取/阶段计划/最终结果与租约镜像只追加迁移 | 无 |
 | `modules/knowledge/migrations/010_model_dispatch_proof.sql` | 手写 | 原模型步骤prepared与真实外发前持久标记；旧记录默认已尝试外发保守unknown，不按空ID猜零费用 | 无 |
-| `modules/knowledge/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | 无 |
 | `modules/knowledge/internal/model/recovery.go` | 手写 | 后台原已接受ID/完整去凭据DTO只读找回、专用时点负证明，不发模型 | `knowledge.ObserveOwnerModelSteps`（参考）、`knowledge.RecordModelNonAcceptance`（参考）、`knowledge.ValidateModelNonAcceptance`（参考） |
 | `modules/knowledge/internal/model/fee-proof.go` | 手写 | 恢复原root完整真实费用终局证明，不把完整输出当结算或猜零金额 | `knowledge.RootFeesFinal`（参考）、`knowledge.OwnerFeesFinal`（参考） |
 | `modules/knowledge/migrations/011_background_model_requests.sql` | 手写 | 只背景原DTO、独立最新真实观察与专用未接受时点证明，QA正文和许可不持久 | 无 |

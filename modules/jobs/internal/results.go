@@ -125,12 +125,6 @@ func (work *leaseOperation) terminalReplay(ctx context.Context, op OperationCont
 			return false, platform.NewError(platform.CodeConflict, false, "该租约已提交不同终局结果")
 		}
 		if prior == nil {
-			if (work.runtime.Runtime.Maintenance && !work.runtime.SafePointRequested) || (work.runtime.SafePointRequested && work.runtime.BarrierDeadline.IsZero()) {
-				return false, platform.NewError(platform.CodeDependencyUnavailable, true, "维护安全点或屏障截止尚不可用")
-			}
-			if work.runtime.SafePointRequested && !work.runtime.BarrierDeadline.After(work.now) {
-				return false, platform.NewError(platform.CodeLocked, false, "屏障安全点后不写入新的操作回执")
-			}
 			if err := json.Unmarshal(outcome, result); err != nil {
 				return false, platform.NewError(platform.CodeIntegrityError, false, "任务终局回执损坏")
 			}

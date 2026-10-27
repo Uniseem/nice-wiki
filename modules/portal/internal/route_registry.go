@@ -442,38 +442,6 @@ type ProxyRequestResult struct {
 	Owner     string
 	Operation string
 }
-type ReadRuntimeStateInput struct{}
-type ReadRuntimeStateResult struct {
-	DataEpoch   platform.Identifier
-	Maintenance bool
-	Revision    platform.Revision
-}
-type CheckEntranceGateInput struct {
-	Route           ResolvedRoute
-	RuntimeRevision platform.Revision
-}
-type CheckEntranceGateResult struct {
-	Allowed           bool
-	RetryAfterSeconds int
-}
-type BarrierRequest struct {
-	BarrierID   Identifier
-	Deadline    Timestamp
-	Mode        string
-	OperationID Identifier
-}
-type BarrierStatus struct {
-	BarrierID         Identifier
-	DataEpoch         Identifier
-	Owner             string
-	RevisionWatermark Revision
-	State             string
-}
-type ReleaseBarrierInput struct {
-	BarrierID     Identifier
-	ExpectedEpoch Identifier
-}
-type ReleaseBarrierResult struct{ Status BarrierStatus }
 type SiteFeatureFlags struct {
 	QAEnabled            bool
 	LocalizationEnabled  bool
@@ -528,7 +496,6 @@ type ProxyRuntime struct {
 	Writer            http.ResponseWriter
 	Runtime           RuntimeReader
 	Identity          IdentityVerifier
-	Gate              *Gate
 	ConfiguredOrigins []string
 	TrustedProxyCIDRs []string
 	// Countries 是可选的离线 IP 国家库；只给语言建议请求注入国家代码。

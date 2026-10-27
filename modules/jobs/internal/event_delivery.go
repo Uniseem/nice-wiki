@@ -146,9 +146,6 @@ func RequeueExpiredDeliveries(ctx context.Context, op OperationContext, in Reque
 		return RequeueExpiredDeliveriesResult{}, err
 	}
 	defer work.close()
-	if work.runtime.Runtime.Maintenance || work.runtime.SafePointRequested {
-		return RequeueExpiredDeliveriesResult{}, nil
-	}
 	rows, err := work.tx.QueryContext(ctx, `SELECT d.delivery_id,d.attempt,d.revision,d.lease_expires_at FROM deliveries d JOIN events e ON e.event_id=d.event_id
 		WHERE e.data_epoch=? AND d.state='delivering' AND (d.lease_expires_at IS NULL OR julianday(d.lease_expires_at)<=julianday(?))
 		ORDER BY julianday(d.lease_expires_at),e.event_seq,d.consumer_id LIMIT ?`, in.DataEpoch, work.now.Format(time.RFC3339Nano), in.Limit)

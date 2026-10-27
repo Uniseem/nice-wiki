@@ -47,7 +47,6 @@ type Application struct {
 	workerCancel       context.CancelFunc
 	background         []platform.BackgroundTask
 	closeResources     func(context.Context) error
-	safePoint          func(context.Context) (bool, error)
 	readInitialization func(context.Context) (bool, error)
 }
 
@@ -165,12 +164,8 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if activeEpoch == "" {
 		activeEpoch = view.DataEpoch
 	}
-	if app.safePoint == nil || app.readInitialization == nil {
-		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, false, "实际控制安全点未装配")
-	}
-	safePoint, err := app.safePoint(ctx)
-	if err != nil {
-		return gen.ServiceReadiness{}, err
+	if app.readInitialization == nil {
+		return gen.ServiceReadiness{}, platform.NewError(platform.CodeDependencyUnavailable, false, "初始化状态读取未装配")
 	}
 	initialized, err := app.readInitialization(ctx)
 	if err != nil {
@@ -184,11 +179,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		ActiveDataEpoch:       stringPointer(activeEpoch),
 		RuntimeRevision:       gen.Revision(view.Revision),
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning && app.state.Load() == stateReady,
+		PublicRequestsAllowed: true && app.state.Load() == stateReady,
 		Initialized:           initialized,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             safePoint,
 	}, nil
 }
 
@@ -229,12 +222,11 @@ func writeProblem(w http.ResponseWriter, err error) {
 }
 
 // ConfigureBusiness仅由完整本域启动装配调用，不持有或复制通用任务实现。
-func (a *Application) ConfigureBusiness(handler http.Handler, tasks []platform.BackgroundTask, closeResources func(context.Context) error, safePoint func(context.Context) (bool, error), readInitialization func(context.Context) (bool, error)) {
+func (a *Application) ConfigureBusiness(handler http.Handler, tasks []platform.BackgroundTask, closeResources func(context.Context) error, readInitialization func(context.Context) (bool, error)) {
 	mux := a.httpServer.Handler.(*http.ServeMux)
 	mux.Handle("/", handler)
 	a.background = append([]platform.BackgroundTask{}, tasks...)
 	a.closeResources = closeResources
-	a.safePoint = safePoint
 	a.readInitialization = readInitialization
 }
 func (a *Application) BackgroundTasks() []platform.BackgroundTask {

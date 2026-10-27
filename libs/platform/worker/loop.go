@@ -23,7 +23,7 @@ const (
 	maxConcurrencyCap = 8
 	heartbeatEvery    = 10 * time.Second
 	idlePause         = 2 * time.Second
-	maintenancePause  = 2 * time.Second
+	runtimePause      = 2 * time.Second
 )
 
 // RunWorkerLoop 是任务领取循环的通用实现：
@@ -96,15 +96,15 @@ func (l *workerLoop) run(ctx context.Context, index int) {
 			return
 		}
 		view, ok := readRuntime(ctx, l.config.Runtime)
-		if !ok || view.Maintenance || view.DataEpoch == "" {
-			if !sleep(ctx, maintenancePause) {
+		if !ok || view.DataEpoch == "" {
+			if !sleep(ctx, runtimePause) {
 				return
 			}
 			continue
 		}
 		scope, releaseScope, scopeErr := l.config.AdmitBusiness(ctx)
 		if scopeErr != nil {
-			if !sleep(ctx, maintenancePause) {
+			if !sleep(ctx, runtimePause) {
 				return
 			}
 			continue
@@ -350,10 +350,6 @@ func renewExecutionLease(ctx context.Context, lease *executionLease, verify bool
 		}
 		lease.cancel(errJobCancelled)
 		return platform.NewError(platform.CodeCancelled, false, "任务已请求取消")
-	}
-	if info.SafePointRequested {
-		lease.cancel(errLeaseLost)
-		return platform.NewError(platform.CodeLocked, false, "任务已请求维护安全点")
 	}
 	expires, err := platform.ParseTimestamp(info.ExpiresAt)
 	lease.mu.Lock()

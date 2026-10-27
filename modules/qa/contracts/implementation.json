@@ -6382,12 +6382,6 @@
       ]
     },
     {
-      "path": "modules/qa/internal/protection/protocol.go",
-      "kind": "handwritten",
-      "purpose": "取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": []
-    },
-    {
       "path": "modules/qa/internal/context/page.go",
       "kind": "handwritten",
       "purpose": "验证当前页面上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -8776,12 +8770,6 @@
           "contract": "binding"
         }
       ]
-    },
-    {
-      "path": "modules/qa/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/qa/web/src/index.tsx",

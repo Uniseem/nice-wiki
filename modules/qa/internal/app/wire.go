@@ -70,16 +70,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		Runtime: func(work context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(work, runtimeAuthority)
 		},
-		WriteWindow: func(work context.Context) (time.Time, error) {
-			current, readErr := lifecycle.ReadRuntime(work, runtimeAuthority)
-			if readErr != nil {
-				return time.Time{}, readErr
-			}
-			if current.Maintenance {
-				return time.Time{}, platform.NewError(platform.CodeLocked, false, "本域维护写窗口关闭")
-			}
-			return time.Time{}, nil
-		},
+		WriteWindow: lifecycle.SimpleWriteWindow(func(work context.Context) (platform.RuntimeView, error) {
+			return lifecycle.ReadRuntime(work, runtimeAuthority)
+		}),
 	}
 	dep := func(name string) string { return config.Dependencies[name] }
 	runtime, err := qaruntime.NewRuntime(qaruntime.Runtime{
@@ -137,7 +130,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 		ServiceActorCallers: map[string][]string{
 			"readPublicCapability": {"portal", "public-site", "site-config"}, "readCacheTranslationSource": {"localization"},
 		},
-		MaintenanceOperations: map[string]bool{"getConversation": true, "readPublicCapability": true},
 	}, transport.NewOperationHandlers(func(c context.Context) context.Context {
 		// 本域私有存储的站点身份取自该站点第一个带真实站点的请求，之后不再变化。
 		op, ok := platform.OperationContextFrom(c)

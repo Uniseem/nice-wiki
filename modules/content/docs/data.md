@@ -21,12 +21,6 @@
 | PublicationValidation | PublicationValidation |
 | AssetRef | AssetRef |
 | ObjectRef | ObjectRef |
-| BarrierRequest | BarrierRequest |
-| BarrierStatus | BarrierStatus |
-| SnapshotRef | SnapshotRef |
-| SnapshotExportRequest | SnapshotExportRequest |
-| SnapshotExportResult | SnapshotExportResult |
-| SnapshotStageResult | SnapshotStageResult |
 | EventEnvelope | EventEnvelope |
 | HealthStatus | HealthStatus |
 | LinkTarget | 站内链接按当前语言和树路径渲染，移动/改名不失效 |
@@ -156,8 +150,6 @@
 | ReadContentObjectResult | 经对象API读取私有文件而不共享目录的结果 |
 | PublishContentEventInput | 与发布/撤回提交原子登记最小事件的输入 |
 | PublishContentEventResult | 与发布/撤回提交原子登记最小事件的结果 |
-| ReleaseBarrierInput | 释放已协调完成的屏障的输入 |
-| ReleaseBarrierResult | 释放已协调完成的屏障的结果 |
 | PublicTreeNode | 仅已发布公共导航节点，无drafthead |
 | ReadPublicTreeInput | 公开导航读取已发布文档树的输入 |
 | ReadPublicTreeResult | 公开导航读取已发布文档树的结果 |
@@ -191,7 +183,6 @@
 | prepareVideoBlockResult | 统一上传/平台视频插入的结果 |
 | resizeColumnsInput | 调整2–4栏宽比例的输入 |
 | resizeColumnsResult | 调整2–4栏宽比例的结果 |
-| releaseBarrierRequest | 释放屏障请求体 |
 | updateDocumentMetadataRequest | 修改标题/路径/SEO描述/分享图请求体 |
 | acquireEditLockRequest | 打开文档自动获得内存编辑锁请求体 |
 | renewEditLockRequest | 心跳维持锁并处理长时间无输入请求体 |

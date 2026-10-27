@@ -393,9 +393,6 @@ func admitAggregateScheduling(ctx context.Context, rt *Runtime) error {
 	if view.DataEpoch != rt.Epoch {
 		return platform.NewError(platform.CodeVersionMismatch, false, "任务计划所属代次已改变")
 	}
-	if view.Maintenance || view.Phase != platform.PhaseRunning {
-		return platform.NewError(platform.CodeLocked, true, "维护屏障停止新统计任务")
-	}
 	return nil
 }
 

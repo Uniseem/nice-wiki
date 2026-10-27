@@ -6453,12 +6453,6 @@
       ]
     },
     {
-      "path": "modules/knowledge/internal/protection/protocol.go",
-      "kind": "handwritten",
-      "purpose": "取得本地维护屏障所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
-      "functions": []
-    },
-    {
       "path": "modules/knowledge/internal/chunk/context.go",
       "kind": "handwritten",
       "purpose": "发布后补检索片段上下文所属未来实现文件；Go包，禁止直接访问其他域私有存储。",
@@ -11563,12 +11557,6 @@
       "kind": "handwritten",
       "purpose": "原模型步骤prepared与真实外发前持久标记；旧记录默认已尝试外发保守unknown，不按空ID猜零费用",
       "functions": []
-    },
-    {
-      "path": "modules/knowledge/internal/snapshot_archive.go",
-      "purpose": "受控读取已完成域快照归档流",
-      "functions": [],
-      "kind": "handwritten"
     },
     {
       "path": "modules/knowledge/internal/model/recovery.go",

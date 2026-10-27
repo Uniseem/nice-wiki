@@ -30,24 +30,6 @@ import (
 
 const runtimeDatabaseName = "control.db"
 
-// requiredRuntimeModules 是需要登记恢复切换/换回回执的有状态域。
-// portal 是无状态入口，不在 ActivationReceipt.module 枚举中。
-var requiredRuntimeModules = []string{
-	"identity",
-	"site-config",
-	"content",
-	"media",
-	"public-site",
-	"model-gateway",
-	"knowledge",
-	"qa",
-	"localization",
-	"memory",
-	"traffic-guard",
-	"jobs",
-	"analytics",
-}
-
 // RuntimeStore 是本域控制库句柄；同一进程仅允许一个活动实例。
 type RuntimeStore struct {
 	db        *sql.DB
@@ -594,13 +576,8 @@ func (s *RuntimeStore) ReadRuntimeView(ctx context.Context) (platform.RuntimeVie
 		return platform.RuntimeView{}, err
 	}
 	return platform.RuntimeView{
-		Revision:        platform.Revision(state.Revision),
-		BarrierID:       runtimeIdentifier(state.BarrierId),
-		DataEpoch:       platform.Identifier(state.DataEpoch),
-		Phase:           string(state.Phase),
-		RestoreID:       runtimeIdentifier(state.RestoreId),
-		TargetDataEpoch: runtimeIdentifier(state.TargetDataEpoch),
-		Maintenance:     state.Maintenance,
+		Revision:  platform.Revision(state.Revision),
+		DataEpoch: platform.Identifier(state.DataEpoch),
 	}, nil
 }
 
@@ -674,10 +651,6 @@ func (s *RuntimeStore) runMigrations(ctx context.Context) error {
 }
 
 func (s *RuntimeStore) ensureInitialState(ctx context.Context) error {
-	modules, err := json.Marshal(requiredRuntimeModules)
-	if err != nil {
-		return platform.NewError(platform.CodeInternal, false, "编码运行域集合失败")
-	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return platform.NewError(platform.CodeInternal, false, "打开运行状态事务失败")
@@ -688,12 +661,13 @@ func (s *RuntimeStore) ensureInitialState(ctx context.Context) error {
 		return platform.NewError(platform.CodeIntegrityError, false, "读取运行状态单例失败")
 	}
 	if count == 0 {
+		// 表里保留着旧版的阶段、屏障等列（迁移只追加），这里只写固定的初值。
 		if _, err := tx.ExecContext(ctx, `
             INSERT INTO runtime_state
                 (singleton, data_epoch, target_data_epoch, phase, maintenance,
                  restore_id, barrier_id, revision, required_modules, updated_at)
-            VALUES (1, ?, NULL, 'running', 0, NULL, NULL, 1, ?, ?)`,
-			string(platform.NewIdentifier()), string(modules), string(platform.Now())); err != nil {
+            VALUES (1, ?, NULL, 'running', 0, NULL, NULL, 1, '[]', ?)`,
+			string(platform.NewIdentifier()), string(platform.Now())); err != nil {
 			return platform.NewError(platform.CodeInternal, false, "初始化运行状态失败")
 		}
 	} else if count != 1 {
@@ -720,223 +694,24 @@ type queryer interface {
 
 func (s *RuntimeStore) readStateFrom(ctx context.Context, q queryer) (gen.RuntimeState, error) {
 	var (
-		dataEpoch, phase, requiredJSON, updatedAt string
-		targetEpoch, restoreID, barrierID         sql.NullString
-		maintenance, revision                     int64
+		dataEpoch, updatedAt string
+		revision             int64
 	)
-	err := q.QueryRowContext(ctx, `
-        SELECT data_epoch, target_data_epoch, phase, maintenance, restore_id,
-               barrier_id, revision, required_modules, updated_at
-          FROM runtime_state WHERE singleton = 1`).Scan(
-		&dataEpoch, &targetEpoch, &phase, &maintenance, &restoreID,
-		&barrierID, &revision, &requiredJSON, &updatedAt)
+	err := q.QueryRowContext(ctx, `SELECT data_epoch, revision, updated_at FROM runtime_state WHERE singleton = 1`).Scan(&dataEpoch, &revision, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return gen.RuntimeState{}, platform.NewError(platform.CodeIntegrityError, false, "运行状态缺失")
 	}
 	if err != nil {
 		return gen.RuntimeState{}, platform.NewError(platform.CodeDependencyUnavailable, true, "读取运行状态失败")
 	}
-	modules := []string{}
-	if err := json.Unmarshal([]byte(requiredJSON), &modules); err != nil {
-		return gen.RuntimeState{}, platform.NewError(platform.CodeIntegrityError, false, "运行域集合损坏")
-	}
-	if err := validateRequiredModules(modules); err != nil {
-		return gen.RuntimeState{}, err
-	}
 	if !platform.ValidIdentifier(platform.Identifier(dataEpoch)) || revision < 1 {
 		return gen.RuntimeState{}, platform.NewError(platform.CodeIntegrityError, false, "运行状态基础字段不合法")
-	}
-	if maintenance != 0 && maintenance != 1 {
-		return gen.RuntimeState{}, platform.NewError(platform.CodeIntegrityError, false, "运行维护标志不合法")
 	}
 	parsedAt, err := time.Parse(time.RFC3339Nano, updatedAt)
 	if err != nil {
 		return gen.RuntimeState{}, platform.NewError(platform.CodeIntegrityError, false, "运行状态时间不合法")
 	}
-	state := gen.RuntimeState{
-		DataEpoch:       gen.Identifier(dataEpoch),
-		TargetDataEpoch: nullableIdentifier(targetEpoch),
-		Phase:           gen.RuntimePhase(phase),
-		Maintenance:     maintenance == 1,
-		RestoreId:       nullableIdentifier(restoreID),
-		BarrierId:       nullableIdentifier(barrierID),
-		Revision:        gen.Revision(revision),
-		RequiredModules: append([]string(nil), modules...),
-		UpdatedAt:       parsedAt.UTC(),
-	}
-	if err := validateRuntimeStateShape(state); err != nil {
-		return gen.RuntimeState{}, err
-	}
-	receipts, err := s.readReceipts(ctx, q, state.RestoreId)
-	if err != nil {
-		return gen.RuntimeState{}, err
-	}
-	state.ActivationReceipts = receipts
-	return state, nil
-}
-
-func (s *RuntimeStore) readReceipts(ctx context.Context, q queryer, restoreID *gen.Identifier) ([]gen.ActivationReceipt, error) {
-	if restoreID == nil {
-		return []gen.ActivationReceipt{}, nil
-	}
-	rows, err := q.QueryContext(ctx, `
-        SELECT module, stage_id, target_data_epoch, state, manifest_hash,
-               recorded_at, signature
-          FROM activation_receipts WHERE restore_id = ? ORDER BY module`, *restoreID)
-	if err != nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "读取激活回执失败")
-	}
-	defer rows.Close()
-	receipts := make([]gen.ActivationReceipt, 0)
-	for rows.Next() {
-		var module, stageID, targetEpoch, state, manifestHash, recordedAt, signature string
-		if err := rows.Scan(&module, &stageID, &targetEpoch, &state, &manifestHash, &recordedAt, &signature); err != nil {
-			return nil, platform.NewError(platform.CodeIntegrityError, false, "激活回执损坏")
-		}
-		parsedAt, err := time.Parse(time.RFC3339Nano, recordedAt)
-		if err != nil || !platform.ValidIdentifier(platform.Identifier(stageID)) || !platform.ValidIdentifier(platform.Identifier(targetEpoch)) || !platform.ValidHash(platform.Hash(manifestHash)) || signature == "" {
-			return nil, platform.NewError(platform.CodeIntegrityError, false, "激活回执字段不合法")
-		}
-		if !isRequiredModule(module) || (state != string(gen.Switched) && state != string(gen.RolledBack)) {
-			return nil, platform.NewError(platform.CodeIntegrityError, false, "激活回执枚举不合法")
-		}
-		receipts = append(receipts, gen.ActivationReceipt{
-			Module:          gen.ActivationReceiptModule(module),
-			StageId:         gen.Identifier(stageID),
-			TargetDataEpoch: gen.Identifier(targetEpoch),
-			State:           gen.ActivationReceiptState(state),
-			ManifestHash:    gen.Hash(manifestHash),
-			RecordedAt:      parsedAt.UTC(),
-			Signature:       signature,
-		})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "读取激活回执失败")
-	}
-	if len(receipts) > 30 {
-		return nil, platform.NewError(platform.CodeIntegrityError, false, "激活回执数量超限")
-	}
-	return receipts, nil
-}
-
-func (s *RuntimeStore) readOperation(ctx context.Context, q queryer, operationID, kind, inputHash string) (gen.RuntimeState, bool, error) {
-	if operationID == "" {
-		return gen.RuntimeState{}, false, nil
-	}
-	var storedKind, storedHash, resultJSON string
-	err := q.QueryRowContext(ctx, `
-        SELECT kind, input_hash, result_json
-          FROM runtime_operation_receipts WHERE operation_id = ?`, string(operationID)).Scan(
-		&storedKind, &storedHash, &resultJSON)
-	if errors.Is(err, sql.ErrNoRows) {
-		return gen.RuntimeState{}, false, nil
-	}
-	if err != nil {
-		return gen.RuntimeState{}, false, platform.NewError(platform.CodeDependencyUnavailable, true, "读取运行操作回执失败")
-	}
-	if storedKind != kind || storedHash != inputHash {
-		return gen.RuntimeState{}, false, platform.NewError(platform.CodeConflict, false, "相同operationId对应不同请求")
-	}
-	var state gen.RuntimeState
-	if err := json.Unmarshal([]byte(resultJSON), &state); err != nil {
-		return gen.RuntimeState{}, false, platform.NewError(platform.CodeIntegrityError, false, "运行操作回执损坏")
-	}
-	if err := validateRuntimeStateShape(state); err != nil {
-		return gen.RuntimeState{}, false, err
-	}
-	return state, true, nil
-}
-
-func (s *RuntimeStore) writeOperation(ctx context.Context, tx *sql.Tx, operationID, kind, inputHash string, state gen.RuntimeState) error {
-	if operationID == "" {
-		return nil
-	}
-	resultJSON, err := json.Marshal(state)
-	if err != nil {
-		return platform.NewError(platform.CodeInternal, false, "编码运行操作回执失败")
-	}
-	_, err = tx.ExecContext(ctx, `
-        INSERT INTO runtime_operation_receipts
-            (operation_id, kind, input_hash, result_json, created_at)
-		VALUES (?, ?, ?, ?, ?)`, string(operationID), kind, inputHash, string(resultJSON), string(platform.Now()))
-	if err != nil {
-		return platform.NewError(platform.CodeConflict, false, "保存运行操作回执失败")
-	}
-	return nil
-}
-
-func validateRequiredModules(modules []string) error {
-	if len(modules) != len(requiredRuntimeModules) {
-		return platform.NewError(platform.CodeIntegrityError, false, "requiredModules数量不符合13个有状态域")
-	}
-	for i, module := range modules {
-		if module != requiredRuntimeModules[i] {
-			return platform.NewError(platform.CodeIntegrityError, false, "requiredModules顺序或成员不合法")
-		}
-	}
-	return nil
-}
-
-func isRequiredModule(module string) bool {
-	for _, required := range requiredRuntimeModules {
-		if required == module {
-			return true
-		}
-	}
-	return false
-}
-
-func validateRuntimeStateShape(state gen.RuntimeState) error {
-	if !platform.ValidIdentifier(platform.Identifier(state.DataEpoch)) || state.Revision < 1 || len(state.RequiredModules) != len(requiredRuntimeModules) {
-		return platform.NewError(platform.CodeIntegrityError, false, "运行状态不完整")
-	}
-	if err := validateRequiredModules(state.RequiredModules); err != nil {
-		return err
-	}
-	switch state.Phase {
-	case gen.Running, gen.BackupBarrier, gen.RestoreStaging, gen.RestoreSwitching, gen.RestoreRollingBack, gen.RestoreBlocked:
-	default:
-		return platform.NewError(platform.CodeIntegrityError, false, "运行phase不合法")
-	}
-	if state.Maintenance != (state.Phase != gen.Running) {
-		return platform.NewError(platform.CodeIntegrityError, false, "运行phase与maintenance不一致")
-	}
-	if state.Phase == gen.Running {
-		if state.TargetDataEpoch != nil || state.RestoreId != nil || state.BarrierId != nil {
-			return platform.NewError(platform.CodeIntegrityError, false, "running状态包含恢复字段")
-		}
-		return nil
-	}
-	if state.BarrierId == nil || !platform.ValidIdentifier(*state.BarrierId) {
-		return platform.NewError(platform.CodeIntegrityError, false, "维护状态缺少barrierId")
-	}
-	if state.Phase != gen.BackupBarrier {
-		if state.RestoreId == nil || state.TargetDataEpoch == nil || !platform.ValidIdentifier(*state.RestoreId) || !platform.ValidIdentifier(*state.TargetDataEpoch) {
-			return platform.NewError(platform.CodeIntegrityError, false, "恢复状态缺少restoreId或targetDataEpoch")
-		}
-	}
-	for _, receipt := range state.ActivationReceipts {
-		if state.TargetDataEpoch == nil || receipt.TargetDataEpoch != *state.TargetDataEpoch {
-			return platform.NewError(platform.CodeIntegrityError, false, "激活回执代次与运行状态不一致")
-		}
-	}
-	return nil
-}
-
-func nullableIdentifier(value sql.NullString) *gen.Identifier {
-	if !value.Valid {
-		return nil
-	}
-	id := gen.Identifier(value.String)
-	return &id
-}
-
-// runtimeIdentifier 仅适配platform内部RuntimeView的可选字符串；HTTP DTO保留null。
-func runtimeIdentifier(value *gen.Identifier) platform.Identifier {
-	if value == nil {
-		return ""
-	}
-	return *value
+	return gen.RuntimeState{DataEpoch: gen.Identifier(dataEpoch), Revision: gen.Revision(revision), UpdatedAt: parsedAt.UTC()}, nil
 }
 
 func isMissingTable(err error) bool {

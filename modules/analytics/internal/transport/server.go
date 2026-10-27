@@ -64,7 +64,6 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	handlers := map[string]http.Handler{}
 	callers := map[string][]string{}
 	services := map[string][]string{}
-	maintenance := map[string]bool{}
 	for _, path := range spec.Paths.Map() {
 		for _, operation := range path.Operations() {
 			// 内嵌规格的 operationId 是大写开头；先归一成小写开头，否则平台归一键时会和下面单独放开的条目
@@ -80,15 +79,11 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	services["ingestTrustedBeacon"] = callers["ingestTrustedBeacon"]
 	callers["readJobRecovery"] = []string{"jobs"}
 	services["readJobRecovery"] = callers["readJobRecovery"]
-	maintenance["readJobRecovery"] = true
 	callers["recordCrawlerAccess"] = []string{"public-site"}
 	services["recordCrawlerAccess"] = callers["recordCrawlerAccess"]
 	callers["appendAudit"] = []string{"identity", "site-config", "jobs", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "analytics", "portal"}
 	services["appendAudit"] = callers["appendAudit"]
-	for _, id := range []string{"queryPageStatistics", "queryUsageStatistics", "queryAudits", "readAudit", "queryContentGaps", "downloadStatisticsExport", "downloadAuditExport"} {
-		maintenance[id] = true
-	}
-	protected, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, runtime) }, OpenedDataEpoch: storage.Epoch, AllowedCallers: callers, ServiceActorCallers: services, MaintenanceOperations: maintenance, OperationBodyLimits: map[string]int64{"ingestBeacon": 2048, "ingestTrustedBeacon": 4096}, Authorize: apivalidate.NewIdentityAuthorizer(identity)}, handlers)
+	protected, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{Self: moduleName, Anchors: anchors, Runtime: func(ctx context.Context) (platform.RuntimeView, error) { return lifecycle.ReadRuntime(ctx, runtime) }, OpenedDataEpoch: storage.Epoch, AllowedCallers: callers, ServiceActorCallers: services, OperationBodyLimits: map[string]int64{"ingestBeacon": 2048, "ingestTrustedBeacon": 4096}, Authorize: apivalidate.NewIdentityAuthorizer(identity)}, handlers)
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +192,7 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 	if err != nil {
 		return gen.ServiceReadiness{}, err
 	}
-	view, err := lifecycle.ReadRuntime(ctx, app.runtime)
-	if err != nil {
+	if _, err := lifecycle.ReadRuntime(ctx, app.runtime); err != nil {
 		return gen.ServiceReadiness{}, err
 	}
 	if !app.journalRecovered {
@@ -208,11 +202,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		ActiveDataEpoch:       nil,
 		RuntimeRevision:       0,
-		Maintenance:           view.Maintenance,
 		PublicRequestsAllowed: false,
 		Initialized:           false,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             true,
 	}, nil
 }
 

@@ -307,7 +307,7 @@ func syncAccountIndex(ctx context.Context, op OperationContext, store *Store) er
 	if err != nil {
 		return err
 	}
-	indexCtx := WithServerAccountIndexContext(ctx, store.dataRoot, op.DataEpoch, platform.PhaseRunning, false)
+	indexCtx := WithServerAccountIndexContext(ctx, store.dataRoot, op.DataEpoch)
 	result, err := WriteAccountIndex(indexCtx, op, WriteAccountIndexInput{Accounts: authority.accounts, Revision: authority.revision})
 	if err != nil {
 		return err

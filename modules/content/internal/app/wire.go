@@ -79,16 +79,9 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	}
 	window := platform.WriteWindowConfig{Runtime: func(work context.Context) (platform.RuntimeView, error) {
 		return lifecycle.ReadRuntime(work, runtimeClient)
-	}, WriteWindow: func(work context.Context) (time.Time, error) {
-		current, err := lifecycle.ReadRuntime(work, runtimeClient)
-		if err != nil {
-			return time.Time{}, err
-		}
-		if current.Maintenance {
-			return time.Time{}, platform.NewError(platform.CodeLocked, false, "本域维护写窗口关闭")
-		}
-		return time.Time{}, nil
-	}}
+	}, WriteWindow: lifecycle.SimpleWriteWindow(func(work context.Context) (platform.RuntimeView, error) {
+		return lifecycle.ReadRuntime(work, runtimeClient)
+	})}
 	application := transport.NewApplication(config, runtimeClient, runtimeView.DataEpoch, true, true, true)
 	if err = transport.RegisterReferenceRoutes(application, referenceRuntime, anchors); err != nil {
 		return nil, err

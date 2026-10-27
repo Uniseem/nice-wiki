@@ -212,11 +212,9 @@ func Ready(ctx context.Context, app *Application) (gen.ServiceReadiness, error) 
 		Health:                health,
 		ActiveDataEpoch:       &activeEpoch,
 		RuntimeRevision:       0,
-		Maintenance:           view.Maintenance,
-		PublicRequestsAllowed: !view.Maintenance && view.Phase == platform.PhaseRunning,
+		PublicRequestsAllowed: true,
 		Initialized:           false,
 		JournalRecovered:      app.journalRecovered,
-		SafePoint:             true,
 	}, nil
 }
 

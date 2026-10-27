@@ -85,9 +85,6 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		if current.DataEpoch != view.DataEpoch {
 			return time.Time{}, platform.NewError(platform.CodeVersionMismatch, false, "记忆写窗口代次已变化")
 		}
-		if current.Maintenance || current.Phase != platform.PhaseRunning {
-			return time.Time{}, platform.NewError(platform.CodeLocked, true, "维护期间记忆写窗口关闭")
-		}
 		return time.Time{}, nil
 	}})
 	if err != nil {
