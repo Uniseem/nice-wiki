@@ -2,6 +2,7 @@
 
 - 日期：2026-10-14。
 - 状态：已确认（2026-10-14 用户授权由 Claude 代为确认）；第三方代码借用与新依赖仍按 AGENTS 在实施时逐项核对许可后写入 THIRD_PARTY_NOTICES.md。
+- 后续（2026-10-27）：部署已按新架构设计改为 account、content、ai、ops 四个宿主进程加 portal、knowledge、edge、search（见 `deploy/` 与 `scripts/gen_deploy.py`），下面的 15 服务端口表、data-protection 和“恢复切换依赖退出码 75”已作废；选型和平台公共库的决定仍有效。
 - 来源：old D2、D5、D18、D23、D51 的已确认选型；本轮接线后 15 个服务共有的基础设施。
 
 ## 选择
