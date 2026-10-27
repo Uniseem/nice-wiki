@@ -23,4 +23,4 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 备份
 
-`deploy/backup.sh` 在线导出数据库并打包文件卷与密钥；`deploy/restore.sh` 恢复。用户各自站点的内容备份在后台“数据与同步”里配置。
+`deploy/backup.sh` 在线导出数据库、增量复制正文与媒体、打包其余文件卷与密钥，可选用口令加密（`BACKUP_PASSPHRASE_FILE`）并用 rclone 同步到异地（`BACKUP_REMOTE`，支持 S3、WebDAV、各家网盘）；`deploy/restore.sh` 恢复（先停机）。用户各自站点的内容备份在后台“数据与同步”里配置。

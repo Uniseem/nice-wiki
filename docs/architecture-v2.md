@@ -301,7 +301,7 @@
 - **导入**（content）：支持 Markdown 目录、GitBook 仓库（SUMMARY.md、.gitbook.yaml 及其特有块语法）、Notion 导出包。导入内容统一转成现有块格式，并清洗 HTML。
 - **Git 同步**（content）：发布时推送到用户仓库；需要时在后台手动从仓库拉取，生成草稿再发布。自动双向同步以后再做。
 - **站点导出**：格式为 Markdown + 块 JSON + 媒体 + 站点设置。它同时是用户备份格式和导入格式。
-- **全平台备份**（ops，站主）：先导出 PG，再增量复制正文修订与媒体文件，写到备份目标，可选加密。恢复时停机，导入数据库和文件后再启动。
+- **全平台备份**（站主，在服务器上运行 `deploy/backup.sh`）：先 `pg_dump` 导出 PG，再增量复制正文修订与媒体文件（只增不改，第二次起只复制新增的），其余小卷与密钥打包；可选用口令加密数据库导出和密钥包，可选用 rclone 同步到备份目标（S3、WebDAV、各家网盘）。恢复时停机，`deploy/restore.sh` 导入数据库和文件后再启动。没有放进网页，免得备份依赖被备份的服务本身。
 - **用户站点备份**（ops）：用户在自己的后台配置目标（S3、WebDAV、海外网盘），按计划导出名下站点；恢复就是导入。
 - **备份目标的授权**：网盘的 OAuth 授权流程在后台完成。
 
@@ -351,7 +351,7 @@
 |---|---|---|
 | S3、WebDAV | rclone（MIT，Go，数十种后端）、Apache OpenDAL（Apache-2.0，Rust）、minio-go（Apache-2.0）、gowebdav（BSD-3）、emersion/go-webdav（MIT） | **自己实现**：备份只要写入、列出、删除三个操作，S3 用 AWS Signature V4（约 100 行，已用 aws-sdk-go-v2 的官方签名器在临时测试里逐字核对，不引入该依赖），WebDAV 用 PUT/MKCOL/PROPFIND/DELETE。出站地址过 libs/platform/netguard（防 SSRF，拨号前再查一次实际 IP）。库的体积与传递依赖不划算 |
 | 海外网盘 | rclone 的 Google Drive、OneDrive、Dropbox 后端（MIT）；各家官方 OAuth API | **自己实现官方 REST 接口**，不引入 rclone：Google Drive 用 `drive.file` 范围与可续传上传，OneDrive 用 Graph 应用文件夹与分片上传会话，Dropbox 用应用文件夹与上传会话（超过单次上限自动分片）。站主在平台设置里为三家各填一套 OAuth 应用；授权时身份域换出长期授权，经服务间调用交给内容域加密存进备份目标（身份域不留存），备份前内容域再向身份域换短期令牌（应用密钥只在身份域）。只用假服务验证过，未用真实账号联调 |
-| 备份格式与增量 | Kopia（Apache-2.0）、restic（BSD-2）、rustic（Apache-2.0/MIT） | **只参考**。当前每次备份是完整的站点导出包（清单、块 JSON、Markdown、媒体，zip），站点一般不大；数据量上去后再换增量去重（可接 restic 兼容仓库）。平台级备份用 `deploy/backup.sh`（pg_dump 在线导出 + 文件卷打包） |
+| 备份格式与增量 | Kopia（Apache-2.0）、restic（BSD-2）、rustic（Apache-2.0/MIT） | **只参考**。当前每次备份是完整的站点导出包（清单、块 JSON、Markdown、媒体，zip），站点一般不大；数据量上去后再换增量去重（可接 restic 兼容仓库）。平台级备份用 `deploy/backup.sh`（pg_dump 在线导出，正文与媒体增量复制，其余卷打包，可选加密与 rclone 同步） |
 | 国内网盘（后续） | OpenList / AList（AGPL-3.0）、aliyunpan（Apache-2.0）、BaiduPCS-Go（Apache-2.0）、115driver（MIT） | **后续版本**。OpenList 只参考驱动实现不复制；优先对接各家官方开放平台 |
 | 第三方登录 | golang.org/x/oauth2（BSD-3）、coreos/go-oidc（Apache-2.0）、goth（MIT） | **自己实现**：GitHub、Google、Linux DO 三家都是标准授权码流程，只需要换令牌与读用户信息；用 netguard 客户端出站，state 与回跳由 identity 签名。三家的端点以官方文档为准。库的抽象反而多出配置项，暂不引入 |
 | 自定义域名证书 | Caddy 按需证书（Apache-2.0）、certmagic（Apache-2.0） | **采用 Caddy 的 `on_demand_tls`**：`ask` 指向 portal 的 `/_tls/allow`，只给平台域名、部署时配置的域名、已验证的自定义域名和平台子域名签证书。用户子域名多了以后，Let's Encrypt 对同一注册域名每周 50 张新证书的限额会成为瓶颈，届时改用带 DNS 模块的 Caddy 签泛域名证书 |
@@ -386,7 +386,7 @@
 - **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全（会话变量 `nw.site`）；事件仍是 outbox → jobs → inbox，按站点分发，没有换成 PG 队列。旧的跨域屏障、封口、快照协议代码还在但不再参与运行，没有删除。
 - **用户与站点**：注册（邀请码，不验证邮箱）、第三方登录（只写代码，没有联调）、站点上限与存储上限、成员角色、平台子域名与自定义域名（DNS 验证）、私有站点（一次性码换站点专用短期凭据）、举报与下架都已实现并在 NL 测试实例上验证。邮件相关（验证、通知）没有做。
 - **AI**：自带渠道优先、平台兜底、AI 邀请码额度、访客问答每日上限、按用户记账都已实现并用假供应方与 OpenRouter 免费模型验证。
-- **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点（旧账本观察管线在 PostgreSQL 上还有类型兼容问题，没修完），站点主人的 AI 用量走 identity 的 `readAiUsage`。
+- **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点（旧账本观察管线已在 PostgreSQL 上跑通），站点主人的 AI 用量走 identity 的 `readAiUsage`。
 - **edge**：已实现页面缓存（默认 10 秒 TTL，上游说 no-cache 也按短缓存处理）、单飞、令牌桶限流、流式透传、按域名清缓存接口；发布、站点设置与域名变化后 portal 会通知 edge 按站点或域名清缓存；人机验证、访问记录攒批、媒体磁盘缓存还留在 portal。
-- **导入、导出、备份、Git**：Markdown、GitBook、Notion、本站导出包导入（导入的都是草稿）；整站导出；S3、WebDAV 与海外网盘（Google Drive、OneDrive、Dropbox）备份目标（手动、每天、每周、保留份数）；Git 推送（只含已发布内容，发布后自动推送）与拉取。网盘只用假的网盘服务验证过授权、令牌换发和上传流程，没有拿真实账号与真实接口联调（平台设置里要先填各家的 OAuth 应用）；增量备份、站点级一键恢复（恢复就是导入导出包）之外的在线全平台恢复没有做；全平台备份用 `deploy/backup.sh` 与 `deploy/restore.sh`。
+- **导入、导出、备份、Git**：Markdown、GitBook、Notion、本站导出包导入（导入的都是草稿）；整站导出；S3、WebDAV 与海外网盘（Google Drive、OneDrive、Dropbox）备份目标（手动、每天、每周、保留份数）；Git 推送（只含已发布内容，发布后自动推送）与拉取。网盘只用假的网盘服务验证过授权、令牌换发和上传流程，没有拿真实账号与真实接口联调（平台设置里要先填各家的 OAuth 应用）；用户站点的备份每次是完整导出包，不做增量去重，恢复就是导入导出包；全平台备份用 `deploy/backup.sh`（正文与媒体增量复制、可选加密、可经 rclone 同步到异地）与 `deploy/restore.sh`（停机恢复）。
 - **部署**：`scripts/gen_deploy.py` 生成每个进程的 Dockerfile、编排、Caddyfile（按需证书）、密钥初始化与备份恢复脚本；已在 NL 上用 `docker compose` 实际构建全部镜像并起了一套（不含 Caddy，经 edge 访问），跑通首次初始化、发布、公开页、多用户建站和按需证书询问。发布流程（`scripts/release.sh` 与 GitHub Actions）已改成按进程出镜像、Rust 在原生 amd64 与 arm64 机器上编 musl 静态程序，但还没真正发过版。

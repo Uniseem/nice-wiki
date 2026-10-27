@@ -8,7 +8,7 @@
 - `postgres/init/`：首次启动数据库时建非超级用户的应用角色（行级安全对它生效）并装 pgvector。
 - `config/*.json`：各组件的运行配置；`config/trust-anchors.json` 由 `nw-keys` 生成，只含公钥。
 - `init-secrets.sh`：首次部署生成各组件的签名密钥、主密钥、数据库与检索口令（写入 `deploy/secrets`，已被 git 忽略）。
-- `backup.sh` / `restore.sh`：整站备份与恢复。`backup.sh` 在线 `pg_dump` 导出数据库，再打包文件卷和密钥；恢复要同一套密钥，会覆盖当前数据。用户各自站点的内容备份在后台“数据与同步”里配置，不在这里。
+- `backup.sh` / `restore.sh`：整站备份与恢复。`backup.sh` 在线 `pg_dump` 导出数据库，增量复制正文与媒体（第二次起只复制新增的），再打包其余文件卷和密钥；`BACKUP_PASSPHRASE_FILE` 给出口令文件就加密数据库导出和密钥包，`BACKUP_REMOTE` 给出 rclone 目标（S3、WebDAV、各家网盘都行）就在备份后同步到异地。`restore.sh <备份目录> <时间戳>` 先停机，恢复要同一套密钥，会覆盖当前数据。用户各自站点的内容备份在后台“数据与同步”里配置，不在这里。
 
 ## 进程与端口（容器内部）
 

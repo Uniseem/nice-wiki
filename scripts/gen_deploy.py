@@ -296,30 +296,65 @@ echo "密钥已生成（务必另行备份 deploy/secrets，丢了无法恢复�
 """
 
 BACKUP_SH = """#!/bin/sh
-# 整站备份：数据库用 pg_dump 在线导出（一致快照），再打包文件卷和密钥。文件只增不改，数据库先导出，
-# 之后打包的文件一定包含数据库里引用的全部文件。
-# 用法：deploy/backup.sh [输出目录，默认 ./backups]；密钥含主密钥，压缩包请放在受控的存储里。
+# 整站备份：数据库用 pg_dump 在线导出（一致快照）；正文修订与媒体文件只增不改，增量复制到输出目录里的
+# content-data/（第二次起只复制新增的）；其余小卷整卷打包；再打包密钥。数据库先导出、文件后复制，
+# 所以文件一定包含数据库里引用的全部文件。
+# 用法：deploy/backup.sh [输出目录，默认 ./backups]
+# 可选环境变量：
+#   BACKUP_PASSPHRASE_FILE  口令文件。设置后数据库导出和密钥包用它加密（openssl aes-256-cbc + pbkdf2，文件名多 .enc）；
+#                           恢复时要给同一个口令文件。口令丢了备份就解不开，请和密钥分开保管。
+#   BACKUP_REMOTE           rclone 目标（如 s3:桶/nicewiki、dav:nicewiki、gdrive:nicewiki，需先 rclone config）。
+#                           设置后备份完成会把输出目录同步过去（rclone copy，已有的文件不重传）；要加密正文和媒体，
+#                           把它配成 rclone 的 crypt 远端。
+# 密钥含主密钥：没有加密时，备份目录请放在受控的存储里。
 set -eu
 cd "$(dirname "$0")"
+project="${COMPOSE_PROJECT_NAME:-nice-wiki}"
 out="${1:-./backups}"
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
+seal() {
+	[ -n "${BACKUP_PASSPHRASE_FILE:-}" ] || return 0
+	openssl enc -aes-256-cbc -pbkdf2 -salt -pass "file:$BACKUP_PASSPHRASE_FILE" -in "$1" -out "$1.enc"
+	rm "$1"
+}
 docker compose exec -T postgres pg_dump -U postgres -Fc nicewiki > "$out/db-$stamp.dump"
+seal "$out/db-$stamp.dump"
+mkdir -p "$out/content-data"
+docker run --rm -v "${project}_content-data":/data:ro -v "$out/content-data":/out alpine sh -c "cp -au /data/. /out/ && chown -R $(id -u):$(id -g) /out"
 for volume in @VOLUMES@; do
-	docker run --rm -v "nice-wiki_$volume":/data:ro -v "$out":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
+	docker run --rm -v "${project}_$volume":/data:ro -v "$out":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
 done
 tar czf "$out/secrets-$stamp.tar.gz" -C . secrets
-echo "备份已写入 $out（时间戳 $stamp）。可以用 rclone 同步到异地存储：rclone copy $out remote:nicewiki"
+seal "$out/secrets-$stamp.tar.gz"
+if [ -n "${BACKUP_REMOTE:-}" ]; then
+	rclone copy "$out" "$BACKUP_REMOTE"
+fi
+echo "备份已写入 $out（时间戳 $stamp）"
 """
 
 RESTORE_SH = """#!/bin/sh
 # 从 backup.sh 的备份恢复：停应用，恢复数据库与文件卷，再启动。会覆盖当前数据，请先确认。
-# 用法：deploy/restore.sh <备份目录> <时间戳>；密钥要用同一套（secrets-<时间戳>.tar.gz 里有，解到 deploy/secrets）。
+# 用法：deploy/restore.sh <备份目录> <时间戳>
+# 备份加密过时，用环境变量 BACKUP_PASSPHRASE_FILE 给出同一个口令文件。
+# 密钥要用同一套：secrets-<时间戳>.tar.gz（加密的是 .enc）解到 deploy/secrets，本脚本不动密钥。
 set -eu
 cd "$(dirname "$0")"
+project="${COMPOSE_PROJECT_NAME:-nice-wiki}"
 dir="$(cd "$1" && pwd)"; stamp="$2"
-[ -f "$dir/db-$stamp.dump" ] || { echo "缺少 db-$stamp.dump，未做任何改动"; exit 1; }
+# 输出备份文件的内容：有加密版就解密，没有就原样输出。
+unseal() {
+	if [ -f "$1.enc" ]; then
+		[ -n "${BACKUP_PASSPHRASE_FILE:-}" ] || { echo "备份是加密的，请设置 BACKUP_PASSPHRASE_FILE" >&2; exit 1; }
+		openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$BACKUP_PASSPHRASE_FILE" -in "$1.enc"
+	else
+		cat "$1"
+	fi
+}
+[ -f "$dir/db-$stamp.dump" ] || [ -f "$dir/db-$stamp.dump.enc" ] || { echo "缺少 db-$stamp.dump，未做任何改动"; exit 1; }
+[ -d "$dir/content-data" ] || { echo "缺少 content-data 目录，未做任何改动"; exit 1; }
+unseal "$dir/db-$stamp.dump" | head -c 5 | grep -q PGDMP || { echo "数据库导出读不出来（口令不对或文件损坏），未做任何改动"; exit 1; }
 for volume in @VOLUMES@; do
 	[ -f "$dir/$volume-$stamp.tar.gz" ] || { echo "缺少 $volume-$stamp.tar.gz，未做任何改动"; exit 1; }
 done
@@ -330,9 +365,10 @@ docker compose stop caddy edge portal account content ai ops knowledge search
 docker compose up -d postgres
 docker compose exec -T postgres sh -c 'until pg_isready -U postgres -d nicewiki; do sleep 1; done'
 docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \\$\\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \\$\\$;"
-docker compose exec -T postgres pg_restore -U postgres -d nicewiki --no-owner --role=nw_app < "$dir/db-$stamp.dump"
+unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki --no-owner --role=nw_app
+docker run --rm -v "${project}_content-data":/data -v "$dir/content-data":/in:ro alpine sh -c "find /data -mindepth 1 -delete && cp -a /in/. /data/"
 for volume in @VOLUMES@; do
-	docker run --rm -v "nice-wiki_$volume":/data -v "$dir":/in:ro alpine sh -c "find /data -mindepth 1 -delete && tar xzf /in/$volume-$stamp.tar.gz -C /data"
+	docker run --rm -v "${project}_$volume":/data -v "$dir":/in:ro alpine sh -c "find /data -mindepth 1 -delete && tar xzf /in/$volume-$stamp.tar.gz -C /data"
 done
 docker compose up -d
 echo "恢复完成"
@@ -373,7 +409,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 备份
 
-`deploy/backup.sh` 在线导出数据库并打包文件卷与密钥；`deploy/restore.sh` 恢复。用户各自站点的内容备份在后台“数据与同步”里配置。
+`deploy/backup.sh` 在线导出数据库、增量复制正文与媒体、打包其余文件卷与密钥，可选用口令加密（`BACKUP_PASSPHRASE_FILE`）并用 rclone 同步到异地（`BACKUP_REMOTE`，支持 S3、WebDAV、各家网盘）；`deploy/restore.sh` 恢复（先停机）。用户各自站点的内容备份在后台“数据与同步”里配置。
 """
 
 
@@ -397,7 +433,7 @@ def main():
     write("deploy/postgres/init/01-app-role.sh", POSTGRES_INIT, 0o755)
     write("deploy/.env.example", ENV_EXAMPLE)
     write("deploy/init-secrets.sh", INIT_SECRETS, 0o755)
-    volumes = " ".join(["account-data", "content-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data"])
+    volumes = " ".join(["account-data", "ai-data", "ops-data", "knowledge-data", "portal-data", "search-data"])  # content-data 单独增量复制
     write("deploy/backup.sh", BACKUP_SH.replace("@VOLUMES@", volumes), 0o755)
     write("deploy/restore.sh", RESTORE_SH.replace("@VOLUMES@", volumes), 0o755)
     write(".dockerignore", """# 构建上下文是仓库根：不带上本机的依赖目录、构建产物、开发数据和密钥。
