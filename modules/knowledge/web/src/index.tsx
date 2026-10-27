@@ -1,6 +1,6 @@
 import { Database } from '@gravity-ui/icons';
 import { Button, Chip, Form, ProgressBar, Table } from '@heroui/react';
-import { api, codeMeaning, confirmAction, EmptyBlock, ErrorBlock, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, useAction, useLoad, t } from '@ui';
+import { api, codeMeaning, confirmAction, EmptyBlock, ErrorBlock, fmtRelative, FormGrid, LoadingBlock, newKey, Notice, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, useAction, useHasGrant, useLoad, t } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 
 type ProfileOption = { profileId: string; label: string; tier: string; usable: boolean; space?: unknown };
@@ -99,14 +99,15 @@ export default function KnowledgePage() {
   // 任务里的文档可能已撤回或删除，不在已发布列表里。
   const titleOf = (id: string) => o?.documents.find((doc) => doc.documentId === id)?.title ?? t('已撤回或删除的文档');
   const enabled = !!config.data?.enabled;
+  const operator = useHasGrant('model.manage');
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('知识索引')} description={t('把已发布的文档切块并生成向量，供 AI 问答检索。建立索引会调用嵌入模型。')} />
       {!o ? <LoadingBlock lines={5} /> : (
         <>
-          {o.modelsState !== 'ready' && <Notice status="warning" title={t('模型目录暂不可用')}>{t('无法配置索引（{0}）。请先检查“模型接入”。', o.modelErrorCode ?? o.modelsState)}</Notice>}
-          {o.modelsState === 'ready' && !embeddingProfiles.length && <Notice status="warning" title={t('还没有向量档位')}>{t('先在“模型接入”里添加带“向量”能力的模型，并生成档位。')}</Notice>}
+          {o.modelsState !== 'ready' && <Notice status="warning" title={t('模型目录暂不可用')}>{operator ? t('无法配置索引（{0}）。请先检查“模型接入”。', o.modelErrorCode ?? o.modelsState) : t('无法配置索引（{0}）。请稍后重试，或联系站主。', o.modelErrorCode ?? o.modelsState)}</Notice>}
+          {o.modelsState === 'ready' && !embeddingProfiles.length && <Notice status="warning" title={t('还没有向量档位')}>{operator ? t('先在“模型接入”里添加带“向量”能力的模型，并生成档位。') : t('平台还没有配置向量档位，请联系站主。')}</Notice>}
           <div className="grid gap-6 xl:grid-cols-5">
             <Panel className="xl:col-span-2" title={t('入库配置')} description={t('切块越小检索越精细，但块数更多、调用次数更多。')}>
               <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void saveConfig(); }}>

@@ -19,6 +19,8 @@ const requiredEnglish = (language: Language) => !language.isDefault && /^en(-|$)
 export default function LanguagesPage() {
   const canLanguages = useHasGrant('localization.languages');
   const canTranslate = useHasGrant('localization.manage');
+  // 平台模型由站主在“模型接入”里配；站点所有者用“AI 与额度”里的自带渠道或邀请码额度。
+  const operator = useHasGrant('model.manage');
   const languages = useLoad((signal) => api<{ languages: Language[] }>('/v1/languages?includeDisabled=true', { signal }).then((result) => result.languages), []);
   const [adding, setAdding] = useState(false);
   const { busy, run } = useAction();
@@ -36,7 +38,7 @@ export default function LanguagesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t('多语言')}
-        description={t('基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型，需要先在“模型接入”里配好模型。')}
+        description={operator ? t('基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型，需要先在“模型接入”里配好模型。') : t('基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型：在“AI 与额度”里添加自带渠道或兑换 AI 邀请码即可。')}
         actions={canLanguages ? <Button onPress={() => setAdding(true)}><Plus />{t('添加语言')}</Button> : undefined}
       />
       {!languages.data ? <LoadingBlock lines={4} /> : (
@@ -109,6 +111,7 @@ function Translations({ base, languages }: { base: string; languages: Language[]
     return response.ok ? (await response.json()) as NavNode[] : [];
   }, [base]);
   const progress = useLoad((signal) => api<Progress>('/v1/translations/progress', { signal }), []);
+  const operator = useHasGrant('model.manage');
   const titles = useMemo(() => new Map((nodes.data ?? []).map((node) => [node.documentId, node.title ?? node.documentId])), [nodes.data]);
   const rows = (progress.data?.documents ?? []).filter((item) => item.language === target);
   const pending = rows.filter((item) => item.state !== 'translated').length;
@@ -134,7 +137,7 @@ function Translations({ base, languages }: { base: string; languages: Language[]
     >
       {progress.error ? <ErrorBlock error={progress.error} onRetry={progress.reload} /> : !progress.data ? <LoadingBlock lines={3} /> : (
         <>
-          {!progress.data.modelReady && <Notice status="warning" title={t('还没有可用的翻译模型')}>{t('到“模型接入”填入 OpenRouter 密钥一键配置后，会自动开始翻译。')}</Notice>}
+          {!progress.data.modelReady && <Notice status="warning" title={t('还没有可用的翻译模型')}>{operator ? t('到“模型接入”填入 OpenRouter 密钥一键配置后，会自动开始翻译。') : t('到“AI 与额度”添加自带渠道或兑换 AI 邀请码后，会自动开始翻译。')}</Notice>}
           <div className="grid gap-3 sm:grid-cols-3">
             <MiniStat label={t('已翻译')} value={count('translated')} tone="success" />
             <MiniStat label={t('翻译中')} value={count('translating')} tone="accent" />

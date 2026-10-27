@@ -718,5 +718,37 @@
   "th": "ยังไม่มีโมเดลแปลที่ใช้ได้",
   "id": "Belum ada model terjemahan",
   "ar": "لا يتوفر نموذج ترجمة بعد"
+ },
+ "到“AI 与额度”添加自带渠道或兑换 AI 邀请码后，会自动开始翻译。": {
+  "zh-Hant": "到「AI 與額度」添加自備渠道或兌換 AI 邀請碼後，會自動開始翻譯。",
+  "en": "Translation will start automatically after adding your own channel or redeeming an AI invitation code in \"AI & Quota\".",
+  "ja": "「AIとクォータ」で独自のチャネルを追加するか、AI招待コードを交換すると、自動的に翻訳が開始されます。",
+  "ko": "「AI 및 할당량」에서 자체 채널을 추가하거나 AI 초대 코드를 등록하면 자동으로 번역이 시작됩니다.",
+  "fr": "La traduction commencera automatiquement après avoir ajouté votre propre canal ou utilisé un code d'invitation AI dans « AI & Quota ».",
+  "de": "Die Übersetzung beginnt automatisch, nachdem Sie in „AI & Quota“ einen eigenen Kanal hinzugefügt oder einen AI-Einladungscode eingelöst haben.",
+  "es": "La traducción comenzará automáticamente después de añadir su propio canal o canjear un código de invitación de AI en \"AI & Quota\".",
+  "pt": "A tradução começará automaticamente após adicionar seu próprio canal ou resgatar um código de convite de AI em \"AI & Quota\".",
+  "ru": "Перевод начнется автоматически после добавления собственного канала или активации пригласительного кода AI в разделе «AI и квоты».",
+  "it": "La traduzione inizierà automaticamente dopo aver aggiunto il proprio canale o riscattato un codice invito AI in \"AI & Quota\".",
+  "vi": "Bản dịch sẽ tự động bắt đầu sau khi bạn thêm kênh riêng hoặc đổi mã mời AI trong mục \"AI & Hạn mức\".",
+  "th": "การแปลจะเริ่มขึ้นโดยอัตโนมัติหลังจากเพิ่มช่องทางของคุณเองหรือแลกโค้ดคำเชิญ AI ใน \"AI & Quota\"",
+  "id": "Terjemahan akan dimulai otomatis setelah menambahkan saluran sendiri atau menukarkan kode undangan AI di \"AI & Quota\".",
+  "ar": "سيبدأ الترجمة تلقائيًا بعد إضافة قناتك الخاصة أو استرداد رمز دعوة AI في \"AI & Quota\"."
+ },
+ "基准语言的页面直接来自文档正文；其他语言通过翻译生成。翻译会调用模型：在“AI 与额度”里添加自带渠道或兑换 AI 邀请码即可。": {
+  "zh-Hant": "基准語言的頁面直接來自文檔正文；其他語言通過翻譯生成。翻譯會調用模型：在「AI 與額度」裡添加自備渠道或兌換 AI 邀請碼即可。",
+  "en": "Pages in the base language come directly from the documentation; other languages are generated via translation. Translation requires a model: simply add your own channel or redeem an AI invitation code in \"AI & Quota\".",
+  "ja": "基準言語のページはドキュメント本文から直接取得され、その他の言語は翻訳によって生成されます。翻訳にはモデルが必要です。「AIとクォータ」で独自のチャネルを追加するか、AI招待コードを交換してください。",
+  "ko": "기준 언어 페이지는 문서 본문에서 직접 가져오며, 다른 언어는 번역을 통해 생성됩니다. 번역에는 모델이 필요합니다. 「AI 및 할당량」에서 자체 채널을 추가하거나 AI 초대 코드를 등록하세요.",
+  "fr": "Les pages dans la langue de base proviennent directement de la documentation ; les autres langues sont générées par traduction. La traduction utilise un modèle : ajoutez simplement votre propre canal ou utilisez un code d'invitation AI dans « AI & Quota ».",
+  "de": "Seiten in der Basissprache stammen direkt aus der Dokumentation; andere Sprachen werden durch Übersetzung generiert. Die Übersetzung nutzt ein Modell: Fügen Sie einfach in „AI & Quota“ einen eigenen Kanal hinzu oder lösen Sie einen AI-Einladungscode ein.",
+  "es": "Las páginas en el idioma base provienen directamente de la documentación; los demás idiomas se generan mediante traducción. La traducción requiere un modelo: simplemente añada su propio canal o canjee un código de invitación de AI en \"AI & Quota\".",
+  "pt": "As páginas no idioma base vêm diretamente da documentação; outros idiomas são gerados via tradução. A tradução requer um modelo: basta adicionar seu próprio canal ou resgatar um código de convite de AI em \"AI & Quota\".",
+  "ru": "Страницы на базовом языке берутся напрямую из документации; остальные языки создаются путем перевода. Для перевода требуется модель: просто добавьте собственный канал или активируйте пригласительный код AI в разделе «AI и квоты».",
+  "it": "Le pagine nella lingua di base provengono direttamente dalla documentazione; le altre lingue sono generate tramite traduzione. La traduzione richiede un modello: basta aggiungere il proprio canale o riscattare un codice invito AI in \"AI & Quota\".",
+  "vi": "Các trang ngôn ngữ cơ sở được lấy trực tiếp từ nội dung tài liệu; các ngôn ngữ khác được tạo thông qua dịch thuật. Việc dịch thuật sẽ gọi mô hình: chỉ cần thêm kênh riêng hoặc đổi mã mời AI trong mục \"AI & Hạn mức\".",
+  "th": "หน้าในภาษาหลักมาจากเนื้อหาเอกสารโดยตรง ส่วนภาษาอื่นจะถูกสร้างขึ้นผ่านการแปล การแปลจะเรียกใช้โมเดล: เพียงเพิ่มช่องทางของคุณเองหรือแลกโค้ดคำเชิญ AI ใน \"AI & Quota\"",
+  "id": "Halaman dalam bahasa dasar berasal langsung dari dokumentasi; bahasa lain dihasilkan melalui terjemahan. Terjemahan memerlukan model: cukup tambahkan saluran sendiri atau tukarkan kode undangan AI di \"AI & Quota\".",
+  "ar": "الصفحات باللغة الأساسية تأتي مباشرة من نص التوثيق؛ أما اللغات الأخرى فيتم إنشاؤها عبر الترجمة. تتطلب الترجمة نموذجًا: ما عليك سوى إضافة قناتك الخاصة أو استرداد رمز دعوة AI في \"AI & Quota\"."
  }
 }
