@@ -214,6 +214,11 @@ func (a *Application) SetTLSAllow(allow func(context.Context, string) (bool, err
 			http.Error(w, "bad domain", http.StatusBadRequest)
 			return
 		}
+		// 部署时配置的公开域名（SITE_DOMAIN）一定放行：站主还没在后台填平台域名时，靠它拿到第一张证书。
+		if bootstrap, err := url.Parse(a.config.PublicBaseURL); err == nil && bootstrap.Hostname() != "" && strings.EqualFold(bootstrap.Hostname(), domain) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
 		ok, err := a.tlsAllow(ctx, domain)

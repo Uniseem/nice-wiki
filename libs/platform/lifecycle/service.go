@@ -77,7 +77,7 @@ func RunServices(args []string, specs []platform.ServiceSpec) int {
 			fmt.Fprint(os.Stderr, "装配回调缺失\n")
 			return ExitFailure
 		}
-		config, err := LoadServiceConfig([]string{"--config", filepath.Join(dir, spec.Module+".json")}, nil)
+		config, err := LoadServiceConfig([]string{"--config", filepath.Join(dir, spec.Module+".json")}, sharedEnv(os.Environ()))
 		if err != nil || config.Module != spec.Module {
 			fmt.Fprintf(os.Stderr, "组件配置错误：%s\n", spec.Module)
 			return ExitBadConfig
@@ -103,6 +103,20 @@ func RunServices(args []string, specs []platform.ServiceSpec) int {
 		}
 	}
 	return worst
+}
+
+// sharedEnv 是进程里所有组件共用的环境变量：只放公开地址、本地 HTTP 开关、可信代理和依赖地址；
+// 模块名、监听、数据目录、密钥引用这类每个组件各不相同的项只能写在各自的配置文件里。
+func sharedEnv(env []string) []string {
+	var out []string
+	for _, entry := range env {
+		name, _, _ := strings.Cut(entry, "=")
+		switch {
+		case name == "NW_PUBLIC_BASE_URL", name == "NW_ALLOW_LOCAL_HTTP", name == "NW_TRUSTED_PROXY_CIDRS", strings.HasPrefix(name, "NW_DEP_"):
+			out = append(out, entry)
+		}
+	}
+	return out
 }
 
 // runComponent 运行一个已加载配置的组件直到退出；stopSignals 在需要整体停止时调用。

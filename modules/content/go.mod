@@ -1,11 +1,11 @@
 module nice-wiki/modules/content
 
-go 1.26.0
+go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.133.0
-	github.com/go-git/go-billy/v5 v5.9.2
-	github.com/go-git/go-git/v5 v5.19.3
+	github.com/go-git/go-billy/v5 v5.6.2
+	github.com/go-git/go-git/v5 v5.16.3
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/yuin/goldmark v1.8.6
 	nice-wiki/libs/platform v0.0.0
@@ -42,7 +42,7 @@ require (
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.56.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

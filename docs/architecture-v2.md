@@ -345,22 +345,23 @@
   - 定下用法：作为依赖、复制代码（标注出处），还是只参考。
   - GPL 系项目只参考，不复制（Docmost 社区版编辑器扩展这一例外除外）。
   - 采用前读原始 LICENSE，并登记 THIRD_PARTY_NOTICES.md。
-- **领域与初步线索**：以下许可证只是从 GitHub、crates.io 元数据初筛，尚未正式调研。
+- **调研结论与用法**（许可证以各项目原始 LICENSE 为准；采用的依赖已登记 THIRD_PARTY_NOTICES.md）：
 
-| 领域 | 初步线索 |
-|---|---|
-| S3、WebDAV、海外网盘 | rclone（MIT，Go，支持 S3、WebDAV、Google Drive、OneDrive、Dropbox、pCloud 等数十种后端，可作库使用）、Apache OpenDAL（Apache-2.0，Rust）、gowebdav（BSD-3）、emersion/go-webdav（MIT）、minio-go（Apache-2.0） |
-| 备份格式与增量 | Kopia（Apache-2.0，Go）、restic（BSD-2）、rustic（Apache-2.0/MIT，Rust，兼容 restic 格式） |
-| 国内网盘（后续版本） | OpenList / AList（AGPL-3.0，只参考其驱动实现）、tickstep/aliyunpan（Apache-2.0）、BaiduPCS-Go（Apache-2.0）、115driver（MIT）；优先对接各家官方开放平台 |
-| 第三方登录 | golang.org/x/oauth2（BSD-3）、coreos/go-oidc（Apache-2.0）、goth（MIT）；Linux DO Connect 端点以官方文档为准 |
-| 自定义域名证书 | Caddy 按需证书与管理接口、certmagic（Apache-2.0） |
-| AI 额度与兑换码 | one-api（MIT）的兑换码、分组与额度模型；new-api（AGPL-3.0）只参考；SSRF 防护参考 doyensec/safeurl（Apache-2.0） |
-| edge | pingora（Apache-2.0）、axum / hyper（MIT）、governor（MIT）、moka（Apache-2.0）、maxminddb（ISC） |
-| 检索 | tantivy（MIT）、jieba-rs（MIT）、tantivy-jieba（MIT）、pgvector（PostgreSQL License）；Meilisearch 作为对照方案 |
-| PG 队列 | pgmq（PostgreSQL License，可纯 SQL 安装，Go 与 Rust 都能用）；River（MPL-2.0，仅 Go）和 apalis（MIT，仅 Rust）作对照 |
-| 导入 | goldmark（MIT）、comrak（BSD-2）；GitBook 仓库格式；Notion 导出格式与 jomei/notionapi（BSD-2）；BookStack（MIT）、Docmost（AGPL-3.0，只参考）的导入实现 |
-| Git 同步 | go-git（Apache-2.0，已在用）、gitoxide（Apache-2.0/MIT） |
-| Rust 的 OpenAPI 代码生成 | 待调研 |
+| 领域 | 项目与许可证 | 结论与用法 |
+|---|---|---|
+| S3、WebDAV | rclone（MIT，Go，数十种后端）、Apache OpenDAL（Apache-2.0，Rust）、minio-go（Apache-2.0）、gowebdav（BSD-3）、emersion/go-webdav（MIT） | **自己实现**：备份只要写入、列出、删除三个操作，S3 用 AWS Signature V4（约 100 行，已用 aws-sdk-go-v2 的官方签名器在临时测试里逐字核对，不引入该依赖），WebDAV 用 PUT/MKCOL/PROPFIND/DELETE。出站地址过 libs/platform/netguard（防 SSRF，拨号前再查一次实际 IP）。库的体积与传递依赖不划算 |
+| 海外网盘 | rclone 的 Google Drive、OneDrive、Dropbox 后端（MIT）；各家官方 OAuth API | **本期未做**。方案：备份目标接口已按 kind 扩展，网盘走 OAuth 授权后用 rclone 作库（MIT）或官方 API 写入；凭据同样加密存 PG |
+| 备份格式与增量 | Kopia（Apache-2.0）、restic（BSD-2）、rustic（Apache-2.0/MIT） | **只参考**。当前每次备份是完整的站点导出包（清单、块 JSON、Markdown、媒体，zip），站点一般不大；数据量上去后再换增量去重（可接 restic 兼容仓库）。平台级备份用 `deploy/backup.sh`（pg_dump 在线导出 + 文件卷打包） |
+| 国内网盘（后续） | OpenList / AList（AGPL-3.0）、aliyunpan（Apache-2.0）、BaiduPCS-Go（Apache-2.0）、115driver（MIT） | **后续版本**。OpenList 只参考驱动实现不复制；优先对接各家官方开放平台 |
+| 第三方登录 | golang.org/x/oauth2（BSD-3）、coreos/go-oidc（Apache-2.0）、goth（MIT） | **自己实现**：GitHub、Google、Linux DO 三家都是标准授权码流程，只需要换令牌与读用户信息；用 netguard 客户端出站，state 与回跳由 identity 签名。三家的端点以官方文档为准。库的抽象反而多出配置项，暂不引入 |
+| 自定义域名证书 | Caddy 按需证书（Apache-2.0）、certmagic（Apache-2.0） | **采用 Caddy 的 `on_demand_tls`**：`ask` 指向 portal 的 `/_tls/allow`，只给平台域名、部署时配置的域名、已验证的自定义域名和平台子域名签证书。用户子域名多了以后，Let's Encrypt 对同一注册域名每周 50 张新证书的限额会成为瓶颈，届时改用带 DNS 模块的 Caddy 签泛域名证书 |
+| AI 额度与兑换码 | one-api（MIT）、new-api（AGPL-3.0）、doyensec/safeurl（Apache-2.0） | **只参考**模型与做法：邀请码额度、按用户记账、自带渠道优先；SSRF 防护按 safeurl 的思路自己写成 netguard（保存前解析检查 + 拨号时按实际 IP 再查）。new-api 只参考，不复制 |
+| edge | pingora（Apache-2.0）、axum / hyper（MIT）、governor（MIT）、moka（MIT/Apache-2.0）、maxminddb（ISC） | **采用 hyper 1 + tokio**（MIT）自己写：缓存、单飞、令牌桶、流式透传都很小；pingora 过重。国家库仍由 Go 侧 portal 用 maxminddb-golang 查 |
+| 检索 | tantivy（MIT）、jieba-rs（MIT）、tantivy-jieba（MIT）、pgvector（PostgreSQL License）、Meilisearch（MIT，对照） | **采用 tantivy + pgvector**。分词由 Go 侧（沿用现有切词）完成，search 只收词，避免在 Rust 里重复一套词典；向量索引按维度建 HNSW。Meilisearch 作对照，未采用（单独的数据副本、多租户隔离更难） |
+| PG 队列 | pgmq（PostgreSQL License）、River（MPL-2.0）、apalis（MIT） | **暂不换**。现有 outbox → jobs → inbox 已按站点分发且稳定，换队列收益小；保留，后续如要合并服务再评估 pgmq |
+| 导入 | goldmark（MIT）、comrak（BSD-2）、jomei/notionapi（BSD-2）、BookStack（MIT）、Docmost（AGPL-3.0） | **采用 goldmark**（GFM 表格、删除线、任务列表）；GitBook 的 `{% %}` 标签先改写成标准 Markdown，Notion 导出按“页面名 + 32 位 ID”的目录约定重建层级。Notion 官方 API 不用（导出包就是 Markdown）。BookStack 与 Docmost 只参考导入行为，不复制 |
+| Git 同步 | go-git（Apache-2.0）、gitoxide（Apache-2.0/MIT） | **采用 go-git**（内存克隆、提交、推送，不落盘、不依赖 git 命令）；出站 HTTP 走防 SSRF 的客户端 |
+| Rust 的 OpenAPI 代码生成 | — | **不生成**：两个 Rust 服务的接口很少（search 三个、edge 一个清缓存接口），手写请求体并在入口校验；服务间认证用共享密钥 HMAC |
 
 ## 17 对现有规则的修改
 
@@ -376,3 +377,16 @@
 - **总则**：开工前加读本文；ADR 和合同里的技术设计与本文冲突时，以本文为准。
 
 尚未执行：requirements.md、architecture.md、protocols.md 等描述 16 服务的文档，在阶段 2 完成后标注为旧架构，或移入归档目录。
+
+## 18 实现状态与偏差（2026-10-27）
+
+与上文设计相比，当前代码的实际状态如下；没写的部分按设计实现。
+
+- **服务划分**：portal 与 knowledge 仍是独立进程（edge 放在 portal 前面，没有取代它；search 是 knowledge 的 Rust 检索后端）；account、content、ai、ops 四个宿主进程各跑一组组件。Rust 服务与 Go 之间用共享密钥 HMAC 认证，没有用服务断言（密钥在部署的私有卷里）。
+- **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全（会话变量 `nw.site`）；事件仍是 outbox → jobs → inbox，按站点分发，没有换成 PG 队列。旧的跨域屏障、封口、快照协议代码还在但不再参与运行，没有删除。
+- **用户与站点**：注册（邀请码，不验证邮箱）、第三方登录（只写代码，没有联调）、站点上限与存储上限、成员角色、平台子域名与自定义域名（DNS 验证）、私有站点（一次性码换站点专用短期凭据）、举报与下架都已实现并在 NL 测试实例上验证。邮件相关（验证、通知）没有做。
+- **AI**：自带渠道优先、平台兜底、AI 邀请码额度、访客问答每日上限、按用户记账都已实现并用假供应方与 OpenRouter 免费模型验证。
+- **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点，站点主人的 AI 用量走 identity 的 `readAiUsage`。
+- **edge**：已实现页面缓存（默认 10 秒 TTL，上游说 no-cache 也按短缓存处理）、单飞、令牌桶限流、流式透传、按域名清缓存接口；还没有接到“发布后立即清缓存”，人机验证、访问记录攒批、媒体磁盘缓存也还留在 portal。
+- **导入、导出、备份、Git**：Markdown、GitBook、Notion、本站导出包导入（导入的都是草稿）；整站导出；S3 与 WebDAV 备份目标（手动、每天、每周、保留份数）；Git 推送（只含已发布内容，发布后自动推送）与拉取。海外网盘 OAuth、增量备份、站点级一键恢复（恢复就是导入导出包）之外的在线全平台恢复没有做；全平台备份用 `deploy/backup.sh` 与 `deploy/restore.sh`。
+- **部署**：`scripts/gen_deploy.py` 生成每个进程的 Dockerfile、编排、Caddyfile（按需证书）、密钥初始化与备份恢复脚本；已在 NL 上用 `docker compose` 实际构建全部镜像并起了一套（不含 Caddy，经 edge 访问），跑通首次初始化、发布、公开页、多用户建站和按需证书询问。发布流程（`scripts/release.sh` 与 GitHub Actions）还是旧的 16 服务拓扑，尚未适配，Rust 镜像的交叉编译也没有处理。

@@ -6,6 +6,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY libs/platform/zcode/upstream/ libs/platform/zcode/upstream/
 RUN pnpm install --frozen-lockfile
 COPY contracts/permission-groups.json contracts/permission-groups.json
+COPY docs/licenses/ docs/licenses/
 COPY libs/platform/web/ libs/platform/web/
 COPY modules/portal/web/ modules/portal/web/
 COPY modules/content/web/ modules/content/web/

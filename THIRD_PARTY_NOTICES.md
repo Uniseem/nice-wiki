@@ -45,9 +45,29 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 
 用户于2026-10-18明确批准仅引入MIT公开目录JSON，未复制业务代码。来源[models.dev API](https://models.dev/api.json)，固定内容版本`sha256:80a19a3c78de1a7b0eb0a72e13e44df21180f0681d6cdf1dbd4c4c345fae3fb6`，原始5806411字节，取回时间2026-10-18T07:44:00.690256Z。API数据版本以实际内容hash固定，不声称某开发分支commit生成该数据。版权Copyright (c) 2025 models.dev，许可MIT，原文见[登记许可](docs/licenses/models-dev-MIT.txt)及内置目录LICENSE，source.json保留来源与ETag。
 
-## go-git v5.16.3
+## go-git、go-billy 与 goldmark（站点导入、导出与 Git 同步）
 
-ADR0005已批准的版本镜像依赖，固定github.com/go-git/go-git/v5 v5.16.3，Apache-2.0；Copyright 2018 Sourced Technologies, S.L.。原许可见[固定版本许可](docs/licenses/go-git-v5.16.3-Apache-2.0.txt)，源为[官方tag](https://github.com/go-git/go-git/tree/v5.16.3)。数据保护独立WIP拟通过依赖API使用，不复制业务实现；本次main尚未引入该依赖，保留固定版本许可登记，未执行远程业务镜像同步。
+2026-10-27 起 content 域使用以下三个 Go 模块，仅作模块依赖，不复制源码：
+
+- github.com/go-git/go-git/v5 v5.16.3（Apache-2.0，Copyright 2018 Sourced Technologies, S.L.）：Git 同步在内存里克隆、提交、推送和拉取用户的仓库，不落盘、不调用 git 命令；出站 HTTP 用平台的防 SSRF 客户端。来源 https://github.com/go-git/go-git/tree/v5.16.3 ，原许可 [go-git Apache-2.0](docs/licenses/go-git-v5.16.3-Apache-2.0.txt)。版本就是 ADR0005 登记的 v5.16.3；更新的 v5.19 要求 Go 1.26，暂不升级（仓库工具链是 Go 1.25）。
+- github.com/go-git/go-billy/v5 v5.6.2（Apache-2.0）：go-git 的内存文件系统，同上用于内存仓库。来源 https://github.com/go-git/go-billy/tree/v5.6.2 ，原许可 [go-billy Apache-2.0](docs/licenses/go-billy-v5.6.2-Apache-2.0.txt)。
+- github.com/yuin/goldmark v1.8.6（MIT，Copyright (c) 2019 Yusuke Inuzuka）：导入时把 Markdown 解析成语法树再转成正文块（GFM 扩展：表格、删除线、任务列表）。来源 https://github.com/yuin/goldmark/tree/v1.8.6 ，原许可 [goldmark MIT](docs/licenses/goldmark-v1.8.6-MIT.txt)。
+
+go-git 的传递依赖（ProtonMail/go-crypto BSD-3-Clause、skeema/knownhosts MIT、kevinburke/ssh_config MIT、jbenet/go-context MIT、cyphar/filepath-securejoin BSD-3-Clause 等）以 go.sum 为准，仅随模块引入。
+
+## Rust 服务（检索 search 与公开入口 edge）
+
+仓库里 `rust/` 是 Cargo 工作区，版本以 `rust/Cargo.lock` 为准，只作依赖，不复制源码；主要依赖与许可如下（传递依赖以锁文件为准，均为 MIT 或 Apache-2.0 一类宽松许可）：
+
+- tantivy 0.22（MIT，Copyright (c) Paul Masurel）：检索服务的全文倒排索引与 BM25 打分；分词由调用方（Go 侧）完成，服务只接收已切好的词。来源 https://github.com/quickwit-oss/tantivy 。
+- tokio 1（MIT）、hyper 1 与 hyper-util、http-body-util（MIT）、axum 0.7（MIT）、bytes（MIT）：两个服务的异步运行时与 HTTP。
+- tokio-postgres 0.7 与 deadpool-postgres 0.14（MIT/Apache-2.0）：检索服务读写 pgvector 向量表。
+- serde、serde_json、anyhow、hmac、sha2、hex、subtle（MIT/Apache-2.0）：序列化、错误处理与服务间共享密钥的 HMAC 认证。
+- pgvector（PostgreSQL License，Copyright (c) 2021-2026 Andrew Kane）：向量类型与 HNSW 索引，随部署用的 `pgvector/pgvector:pg17` 镜像分发，不在本仓库里。
+
+## 部署镜像用到的第三方镜像
+
+编排直接使用 Docker 官方镜像：postgres 系 pgvector/pgvector:pg17（PostgreSQL License，含 pgvector）、caddy:2-alpine（Apache-2.0，Caddy 的按需证书用其自带的 on_demand_tls）、alpine 与 debian-slim（各自许可）。镜像里的软件按各自许可分发，本仓库不重新分发它们的源码。
 
 ## Excalidraw 与 React（后台编辑器画板）
 
