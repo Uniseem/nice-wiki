@@ -11,7 +11,9 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	trafficguard "nice-wiki/modules/traffic-guard/internal"
 	"nice-wiki/modules/traffic-guard/internal/gen"
 	"nice-wiki/modules/traffic-guard/internal/transport"
@@ -132,7 +134,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			paths[path] = append(paths[path], method)
 		}
 	}
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
 	application := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	// 站点删除到期后清掉它的风控策略、封禁和计数。
+	application.InstallBackgroundTasks([]platform.BackgroundTask{sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: store.DB(), Events: events.Consumer(), Runtime: runtimeReader})})
 	retain = true
 	application.Mount(handler, paths, func() { _ = store.Close() })
 	return application, nil

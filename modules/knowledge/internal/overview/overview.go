@@ -81,6 +81,9 @@ func RefreshSiteOverview(ctx context.Context, op OperationContext, input Refresh
 	if err := admin.AuthorizeAdmin(op); err != nil {
 		return RefreshSiteOverviewResult{}, err
 	}
+	if !search.Bound(ctx) {
+		return RefreshSiteOverviewResult{}, platform.NewError(platform.CodeDependencyUnavailable, false, "本站点还没有启用知识库索引")
+	}
 	// 去掉管理员请求带来的入口证明：重算以本服务身份调用 content，带着管理员证明会被拒绝。
 	background := platform.WithPortalProof(context.WithoutCancel(ctx), "")
 	go func() {
@@ -91,8 +94,12 @@ func RefreshSiteOverview(ctx context.Context, op OperationContext, input Refresh
 	return RefreshSiteOverviewResult{Accepted: true}, nil
 }
 
-// RunDaily 由后台循环每分钟调用：从没生成过或距上次检查满 24 小时才重算。
+// RunDaily 由后台循环每分钟调用：从没生成过或距上次检查满 24 小时才重算；没启用索引的站点跳过。
 func RunDaily(ctx context.Context, op OperationContext) error {
+	// 没启用知识库索引的站点没有可概括的内容。
+	if !search.Bound(ctx) {
+		return nil
+	}
 	runtime, err := indexer.RuntimeFromContext(ctx)
 	if err != nil {
 		return err

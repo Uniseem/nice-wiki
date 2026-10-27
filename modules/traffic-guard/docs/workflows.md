@@ -33,6 +33,8 @@ attempt状态为pending→authenticated/rejected/aborted。到期仍保留pendin
 | 事件 | 版本 | 处理函数 | 作用 |
 |---|---|---|---|
 | `identity.authorization.changed` | 1 | `traffic-guard.ConsumeIdentityEvent` | 只触发管理会话重新授权，真实身份仍查identity.checkAuthorization |
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的风控策略、封禁和计数 |
 
 ### 异步任务
 

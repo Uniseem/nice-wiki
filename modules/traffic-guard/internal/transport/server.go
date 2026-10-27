@@ -49,6 +49,7 @@ type Application struct {
 	workerCancel context.CancelFunc
 	router       *apivalidate.PathRouter
 	closers      []func()
+	background   []platform.BackgroundTask
 }
 
 // NewApplication 只创建生命周期容器与匿名探针。调用方必须在所有业务
@@ -89,6 +90,25 @@ func (a *Application) Mount(handler http.Handler, paths map[string][]string, clo
 	}
 	a.journalRecovered = true
 	a.closers = append(a.closers, closer)
+}
+
+// InstallBackgroundTasks 登记后台任务，由统一进程模板启动。
+func (a *Application) InstallBackgroundTasks(tasks []platform.BackgroundTask) {
+	a.background = append([]platform.BackgroundTask(nil), tasks...)
+}
+
+// BackgroundTasks 返回登记的后台任务。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask(nil), a.background...)
+}
+
+// Drain 只停新的 HTTP 请求并等在途请求结束，库留给后台任务退出后由 Shutdown 关闭。
+func (a *Application) Drain(ctx context.Context) error {
+	a.state.CompareAndSwap(stateReady, stateDraining)
+	if err := a.httpServer.Shutdown(ctx); err != nil {
+		return platform.NewError(platform.CodeDeadlineExceeded, true, "关闭期限内未能排空在途请求")
+	}
+	return nil
 }
 
 // Serve 实现 platform.Application，运行单一 HTTP listener。

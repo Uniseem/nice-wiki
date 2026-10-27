@@ -46,6 +46,9 @@ type policyJournalEntry struct {
 	At      platform.Timestamp `json:"at"`
 }
 
+// DB 是本域的库，给站点生命周期任务用。
+func (s *PolicyStore) DB() *sql.DB { return s.db }
+
 // OpenPolicyStore 打开active区SQLite和control区journal，启用WAL、外键及
 // 3000ms busy timeout；任一资源失败都会关闭已打开句柄。
 func OpenPolicyStore(dataRoot string, openedDataEpoch Identifier) (*PolicyStore, error) {

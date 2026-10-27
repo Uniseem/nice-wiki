@@ -84,6 +84,13 @@ func NewSearchRuntime(runtime Runtime) (Runtime, error) {
 func WithSearchRuntime(ctx context.Context, runtime Runtime) context.Context {
 	return context.WithValue(ctx, runtimeKey{}, runtime)
 }
+
+// Bound 说明本站点启用了知识库索引、检索运行时已装配（没启用的站点不装配）。
+func Bound(ctx context.Context) bool {
+	_, err := searchRuntime(ctx)
+	return err == nil
+}
+
 func searchRuntime(ctx context.Context) (Runtime, error) {
 	runtime, ok := ctx.Value(runtimeKey{}).(Runtime)
 	if !ok || runtime.Store == nil || runtime.Content == nil || runtime.ValidatePublicationResult == nil {

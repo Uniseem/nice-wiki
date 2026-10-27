@@ -34,7 +34,7 @@ func InactiveSites(ctx context.Context, db *sql.DB) (map[string]bool, error) {
 	return inactive, rows.Err()
 }
 
-// PurgeSite 在一个事务里删掉本组件所有租户表中该站点的行（可重复执行）。
+// PurgeSite 在一个事务里删掉本组件所有租户表和带 site_id 列的表中该站点的行（可重复执行）。
 // 表之间有外键时先删引用方，再删被引用方。
 func PurgeSite(ctx context.Context, db *sql.DB, site string) error {
 	ctx = WithSite(ctx, "")
@@ -58,6 +58,22 @@ func PurgeSite(ctx context.Context, db *sql.DB, site string) error {
 		columns[table] = "site_id"
 		if singleton {
 			columns[table] = "nw_site"
+		}
+	}
+	rows.Close()
+	// 不做行级隔离的组件（jobs、traffic-guard）按 site_id 列清。
+	rows, err = db.QueryContext(ctx, `SELECT table_name FROM information_schema.columns WHERE table_schema = ? AND column_name = 'site_id' AND table_name <> 'nw_site_state'`, schema)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var table string
+		if err := rows.Scan(&table); err != nil {
+			rows.Close()
+			return err
+		}
+		if _, ok := columns[table]; !ok {
+			columns[table] = "site_id"
 		}
 	}
 	rows.Close()

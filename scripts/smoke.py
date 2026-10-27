@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """主链路冒烟：注册/登录 → 初始化站点 → 新建文档 → 加锁 → 保存草稿 → 发布 → 读公开页。
-需要先 `python3 scripts/dev.py up`；重复运行会复用已有账号与站点。"""
-import json, os, sys, urllib.request, urllib.error, uuid
+需要先 `python3 scripts/dev.py up`；重复运行会复用已有账号与站点。
+`smoke.py multi`：多用户链路——站主发注册邀请码，两个新用户各建一个站、发布、上传，再检查站点之间互相读不到。"""
+import json, os, sys, urllib.parse, urllib.request, urllib.error, uuid
 
 PORTAL = os.environ.get("NW_PORTAL", "http://127.0.0.1:8080")  # 对 docker 部署用 NW_PORTAL=https://localhost（自签证书，下面不校验）
 import ssl
@@ -44,16 +45,16 @@ def upload_png():
     return upload_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="), "red.png", "image")
 
 
-def upload_bytes(png, name, kind):
+def upload_bytes(png, name, kind, headers=None):
     import hashlib
     sha = hashlib.sha256(png).hexdigest()
-    up = step("声明上传", call("POST", "/v1/uploads", {"sha256": sha, "byteSize": len(png), "originalName": name, "kind": kind}))["upload"]
+    up = step("声明上传", call("POST", "/v1/uploads", {"sha256": sha, "byteSize": len(png), "originalName": name, "kind": kind}, headers=headers))["upload"]
     req = urllib.request.Request(PORTAL + f"/v1/uploads/{up['uploadId']}/chunks", data=png, method="PUT")
     for k, v in {"Origin": PORTAL, "Cookie": state["cookie"], "X-CSRF-Token": state["csrf"], "Idempotency-Key": uuid.uuid4().hex, "Content-Type": "application/octet-stream",
-                 "X-Upload-Offset": "0", "X-Chunk-SHA256": sha, "If-Match": str(up["revision"])}.items():
+                 "X-Upload-Offset": "0", "X-Chunk-SHA256": sha, "If-Match": str(up["revision"]), **(headers or {})}.items():
         req.add_header(k, v)
     up = json.loads(urllib.request.urlopen(req).read())["upload"]
-    return step("完成上传", call("POST", f"/v1/uploads/{up['uploadId']}:complete", {"expectedRevision": up["revision"]}))["asset"]["ref"]
+    return step("完成上传", call("POST", f"/v1/uploads/{up['uploadId']}:complete", {"expectedRevision": up["revision"]}, headers=headers))["asset"]["ref"]
 
 
 def step(name, result):
@@ -127,5 +128,86 @@ def main():
 
 
 
+def login(account=ACCOUNT, password=PASSWORD):
+    state["cookie"] = ""
+    body = step("登录 " + account, call("POST", "/v1/sessions", {"accountName": account, "password": password}))
+    state["csrf"] = body["session"]["csrfToken"] if "session" in body else body["tokens"]["csrfToken"]
+
+
+def register_user(code, label):
+    """用注册邀请码注册一个新用户并保持登录；返回 (邮箱, 口令)。"""
+    email, pw = f"{label}-{uuid.uuid4().hex[:6]}@example.com", "User-Passw0rd-123456"
+    state["cookie"] = ""
+    body = step("注册 " + email, call("POST", "/v1/users:register", {"email": email, "password": pw, "passwordConfirmation": pw, "displayName": label, "inviteCode": code}))
+    state["csrf"] = body["session"]["csrfToken"] if "session" in body else body["tokens"]["csrfToken"]
+    return email, pw
+
+
+def site_host(slug):
+    return f"{slug}.localhost:{urllib.parse.urlsplit(PORTAL).port}"
+
+
+def create_site(name):
+    """建站并初始化、启用基准语言；返回站点（含 siteId、slug）。后台请求用 X-Nw-Site 选站点，和浏览器一样。"""
+    slug = "s" + uuid.uuid4().hex[:8]
+    site = step("建站 " + slug, call("POST", "/v1/sites", {"slug": slug, "name": name}))["site"]
+    h = {"X-Nw-Site": site["siteId"]}
+    step("初始化 " + slug, call("POST", "/v1/initialization", {"name": name, "baseLanguage": "zh-Hans"}, headers=h))
+    key = uuid.uuid4().hex
+    step("启用基准语言", call("PUT", "/v1/languages/zh-Hans", headers={**h, "Idempotency-Key": key}, body={"expectedVersion": 0, "idempotencyKey": key, "language": {
+        "tag": "zh-Hans", "version": 1, "enabled": True, "isDefault": True, "automaticTranslation": False, "direction": "ltr",
+        "reflectionEnabled": False, "batchOutputTokens": 1000, "translationMemoryMinimumCharacters": 20}}))
+    return site
+
+
+def publish_doc(h, title, text, slug):
+    doc = step("新建文档", call("POST", "/v1/documents", {"title": title, "parentId": None, "beforeDocumentId": None}, headers=h))
+    doc_id, draft = doc["draft"]["documentId"], doc["draft"]
+    lease = step("获取编辑锁", call("POST", f"/v1/documents/{doc_id}/lock", {"tabId": uuid.uuid4().hex}, headers=h))["lease"]
+    body = {"schemaVersion": 1, "type": "doc", "content": [{"type": "paragraph", "attrs": {"blockId": uuid.uuid4().hex}, "content": [{"type": "text", "text": text, "marks": []}]}]}
+    saved = step("保存草稿", call("PUT", f"/v1/documents/{doc_id}/draft", {
+        "body": body, "expectedDraftVersion": draft["draftVersion"], "expectedDraftRevisionId": draft["revisionId"],
+        "leaseId": lease["leaseId"], "fencingToken": lease["fencingToken"], "serverBootId": lease["serverBootId"]}, headers=h))["draft"]
+    node = next(n for n in call("GET", "/v1/tree", headers=h)[1]["documents"] if n["documentId"] == doc_id)
+    step("发布", call("POST", f"/v1/documents/{doc_id}:publish", {"draftRevisionId": saved["revisionId"], "expectedDraftVersion": saved["draftVersion"],
+        "expectedRevision": node["revision"], "manualPathSegment": slug, "manualSEO": title}, headers=h))
+    step("释放编辑锁", call("DELETE", f"/v1/documents/{doc_id}/lock", {"leaseId": lease["leaseId"], "serverBootId": lease["serverBootId"]}, headers=h))
+    return doc_id
+
+
+def multi():
+    import base64
+    login()
+    code = step("注册邀请码", call("POST", "/v1/registration-invites", {"maxUses": 2}))["code"]
+    users = []
+    for label in ("alice", "bob"):
+        email, pw = register_user(code, label)
+        site = create_site(label + " 的文档")
+        h = {"X-Nw-Site": site["siteId"]}
+        marker = f"{label} 的秘密 {uuid.uuid4().hex[:6]}"
+        doc_id = publish_doc(h, label + " 首页", marker, "hello")
+        upload_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="), "red.png", "image", headers=h)
+        users.append({"email": email, "pw": pw, "site": site, "doc": doc_id, "marker": marker, "cookie": state["cookie"], "csrf": state["csrf"]})
+    alice, bob = users
+    # bob 带着 alice 的站点去读写：服务端按成员角色拒绝。
+    for path in ["/v1/tree", f"/v1/documents/{alice['doc']}/draft", "/v1/assets?limit=10"]:
+        status, _ = call("GET", path, headers={"X-Nw-Site": alice["site"]["siteId"]})
+        print("bob 读 alice 的", path, status)
+        if status < 400:
+            sys.exit("失败于：跨站点读取没有被拒绝")
+    status, _ = call("POST", "/v1/documents", {"title": "x", "parentId": None, "beforeDocumentId": None}, headers={"X-Nw-Site": alice["site"]["siteId"]})
+    print("bob 往 alice 的站点写", status)
+    if status < 400:
+        sys.exit("失败于：跨站点写入没有被拒绝")
+    # 各自的公开页只有自己的内容。
+    for me, other in ((alice, bob), (bob, alice)):
+        host = site_host(me["site"]["slug"])
+        status, page = call("GET", "/zh-Hans/hello", headers={"Host": host, "Origin": "http://" + host})
+        print("公开", me["site"]["slug"], status)
+        if status != 200 or me["marker"] not in str(page) or other["marker"] in str(page):
+            sys.exit("失败于：公开页内容不对")
+    print("多用户链路通过")
+
+
 if __name__ == "__main__":
-    main()
+    multi() if "multi" in sys.argv else main()
