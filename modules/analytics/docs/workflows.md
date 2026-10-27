@@ -32,6 +32,8 @@ beacon validated→queued→persisted/dropped；dropping只影响匿名计数
 | `qa.turn.completed` | 1 | `analytics.ProjectQaTurn` | 统计问答量、缓存命中与无答案比率 |
 | `qa.turn.failed` | 1 | `analytics.ProjectQaTurn` | 统计问答量、缓存命中与无答案比率 |
 | `invocation.reconciled` | 1 | `analytics.ConsumeAnalyticsEvent` | 人工证明更正费用原引用，缺权威安全统计页时保持未确认，不猜金额或账项修订。 |
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 

@@ -17,7 +17,10 @@ UpdateHome保存全屏hero；video必须poster，public-site输出autoplay muted
 
 ### 事件处理
 
-本域不消费事件。
+| 事件 | 版本 | 处理函数 | 作用 |
+|---|---|---|---|
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 

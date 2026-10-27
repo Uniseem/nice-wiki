@@ -248,7 +248,7 @@ func rewrite(tokens []token, ddl bool) []token {
 				}
 			}
 			if lower == "sqlite_master" {
-				out = append(out, joinTokens("(SELECT table_name AS name, 'table' AS type FROM information_schema.tables WHERE table_schema = current_schema() AND table_name <> 'nw_pragma') sqlite_master")...)
+				out = append(out, joinTokens("(SELECT table_name AS name, 'table' AS type FROM information_schema.tables WHERE table_schema = current_schema() AND table_name NOT IN ('nw_pragma', 'nw_site_state')) sqlite_master")...)
 				continue
 			}
 			if lower == "glob" {

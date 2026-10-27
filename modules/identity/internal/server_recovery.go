@@ -963,6 +963,12 @@ func NewBackgroundTasks(store *Store, siteConfig platform.SiteConfigClient, data
 				return runSuperadminResetObserver(ctx, store, siteConfig, dataEpoch)
 			},
 		},
+		{
+			Name: "identity.site-purge",
+			Run: func(ctx context.Context) error {
+				return runSitePurge(ctx, store, siteConfig, dataEpoch)
+			},
+		},
 	}, nil
 }
 

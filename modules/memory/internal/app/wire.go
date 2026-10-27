@@ -14,7 +14,9 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/modelclient"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	"nice-wiki/modules/memory/internal/gen"
 	memoryruntime "nice-wiki/modules/memory/internal/runtime"
 	"nice-wiki/modules/memory/internal/transport"
@@ -119,6 +121,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return fail(err)
 	}
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return fail(err)
+	}
+	db, purge := memoryruntime.SiteLifecycle()
+	application.SetBackgroundTasks([]platform.BackgroundTask{sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: db, Events: events.Consumer(), Runtime: runtimeAuthority.ReadRuntimeState, Purge: purge})})
 	return application, nil
 }
 

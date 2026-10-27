@@ -11,6 +11,7 @@ import (
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/searchclient"
+	"nice-wiki/libs/platform/sitestate"
 	"nice-wiki/modules/knowledge/internal/admin"
 	"nice-wiki/modules/knowledge/internal/build"
 	"nice-wiki/modules/knowledge/internal/events"
@@ -160,6 +161,14 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	tasks := assembleBackgroundTasks(bind, db, site.Config.SiteID, view.DataEpoch, window)
+	// 站点保留期满：Rust 检索服务里的全文与向量按站点整体删掉，本库的行由 sitestate 删。
+	purgeSearch := func(c context.Context, site string) error {
+		if searchService == nil {
+			return nil
+		}
+		return searchService.DeleteSite(c, site)
+	}
+	tasks = append(tasks, sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: db, Events: events.Consumer(), Runtime: window.Runtime, Purge: purgeSearch}))
 	application, err := transport.NewApplication(config, anchors, authority, view.DataEpoch, db, bind, apivalidate.NewIdentityAuthorizer(gen.NewIdentityClient(config.Dependencies["identity"], ModuleSlug, key)), tasks)
 	if err != nil {
 		return nil, err

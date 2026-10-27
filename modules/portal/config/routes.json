@@ -1893,6 +1893,16 @@
     },
     {
       "method": "POST",
+      "path": "/v1/me/deleted-sites/{deletedSiteId}/restore",
+      "owner": "identity",
+      "operationId": "restoreSite",
+      "permission": "account.self",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
       "path": "/v1/oauth/{provider}:login",
       "owner": "identity",
       "operationId": "oauthLogin",

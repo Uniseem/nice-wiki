@@ -712,3 +712,14 @@ func hashInput(input any) (string, error) {
 	}
 	return string(platform.HashBytes(raw)), nil
 }
+
+// DB 是站点配置库，跟踪站点生命周期用。
+func (s *ActiveStore) DB() *sql.DB { return s.db }
+
+// PurgeSiteFiles 删掉站点的配置文件（保留期满清除时调用，可重复执行）。
+func (s *ActiveStore) PurgeSiteFiles(_ context.Context, site string) error {
+	if err := os.RemoveAll(filepath.Join(s.activeRoot, "settings", site)); err != nil {
+		return platform.NewError(platform.CodeInternal, false, "删除站点配置文件失败")
+	}
+	return nil
+}

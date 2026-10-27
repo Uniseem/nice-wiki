@@ -264,8 +264,10 @@ func (s *localBlobStore) runMigrations() error {
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "媒体迁移集不合法")
 	}
+	// 迁移跨全部站点（包括写入单例表的模板行），显式用系统视角。
+	system := pgdb.WithSite(context.Background(), "")
 	applied := map[int64]string{}
-	rows, err := s.db.Query(`SELECT version, name FROM schema_migrations`)
+	rows, err := s.db.QueryContext(system, `SELECT version, name FROM schema_migrations`)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such table") {
 			return platform.NewError(platform.CodeIntegrityError, false, "读取媒体迁移记录失败")
@@ -295,7 +297,7 @@ func (s *localBlobStore) runMigrations() error {
 		if _, ok := applied[migration.Version]; ok {
 			continue
 		}
-		tx, err := s.db.Begin()
+		tx, err := s.db.BeginTx(system, nil)
 		if err != nil {
 			return platform.NewError(platform.CodeDependencyUnavailable, true, "开始媒体迁移事务失败")
 		}

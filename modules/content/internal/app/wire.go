@@ -12,8 +12,10 @@ import (
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/secretbox"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	content "nice-wiki/modules/content/internal"
 	"nice-wiki/modules/content/internal/gen"
 	"nice-wiki/modules/content/internal/transport"
@@ -144,7 +146,12 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	epoch := runtimeView.DataEpoch
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
 	application.SetBackground(append(siteDataLoops, []platform.BackgroundTask{
+		sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: store.DB(), Events: events.Consumer(), Runtime: window.Runtime, Purge: store.PurgeSiteFiles}),
 		{Name: "content.expire-idle-locks", Run: func(ctx context.Context) error {
 			return lifecycle.RunRecoveryLoop(ctx, platform.RecoveryLoopConfig{PollMillis: 5000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(batch context.Context) error {
 				for _, site := range store.Sites(batch) {

@@ -420,6 +420,11 @@ func writeProblem(w http.ResponseWriter, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, platform.NewIdentifier()))
 }
 
+// AddBackgroundTasks 追加后台任务（在 BuildApplication 里、进程模板启动之前调用）。
+func (a *Application) AddBackgroundTasks(tasks ...platform.BackgroundTask) {
+	a.backgroundTasks = append(a.backgroundTasks, tasks...)
+}
+
 // BackgroundTasks 仅返回已装配闭包；统一进程模板在完整构造成功后启动与停止。
 func (a *Application) BackgroundTasks() []platform.BackgroundTask {
 	return append([]platform.BackgroundTask(nil), a.backgroundTasks...)

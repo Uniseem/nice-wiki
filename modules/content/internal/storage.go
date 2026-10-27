@@ -693,7 +693,20 @@ func (s *Store) SiteID(ctx context.Context) (Identifier, bool) {
 	return site.String, true
 }
 
-// Sites 列出内容库里出现过的站点；后台循环按它逐站点处理。
+// DB 是内容库，跟踪站点生命周期用。
+func (s *Store) DB() *sql.DB { return s.db }
+
+// PurgeSiteFiles 删掉站点的正文修订文件（保留期满清除时调用，可重复执行）。
+func (s *Store) PurgeSiteFiles(_ context.Context, site string) error {
+	for _, dir := range []string{filepath.Join(s.root, site), filepath.Join(s.root, quarantineRelative, "revisions", site)} {
+		if err := os.RemoveAll(dir); err != nil {
+			return contentStorageError()
+		}
+	}
+	return nil
+}
+
+// Sites 列出内容库里出现过、仍正常的站点；后台循环按它逐站点处理。
 func (s *Store) Sites(ctx context.Context) []Identifier {
 	sites, err := pgdb.Sites(ctx, s.db)
 	if err != nil {

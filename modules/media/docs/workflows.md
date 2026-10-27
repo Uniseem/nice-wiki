@@ -22,6 +22,8 @@
 | 事件 | 版本 | 处理函数 | 作用 |
 |---|---|---|---|
 | `content.resources.changed` | 2 | `media.ApplyReferenceEvent` | 消费content提交后发出的完整pin材料，更新当前/历史refs，不以迟到事件替代最终权威检查 |
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 

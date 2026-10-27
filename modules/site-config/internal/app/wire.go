@@ -14,7 +14,9 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	siteconfig "nice-wiki/modules/site-config/internal"
 	"nice-wiki/modules/site-config/internal/gen"
 	"nice-wiki/modules/site-config/internal/transport"
@@ -57,7 +59,8 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		return nil, err
 	}
 	openedEpoch := view.DataEpoch
-	activeStore, err := siteconfig.OpenActiveStore(ctx, config.DataRoot, openedEpoch)
+	// 迁移和活动状态跨全部站点，显式用系统视角。
+	activeStore, err := siteconfig.OpenActiveStore(pgdb.WithSite(ctx, ""), config.DataRoot, openedEpoch)
 	if err != nil {
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
@@ -127,6 +130,13 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		_ = closeRuntime(runtimeAuthority)
 		return nil, err
 	}
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		_ = activeStore.Close()
+		_ = closeRuntime(runtimeAuthority)
+		return nil, err
+	}
+	application.AddBackgroundTasks(sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: activeStore.DB(), Events: events.Consumer(), Runtime: runtimeAuthority.ReadRuntimeState, Purge: activeStore.PurgeSiteFiles}))
 	return application, nil
 }
 

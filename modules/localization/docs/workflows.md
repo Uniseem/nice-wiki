@@ -15,6 +15,8 @@
 |---|---|---|---|
 | `content.publication.changed` | 1 | `localization.HandlePublication` | 消费content.publication.changed执行本域失效/任务/批准回执；不同步反向请求生产方。 |
 | `content.publication.withdrawn` | 1 | `localization.InvalidateDocumentTranslations` | 消费content.publication.withdrawn执行本域失效/任务/批准回执；不同步反向请求生产方。 |
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 

@@ -19,6 +19,8 @@ import (
 	"nice-wiki/libs/platform/apivalidate"
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
+	"nice-wiki/libs/platform/sitestate"
 	"nice-wiki/modules/qa/internal/gen"
 	qaruntime "nice-wiki/modules/qa/internal/runtime"
 	"nice-wiki/modules/qa/internal/transport"
@@ -164,7 +166,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*Appl
 	}
 	started := time.Now().UnixNano()
 	interruptedHandled := map[string]bool{}
-	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "qa.housekeeping", Run: func(work context.Context) error {
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	application.SetBackgroundTasks([]platform.BackgroundTask{sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: db, Events: events.Consumer(), Runtime: window.Runtime}), {Name: "qa.housekeeping", Run: func(work context.Context) error {
 		// 逐站点：启动后先收尾上次进程中断的轮次，之后每分钟按保留期清理过期会话、诊断记录和已终止轮次的事件。
 		// 一个站点出错不挡其他站点。
 		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 60000, Runtime: window.Runtime, WriteWindow: window.WriteWindow, Recover: func(tick context.Context) error {
@@ -236,7 +242,9 @@ func openDatabase(dataRoot string) (*sql.DB, error) {
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeIntegrityError, false, "问答数据库不可用")
 	}
-	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, name TEXT NOT NULL)`); err != nil {
+	// 迁移跨全部站点（包括写入单例表的模板行），显式用系统视角。
+	system := pgdb.WithSite(context.Background(), "")
+	if _, err = db.ExecContext(system, `CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, name TEXT NOT NULL)`); err != nil {
 		_ = db.Close()
 		return nil, platform.NewError(platform.CodeInternal, false, "建立迁移记录失败")
 	}
@@ -247,14 +255,14 @@ func openDatabase(dataRoot string) (*sql.DB, error) {
 	}
 	for _, migration := range all {
 		var name string
-		switch err = db.QueryRow(`SELECT name FROM schema_migrations WHERE version=?`, migration.Version).Scan(&name); {
+		switch err = db.QueryRowContext(system, `SELECT name FROM schema_migrations WHERE version=?`, migration.Version).Scan(&name); {
 		case err == nil:
 			continue
 		case !errors.Is(err, sql.ErrNoRows):
 			_ = db.Close()
 			return nil, platform.NewError(platform.CodeInternal, false, "读取迁移记录失败")
 		}
-		tx, beginErr := db.Begin()
+		tx, beginErr := db.BeginTx(system, nil)
 		if beginErr == nil {
 			_, beginErr = tx.Exec(migration.SQL)
 		}

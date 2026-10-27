@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/lifecycle"
+	"nice-wiki/libs/platform/sitestate"
 	"os"
 	"sync"
 	"time"
@@ -30,6 +31,7 @@ func RunPageBackground(ctx context.Context, rt *Runtime) error {
 			}
 		}()
 	}
+	launchPageLoop(sitestate.Task(sitestate.Config{Module: "analytics", DB: rt.DB, Events: rt.Consumer, Runtime: rt.Window.Runtime}).Run)
 	launchPageLoop(func(ctx context.Context) error {
 		for ctx.Err() == nil {
 			call, done, op := backgroundOperation(ctx, rt, "", "", 24*time.Hour)

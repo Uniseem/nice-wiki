@@ -89,6 +89,32 @@
       "delivery": "at-least-once",
       "ordering": "siteId treeRevision全站单调；旧epoch失效",
       "idempotency": "固定eventId与同scope原回执，重放不重复事件"
+    },
+    {
+      "name": "identity.site.changed",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../identity/contracts/types.json#/$defs/SiteChangedPayload"
+      },
+      "purpose": "记下站点状态：后台循环只处理正常站点",
+      "delivery": "at-least-once",
+      "ordering": "按站点 revision 单调，只接受更高版本",
+      "idempotency": "按 revision 覆盖；清除可重复执行",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "name": "identity.site.purged",
+      "version": 1,
+      "direction": "consume",
+      "payloadSchema": {
+        "$ref": "../../identity/contracts/types.json#/$defs/SitePurgedPayload"
+      },
+      "purpose": "删掉本域里该站点的全部数据和文件",
+      "delivery": "at-least-once",
+      "ordering": "按站点 revision 单调，只接受更高版本",
+      "idempotency": "按 revision 覆盖；清除可重复执行",
+      "handler": "sitestate.PurgeSite"
     }
   ]
 }

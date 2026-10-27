@@ -3423,22 +3423,6 @@
   "id": "Situs",
   "ar": "موقع"
  },
- "站点会立即下线，名称保留，域名失效。此操作不能撤销。": {
-  "zh-Hant": "站點會立即下線，名稱保留，域名失效。此操作不能撤銷。",
-  "en": "The site will go offline immediately; the name will be kept, but the domain will become invalid. This action cannot be undone.",
-  "ja": "サイトはすぐにオフラインになります。名前は保持されますが、ドメインは無効になります。この操作は取り消せません。",
-  "ko": "사이트가 즉시 오프라인 상태가 되며, 이름은 유지되지만 도메인은 무효화됩니다. 이 작업은 취소할 수 없습니다.",
-  "fr": "Le site sera immédiatement hors ligne ; le nom sera conservé, mais le domaine deviendra invalide. Cette action est irréversible.",
-  "de": "Die Seite wird sofort offline genommen; der Name bleibt erhalten, aber die Domain wird ungültig. Dieser Vorgang kann nicht rückgängig gemacht werden.",
-  "es": "El sitio quedará fuera de línea inmediatamente; se conservará el nombre, pero el dominio dejará de ser válido. Esta acción no se puede deshacer.",
-  "pt": "O site ficará offline imediatamente; o nome será mantido, mas o domínio se tornará inválido. Esta ação não pode ser desfeita.",
-  "ru": "Сайт будет немедленно отключен; имя сохранится, но домен станет недействительным. Это действие нельзя отменить.",
-  "it": "Il sito sarà immediatamente offline; il nome sarà conservato, ma il dominio diventerà non valido. Questa operazione non può essere annullata.",
-  "vi": "Trang web sẽ ngoại tuyến ngay lập tức, tên được giữ lại, tên miền sẽ hết hạn. Thao tác này không thể hoàn tác.",
-  "th": "ไซต์จะออฟไลน์ทันที ชื่อจะถูกเก็บไว้ แต่โดเมนจะใช้งานไม่ได้ การดำเนินการนี้ไม่สามารถย้อนกลับได้",
-  "id": "Situs akan segera offline; nama akan tetap ada, tetapi domain akan menjadi tidak valid. Tindakan ini tidak dapat dibatalkan.",
-  "ar": "سيتم إيقاف الموقع فوراً، وسيتم الاحتفاظ بالاسم، ولكن النطاق سيصبح غير صالح. لا يمكن التراجع عن هذا الإجراء."
- },
  "站点列表": {
   "zh-Hant": "站點列表",
   "en": "Site List",
@@ -4446,5 +4430,53 @@
   "th": "สำรองข้อมูลบนคลาวด์",
   "id": "Cadangan Cloud",
   "ar": "نسخ احتياطي سحابي"
+ },
+ "站点会立即下线，30 天内可以在这里恢复，之后数据会被永久清除，站点名会被放出。": {
+  "zh-Hant": "站點會立即下線，30 天內可以在這裡恢復，之後資料會被永久清除，站點名會被釋出。",
+  "en": "The site will go offline immediately. You can restore it here within 30 days; after that its data is permanently erased and the site name becomes available again.",
+  "ja": "サイトはすぐにオフラインになります。30 日以内ならここで復元できます。その後、データは完全に削除され、サイト名は再び使えるようになります。",
+  "ko": "사이트가 즉시 오프라인 상태가 됩니다. 30일 이내에는 여기에서 복원할 수 있으며, 그 이후에는 데이터가 영구 삭제되고 사이트 이름을 다시 사용할 수 있게 됩니다.",
+  "fr": "Le site sera immédiatement hors ligne. Vous pouvez le restaurer ici pendant 30 jours ; ensuite, ses données seront définitivement effacées et le nom du site redeviendra disponible.",
+  "de": "Die Website geht sofort offline. Sie können sie hier innerhalb von 30 Tagen wiederherstellen; danach werden ihre Daten endgültig gelöscht und der Websitename wird wieder frei.",
+  "es": "El sitio quedará fuera de línea de inmediato. Puedes restaurarlo aquí durante 30 días; después, sus datos se borrarán definitivamente y el nombre del sitio quedará libre.",
+  "pt": "O site ficará offline imediatamente. Você pode restaurá-lo aqui em até 30 dias; depois disso, os dados serão apagados permanentemente e o nome do site ficará disponível novamente.",
+  "ru": "Сайт сразу станет недоступен. В течение 30 дней его можно восстановить здесь; после этого данные будут удалены безвозвратно, а имя сайта освободится.",
+  "it": "Il sito andrà subito offline. Puoi ripristinarlo qui entro 30 giorni; dopodiché i dati verranno eliminati definitivamente e il nome del sito tornerà disponibile.",
+  "vi": "Trang web sẽ ngoại tuyến ngay lập tức. Bạn có thể khôi phục tại đây trong vòng 30 ngày; sau đó dữ liệu sẽ bị xóa vĩnh viễn và tên trang web sẽ được giải phóng.",
+  "th": "ไซต์จะออฟไลน์ทันที คุณกู้คืนได้ที่นี่ภายใน 30 วัน หลังจากนั้นข้อมูลจะถูกลบถาวรและชื่อไซต์จะว่างให้ใช้ใหม่",
+  "id": "Situs akan langsung offline. Anda dapat memulihkannya di sini dalam 30 hari; setelah itu datanya dihapus permanen dan nama situs dapat dipakai lagi.",
+  "ar": "سيتوقف الموقع عن العمل فوراً. يمكنك استعادته من هنا خلال 30 يوماً، وبعد ذلك تُحذف بياناته نهائياً ويصبح اسم الموقع متاحاً من جديد."
+ },
+ "站点已恢复": {
+  "zh-Hant": "站點已恢復",
+  "en": "Site restored",
+  "ja": "サイトを復元しました",
+  "ko": "사이트가 복원되었습니다",
+  "fr": "Site restauré",
+  "de": "Website wiederhergestellt",
+  "es": "Sitio restaurado",
+  "pt": "Site restaurado",
+  "ru": "Сайт восстановлен",
+  "it": "Sito ripristinato",
+  "vi": "Đã khôi phục trang web",
+  "th": "กู้คืนไซต์แล้ว",
+  "id": "Situs dipulihkan",
+  "ar": "تمت استعادة الموقع"
+ },
+ "{0} 天后永久清除": {
+  "zh-Hant": "{0} 天後永久清除",
+  "en": "Permanently erased in {0} days",
+  "ja": "{0} 日後に完全削除",
+  "ko": "{0}일 후 영구 삭제",
+  "fr": "Effacé définitivement dans {0} jours",
+  "de": "Endgültige Löschung in {0} Tagen",
+  "es": "Se borrará definitivamente en {0} días",
+  "pt": "Será apagado permanentemente em {0} dias",
+  "ru": "Будет удалён безвозвратно через {0} дн.",
+  "it": "Eliminazione definitiva tra {0} giorni",
+  "vi": "Xóa vĩnh viễn sau {0} ngày",
+  "th": "จะถูกลบถาวรในอีก {0} วัน",
+  "id": "Dihapus permanen dalam {0} hari",
+  "ar": "سيُحذف نهائياً بعد {0} يوم"
  }
 }

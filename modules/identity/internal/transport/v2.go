@@ -57,6 +57,9 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	site := func(_ none, r *http.Request) identity.SiteRef { return identity.SiteRef{SiteID: r.PathValue("siteId")} }
 	handlers["readSite"] = v2Operation(a, identity.ReadSite, site)
 	handlers["deleteSite"] = v2Operation(a, identity.DeleteSite, site)
+	handlers["restoreSite"] = v2Operation(a, identity.RestoreSite, func(_ none, r *http.Request) identity.DeletedSiteRef {
+		return identity.DeletedSiteRef{SiteID: r.PathValue("deletedSiteId")}
+	})
 	handlers["listSiteMembers"] = v2Operation(a, identity.ListSiteMembers, site)
 	handlers["listSiteDomains"] = v2Operation(a, identity.ListSiteDomains, site)
 	handlers["updateSite"] = v2Operation(a, identity.UpdateSite, func(b gen.UpdateSiteInput, r *http.Request) identity.UpdateSiteCmd {

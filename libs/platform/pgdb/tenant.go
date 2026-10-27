@@ -343,8 +343,9 @@ func tenantDML(module, statement string) string {
 	return render(tokens[:open+1]) + inner + render(tokens[closeAt:])
 }
 
-// Sites 列出本组件里出现过的站点，后台循环按它逐站点处理。默认取各单例表里 nw_site 的并集（不含模板行）；
-// 组件没有单例表时，传入带 site_id 列的表名（如 languages）。站点第一次被访问时才会出现，结果缓存几秒。
+// Sites 列出本组件里出现过、仍正常的站点（下架、已删除、已清除的跳过，见 nw_site_state），后台循环按它逐站点处理。
+// 默认取各单例表里 nw_site 的并集（不含模板行）；组件没有单例表时，传入带 site_id 列的表名（如 languages）。
+// 站点第一次被访问时才会出现，结果缓存几秒。
 func Sites(ctx context.Context, db *sql.DB, tables ...string) ([]string, error) {
 	var schema string
 	if err := db.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err != nil {
@@ -383,7 +384,8 @@ func Sites(ctx context.Context, db *sql.DB, tables ...string) ([]string, error) 
 			return nil, err
 		}
 		defer conn.Close()
-		result, err := conn.QueryContext(WithSite(ctx, ""), `SELECT DISTINCT nw_site FROM (`+strings.Join(parts, " UNION ALL ")+`) s WHERE nw_site <> '' ORDER BY nw_site`)
+		result, err := conn.QueryContext(WithSite(ctx, ""), `SELECT DISTINCT nw_site FROM (`+strings.Join(parts, " UNION ALL ")+`) s WHERE nw_site <> ''
+			AND nw_site NOT IN (SELECT site_id FROM `+quoteIdent(schema)+`.nw_site_state WHERE status <> 'active') ORDER BY nw_site`)
 		if err != nil {
 			return nil, err
 		}

@@ -7,6 +7,7 @@ import { useState } from 'react';
 export type Site = {
   siteId: string; slug: string; name: string; status: 'active' | 'suspended' | 'deleted'; role: 'owner' | 'editor' | 'viewer';
   visibility: 'public' | 'private'; primaryHost: string; createdAt: string; visitorQaDaily: number; qaPausedOn: string; grants: string[];
+  purgeAt?: string; // 已删除站点的永久清除时间，在这之前所有者可以恢复
 };
 type Limits = { maxSites: number; siteCount: number; storageBytes: number; storageUsed: number };
 
@@ -28,13 +29,18 @@ export default function MySitesPage() {
   const { busy, run } = useAction();
 
   const remove = async (site: Site) => {
-    const ok = await confirmAction({ title: t('删除站点“{0}”？', site.name), body: t('站点会立即下线，名称保留，域名失效。此操作不能撤销。'), confirmLabel: t('删除'), tone: 'danger' });
+    const ok = await confirmAction({ title: t('删除站点“{0}”？', site.name), body: t('站点会立即下线，30 天内可以在这里恢复，之后数据会被永久清除，站点名会被放出。'), confirmLabel: t('删除'), tone: 'danger' });
     if (!ok) return;
     const done = await run(() => api(`/v1/sites/${site.siteId}`, { method: 'DELETE' }), t('站点已删除'));
     if (done !== undefined) {
       if (currentSite() === site.siteId) selectSite(null);
       sites.reload();
     }
+  };
+
+  const restore = async (site: Site) => {
+    const done = await run(() => api(`/v1/me/deleted-sites/${site.siteId}/restore`, { method: 'POST' }), t('站点已恢复'));
+    if (done !== undefined) sites.reload();
   };
 
   const limits = sites.data?.limits;
@@ -56,7 +62,7 @@ export default function MySitesPage() {
                 <Table.Column className="w-48 text-end">{t('操作')}</Table.Column>
               </Table.Header>
               <Table.Body renderEmptyState={() => <EmptyBlock className="m-4" icon={<Globe />} title={t('还没有站点')} description={t('新建一个站点，开始写文档。')} />}>
-                {sites.data.sites.filter((site) => site.status !== 'deleted').map((site) => (
+                {sites.data.sites.map((site) => (
                   <Table.Row key={site.siteId} id={site.siteId}>
                     <Table.Cell>
                       <span className="block font-medium text-foreground">{site.name}</span>
@@ -65,23 +71,28 @@ export default function MySitesPage() {
                     <Table.Cell><Chip size="sm" variant="soft">{roleText[site.role]}</Chip></Table.Cell>
                     <Table.Cell>
                       <Chip color={statusText[site.status]?.tone ?? 'default'} size="sm" variant="soft">{statusText[site.status]?.label ?? site.status}</Chip>
+                      {site.purgeAt && <span className="ms-2 text-xs text-muted">{t('{0} 天后永久清除', Math.max(1, Math.ceil((Date.parse(site.purgeAt) - Date.now()) / 86400000)))}</span>}
                       {site.qaPausedOn === new Date().toISOString().slice(0, 10) && <Chip className="ms-1" color="warning" size="sm" variant="soft">{t('今日提问已达上限')}</Chip>}
                     </Table.Cell>
                     <Table.Cell className="text-end">
-                      <span className="inline-flex items-center gap-1">
-                        <Button size="sm" variant="secondary" onPress={() => openSite(site)}>{t('进入')}<ArrowRight className="rtl:-scale-x-100" /></Button>
-                        {site.role === 'owner' && (
-                          <Dropdown>
-                            <Button isIconOnly aria-label={t('站点操作')} isDisabled={busy} size="sm" variant="ghost"><Ellipsis /></Button>
-                            <Dropdown.Popover placement="bottom end">
-                              <Dropdown.Menu onAction={(key: Key) => { if (key === 'edit') setEditing(site); if (key === 'delete') void remove(site); }}>
-                                <Dropdown.Item id="edit" textValue={t('站点设置')}><Label>{t('站点设置')}</Label></Dropdown.Item>
-                                <Dropdown.Item id="delete" textValue={t('删除')} variant="danger"><Label>{t('删除')}</Label></Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown.Popover>
-                          </Dropdown>
-                        )}
-                      </span>
+                      {site.status === 'deleted' ? (
+                        <Button isDisabled={busy} size="sm" variant="secondary" onPress={() => void restore(site)}>{t('恢复')}</Button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <Button size="sm" variant="secondary" onPress={() => openSite(site)}>{t('进入')}<ArrowRight className="rtl:-scale-x-100" /></Button>
+                          {site.role === 'owner' && (
+                            <Dropdown>
+                              <Button isIconOnly aria-label={t('站点操作')} isDisabled={busy} size="sm" variant="ghost"><Ellipsis /></Button>
+                              <Dropdown.Popover placement="bottom end">
+                                <Dropdown.Menu onAction={(key: Key) => { if (key === 'edit') setEditing(site); if (key === 'delete') void remove(site); }}>
+                                  <Dropdown.Item id="edit" textValue={t('站点设置')}><Label>{t('站点设置')}</Label></Dropdown.Item>
+                                  <Dropdown.Item id="delete" textValue={t('删除')} variant="danger"><Label>{t('删除')}</Label></Dropdown.Item>
+                                </Dropdown.Menu>
+                              </Dropdown.Popover>
+                            </Dropdown>
+                          )}
+                        </span>
+                      )}
                     </Table.Cell>
                   </Table.Row>
                 ))}

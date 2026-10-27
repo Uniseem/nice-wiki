@@ -17,7 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	_ "nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/pgdb"
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/inbox"
@@ -672,4 +672,32 @@ type journalEntry struct {
 	State     string `json:"state"`
 	DataEpoch string `json:"dataEpoch,omitempty"`
 	At        string `json:"at"`
+}
+
+// SiteLifecycle 返回记忆库和保留期满时的文件清理：站点各条目的正文对象。
+func SiteLifecycle() (*sql.DB, func(context.Context, string) error) {
+	s := CurrentStore()
+	purge := func(ctx context.Context, site string) error {
+		rows, err := s.db.QueryContext(pgdb.WithSite(ctx, site), `SELECT DISTINCT entry_id FROM memory_entries`)
+		if err != nil {
+			return DBError(err)
+		}
+		var entries []string
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				rows.Close()
+				return DBError(err)
+			}
+			entries = append(entries, id)
+		}
+		rows.Close()
+		for _, id := range entries {
+			if err := os.RemoveAll(filepath.Join(s.objectsRoot, id)); err != nil {
+				return platform.NewError(platform.CodeInternal, false, "删除站点记忆文件失败")
+			}
+		}
+		return nil
+	}
+	return s.db, purge
 }

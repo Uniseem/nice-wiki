@@ -68,6 +68,102 @@
       "handler": "traffic-guard.ConsumeIdentityEvent"
     },
     {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "content",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "localization",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "media",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "memory",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "site-config",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "analytics",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "content",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "localization",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "media",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "memory",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "qa",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "site-config",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
       "event": "invocation.reconciled",
       "version": 1,
       "consumer": "analytics",

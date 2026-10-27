@@ -16,6 +16,8 @@
 | `glossary.proposal.applied` | 1 | `memory.HandleGlossaryProposalResult` | 消费glossary.proposal.applied执行本域失效/任务/批准回执；不同步反向请求生产方。 |
 | `glossary.proposal.rejected` | 1 | `memory.HandleGlossaryProposalResult` | 消费glossary.proposal.rejected执行本域失效/任务/批准回执；不同步反向请求生产方。 |
 | `content.publication.changed` | 1 | `memory.CountPublication` | 统计新发布数，达到20篇触发项目概述自动更新 |
+| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 

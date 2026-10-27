@@ -13,6 +13,30 @@
       "delivery": "at-least-once",
       "ordering": "accountId permissionRevision单调",
       "idempotency": "eventId去重"
+    },
+    {
+      "name": "identity.site.changed",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/SiteChangedPayload"
+      },
+      "purpose": "站点下架、恢复、删除：各服务只对正常站点跑后台工作",
+      "delivery": "at-least-once",
+      "ordering": "按站点 revision 单调，只接受更高版本",
+      "idempotency": "按 revision 覆盖，重复无副作用"
+    },
+    {
+      "name": "identity.site.purged",
+      "version": 1,
+      "direction": "publish",
+      "payloadSchema": {
+        "$ref": "types.json#/$defs/SitePurgedPayload"
+      },
+      "purpose": "已删除站点保留期满：各服务删掉该站点的数据和文件，站点名已放出",
+      "delivery": "at-least-once",
+      "ordering": "每个站点最后一个事件",
+      "idempotency": "清除可重复执行"
     }
   ]
 }

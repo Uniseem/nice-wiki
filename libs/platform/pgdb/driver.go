@@ -227,6 +227,9 @@ func ensureSchema(ctx context.Context, config *pgx.ConnConfig, schema string) er
 	if _, err := conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS "+quoteIdent(schema)+".nw_pragma(name text PRIMARY KEY, value bigint NOT NULL)"); err != nil {
 		return err
 	}
+	if _, err := conn.Exec(ctx, siteStateSQL(schema)); err != nil {
+		return err
+	}
 	return upgradePolicies(ctx, conn, schema)
 }
 
@@ -383,22 +386,25 @@ func (c *conn) useSite(ctx context.Context, statement string) error {
 
 var touchCache sync.Map // 组件+语句 -> 是否引用租户表
 
-// touchesTenant 判断语句是否引用了本组件的租户表；建表、改表这类结构语句不受行级安全影响，不算。
+// touchesTenant 判断语句（可以是多条语句的迁移脚本）是否读写了本组件的租户表；
+// 建表、改表这类结构语句不受行级安全影响，不算。
 func touchesTenant(module, statement string) bool {
 	key := module + "\x00" + statement
 	if cached, ok := touchCache.Load(key); ok {
 		return cached.(bool)
 	}
-	tokens := tokenize(statement)
 	found := false
-	if first := nextSig(tokens, -1); first < len(tokens) && !tokens[first].is("CREATE") && !tokens[first].is("ALTER") && !tokens[first].is("DROP") {
-		for _, t := range tokens {
+	for _, part := range splitStatements(tokenize(statement)) {
+		first := nextSig(part, -1)
+		if first >= len(part) || part[first].is("CREATE") || part[first].is("ALTER") || part[first].is("DROP") {
+			continue
+		}
+		for _, t := range part {
 			if t.kind != tkWord && t.kind != tkQuoted {
 				continue
 			}
 			if _, ok := tenantTables.Load(module + "." + strings.ToLower(strings.Trim(t.text, `"`))); ok {
 				found = true
-				break
 			}
 		}
 	}

@@ -2453,6 +2453,9 @@
             "maxLength": 64
           },
           "maxItems": 1000
+        },
+        "purgeAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
         }
       },
       "required": [
@@ -2467,6 +2470,53 @@
         "visitorQaDaily",
         "qaPausedOn",
         "grants"
+      ],
+      "x-v2": true
+    },
+    "SiteChangedPayload": {
+      "type": "object",
+      "description": "站点状态变化（下架、恢复、删除）：各服务据此停掉或恢复该站点的后台工作",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "deleted"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "siteId",
+        "status",
+        "revision"
+      ],
+      "x-v2": true
+    },
+    "SitePurgedPayload": {
+      "type": "object",
+      "description": "已删除站点保留期满：各服务清掉该站点的数据",
+      "additionalProperties": false,
+      "properties": {
+        "siteId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "siteId",
+        "revision"
       ],
       "x-v2": true
     },

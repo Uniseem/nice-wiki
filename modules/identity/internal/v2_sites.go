@@ -38,10 +38,11 @@ func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.Si
 	var s gen.SiteSummary
 	var status, visibility, createdAt string
 	var daily sql.NullInt64
+	var deletedAt sql.NullString
 	err := q.QueryRowContext(ctx, `SELECT site_id,slug,name,status,visibility,created_at,
         COALESCE((SELECT host FROM site_domains WHERE site_id=sites.site_id AND is_primary=1 AND status='verified' LIMIT 1),''),
-        visitor_qa_daily,qa_paused_on
-        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost, &daily, &s.QaPausedOn)
+        visitor_qa_daily,qa_paused_on,deleted_at
+        FROM sites WHERE site_id=?`, siteID).Scan(&s.SiteId, &s.Slug, &s.Name, &status, &visibility, &createdAt, &s.PrimaryHost, &daily, &s.QaPausedOn, &deletedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return s, platform.NewError(platform.CodeNotFound, false, "站点不存在")
 	}
@@ -59,10 +60,14 @@ func siteSummary(ctx context.Context, q sqlQuerier, siteID, role string) (gen.Si
 		s.Grants = []string{}
 	}
 	s.Status, s.Visibility, s.Role, s.CreatedAt = gen.SiteSummaryStatus(status), gen.SiteSummaryVisibility(visibility), gen.SiteSummaryRole(role), parseTS(createdAt)
+	if status == "deleted" && deletedAt.Valid {
+		at := purgeAt(deletedAt.String)
+		s.PurgeAt = &at
+	}
 	return s, nil
 }
 
-// ListMySites 列出当前用户所有的站点和额度。
+// ListMySites 列出当前用户所有的站点和额度；已删除、还在保留期里的站点只列给所有者（用来恢复）。
 func ListMySites(ctx context.Context, op OperationContext, _ struct{}) (gen.ListMySitesResult, error) {
 	if err := requireAdminActor(op); err != nil {
 		return gen.ListMySitesResult{}, err
@@ -76,7 +81,7 @@ func ListMySites(ctx context.Context, op OperationContext, _ struct{}) (gen.List
 		return gen.ListMySitesResult{}, err
 	}
 	rows, err := store.db.QueryContext(ctx, `SELECT m.site_id,m.role FROM site_members m JOIN sites s ON s.site_id=m.site_id
-        WHERE m.user_id=? AND s.status<>'deleted' ORDER BY s.created_at`, userID)
+        WHERE m.user_id=? AND (s.status<>'deleted' OR m.role='owner') ORDER BY s.created_at`, userID)
 	if err != nil {
 		return gen.ListMySitesResult{}, identityDBError()
 	}
@@ -277,7 +282,7 @@ func UpdateSite(ctx context.Context, op OperationContext, input UpdateSiteCmd) (
 	return gen.SiteResult{Site: s}, err
 }
 
-// DeleteSite 软删除站点（名称保留，域名失效）；只有所有者能做。
+// DeleteSite 删除站点：立即下线（公开页 410，后台进不去），保留 siteRetention，期内所有者可以恢复；只有所有者能做。
 func DeleteSite(ctx context.Context, op OperationContext, input SiteRef) (gen.RemovedResult, error) {
 	store, ok := identityStoreFromContext(ctx)
 	if !ok {
@@ -293,7 +298,19 @@ func DeleteSite(ctx context.Context, op OperationContext, input SiteRef) (gen.Re
 	if role != "owner" {
 		return gen.RemovedResult{}, platform.NewError(platform.CodeForbidden, false, "只有所有者能删除站点")
 	}
-	if _, err := store.db.ExecContext(ctx, `UPDATE sites SET status='deleted', revision=revision+1, updated_at=? WHERE site_id=?`, platform.Now(), input.SiteID); err != nil {
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return gen.RemovedResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	now := platform.Now()
+	if _, err := tx.ExecContext(ctx, `UPDATE sites SET restore_status=status, status='deleted', deleted_at=?, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted'`, now, now, input.SiteID); err != nil {
+		return gen.RemovedResult{}, identityDBError()
+	}
+	if err := announceSite(ctx, tx, op.DataEpoch, input.SiteID); err != nil {
+		return gen.RemovedResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
 		return gen.RemovedResult{}, identityDBError()
 	}
 	return gen.RemovedResult{Removed: true}, nil

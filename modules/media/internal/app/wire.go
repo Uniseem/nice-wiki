@@ -17,6 +17,7 @@ import (
 	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	mediaDomain "nice-wiki/modules/media/internal"
 	"nice-wiki/modules/media/internal/gen"
 	"nice-wiki/modules/media/internal/transport"
@@ -125,7 +126,11 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	if err != nil {
 		return nil, err
 	}
-	application.InstallBackgroundTasks(background)
+	db, purge, err := mediaDomain.SiteLifecycle()
+	if err != nil {
+		return nil, err
+	}
+	application.InstallBackgroundTasks(append(background, sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: db, Events: events.Consumer(), Runtime: runtimeClient.ReadRuntimeState, Purge: purge})))
 	complete = true
 	return application, nil
 }

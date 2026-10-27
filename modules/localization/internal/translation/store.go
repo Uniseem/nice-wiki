@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"nice-wiki/libs/platform"
+	"nice-wiki/libs/platform/pgdb"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/language"
 	localizationruntime "nice-wiki/modules/localization/internal/runtime"
@@ -235,4 +236,28 @@ func WriteObject(ctx context.Context, tx *sql.Tx, op OperationContext, object Tr
 		}
 	}
 	return object, nil
+}
+
+// PurgeSiteObjects 删掉站点的译文对象文件（保留期满清除时调用，可重复执行）。
+func PurgeSiteObjects(ctx context.Context, db *sql.DB, root, site string) error {
+	rows, err := db.QueryContext(pgdb.WithSite(ctx, site), `SELECT DISTINCT target_language, json_extract(publication_ref,'$.documentId') FROM translation_manifests`)
+	if err != nil {
+		return language.StorageError(err)
+	}
+	var directories []string
+	for rows.Next() {
+		var tag, document string
+		if err := rows.Scan(&tag, &document); err != nil {
+			rows.Close()
+			return language.StorageError(err)
+		}
+		directories = append(directories, filepath.Join(root, "active", "objects", tag, document))
+	}
+	rows.Close()
+	for _, directory := range directories {
+		if err := os.RemoveAll(directory); err != nil {
+			return language.StorageError(err)
+		}
+	}
+	return nil
 }

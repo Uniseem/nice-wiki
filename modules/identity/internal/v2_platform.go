@@ -313,7 +313,22 @@ func SetSiteStatus(ctx context.Context, op OperationContext, input SetSiteStatus
 	if !ok {
 		return gen.AdminSiteResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "身份存储尚未装配")
 	}
-	if _, err := store.db.ExecContext(ctx, `UPDATE sites SET status=?, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted'`, string(input.Body.Status), platform.Now(), input.SiteID); err != nil {
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return gen.AdminSiteResult{}, identityDBError()
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `UPDATE sites SET status=?, revision=revision+1, updated_at=? WHERE site_id=? AND status<>'deleted' AND status<>?`,
+		string(input.Body.Status), platform.Now(), input.SiteID, string(input.Body.Status))
+	if err != nil {
+		return gen.AdminSiteResult{}, identityDBError()
+	}
+	if changed, _ := result.RowsAffected(); changed > 0 {
+		if err := announceSite(ctx, tx, op.DataEpoch, input.SiteID); err != nil {
+			return gen.AdminSiteResult{}, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		return gen.AdminSiteResult{}, identityDBError()
 	}
 	s, err := adminSite(ctx, store.db, input.SiteID)
@@ -427,8 +442,12 @@ func ResolveReport(ctx context.Context, op OperationContext, input ResolveReport
 			return gen.ReportResult{}, platform.NewError(platform.CodeNotFound, false, "站点不存在")
 		}
 		status = "takedown"
+		affected := []string{report.SiteId}
 		if input.Body.Action == "ban_owner" {
 			status = "banned"
+			if affected, err = ownedSites(ctx, tx, ownerID, "active"); err != nil {
+				return gen.ReportResult{}, err
+			}
 			if _, err := tx.ExecContext(ctx, `UPDATE sites SET status='suspended', revision=revision+1, updated_at=? WHERE owner_user_id=? AND status='active'`, platform.Now(), ownerID); err != nil {
 				return gen.ReportResult{}, identityDBError()
 			}
@@ -441,6 +460,11 @@ func ResolveReport(ctx context.Context, op OperationContext, input ResolveReport
 			}
 		} else if _, err := tx.ExecContext(ctx, `UPDATE sites SET status='suspended', revision=revision+1, updated_at=? WHERE site_id=?`, platform.Now(), report.SiteId); err != nil {
 			return gen.ReportResult{}, identityDBError()
+		}
+		for _, site := range affected {
+			if err := announceSite(ctx, tx, op.DataEpoch, site); err != nil {
+				return gen.ReportResult{}, err
+			}
 		}
 		if err := tx.Commit(); err != nil {
 			return gen.ReportResult{}, identityDBError()

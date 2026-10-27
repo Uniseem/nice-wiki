@@ -15,7 +15,9 @@ import (
 	"nice-wiki/libs/platform/lifecycle"
 	"nice-wiki/libs/platform/modelclient"
 	"nice-wiki/libs/platform/pgdb"
+	"nice-wiki/libs/platform/queue"
 	"nice-wiki/libs/platform/serviceauth"
+	"nice-wiki/libs/platform/sitestate"
 	"nice-wiki/modules/localization/internal/gen"
 	"nice-wiki/modules/localization/internal/glossary"
 	interfacecatalog "nice-wiki/modules/localization/internal/interface"
@@ -169,8 +171,19 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		}
 	}
 	application := transport.NewApplication(config, anchors, runtimeAuthority, view.DataEpoch)
+	events, err := queue.ForConfig(ctx, config)
+	if err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	readRuntime := func(c context.Context) (platform.RuntimeView, error) {
+		return lifecycle.ReadRuntime(c, runtimeAuthority)
+	}
+	purgeObjects := func(c context.Context, site string) error {
+		return translation.PurgeSiteObjects(c, store.DB(), store.Root(), site)
+	}
 	// 逐个站点做：补英文、自动翻译。站点列表取自本库里有语言记录的站点。
-	application.SetBackgroundTasks([]platform.BackgroundTask{{Name: "localization.auto-translate", Run: func(work context.Context) error {
+	application.SetBackgroundTasks([]platform.BackgroundTask{sitestate.Task(sitestate.Config{Module: ModuleSlug, DB: store.DB(), Events: events.Consumer(), Runtime: readRuntime, Purge: purgeObjects}), {Name: "localization.auto-translate", Run: func(work context.Context) error {
 		return lifecycle.RunRecoveryLoop(work, platform.RecoveryLoopConfig{PollMillis: 10000, Runtime: func(c context.Context) (platform.RuntimeView, error) {
 			return lifecycle.ReadRuntime(c, runtimeAuthority)
 		}, WriteWindow: func(context.Context) (time.Time, error) { return time.Time{}, nil }, Recover: func(tick context.Context) error {

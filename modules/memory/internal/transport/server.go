@@ -41,7 +41,19 @@ type Application struct {
 	shutdownOnce sync.Once
 	shutdownErr  error
 	httpServer   *http.Server
+	tasks        []platform.BackgroundTask
 }
+
+// SetBackgroundTasks 装配后台任务；统一进程模板在装配成功后启动，关闭前先停入口、等任务退出。
+func (a *Application) SetBackgroundTasks(tasks []platform.BackgroundTask) { a.tasks = tasks }
+
+// BackgroundTasks 返回已装配的后台任务。
+func (a *Application) BackgroundTasks() []platform.BackgroundTask {
+	return append([]platform.BackgroundTask(nil), a.tasks...)
+}
+
+// Drain 停止 HTTP 入口并等待在途响应（与 Shutdown 同一次关闭，记忆库由运行存储自己关）。
+func (a *Application) Drain(ctx context.Context) error { return Shutdown(ctx, a) }
 
 // NewApplication 组装匿名控制路由。当前业务 handler 尚未实现，
 // BuildApplication 会在调用该构造器前按合同返回 DEPENDENCY_UNAVAILABLE。

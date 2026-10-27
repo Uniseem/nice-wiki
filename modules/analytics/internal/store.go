@@ -387,7 +387,11 @@ func (rt *Runtime) Sites(ctx context.Context) []*Runtime {
 	if rt.base != nil {
 		base = rt.base
 	}
-	result := []*Runtime{base}
+	inactive, _ := pgdb.InactiveSites(ctx, base.DB)
+	var result []*Runtime
+	if !inactive[base.SiteID] {
+		result = append(result, base)
+	}
 	seen := map[string]bool{base.SiteID: true}
 	known, _ := pgdb.Sites(ctx, base.DB)
 	base.sitesMu.Lock()
@@ -396,7 +400,7 @@ func (rt *Runtime) Sites(ctx context.Context) []*Runtime {
 	}
 	base.sitesMu.Unlock()
 	for _, site := range known {
-		if seen[site] || !platform.ValidIdentifier(site) {
+		if seen[site] || inactive[site] || !platform.ValidIdentifier(site) {
 			continue
 		}
 		seen[site] = true
