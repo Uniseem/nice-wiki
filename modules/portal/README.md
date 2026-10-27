@@ -10,7 +10,6 @@
 - [docs/api.md](docs/api.md)
 - [docs/workflows.md](docs/workflows.md)
 - [docs/files.md](docs/files.md)
-- [docs/functions.md](docs/functions.md)
 - [docs/operations.md](docs/operations.md)
 - [docs/acceptance.md](docs/acceptance.md)
 

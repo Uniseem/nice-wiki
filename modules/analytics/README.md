@@ -8,7 +8,6 @@
 - [HTTP/SSE协议](docs/api.md)
 - [流程和状态机](docs/workflows.md)
 - [未来文件目录](docs/files.md)
-- [函数输入输出与行为](docs/functions.md)
 - [运维及恢复](docs/operations.md)
 - [未来行为验收](docs/acceptance.md)
 

@@ -2,7 +2,7 @@
 
 状态机：Language: disabled→enabled→disabled。Translation: queued→running→review→ready|superseded|failed|cancelled；ready→stale。Unit: untranslated→machine|human；human具有protected布尔值。GlossaryProposal: accepted→applied|rejected。
 
-逐函数的输入、输出与步骤见 [functions.md](functions.md)，本文件只写状态机、跨函数流程与规则。
+本文件只写状态机、跨流程规则。
 
 <!-- flows:start -->
 ## 入口与后台流程

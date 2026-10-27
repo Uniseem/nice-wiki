@@ -10,7 +10,7 @@
 - 各服务的 RelayOutbox、ConsumeEvents、RunWorker、InvokeModel、main、BuildApplication、Serve 等约束函数只装配本域参数并调用本库。
 - 改动本库视为公共契约变更，改完跑 `make build` 确认所有服务仍能编译。
 
-资料：[函数合同](docs/functions.md)、[文件目录](docs/files.md)、[机器合同](contracts/implementation.json)、[类型](contracts/types.json)。
+资料：[文件目录](docs/files.md)、[机器合同](contracts/implementation.json)、[类型](contracts/types.json)。
 
 ServiceConfig的可选`masterKeyRef`（环境覆盖`NW_MASTER_KEY_REF`）只传递部署主密钥绝对路径；配置加载不打开密钥，使用域按具体加密操作读取。
 

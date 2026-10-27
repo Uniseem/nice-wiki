@@ -10,7 +10,6 @@
 - [api](docs/api.md)
 - [workflows](docs/workflows.md)
 - [files](docs/files.md)
-- [functions](docs/functions.md)
 - [operations](docs/operations.md)
 - [product-matrix](docs/product-matrix.md)
 - [acceptance](docs/acceptance.md)

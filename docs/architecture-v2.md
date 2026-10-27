@@ -390,3 +390,4 @@
 - **edge**：已实现页面缓存（默认 10 秒 TTL，上游说 no-cache 也按短缓存处理）、单飞、令牌桶限流、流式透传、按域名清缓存接口；发布、站点设置与域名变化后 portal 会通知 edge 按站点或域名清缓存；人机验证、访问记录攒批、媒体磁盘缓存还留在 portal。
 - **导入、导出、备份、Git**：Markdown、GitBook、Notion、本站导出包导入（导入的都是草稿）；整站导出；S3、WebDAV 与海外网盘（Google Drive、OneDrive、Dropbox）备份目标（手动、每天、每周、保留份数）；Git 推送（只含已发布内容，发布后自动推送）与拉取。网盘只用假的网盘服务验证过授权、令牌换发和上传流程，没有拿真实账号与真实接口联调（平台设置里要先填各家的 OAuth 应用）；用户站点的备份每次是完整导出包（内容没变就不再上传新的一份，不做块级增量），恢复就是导入导出包；全平台备份用 `deploy/backup.sh`（正文与媒体增量复制、可选加密、可经 rclone 同步到异地）与 `deploy/restore.sh`（停机恢复）。
 - **部署**：`scripts/gen_deploy.py` 生成每个进程的 Dockerfile、编排、Caddyfile（按需证书）、密钥初始化与备份恢复脚本；已在 NL 上用 `docker compose` 实际构建全部镜像并起了一套（不含 Caddy，经 edge 访问），跑通首次初始化、发布、公开页、多用户建站和按需证书询问。发布流程（`scripts/release.sh` 与 GitHub Actions）已改成按进程出镜像、Rust 在原生 amd64 与 arm64 机器上编 musl 静态程序，但还没真正发过版。
+- **合同文件**：函数级登记和各模块的 `functions.md` 已删除；`implementation.json` 没有整个删掉，因为代码生成还要读它里面的文件登记（决定生成哪些文件）、`consumes`（本域调用的其他域接口，用来生成客户端）、任务类型和后台任务。

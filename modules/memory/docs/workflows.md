@@ -2,7 +2,7 @@
 
 状态机：Entry: active→archived；版本修订不可变。Mapping: enabled|disabled。Assistant: queued→running→review→completed|cancelled|failed|superseded。Proposal: pending→approved→applying→applied|rejected|conflicted；拒绝pending→rejected，批准后不自动回滚。
 
-逐函数的输入、输出与步骤见 [functions.md](functions.md)，本文件只写状态机、跨函数流程与规则。
+本文件只写状态机、跨流程规则。
 
 <!-- flows:start -->
 ## 入口与后台流程

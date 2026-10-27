@@ -2,7 +2,7 @@
 
 状态机：Turn: admitted→queued→retrieving→generating→completed；任一步→cancelled|failed|invalidated。Cache: pending→approved→active→stale|disabled。Compaction: queued→running→committed|superseded|failed。Conversation: active→expired|deleted。
 
-逐函数的输入、输出与步骤见 [functions.md](functions.md)，本文件只写状态机、跨函数流程与规则。
+本文件只写状态机、跨流程规则。
 
 <!-- flows:start -->
 ## 入口与后台流程

@@ -25,7 +25,7 @@ nice-wiki 是微服务文档站，2026-10-27 起按[新架构设计](docs/archit
 ## 合同
 
 - 每个服务的 contracts/openapi.json 是 HTTP 唯一来源，Go 与 Rust 的接口代码都由它生成；改接口先改 OpenAPI 再 `make gen`。服务间只走版本化 API/事件。
-- 不再维护函数级 implementation.json，新代码不为它登记函数；events.json 只登记事件名称、版本和载荷。现有检查脚本还在校验这些文件时，只做让 `make check` 通过的最小登记；阶段 2 删除函数登记并调整检查。
+- 不再维护函数级 implementation.json，新代码不为它登记函数；events.json 只登记事件名称、版本和载荷。函数登记和 functions.md 已删除，implementation.json 只留文件、`consumes`、任务类型和后台任务，检查脚本已调整。
 - 合同与能跑通的实现冲突时，改合同中被调用方真正依赖的部分，然后继续；不要为了让合同完整而写代码。
 
 ## 架构底线

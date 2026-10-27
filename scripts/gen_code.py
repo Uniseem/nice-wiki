@@ -497,15 +497,8 @@ def operation_index(spec):
 
 
 def needed_operations(impl):
-    """本域函数依赖中的跨域operation，按生产方分组并排序。"""
-    needed = {}
-    for file in impl.get("files", []):
-        for fn in file.get("functions", []):
-            for dep in fn.get("dependencies", []):
-                producer, sep, oid = dep.partition(":")
-                if sep and re.fullmatch(r"[a-z-]+", producer):
-                    needed.setdefault(producer, set()).add(oid)
-    return {p: sorted(ops) for p, ops in sorted(needed.items())}
+    """本域用到的跨域operation（implementation.json 的 consumes），按生产方分组并排序。"""
+    return {p: sorted(ops) for p, ops in sorted(impl.get("consumes", {}).items())}
 
 
 def render_path_expression(path):

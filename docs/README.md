@@ -9,7 +9,7 @@
 3. [服务地图](service-map.md)：十五域与模块入口。
 4. [公共协议](protocols.md)、[数据与一致性](consistency.md)、[依赖图](dependencies.md)、[安全与隐私](security.md)：共同规则。
 5. [界面装配](frontend.md)、[部署与运维](operations.md)：跨模块交付方式。
-6. [文档标准](documentation-standard.md)、[结构契约](structure/README.md)、[函数登记规则](structure/functions.md)：精确到未来文件和函数的要求。
+6. [文档标准](documentation-standard.md)、[结构契约](structure/README.md)：文档与合同格式。
 7. [实施计划](plan.md)、[验收规则](acceptance.md)、[决策记录](adr/README.md)：状态和执行门槛。
 
 ## 模块总文档

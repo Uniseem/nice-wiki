@@ -181,24 +181,24 @@ def check_links(path):
 
 
 def check_modules(modules, permissions, codes, shared=()):
-    functions = {}
     operations = {}
     planned = set()
+    consumed = {}
     shared_slugs = {c['slug'] for c in shared}
     shared_types = {}
     for component in shared:
         types_path = ROOT / component['root'] / 'contracts/types.json'
         if types_path.is_file():
             shared_types[component['slug']] = load_json(types_path).get('$defs', {})
-    count = {'modules': len(modules), 'shared': len(shared), 'files': 0, 'functions': 0, 'operations': 0, 'types': 0}
+    count = {'modules': len(modules), 'shared': len(shared), 'files': 0, 'operations': 0, 'types': 0}
     for module in list(modules) + list(shared):
         slug = module['slug']
         service = slug not in shared_slugs
         folder = ROOT / module['root']
         if service:
-            required = ['README.md', 'AGENTS.md', *['docs/' + n + '.md' for n in ('requirements', 'architecture', 'data', 'api', 'workflows', 'files', 'functions', 'operations', 'acceptance')], *['contracts/' + n + '.json' for n in ('types', 'implementation', 'openapi', 'events')]]
+            required = ['README.md', 'AGENTS.md', *['docs/' + n + '.md' for n in ('requirements', 'architecture', 'data', 'api', 'workflows', 'files', 'operations', 'acceptance')], *['contracts/' + n + '.json' for n in ('types', 'implementation', 'openapi', 'events')]]
         else:
-            required = ['README.md', 'docs/files.md', 'docs/functions.md', 'contracts/implementation.json']
+            required = ['README.md', 'docs/files.md', 'contracts/implementation.json']
         for name in required:
             if not (folder / name).is_file():
                 fail(slug, '缺少模块文件 ' + name)
@@ -208,7 +208,6 @@ def check_modules(modules, permissions, codes, shared=()):
         count['types'] += len(types)
         if impl.get('module') != slug or impl.get('phase') != 'design':
             fail(slug, '模块标识或设计阶段不匹配')
-        local = {}
         for file in impl.get('files', []):
             path = file.get('path', '')
             if not path.startswith(module['root'] + '/') or '..' in Path(path).parts:
@@ -219,47 +218,7 @@ def check_modules(modules, permissions, codes, shared=()):
             count['files'] += 1
             if not file.get('purpose'):
                 fail(path, '缺文件职责')
-            for fn in file.get('functions', []):
-                fid = fn.get('id', '')
-                if fid in functions:
-                    fail(slug, '重复函数ID ' + fid)
-                functions[fid] = (slug, fn)
-                local[fid] = fn
-                count['functions'] += 1
-                fields = ('id', 'name', 'signature', 'inputs', 'outputs', 'purpose', 'steps', 'errors', 'sideEffects', 'authorization', 'concurrency', 'idempotency', 'dependencies', 'contract')
-                for key in fields:
-                    if key not in fn:
-                        fail(fid, '缺函数字段 ' + key)
-                if not fn.get('steps') or not fn.get('purpose') or not fn.get('signature'):
-                    fail(fid, '缺精确作用/签名/步骤')
-                if fid != slug + '.' + fn.get('name', ''):
-                    fail(fid, '函数ID必须为 模块slug.函数名')
-                if fn.get('contract') not in ('binding', 'reference'):
-                    fail(fid, '合同级别只能是binding或reference')
-                if not all(isinstance(r, str) and r for r in fn.get('resources', [])):
-                    fail(fid, 'resources只能是非空说明文字')
-                signature = fn.get('signature', '')
-                operation_input = any('OperationContext' in param.get('type', '') for param in fn.get('inputs', []))
-                if 'RequestContext' in signature:
-                    fail(fid, '签名不得使用RequestContext')
-                if service and fn.get('contract') == 'binding' and signature.startswith('func ') and operation_input and '(ctx context.Context, op OperationContext' not in signature:
-                    fail(fid, 'Go操作函数签名必须以(ctx context.Context, op OperationContext开头')
-                if service and not signature.startswith('func ') and 'OperationContext' in signature:
-                    fail(fid, '浏览器函数不得接收服务端OperationContext')
-                for group in ('inputs', 'outputs'):
-                    for param in fn.get(group, []):
-                        if not all(key in param for key in ('name', 'type', 'description', 'constraints')):
-                            fail(fid, '输入输出字段不完整')
-                        for qualifier, name in contract_type_references(param.get('type', '')):
-                            known = name in types or name in common or name in BUILTINS
-                            if qualifier in ('platform', 'lifecycle', 'outbox'):
-                                known = known or name in shared_types.get('platform', {})
-                            if not known:
-                                fail(fid, '未登记类型 ' + name)
-                for error in fn.get('errors', []):
-                    code = error.get('code') if isinstance(error, dict) else error
-                    if code not in codes:
-                        fail(fid, '未登记错误码 ' + str(code))
+        consumed[slug] = impl.get('consumes', {})
         if not service:
             continue
         api = load_json(folder / 'contracts/openapi.json')
@@ -275,12 +234,8 @@ def check_modules(modules, permissions, codes, shared=()):
                     fail(slug, '缺少或重复operationId ' + route)
                 operations[key] = op
                 count['operations'] += 1
-                if op.get('x-v2'):
-                    pass  # 新架构接口只由 v2-ops.json 展开，不再维护函数级登记
-                elif op.get('x-handler') not in local:
-                    fail(key, '未登记处理函数 ' + str(op.get('x-handler')))
-                elif local[op.get('x-handler')].get('contract') != 'binding':
-                    fail(key, 'HTTP处理函数必须是binding级别')
+                if not op.get('x-v2') and not op.get('x-handler'):
+                    fail(key, '缺处理函数名 x-handler')
                 if op.get('x-permission') not in permissions:
                     fail(key, '未登记权限 ' + str(op.get('x-permission')))
                 declared = {p.get('name') for p in op.get('parameters', []) if p.get('in') == 'path'}
@@ -292,15 +247,11 @@ def check_modules(modules, permissions, codes, shared=()):
         for dep in impl.get('dependencies', []):
             if dep.get('module') not in {m['slug'] for m in modules}:
                 fail(slug, '依赖不存在模块 ' + str(dep.get('module')))
-    for fid, (slug, fn) in functions.items():
-        for dep in fn.get('dependencies', []):
-            if ':' in dep and dep.split(':', 1)[0] in {m['slug'] for m in modules}:
-                if dep not in operations:
-                    fail(fid, '跨域operation不存在 ' + dep)
-            elif dep in functions and functions[dep][0] != slug and functions[dep][0] not in shared_slugs:
-                fail(fid, '直接依赖另域内部函数 ' + dep)
-            elif dep not in functions:
-                fail(fid, '依赖无法解析，须为本域函数ID或 模块:operationId ' + dep)
+    for slug, produced in consumed.items():
+        for producer, names in produced.items():
+            for name in names:
+                if producer + ':' + name not in operations:
+                    fail(slug, '跨域operation不存在 ' + producer + ':' + name)
     return count
 
 
@@ -322,7 +273,7 @@ def check_wiring(modules, shared=()):
             fail('后台偏好', '页面权限必须为已登记且不重复的非空权限集合')
         if not re.fullmatch(r'/admin/[a-z-]+', row.get('path', '')) or not row.get('labelZH') or not row.get('labelEN') or not isinstance(row.get('navigation'), bool):
             fail('后台偏好', '页面路径、标签或导航声明不合法')
-    functions, files, roots, ops, callers = {}, {}, set(), {}, set()
+    ops, callers = {}, set()
     permissions = set(load_json(ROOT / "contracts/permissions.json").get("permissions", []))
     management = load_json(ROOT / "contracts/permission-groups.json").get("jobManagementGrants", [])
     if not isinstance(management, list) or not management or len(management) != len(set(management)) or any(p not in permissions or p in ("anonymous", "service", "job.manage") for p in management):
@@ -330,39 +281,26 @@ def check_wiring(modules, shared=()):
     management = set(management)
     used_management = set()
     for component in shared:
-        for f in load_json(ROOT / component['root'] / 'contracts/implementation.json').get('files', []):
-            for fn in f.get('functions', []):
-                functions[fn.get('id')] = fn
-                files[fn.get('id')] = f.get('path', '')
-    roots.add('platform.main')
+        impl = load_json(ROOT / component['root'] / 'contracts/implementation.json')
+        callers.update(producer + ':' + name for producer, names in impl.get('consumes', {}).items() for name in names)
     for module in modules:
         folder = ROOT / module['root']
         impl = load_json(folder / 'contracts/implementation.json')
-        for f in impl.get('files', []):
-            for fn in f.get('functions', []):
-                functions[fn.get('id')] = fn
-                files[fn.get('id')] = f.get('path', '')
+        callers.update(producer + ':' + name for producer, names in impl.get('consumes', {}).items() for name in names)
         api = load_json(folder / 'contracts/openapi.json')
         for route, methods in api.get('paths', {}).items():
             for method, op in methods.items():
                 if isinstance(op, dict) and op.get('operationId'):
                     key = module['slug'] + ':' + op['operationId']
                     ops[key] = op
-                    roots.add(op.get('x-handler'))
                     if op.get('x-admission') and op.get('x-permission') != 'anonymous':
                         fail(key, 'x-admission只能标在匿名公开接口')
-        for event in load_json(folder / 'contracts/events.json').get('events', []):
-            if event.get('handler'):
-                roots.add(event['handler'])
         slug = module['slug']
-        roots.add(slug + '.main')
-        local = {fn.get('id') for f in impl.get('files', []) for fn in f.get('functions', [])}
         job_types = impl.get('jobTypes')
         background = impl.get('backgroundTasks')
         if not isinstance(job_types, list) or not isinstance(background, list):
             fail(slug, 'implementation缺jobTypes或backgroundTasks清单')
             continue
-        worker = slug + '.RunWorker'
         for event in load_json(folder / 'contracts/events.json').get('events', []):
             if event.get('direction') == 'publish':
                 permission = load_json(ROOT / 'contracts/permission-groups.json').get('eventManagementPermissions', {}).get(slug)
@@ -376,36 +314,14 @@ def check_wiring(modules, shared=()):
                 fail(slug, "任务缺少已登记的具体managementPermission " + str(job.get("type")))
             else:
                 used_management.add(permission)
-            if not str(job.get('type', '')).startswith(slug + '.') or job.get('executor') not in local or not job.get('trigger'):
+            if not str(job.get('type', '')).startswith(slug + '.') or not job.get('executor') or not job.get('trigger'):
                 fail(slug, 'jobTypes条目不合法 ' + str(job.get('type')))
-            elif worker not in local or job['executor'] not in functions[worker].get('dependencies', []):
-                fail(slug, '任务执行函数未挂在本域RunWorker ' + job['executor'])
-            elif functions[job['executor']].get('contract') != 'binding':
-                fail(job['executor'], '任务执行函数必须是binding级别')
-        build = functions.get(slug + '.BuildApplication', {})
         for task in background:
-            if task.get('function') not in local or not task.get('schedule'):
+            if not task.get('function') or not task.get('schedule'):
                 fail(slug, 'backgroundTasks条目不合法 ' + str(task.get('function')))
-            elif task['function'] not in build.get('dependencies', []):
-                fail(slug, '后台任务未挂在BuildApplication ' + task['function'])
-        if any(j.get('schedule') for j in job_types) and 'jobs:createSchedule' not in build.get('dependencies', []):
-            fail(slug, '有系统定时任务但BuildApplication未登记jobs:createSchedule')
     if used_management != management:
         fail("任务管理权限", "jobManagementGrants必须与任务类型及事件生产方的具体管理权限集合一致")
-    for fn in functions.values():
-        callers.update(d for d in fn.get('dependencies', []) if ':' in d)
-    seen, stack = set(), list(roots)
-    while stack:
-        fid = stack.pop()
-        if fid in seen or fid not in functions:
-            continue
-        seen.add(fid)
-        for dep in functions[fid].get('dependencies', []):
-            stack.append(ops.get(dep, {}).get('x-handler') if ':' in dep else dep)
-    for fid in functions:
-        if fid not in seen and not files[fid].endswith(('.ts', '.tsx')):
-            fail(fid, '从任何入口都不可达（接口处理、事件处理、启动入口）')
-    generic = ('acquireBarrier', 'releaseBarrier', 'exportSnapshot', 'stageSnapshot', 'discardSnapshot', 'health', 'ready')
+    generic = ('health', 'ready')
     for key, op in ops.items():
         if op.get('x-permission') == 'service' and not op.get('x-v2') and key.split(':', 1)[1] not in generic and key not in callers:
             fail(key, 'service接口没有任何调用方')
@@ -430,10 +346,9 @@ def check_events(modules):
         path = ROOT / module['root'] / 'contracts/events.json'
         data = load_json(path)
         impl = load_json(ROOT / module['root'] / 'contracts/implementation.json')
-        local = {fn.get('id'): fn for f in impl.get('files', []) for fn in f.get('functions', [])}
-        deps = {d for fn in local.values() for d in fn.get('dependencies', [])}
+        deps = {producer + ':' + name for producer, names in impl.get('consumes', {}).items() for name in names}
         directions = {event.get('direction') for event in data.get('events', [])}
-        if 'consume' in directions and not any({'jobs:subscribeEvents', 'jobs:acknowledgeEvent'} <= set(fn.get('dependencies', [])) for fn in local.values()):
+        if 'consume' in directions and not {'jobs:subscribeEvents', 'jobs:acknowledgeEvent'} <= deps:
             fail(module['slug'], '消费事件但没有调用jobs订阅与确认的订阅循环')
         if module['slug'] != 'jobs' and 'publish' in directions and 'jobs:publishEvent' not in deps:
             fail(module['slug'], '生产事件但没有把outbox转交jobs的转发函数')
@@ -441,11 +356,8 @@ def check_events(modules):
             fail(module['slug'], '调用jobs:publishEvent但未在events.json登记生产事件')
         for event in data.get('events', []):
             if event.get('direction') == 'consume':
-                handler = local.get(event.get('handler'))
-                if not handler:
+                if not event.get('handler'):
                     fail(module['slug'] + ':' + str(event.get('name')), '消费事件缺本域处理函数handler')
-                elif handler.get('contract') != 'binding':
-                    fail(module['slug'] + ':' + str(event.get('name')), '事件处理函数必须是binding级别')
             key = (event.get('name'), event.get('version'))
             label = module['slug'] + ':' + str(key[0])
             for field in ('name', 'version', 'direction', 'payloadSchema', 'purpose', 'delivery', 'ordering', 'idempotency'):
