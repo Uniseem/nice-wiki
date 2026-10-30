@@ -101,7 +101,7 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 	if err = db.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&version); err != nil {
 		return nil, storageError(err)
 	}
-	if version > 7 {
+	if version > 8 {
 		return nil, platform.NewError(platform.CodeUnsupportedSchema, false, "统计schema高于当前版本")
 	}
 	if version == 0 {
@@ -250,6 +250,22 @@ func OpenStore(ctx context.Context, root, siteID, epoch string, key platform.Sig
 		}
 		defer tx.Rollback()
 		if _, e = tx.ExecContext(ctx, migrations.Visitors); e != nil {
+			return nil, storageError(e)
+		}
+		if e = tx.Commit(); e != nil {
+			return nil, storageError(e)
+		}
+	}
+	if version < 8 {
+		tx, e := db.BeginTx(ctx, nil)
+		if e != nil {
+			return nil, storageError(e)
+		}
+		defer tx.Rollback()
+		if _, e = tx.ExecContext(ctx, migrations.SiteKeys); e != nil {
+			return nil, storageError(e)
+		}
+		if _, e = tx.ExecContext(ctx, `PRAGMA user_version=8`); e != nil {
 			return nil, storageError(e)
 		}
 		if e = tx.Commit(); e != nil {

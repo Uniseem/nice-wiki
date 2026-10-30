@@ -40,6 +40,7 @@ var globalTables = map[string]bool{
 var siteKeyTables = map[string]bool{
 	"daily_usage": true, "aggregation_watermarks": true, "qa_turn_counts": true, "aggregate_runs": true, "beacon_period_watermarks": true,
 	"aggregate_jobs": true, "languages": true, "interface_catalog": true, "interface_sources": true, "audit_anchors": true,
+	"hourly_page_counts": true, "daily_page_counts": true, "daily_page_dimensions": true, "crawler_counts": true, "language_suggestions": true,
 }
 
 var (

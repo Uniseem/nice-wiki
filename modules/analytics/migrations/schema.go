@@ -37,3 +37,8 @@ var UsageStatisticsV2 string
 //
 //go:embed 0007_visitors.sql
 var Visitors string
+
+// SiteKeys 把页面计数和爬虫计数的主键并入 site_id。
+//
+//go:embed 0008_site_keys.sql
+var SiteKeys string
