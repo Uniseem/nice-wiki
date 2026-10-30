@@ -1113,6 +1113,25 @@
         "visitorId"
       ]
     },
+    "IngestBeaconBatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "入口攒批转交的一批访问信标（同一站点、同一数据代次）",
+      "properties": {
+        "beacons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/IngestBeaconInput"
+          },
+          "description": "信标"
+        }
+      },
+      "required": [
+        "beacons"
+      ]
+    },
     "IngestBeaconResult": {
       "type": "object",
       "additionalProperties": false,

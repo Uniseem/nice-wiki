@@ -15,6 +15,7 @@ use hyper::body::Incoming;
 use hyper::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::{Method, Request, Response, StatusCode};
 
+use crate::beacons::{self, Beacons};
 use crate::net::{budget_scopes, client_address, login_scopes, Cidr};
 use crate::platform::{self, canonical, new_id, now_plus, parse_time, sha256_hex, sign_delegation, timestamp, valid_identifier, AuthContext, Key, Problem, ServiceConfig, TrustAnchors};
 use crate::routes::{Matched, Registry};
@@ -39,6 +40,7 @@ pub struct Gateway {
     /// 部署时配置的公开地址（scheme://host[:port]）与它的主机名。
     public_origin: Option<String>,
     pub bootstrap_host: Option<String>,
+    pub beacons: Beacons,
 }
 
 pub struct Paths<'a> {
@@ -74,6 +76,7 @@ impl Gateway {
             hosts: HostCache::default(),
             default_site: Mutex::new(String::new()),
             public_origin, bootstrap_host,
+            beacons: Beacons::default(),
         })
     }
 
@@ -484,13 +487,10 @@ impl Gateway {
         } else if !route.admission.is_empty() {
             return Err(Problem::new("DEPENDENCY_UNAVAILABLE", "公开准入服务尚未装配"));
         }
-        let mut target_path = req.path.clone();
         if action == "analytics:ingestBeacon" {
-            body = self.trusted_beacon(req, &body, &op, extra)?;
-            target_path = "/v1/internal/beacons".into();
-            op.site_id = req.site.clone();
-            op.cost_class.clear();
-            proof = None;
+            let beacon = self.trusted_beacon(req, &body, &op, extra)?;
+            self.beacons.push(&req.site, &op.data_epoch, beacon);
+            return Ok((full(StatusCode::NO_CONTENT, "", Bytes::new()), route.owner.clone(), route.operation.clone()));
         }
         // 转发头：白名单内的业务头、语言切换器选的语言、语言建议用的访客国家。
         let mut headers = HeaderMap::new();
@@ -522,7 +522,7 @@ impl Gateway {
         if req.query.contains(['#', '\r', '\n']) {
             return Err(Problem::new("VALIDATION", "查询参数不合法"));
         }
-        let target = if req.query.is_empty() { target_path } else { format!("{target_path}?{}", req.query) };
+        let target = if req.query.is_empty() { req.path.clone() } else { format!("{}?{}", req.path, req.query) };
         let timeout = Duration::from_millis(route.timeout_ms.max(100));
         let upstream = self.upstream.send(Call { owner: &route.owner, method: req.method.clone(), target: &target, body, headers, proof: proof.as_deref(), timeout }, &op).await?;
         let revocation = action == "identity:revokeSession" && !current_session.is_empty() && matched.parameter("sessionId") == Some(current_session.as_str());
@@ -634,8 +634,8 @@ impl Gateway {
         Ok(permit)
     }
 
-    /// 访问统计信标：补上可信代理链取得的访客地址、客户端信息、数据代次和本站随机 cookie 区分的访客标识。
-    fn trusted_beacon(&self, req: &Inbound, body: &[u8], op: &Operation, extra: &mut HeaderMap) -> Result<Bytes, Problem> {
+    /// 访问统计信标：校验访客正文，补上可信代理链取得的访客地址、客户端信息、数据代次和本站随机 cookie 区分的访客标识，交给攒批。
+    fn trusted_beacon(&self, req: &Inbound, body: &[u8], op: &Operation, extra: &mut HeaderMap) -> Result<serde_json::Value, Problem> {
         if body.len() > 2048 {
             return Err(Problem::new("BUDGET_EXCEEDED", "统计正文超出上限"));
         }
@@ -644,17 +644,13 @@ impl Gateway {
         if agent.len() > 1024 {
             return Err(Problem::new("VALIDATION", "统计客户端信息不合法"));
         }
-        let mut fields: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(body).map_err(|_| Problem::new("VALIDATION", "统计正文不可读"))?;
+        let mut fields = beacons::parse(body)?;
         let visitor = self.analytics_visitor(req, extra);
         fields.insert("peerAddress".into(), peer.to_string().into());
         fields.insert("userAgent".into(), agent.into());
         fields.insert("dataEpoch".into(), op.data_epoch.clone().into());
         fields.insert("visitorId".into(), visitor.into());
-        let encoded = canonical(&serde_json::Value::Object(fields));
-        if encoded.len() > 4096 {
-            return Err(Problem::new("BUDGET_EXCEEDED", "内部统计正文超出上限"));
-        }
-        Ok(Bytes::from(encoded))
+        Ok(serde_json::Value::Object(fields))
     }
 
     /// 用本站随机 cookie 区分访客；不按 IP 或设备指纹合并，不作为授权身份。

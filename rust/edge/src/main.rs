@@ -7,10 +7,12 @@
 //!   发布、改站点设置等写入成功后按站点清掉。
 //! - 限流：按客户端 IP 的令牌桶，读写分开；超限返回 429。
 //! - 媒体磁盘缓存：带内容哈希的媒体字节落盘，按最近使用淘汰（配置 mediaDiskDir 才开启）。
+//! - 访问统计信标：校验后在内存里攒批，每 2 秒按站点成批交给 analytics。
 //! - 流式透传：不缓存的响应（问答的 SSE 等）原样流式转发，不攒包。
 //! - 后台单页应用与公开页静态文件、举报页、Caddy 按需证书的询问接口。
 //! 不做 TLS（证书由前面的 Caddy 按需签发）。
 
+mod beacons;
 mod cache;
 mod config;
 mod disk;
@@ -37,6 +39,8 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&config.listen).await.with_context(|| format!("监听 {} 失败", config.listen))?;
     let state = Arc::new(proxy::State::new(config)?);
     eprintln!("nw-edge 已启动 {}", state.config.listen);
+    let flusher = state.clone();
+    tokio::spawn(async move { flusher.gateway.beacons.run(&flusher.gateway.upstream).await });
     loop {
         tokio::select! {
             accepted = listener.accept() => {

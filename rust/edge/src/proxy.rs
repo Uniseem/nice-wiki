@@ -24,7 +24,7 @@ pub struct State {
     cache: Cache,
     disk: Option<Arc<DiskCache>>,
     limiter: Limiter,
-    gateway: Gateway,
+    pub gateway: Gateway,
     inflight: Mutex<HashMap<String, Arc<Notify>>>,
 }
 

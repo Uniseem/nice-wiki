@@ -925,8 +925,8 @@
     "/v1/internal/beacons": {
       "post": {
         "operationId": "ingestTrustedBeacon",
-        "summary": "可信portal匿名访问转交",
-        "description": "仅portal纯服务签正文；peerAddress为已解析规范IP，不读代理头；原地址与UA只内存使用。204不泄漏排队或爬虫判定。",
+        "summary": "可信入口匿名访问批量转交",
+        "description": "仅入口（portal 身份）纯服务签正文，一批最多200条，同一站点与数据代次；peerAddress为已解析规范IP，不读代理头；原地址与UA只内存使用。单条语义不合格的信标跳过，204不泄漏排队或爬虫判定。",
         "x-handler": "analytics.IngestBeacon",
         "x-permission": "service",
         "x-data-epoch-required": true,
@@ -960,7 +960,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "./types.json#/$defs/IngestBeaconInput"
+                "$ref": "./types.json#/$defs/IngestBeaconBatch"
               }
             }
           }

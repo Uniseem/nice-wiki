@@ -327,21 +327,28 @@ func (s *server) RecordCrawlerAccess(w http.ResponseWriter, r *http.Request, par
 	_ = json.NewEncoder(w).Encode(result)
 }
 
-// IngestTrustedBeacon的全部正文由portal服务签名；本域不读取代理链或原始UA头。
+// IngestTrustedBeacon 接收入口攒好的一批信标，全部正文由入口服务签名；本域不读取代理链或原始UA头。
+// 单条语义不合格（访问类型、来源域名）只跳过这一条，不连累同批其他访客。
 func (s *server) IngestTrustedBeacon(w http.ResponseWriter, r *http.Request, params gen.IngestTrustedBeaconParams) {
 	op, ok := platform.OperationContextFrom(r.Context())
 	if !ok {
 		writeProblem(w, r, platform.NewError(platform.CodeUnauthenticated, false, "缺少可信上下文"))
 		return
 	}
-	var input analytics.IngestBeaconInput
+	var input struct {
+		Beacons []analytics.IngestBeaconInput `json:"beacons"`
+	}
 	if json.NewDecoder(r.Body).Decode(&input) != nil {
 		writeProblem(w, r, platform.NewError(platform.CodeValidation, false, "可信访问正文不可读"))
 		return
 	}
-	if _, err := analytics.IngestBeacon(analytics.WithRuntime(r.Context(), s.app.storage), op, input); err != nil {
-		writeProblem(w, r, err)
-		return
+	ctx := analytics.WithRuntime(r.Context(), s.app.storage)
+	for _, beacon := range input.Beacons {
+		var problem *platform.Error
+		if _, err := analytics.IngestBeacon(ctx, op, beacon); err != nil && !(errors.As(err, &problem) && problem.Code == platform.CodeValidation) {
+			writeProblem(w, r, err)
+			return
+		}
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)

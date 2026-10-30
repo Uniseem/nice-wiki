@@ -232,8 +232,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 可信portal匿名访问转交
-         * @description 仅portal纯服务签正文；peerAddress为已解析规范IP，不读代理头；原地址与UA只内存使用。204不泄漏排队或爬虫判定。
+         * 可信入口匿名访问批量转交
+         * @description 仅入口（portal 身份）纯服务签正文，一批最多200条，同一站点与数据代次；peerAddress为已解析规范IP，不读代理头；原地址与UA只内存使用。单条语义不合格的信标跳过，204不泄漏排队或爬虫判定。
          */
         post: operations["ingestTrustedBeacon"];
         delete?: never;
@@ -718,6 +718,11 @@ export interface components {
             /** @description 不可复用的站点代次/密钥代次标识；不使用整数比较新旧 */
             dataEpoch: components["schemas"]["Identifier"];
             visitorId: string;
+        };
+        /** @description 入口攒批转交的一批访问信标（同一站点、同一数据代次） */
+        IngestBeaconBatch: {
+            /** @description 信标 */
+            beacons: components["schemas"]["IngestBeaconInput"][];
         };
         /** @description 已授权过滤范围生成CSV引用，最多10万行；可信actor/epoch/peer由鉴权及runtime上下文提供，不接受客户端自声明 */
         CreateAuditExportRequestBody: {
@@ -1883,7 +1888,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IngestBeaconInput"];
+                "application/json": components["schemas"]["IngestBeaconBatch"];
             };
         };
         responses: {

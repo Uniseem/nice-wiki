@@ -21,7 +21,7 @@
 | GET `/v1/statistics/content-gaps` | `queryContentGaps` | `analytics.QueryContentGaps` | `stats.read` | `—` → 200 `QueryContentGapsResult` | 热门文档与答不出问题联动 | `FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |
 | GET `/healthz` | `health` | `analytics.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `analytics.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
-| POST `/v1/internal/beacons` | `ingestTrustedBeacon` | `analytics.IngestBeacon` | `service` | `IngestBeaconInput` → 204 `—` | 可信portal匿名访问转交 | `VALIDATION`、`VERSION_MISMATCH` |
+| POST `/v1/internal/beacons` | `ingestTrustedBeacon` | `analytics.IngestBeacon` | `service` | `IngestBeaconBatch` → 204 `—` | 可信入口匿名访问批量转交 | `VALIDATION`、`VERSION_MISMATCH` |
 | POST `/v1/audit-exports` | `createAuditExport` | `analytics.CreateExport` | `audit.read` | `CreateAuditExportRequestBody` → 200 `CreateExportResult` | 当前审计权限私有CSV导出 | `FORBIDDEN`、`VALIDATION` |
 | GET `/v1/statistics/exports/{exportId}` | `downloadStatisticsExport` | `analytics.OpenExport` | `stats.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
 | GET `/v1/audit-exports/{exportId}` | `downloadAuditExport` | `analytics.OpenExport` | `audit.read` | `—` → 200 `text/csv` | 当前权限同主体私有CSV下载 | `HTTP 400`、`HTTP 401`、`HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 410`、`HTTP 422`、`HTTP 503` |
