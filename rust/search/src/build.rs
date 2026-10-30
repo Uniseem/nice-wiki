@@ -383,8 +383,13 @@ async fn execute(state: &State, job: &Job) -> Result<(), Problem> {
 
 /// 背景短句：按章节分批，每批带全文目录和所在章节原文；命中缓存的片段不再调用模型。
 async fn enrich(state: &State, op: &Operation, job: &Job, body: &Value, chunks: &mut [Chunk]) -> Result<(), Problem> {
+    let route = match sites::route(state, op, "knowledge.context").await {
+        Ok(route) => route,
+        // 站点所有者没有可用的对话渠道：不加背景短句，正文和平台嵌入照常入库。
+        Err(problem) if problem.code == "UNSUPPORTED_CAPABILITY" => return Ok(()),
+        Err(problem) => return Err(problem),
+    };
     let (memory, memory_version) = sites::memory(state, op, "knowledge.context", &job.config.language).await?;
-    let route = sites::route(state, op, "knowledge.context").await?;
     let version = hash_json(&json!([job.document.content_hash, memory_version]));
     let fixed = CONTEXT_INSTRUCTION.len() + memory.len();
     let batches = text::plan_context_batches(body, chunks, |batch| text::context_room(route.window, fixed, batch));

@@ -39,12 +39,18 @@ pub async fn put_config(ctx: &Ctx) -> Result<Value, Problem> {
     if config.enabled {
         validate_space(ctx, &config).await?;
     }
+    // 发布事件只给开着索引时发布的文档排构建；先读好已发布的文档，新开索引或换了向量空间时一起排进去。
+    let tree = if config.enabled { Some(sites::public_tree(state, op).await?) } else { None };
     let mut client = state.db.get().await.map_err(storage)?;
     let tx = client.transaction().await.map_err(storage)?;
     let row = tx.query_opt("SELECT version, config, data_epoch FROM search.configs WHERE site_id = $1 FOR UPDATE", &[&op.site_id]).await.map_err(storage)?;
-    let (version, id) = match &row {
-        Some(row) if row.get::<_, String>(2) == op.data_epoch => (row.get::<_, i64>(0), row.get::<_, Value>(1)["configId"].as_str().unwrap_or_default().to_owned()),
-        _ => (0, String::new()),
+    let (version, id, indexed_space) = match &row {
+        Some(row) if row.get::<_, String>(2) == op.data_epoch => {
+            let stored: Value = row.get(1);
+            let space = stored["enabled"].as_bool().unwrap_or(false).then(|| stored["space"]["spaceId"].as_str().unwrap_or_default().to_owned());
+            (row.get::<_, i64>(0), stored["configId"].as_str().unwrap_or_default().to_owned(), space)
+        }
+        _ => (0, String::new(), None),
     };
     if version != input.expected_version || (!id.is_empty() && id != config.config_id) {
         return Err(Problem::new("VERSION_MISMATCH", "索引配置版本已变化"));
@@ -59,7 +65,14 @@ pub async fn put_config(ctx: &Ctx) -> Result<Value, Problem> {
     )
     .await
     .map_err(storage)?;
+    let backfill = tree.filter(|_| indexed_space.as_deref() != Some(next.space.space_id.as_str()));
+    for node in backfill.iter().flat_map(|tree| &tree.nodes).filter(|n| n.reference.data_epoch == op.data_epoch && n.reference.document_id == n.document_id) {
+        build::queue_build(&tx, &op.site_id, &next, &node.reference, false).await?;
+    }
     tx.commit().await.map_err(storage)?;
+    if backfill.is_some() {
+        state.wake.notify_one();
+    }
     let result = json!({"config": stored});
     save_receipt(&state.db, &op.site_id, "putIndexConfig", &input.idempotency_key, &raw, &result).await?;
     Ok(result)
