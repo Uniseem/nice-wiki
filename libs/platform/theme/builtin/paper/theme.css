@@ -1,0 +1,12 @@
+/* 纸本：页头不用毛玻璃，文档标题下加一道细双线，引用用斜体。 */
+.nw-site-header {
+  background: var(--background);
+  backdrop-filter: none;
+}
+.nw-document-title {
+  padding-bottom: .75rem;
+  border-bottom: 3px double var(--border);
+}
+.nw-prose blockquote {
+  font-style: italic;
+}

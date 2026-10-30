@@ -13,6 +13,26 @@
     },
     {
       "method": "GET",
+      "path": "/_theme/{digest}/assets/{file}",
+      "owner": "public-site",
+      "operationId": "handleThemeAsset",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/_theme/{digest}/{file}",
+      "owner": "public-site",
+      "operationId": "handleThemeFile",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
       "path": "/healthz",
       "owner": "portal",
       "operationId": "health",
@@ -587,6 +607,106 @@
       "owner": "qa",
       "operationId": "readTurnRecord",
       "permission": "qa.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/appearance",
+      "owner": "site-config",
+      "operationId": "readAppearance",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/appearance",
+      "owner": "site-config",
+      "operationId": "updateAppearance",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/appearance/market",
+      "owner": "site-config",
+      "operationId": "readThemeMarket",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": 30000,
+      "streaming": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/appearance/market",
+      "owner": "site-config",
+      "operationId": "updateThemeMarket",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/appearance/market/install",
+      "owner": "site-config",
+      "operationId": "installMarketTheme",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": 30000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/appearance/market/{themeId}/{version}/preview",
+      "owner": "site-config",
+      "operationId": "readMarketThemePreview",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": 30000,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/appearance/packages/{digest}",
+      "owner": "site-config",
+      "operationId": "readThemePackage",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/appearance/public",
+      "owner": "site-config",
+      "operationId": "readPublicAppearance",
+      "permission": "anonymous",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/appearance/themes",
+      "owner": "site-config",
+      "operationId": "installTheme",
+      "permission": "site.manage",
+      "admission": null,
+      "timeoutMs": null,
+      "streaming": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/appearance/themes/{digest}",
+      "owner": "site-config",
+      "operationId": "deleteTheme",
+      "permission": "site.manage",
       "admission": null,
       "timeoutMs": null,
       "streaming": false

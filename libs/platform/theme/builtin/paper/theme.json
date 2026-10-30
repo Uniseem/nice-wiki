@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "paper",
+  "version": "1.0.0",
+  "name": { "zh": "纸本", "zh-Hant": "紙本", "en": "Paper", "ja": "ペーパー" },
+  "description": {
+    "zh": "暖色纸面、衬线字体和较窄的阅读栏，适合长文。",
+    "zh-Hant": "暖色紙面、襯線字體和較窄的閱讀欄，適合長文。",
+    "en": "Warm paper tones, serif type and a narrow reading column for long-form text.",
+    "ja": "温かみのある紙の色、セリフ体、狭めの本文幅。長文向け。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["light", "dark"],
+  "tokens": {
+    "light": {
+      "background": "#f4efe6", "foreground": "#2b2620", "surface": "#fbf8f2", "surfaceSecondary": "#efe8dc", "surfaceTertiary": "#e4dccd",
+      "overlay": "#fffdf8", "muted": "#6b6157", "default": "#e7dfd2", "defaultForeground": "#2b2620", "fieldBackground": "#fbf8f2",
+      "border": "#ddd3c3", "separator": "rgb(60 40 20 / 0.09)", "accent": "#8a4b2a", "accentForeground": "#fffaf3", "focus": "#8a4b2a"
+    },
+    "dark": {
+      "background": "#1f1b17", "foreground": "#ece4d8", "surface": "#29241f", "surfaceSecondary": "#302a24", "surfaceTertiary": "#3a332c",
+      "overlay": "#29241f", "muted": "#b3a796", "default": "#352f28", "defaultForeground": "#f5eee4", "fieldBackground": "#2c2621",
+      "border": "rgb(236 228 216 / 0.1)", "separator": "rgb(236 228 216 / 0.07)", "accent": "#e0a77f", "accentForeground": "#1f1b17", "focus": "#e0a77f"
+    }
+  },
+  "typography": {
+    "sans": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, \"Songti SC\", \"Noto Serif CJK SC\", serif",
+    "body": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, \"Songti SC\", \"Noto Serif CJK SC\", serif",
+    "bodySize": 18,
+    "lineHeight": 1.85
+  },
+  "shape": { "radius": "small" },
+  "layout": { "contentWidth": "narrow", "header": "static" },
+  "stylesheet": "theme.css"
+}

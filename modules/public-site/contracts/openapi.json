@@ -147,6 +147,136 @@
         "security": []
       }
     },
+    "/_theme/{digest}/{file}": {
+      "get": {
+        "operationId": "handleThemeFile",
+        "summary": "外观样式表与预览图",
+        "description": "按摘要提供站点当前可用外观包里允许对外的文件（docs/theme-standard.md），内容不可变、长期缓存",
+        "x-handler": "public-site.ServeThemeFile",
+        "x-permission": "anonymous",
+        "responses": {
+          "200": {
+            "description": "外观样式表与预览图",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND：站点没有这个外观包或文件不对外",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "外观包摘要"
+          },
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(theme\\.css|preview\\.(png|jpg|webp))$"
+            },
+            "description": "包内文件名"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": []
+      }
+    },
+    "/_theme/{digest}/assets/{file}": {
+      "get": {
+        "operationId": "handleThemeAsset",
+        "summary": "外观包里的图片与字体",
+        "description": "按摘要提供站点当前可用外观包里允许对外的文件（docs/theme-standard.md），内容不可变、长期缓存",
+        "x-handler": "public-site.ServeThemeFile",
+        "x-permission": "anonymous",
+        "responses": {
+          "200": {
+            "description": "外观包里的图片与字体",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公共错误；NOT_FOUND：站点没有这个外观包或文件不对外",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "../../../contracts/common.schema.json#/$defs/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "digest",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "外观包摘要"
+          },
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "description": "包内文件名"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "$ref": "../../../contracts/common.schema.json#/$defs/Identifier",
+              "description": "公共 Identifier 合同，遵守其字段和空值规则"
+            },
+            "description": "缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash"
+          }
+        ],
+        "security": []
+      }
+    },
     "/sitemap/{locale}/{shard}.xml": {
       "get": {
         "operationId": "handleSitemapShard",

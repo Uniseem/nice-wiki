@@ -2078,5 +2078,21 @@
   "th": "ประวัติถามตอบ",
   "id": "Riwayat Tanya Jawab",
   "ar": "سجل الأسئلة"
+ },
+ "外观": {
+  "zh-Hant": "外觀",
+  "en": "Appearance",
+  "ja": "外観",
+  "ko": "외관",
+  "fr": "Apparence",
+  "de": "Erscheinungsbild",
+  "es": "Apariencia",
+  "pt": "Aparência",
+  "ru": "Оформление",
+  "it": "Aspetto",
+  "vi": "Giao diện",
+  "th": "รูปลักษณ์",
+  "id": "Tampilan",
+  "ar": "المظهر"
  }
 }

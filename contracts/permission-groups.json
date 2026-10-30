@@ -238,6 +238,16 @@
       "navigation": true
     },
     {
+      "key": "appearance",
+      "path": "/admin/appearance",
+      "permissions": [
+        "site.manage"
+      ],
+      "labelZH": "外观",
+      "labelEN": "Appearance",
+      "navigation": true
+    },
+    {
       "key": "accounts",
       "path": "/admin/accounts",
       "permissions": [

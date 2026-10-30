@@ -6949,6 +6949,847 @@
           "contract": "binding"
         }
       ]
+    },
+    {
+      "path": "modules/site-config/internal/appearance_service.go",
+      "kind": "handwritten",
+      "purpose": "站点外观：内置与已装外观、当前选择、上传、导出、删除（docs/theme-standard.md）",
+      "functions": [
+        {
+          "id": "site-config.ReadAppearance",
+          "name": "ReadAppearance",
+          "signature": "func ReadAppearance(ctx context.Context, op OperationContext, _ struct{}) (ReadAppearanceResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadAppearanceResult",
+              "description": "当前选择与全部可选外观",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "列出内置与已装外观和当前选择",
+          "steps": [
+            "内置外观在前",
+            "已装外观按安装时间倒序",
+            "当前选择失效时回到同 id 内置或默认外观"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "无"
+          ],
+          "authorization": "site.manage",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.UpdateAppearance",
+          "name": "UpdateAppearance",
+          "signature": "func UpdateAppearance(ctx context.Context, op OperationContext, input UpdateAppearanceInput) (Appearance, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateAppearanceInput",
+              "description": "外观摘要与访客默认明暗",
+              "constraints": [
+                "摘要必须是内置或已装外观"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "Appearance",
+              "description": "保存后的选择",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "切换外观或访客默认明暗",
+          "steps": [
+            "检查写 epoch",
+            "确认外观可用",
+            "写 site_appearance"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "外观或外观包不存在",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "site_appearance 一行"
+          ],
+          "authorization": "site.manage；CheckWriteEpoch",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.InstallTheme",
+          "name": "InstallTheme",
+          "signature": "func InstallTheme(ctx context.Context, op OperationContext, raw []byte) (InstallThemeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "raw",
+              "type": "[]byte",
+              "description": "上传的外观包 zip",
+              "constraints": [
+                "不超过 2MB"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "InstallThemeResult",
+              "description": "装好的外观",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "校验上传的外观包并装到本站",
+          "steps": [
+            "按 docs/theme-standard.md 完整校验",
+            "内置外观直接返回",
+            "拒绝与内置重复的 id 和超过数量上限",
+            "按摘要去重保存规范化 zip"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、格式或外观包内容不合法",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突（正在使用、数量上限或与市场列表不符）",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "theme_packages 一行"
+          ],
+          "authorization": "site.manage；CheckWriteEpoch",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.DeleteTheme",
+          "name": "DeleteTheme",
+          "signature": "func DeleteTheme(ctx context.Context, op OperationContext, digest string) (DeleteThemeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "digest",
+              "type": "string",
+              "description": "外观包摘要",
+              "constraints": [
+                "SHA-256 十六进制"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "DeleteThemeResult",
+              "description": "删掉的摘要",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "删除已装的外观包",
+          "steps": [
+            "内置外观与正在用的外观不能删",
+            "删除 theme_packages 记录"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、格式或外观包内容不合法",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突（正在使用、数量上限或与市场列表不符）",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "删除 theme_packages 一行"
+          ],
+          "authorization": "site.manage；CheckWriteEpoch",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.ReadPublicAppearance",
+          "name": "ReadPublicAppearance",
+          "signature": "func ReadPublicAppearance(ctx context.Context, op OperationContext, _ struct{}) (PublicAppearance, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "公开站服务或匿名调用方",
+              "constraints": [
+                "只读"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "PublicAppearance",
+              "description": "当前外观摘要与访客默认明暗",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "给公开站当前外观",
+          "steps": [
+            "读当前选择并换成可用的包摘要"
+          ],
+          "errors": [
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "无"
+          ],
+          "authorization": "anonymous；只返回公开样式信息",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.ReadThemePackage",
+          "name": "ReadThemePackage",
+          "signature": "func ReadThemePackage(ctx context.Context, op OperationContext, digest string) ([]byte, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "公开站服务或后台",
+              "constraints": [
+                "只读"
+              ]
+            },
+            {
+              "name": "digest",
+              "type": "string",
+              "description": "外观包摘要",
+              "constraints": [
+                "SHA-256 十六进制"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "[]byte",
+              "description": "外观包 zip",
+              "constraints": [
+                "内容与摘要一致"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "按摘要返回外观包",
+          "steps": [
+            "内置外观现打包",
+            "已装外观读规范化 zip"
+          ],
+          "errors": [
+            {
+              "code": "NOT_FOUND",
+              "when": "外观或外观包不存在",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "无"
+          ],
+          "authorization": "anonymous；外观包内容本就公开",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/appearance_market.go",
+      "kind": "handwritten",
+      "purpose": "外观市场地址与代取：列表、预览图、从市场安装",
+      "functions": [
+        {
+          "id": "site-config.ReadThemeMarket",
+          "name": "ReadThemeMarket",
+          "signature": "func ReadThemeMarket(ctx context.Context, op OperationContext, _ struct{}) (ReadThemeMarketResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "ReadThemeMarketResult",
+              "description": "市场地址与上架外观",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "代取外观市场列表",
+          "steps": [
+            "没配地址时返回空列表",
+            "GET <市场>/v1/theme-market，限 2MB"
+          ],
+          "errors": [
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "向外观市场发一次只读请求"
+          ],
+          "authorization": "site.manage",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.UpdateThemeMarket",
+          "name": "UpdateThemeMarket",
+          "signature": "func UpdateThemeMarket(ctx context.Context, op OperationContext, input UpdateThemeMarketInput) (UpdateThemeMarketResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "UpdateThemeMarketInput",
+              "description": "市场地址",
+              "constraints": [
+                "http(s) 地址或空"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "UpdateThemeMarketResult",
+              "description": "保存后的地址",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "保存外观市场地址",
+          "steps": [
+            "去掉末尾斜杠并校验为 http(s) 地址",
+            "写 site_appearance.market_url"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、格式或外观包内容不合法",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "site_appearance 一行"
+          ],
+          "authorization": "site.manage；CheckWriteEpoch",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.ReadMarketThemePreview",
+          "name": "ReadMarketThemePreview",
+          "signature": "func ReadMarketThemePreview(ctx context.Context, op OperationContext, themeID string, version string) ([]byte, string, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "themeID",
+              "type": "string",
+              "description": "外观 id",
+              "constraints": [
+                "由路径参数校验"
+              ]
+            },
+            {
+              "name": "version",
+              "type": "string",
+              "description": "版本号",
+              "constraints": [
+                "由路径参数校验"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "[]byte",
+              "description": "预览图",
+              "constraints": [
+                "不超过 512KB"
+              ]
+            },
+            {
+              "name": "contentType",
+              "type": "string",
+              "description": "图片类型",
+              "constraints": [
+                "png、jpeg、webp 之一，否则 octet-stream"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "代取市场里的预览图",
+          "steps": [
+            "GET <市场>/v1/theme-market/{id}/{版本}/preview"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、格式或外观包内容不合法",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "外观或外观包不存在",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "向外观市场发一次只读请求"
+          ],
+          "authorization": "site.manage",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        },
+        {
+          "id": "site-config.InstallMarketTheme",
+          "name": "InstallMarketTheme",
+          "signature": "func InstallMarketTheme(ctx context.Context, op OperationContext, input InstallMarketThemeInput) (InstallThemeResult, error)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "op",
+              "type": "OperationContext",
+              "description": "调用方与 dataEpoch，由服务边界建立",
+              "constraints": [
+                "site.manage 由函数内再次检查"
+              ]
+            },
+            {
+              "name": "input",
+              "type": "InstallMarketThemeInput",
+              "description": "外观 id、版本与列表里的摘要",
+              "constraints": [
+                "下载后核对"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "InstallThemeResult",
+              "description": "装好的外观",
+              "constraints": [
+                "满足 types.json schema"
+              ]
+            },
+            {
+              "name": "error",
+              "type": "error",
+              "description": "失败时结果无效，返回标准 Problem",
+              "constraints": [
+                "无"
+              ]
+            }
+          ],
+          "purpose": "从外观市场安装外观",
+          "steps": [
+            "下载外观包（限 2MB）",
+            "按标准完整校验",
+            "核对 id、版本、摘要与列表一致",
+            "与上传同样保存"
+          ],
+          "errors": [
+            {
+              "code": "VALIDATION",
+              "when": "字段、格式或外观包内容不合法",
+              "retryable": false
+            },
+            {
+              "code": "FORBIDDEN",
+              "when": "主体没有所需操作权限",
+              "retryable": false
+            },
+            {
+              "code": "NOT_FOUND",
+              "when": "外观或外观包不存在",
+              "retryable": false
+            },
+            {
+              "code": "CONFLICT",
+              "when": "状态冲突（正在使用、数量上限或与市场列表不符）",
+              "retryable": false
+            },
+            {
+              "code": "VERSION_MISMATCH",
+              "when": "dataEpoch 已改变",
+              "retryable": false
+            },
+            {
+              "code": "DEPENDENCY_UNAVAILABLE",
+              "when": "存储或外观市场不可用",
+              "retryable": true
+            }
+          ],
+          "sideEffects": [
+            "向外观市场发只读请求",
+            "theme_packages 一行"
+          ],
+          "authorization": "site.manage；CheckWriteEpoch",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/site-config/internal/migrations/active/0006_appearance.sql",
+      "kind": "migration",
+      "purpose": "外观包与外观选择表"
     }
   ],
   "jobTypes": [],

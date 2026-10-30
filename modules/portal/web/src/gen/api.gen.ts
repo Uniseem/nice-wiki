@@ -367,7 +367,7 @@ export interface components {
          * @default dashboard
          * @enum {string}
          */
-        AdminRouteKey: "dashboard" | "me" | "content" | "media" | "localization" | "models" | "memory" | "qa" | "knowledge" | "guard" | "jobs" | "analytics" | "settings" | "accounts" | "backup";
+        AdminRouteKey: "dashboard" | "me" | "content" | "media" | "localization" | "models" | "memory" | "qa" | "knowledge" | "guard" | "jobs" | "analytics" | "settings" | "appearance" | "accounts" | "backup";
         /** @description identity拥有的自身UI偏好；保存不改变账户权限/认证水位，目标页须当前授权 */
         "common.schema_PortalPreferences": {
             /**

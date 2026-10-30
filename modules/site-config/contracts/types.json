@@ -3552,6 +3552,273 @@
         "text",
         "url"
       ]
+    },
+    "ThemeEntry": {
+      "type": "object",
+      "description": "可选用的外观：内置外观或本站装的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "builtin": {
+          "type": "boolean"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "installedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "digest",
+        "builtin",
+        "byteSize",
+        "manifest"
+      ]
+    },
+    "Appearance": {
+      "type": "object",
+      "description": "站点当前的外观选择",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ]
+    },
+    "ReadAppearanceResult": {
+      "type": "object",
+      "description": "外观页：当前选择与全部可选外观",
+      "additionalProperties": false,
+      "properties": {
+        "appearance": {
+          "$ref": "#/$defs/Appearance"
+        },
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThemeEntry"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "appearance",
+        "themes"
+      ]
+    },
+    "UpdateAppearanceInput": {
+      "type": "object",
+      "description": "切换外观或访客默认明暗",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ]
+    },
+    "PublicAppearance": {
+      "type": "object",
+      "description": "公开站渲染用的外观选择",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ]
+    },
+    "InstallThemeResult": {
+      "type": "object",
+      "description": "装好的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "$ref": "#/$defs/ThemeEntry"
+        }
+      },
+      "required": [
+        "theme"
+      ]
+    },
+    "DeleteThemeResult": {
+      "type": "object",
+      "description": "删掉的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "deleted"
+      ]
+    },
+    "MarketTheme": {
+      "type": "object",
+      "description": "外观市场里上架的外观（每个 id 取最新通过审核的版本）",
+      "additionalProperties": false,
+      "properties": {
+        "themeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "publisher": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "publishedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "themeId",
+        "version",
+        "digest",
+        "manifest",
+        "byteSize",
+        "publisher",
+        "publishedAt"
+      ]
+    },
+    "ReadThemeMarketResult": {
+      "type": "object",
+      "description": "外观市场地址与已上架的外观",
+      "additionalProperties": false,
+      "properties": {
+        "marketUrl": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "外观市场（多用户平台）的地址，空表示不用市场"
+        },
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarketTheme"
+          }
+        },
+        "problem": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "市场拉取失败时的原因"
+        }
+      },
+      "required": [
+        "marketUrl",
+        "themes"
+      ]
+    },
+    "UpdateThemeMarketInput": {
+      "type": "object",
+      "description": "保存外观市场地址",
+      "additionalProperties": false,
+      "properties": {
+        "marketUrl": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "外观市场（多用户平台）的地址，空表示不用市场"
+        }
+      },
+      "required": [
+        "marketUrl"
+      ]
+    },
+    "UpdateThemeMarketResult": {
+      "type": "object",
+      "description": "保存后的外观市场地址",
+      "additionalProperties": false,
+      "properties": {
+        "marketUrl": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "外观市场（多用户平台）的地址，空表示不用市场"
+        }
+      },
+      "required": [
+        "marketUrl"
+      ]
+    },
+    "InstallMarketThemeInput": {
+      "type": "object",
+      "description": "要从市场安装的外观版本；摘要取自市场列表，下载后核对",
+      "additionalProperties": false,
+      "properties": {
+        "themeId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "themeId",
+        "version",
+        "digest"
+      ]
     }
   }
 }

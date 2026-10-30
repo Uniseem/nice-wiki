@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 109 个函数：约束 34 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 119 个函数：约束 44 个，参考 75 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -4252,4 +4252,432 @@ export default function SitePage(): React.JSX.Element
 - 授权：页面可见性只是少展示；每个接口仍由服务端按当前授权校验
 - 并发：单页面实例；切换页面时取消未完成的读取
 - 幂等：写操作带 Idempotency-Key 与版本前提
+- 依赖：无
+
+## site-config.ReadAppearance
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：列出内置与已装外观和当前选择
+
+```go
+func ReadAppearance(ctx context.Context, op OperationContext, _ struct{}) (ReadAppearanceResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadAppearanceResult` | 当前选择与全部可选外观 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 内置外观在前
+2. 已装外观按安装时间倒序
+3. 当前选择失效时回到同 id 内置或默认外观
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：无
+- 授权：site.manage
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.UpdateAppearance
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：切换外观或访客默认明暗
+
+```go
+func UpdateAppearance(ctx context.Context, op OperationContext, input UpdateAppearanceInput) (Appearance, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `input` | `UpdateAppearanceInput` | 外观摘要与访客默认明暗 | 摘要必须是内置或已装外观 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `Appearance` | 保存后的选择 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 检查写 epoch
+2. 确认外观可用
+3. 写 site_appearance
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `NOT_FOUND`：外观或外观包不存在（不可重试）
+- `VERSION_MISMATCH`：dataEpoch 已改变（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：site_appearance 一行
+- 授权：site.manage；CheckWriteEpoch
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.InstallTheme
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：校验上传的外观包并装到本站
+
+```go
+func InstallTheme(ctx context.Context, op OperationContext, raw []byte) (InstallThemeResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `raw` | `[]byte` | 上传的外观包 zip | 不超过 2MB |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `InstallThemeResult` | 装好的外观 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 按 docs/theme-standard.md 完整校验
+2. 内置外观直接返回
+3. 拒绝与内置重复的 id 和超过数量上限
+4. 按摘要去重保存规范化 zip
+
+**错误**
+
+- `VALIDATION`：字段、格式或外观包内容不合法（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `CONFLICT`：状态冲突（正在使用、数量上限或与市场列表不符）（不可重试）
+- `VERSION_MISMATCH`：dataEpoch 已改变（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：theme_packages 一行
+- 授权：site.manage；CheckWriteEpoch
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.DeleteTheme
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：删除已装的外观包
+
+```go
+func DeleteTheme(ctx context.Context, op OperationContext, digest string) (DeleteThemeResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `digest` | `string` | 外观包摘要 | SHA-256 十六进制 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `DeleteThemeResult` | 删掉的摘要 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 内置外观与正在用的外观不能删
+2. 删除 theme_packages 记录
+
+**错误**
+
+- `VALIDATION`：字段、格式或外观包内容不合法（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `CONFLICT`：状态冲突（正在使用、数量上限或与市场列表不符）（不可重试）
+- `VERSION_MISMATCH`：dataEpoch 已改变（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：删除 theme_packages 一行
+- 授权：site.manage；CheckWriteEpoch
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.ReadPublicAppearance
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：给公开站当前外观
+
+```go
+func ReadPublicAppearance(ctx context.Context, op OperationContext, _ struct{}) (PublicAppearance, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 公开站服务或匿名调用方 | 只读 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `PublicAppearance` | 当前外观摘要与访客默认明暗 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 读当前选择并换成可用的包摘要
+
+**错误**
+
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：无
+- 授权：anonymous；只返回公开样式信息
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.ReadThemePackage
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_service.go`
+- 作用：按摘要返回外观包
+
+```go
+func ReadThemePackage(ctx context.Context, op OperationContext, digest string) ([]byte, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 公开站服务或后台 | 只读 |
+| `digest` | `string` | 外观包摘要 | SHA-256 十六进制 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `[]byte` | 外观包 zip | 内容与摘要一致 |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 内置外观现打包
+2. 已装外观读规范化 zip
+
+**错误**
+
+- `NOT_FOUND`：外观或外观包不存在（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：无
+- 授权：anonymous；外观包内容本就公开
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.ReadThemeMarket
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_market.go`
+- 作用：代取外观市场列表
+
+```go
+func ReadThemeMarket(ctx context.Context, op OperationContext, _ struct{}) (ReadThemeMarketResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `ReadThemeMarketResult` | 市场地址与上架外观 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 没配地址时返回空列表
+2. GET <市场>/v1/theme-market，限 2MB
+
+**错误**
+
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：向外观市场发一次只读请求
+- 授权：site.manage
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.UpdateThemeMarket
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_market.go`
+- 作用：保存外观市场地址
+
+```go
+func UpdateThemeMarket(ctx context.Context, op OperationContext, input UpdateThemeMarketInput) (UpdateThemeMarketResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `input` | `UpdateThemeMarketInput` | 市场地址 | http(s) 地址或空 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `UpdateThemeMarketResult` | 保存后的地址 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 去掉末尾斜杠并校验为 http(s) 地址
+2. 写 site_appearance.market_url
+
+**错误**
+
+- `VALIDATION`：字段、格式或外观包内容不合法（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `VERSION_MISMATCH`：dataEpoch 已改变（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：site_appearance 一行
+- 授权：site.manage；CheckWriteEpoch
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.ReadMarketThemePreview
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_market.go`
+- 作用：代取市场里的预览图
+
+```go
+func ReadMarketThemePreview(ctx context.Context, op OperationContext, themeID string, version string) ([]byte, string, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `themeID` | `string` | 外观 id | 由路径参数校验 |
+| `version` | `string` | 版本号 | 由路径参数校验 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `[]byte` | 预览图 | 不超过 512KB |
+| `contentType` | `string` | 图片类型 | png、jpeg、webp 之一，否则 octet-stream |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. GET <市场>/v1/theme-market/{id}/{版本}/preview
+
+**错误**
+
+- `VALIDATION`：字段、格式或外观包内容不合法（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `NOT_FOUND`：外观或外观包不存在（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：向外观市场发一次只读请求
+- 授权：site.manage
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：无
+
+## site-config.InstallMarketTheme
+
+- 级别：约束
+- 文件：`modules/site-config/internal/appearance_market.go`
+- 作用：从外观市场安装外观
+
+```go
+func InstallMarketTheme(ctx context.Context, op OperationContext, input InstallMarketThemeInput) (InstallThemeResult, error)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `op` | `OperationContext` | 调用方与 dataEpoch，由服务边界建立 | site.manage 由函数内再次检查 |
+| `input` | `InstallMarketThemeInput` | 外观 id、版本与列表里的摘要 | 下载后核对 |
+
+**输出**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `result` | `InstallThemeResult` | 装好的外观 | 满足 types.json schema |
+| `error` | `error` | 失败时结果无效，返回标准 Problem | 无 |
+
+**步骤**
+
+1. 下载外观包（限 2MB）
+2. 按标准完整校验
+3. 核对 id、版本、摘要与列表一致
+4. 与上传同样保存
+
+**错误**
+
+- `VALIDATION`：字段、格式或外观包内容不合法（不可重试）
+- `FORBIDDEN`：主体没有所需操作权限（不可重试）
+- `NOT_FOUND`：外观或外观包不存在（不可重试）
+- `CONFLICT`：状态冲突（正在使用、数量上限或与市场列表不符）（不可重试）
+- `VERSION_MISMATCH`：dataEpoch 已改变（不可重试）
+- `DEPENDENCY_UNAVAILABLE`：存储或外观市场不可用（可重试）
+
+- 副作用：向外观市场发只读请求；theme_packages 一行
+- 授权：site.manage；CheckWriteEpoch
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
 - 依赖：无

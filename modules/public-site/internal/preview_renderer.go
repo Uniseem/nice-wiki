@@ -86,7 +86,7 @@ func RenderPreview(ctx context.Context, op platform.OperationContext, in RenderP
 		SafeHTML: rendered.SafeHTML, Title: in.Snapshot.Metadata.Title, TOC: toc.Items, Navigation: []NavigationNode{},
 		Metadata: "<title>" + html.EscapeString(meta.pageTitle(in.Snapshot.Metadata.Title)) + "</title><meta name=\"robots\" content=\"noindex,nofollow\">",
 		Locale:   in.Snapshot.Metadata.SourceLanguage, DocumentID: in.Snapshot.Metadata.DocumentID, Announcement: previewNotice(in.Snapshot.Metadata.SourceLanguage),
-		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor,
+		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Theme: meta.Theme,
 	})
 	if err != nil {
 		return RenderPreviewResult{}, err

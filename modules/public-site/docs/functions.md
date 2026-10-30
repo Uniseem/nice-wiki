@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改；先改合同再重新生成。类型字段见 [types.json](../contracts/types.json)，公共类型见 [common.schema.json](../../../contracts/common.schema.json)。
 
-共 79 个函数：约束 33 个，参考 46 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
+共 80 个函数：约束 34 个，参考 46 个。约束函数（HTTP 处理、事件转发/订阅/处理、任务执行与启动入口）按合同的名称、签名和行为实现；参考函数是建议拆分，实现时可增删改名，模块交付时同步合同。
 
 实现尺度见 [ADR0006](../../../docs/adr/0006-implementation-scope.md)：各函数输入输出的通用约束句、错误表中的通用错误码与步骤末尾的通用句（schema、截止与取消、dataEpoch 与屏障）是调用链整体保证，由入口与 libs/platform 一次满足，不在每个函数重复实现；只实现函数特有的步骤与授权规则。默认不写测试。
 
@@ -967,6 +967,7 @@ func HandlePage(ctx context.Context, op OperationContext, in HandlePageInput) (H
 2. render 并最终权威校验
 3. 校验成功且 etag 相等才 304，否则完整 200
 4. 不存在或已删除时输出RenderNotFound（404）或410；页面访问统计由浏览器sendBeacon上报，服务端不重复计数
+5. 按站点外观（site-config 当前外观与外观包）生成版式开关和内联样式，读不到时用默认外观
 
 **错误**
 
@@ -978,7 +979,7 @@ func HandlePage(ctx context.Context, op OperationContext, in HandlePageInput) (H
 - 授权：permission：anonymous；rule：anonymous
 - 并发：请求缓冲到最终授权完成；不可先写 header
 - 幂等：GET 可重复；statusCode 不缓存安全结论
-- 依赖：`public-site.ResolveRoute`、`public-site.RenderPublicPage`、`public-site.RenderNotFound`
+- 依赖：`public-site.ResolveRoute`、`public-site.RenderPublicPage`、`public-site.RenderNotFound`、`site-config:readPublicAppearance`、`site-config:readThemePackage`
 
 ## public-site.HandleHome
 
@@ -3204,3 +3205,42 @@ function Islands(props: { header: HTMLElement | null; ask: HTMLElement | null })
 - 并发：单页面实例；切换页面时取消未完成的读取
 - 幂等：写操作带 Idempotency-Key 与版本前提
 - 依赖：无
+
+## public-site.ServeThemeFile
+
+- 级别：约束
+- 文件：`modules/public-site/internal/appearance.go`
+- 作用：提供外观样式表、预览图与资源
+
+```go
+func ServeThemeFile(ctx context.Context, w http.ResponseWriter, digest string, name string)
+```
+
+**输入**
+
+| 名称 | 类型 | 说明 | 约束 |
+|---|---|---|---|
+| `ctx` | `context.Context` | 取消与截止传播 | 截止到达即停止 |
+| `w` | `http.ResponseWriter` | 响应 | 只写允许对外的文件 |
+| `digest` | `string` | 外观包摘要 | SHA-256 十六进制 |
+| `name` | `string` | 包内文件名 | theme.css、preview.*、assets/* |
+
+**输出**
+
+无
+
+**步骤**
+
+1. 按摘要取本站可用的外观包
+2. 只提供可对外的文件
+3. 不可变长期缓存
+
+**错误**
+
+- 无
+
+- 副作用：无
+- 授权：anonymous；只在本站当前可用的外观包里取
+- 并发：单站点 SQLite 事务；外观包按摘要去重
+- 幂等：同一外观包或同一选择重复提交结果相同
+- 依赖：`site-config:readThemePackage`

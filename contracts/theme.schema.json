@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "theme.schema.json",
+  "title": "外观包清单 theme.json（schemaVersion 1）",
+  "description": "说明见 docs/theme-standard.md；校验实现在 libs/platform/theme（另核对文件存在、成对引号与样式表限制）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "name",
+    "author",
+    "license",
+    "colorSchemes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})$"
+    },
+    "name": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 20,
+      "propertyNames": {
+        "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+      }
+    },
+    "description": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 20,
+      "propertyNames": {
+        "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 280
+      }
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "license": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9.+() -]{1,40}$"
+    },
+    "homepage": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^https://[^\\s\\\"'<>]+$"
+    },
+    "colorSchemes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "light",
+          "dark"
+        ]
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/Palette"
+        },
+        "dark": {
+          "$ref": "#/$defs/Palette"
+        }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sans": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^[\\p{L}\\p{N} ,\\\"'_.-]{1,300}$"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^[\\p{L}\\p{N} ,\\\"'_.-]{1,300}$"
+        },
+        "mono": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^[\\p{L}\\p{N} ,\\\"'_.-]{1,300}$"
+        },
+        "bodySize": {
+          "type": "number",
+          "minimum": 14,
+          "maximum": 22
+        },
+        "lineHeight": {
+          "type": "number",
+          "minimum": 1.3,
+          "maximum": 2.2
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "radius": {
+          "enum": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contentWidth": {
+          "enum": [
+            "narrow",
+            "normal",
+            "wide"
+          ]
+        },
+        "sidebar": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "toc": {
+          "enum": [
+            "right",
+            "hidden"
+          ]
+        },
+        "header": {
+          "enum": [
+            "sticky",
+            "static"
+          ]
+        }
+      }
+    },
+    "fonts": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family",
+          "src"
+        ],
+        "properties": {
+          "family": {
+            "type": "string",
+            "pattern": "^[\\p{L}\\p{N} _-]{1,60}$"
+          },
+          "src": {
+            "type": "string",
+            "pattern": "^assets/[a-z0-9][a-z0-9._-]{0,63}\\.(woff2|woff)$"
+          },
+          "weight": {
+            "type": "string",
+            "pattern": "^[1-9]00( [1-9]00)?$"
+          },
+          "style": {
+            "enum": [
+              "normal",
+              "italic"
+            ]
+          }
+        }
+      }
+    },
+    "stylesheet": {
+      "const": "theme.css"
+    },
+    "preview": {
+      "enum": [
+        "preview.png",
+        "preview.jpg",
+        "preview.webp"
+      ]
+    }
+  },
+  "$defs": {
+    "Color": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgb|rgba|hsl|hsla|oklch|oklab)\\(\\s*[+-]?[0-9]*\\.?[0-9]+(%|deg)?(\\s*,?\\s*[+-]?[0-9]*\\.?[0-9]+(%|deg)?){2}(\\s*[,/]\\s*[+-]?[0-9]*\\.?[0-9]+(%|deg)?)?\\s*\\))$"
+    },
+    "Palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/Color"
+        },
+        "foreground": {
+          "$ref": "#/$defs/Color"
+        },
+        "surface": {
+          "$ref": "#/$defs/Color"
+        },
+        "surfaceSecondary": {
+          "$ref": "#/$defs/Color"
+        },
+        "surfaceTertiary": {
+          "$ref": "#/$defs/Color"
+        },
+        "overlay": {
+          "$ref": "#/$defs/Color"
+        },
+        "muted": {
+          "$ref": "#/$defs/Color"
+        },
+        "default": {
+          "$ref": "#/$defs/Color"
+        },
+        "defaultForeground": {
+          "$ref": "#/$defs/Color"
+        },
+        "fieldBackground": {
+          "$ref": "#/$defs/Color"
+        },
+        "border": {
+          "$ref": "#/$defs/Color"
+        },
+        "separator": {
+          "$ref": "#/$defs/Color"
+        },
+        "accent": {
+          "$ref": "#/$defs/Color"
+        },
+        "accentForeground": {
+          "$ref": "#/$defs/Color"
+        },
+        "focus": {
+          "$ref": "#/$defs/Color"
+        }
+      }
+    }
+  }
+}

@@ -55,7 +55,8 @@ type ComposeHTMLInput struct {
 	Languages     []LanguageLink
 	SiteName      string // 站名，非空时页头品牌显示站名（和站标）
 	LogoURL       string
-	ThemeColor    string // #RRGGBB，作为 HeroUI 的强调色
+	ThemeColor    string // #RRGGBB，站标颜色
+	Theme         siteTheme
 	Footer        string // 站长写的页脚（版权、链接、ICP），已转义的 HTML
 	SourceCodeURL string // 页脚“源代码”链接，空则用默认
 	Untranslated  bool
@@ -85,6 +86,7 @@ type shell struct {
 	Locale, Dir, Kind, DocumentID                 string
 	Head, ExtraHead, Announcement, Footer         template.HTML
 	Accent                                        template.CSS
+	Theme                                         siteTheme
 	Mark                                          template.URL
 	SiteName, LogoURL, HomeURL, AskURL, SourceURL string
 	AIEnabled, HasNav                             bool
@@ -155,7 +157,7 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 		Locale: in.Locale, Dir: textDirection(in.Locale), Kind: kind, DocumentID: in.DocumentID,
 		Head: template.HTML(in.Metadata), Announcement: template.HTML(in.Announcement), Footer: template.HTML(in.Footer),
 		SiteName: in.SiteName, LogoURL: in.LogoURL, HomeURL: "/" + in.Locale + "/", AskURL: in.AskURL, SourceURL: in.SourceCodeURL,
-		AIEnabled: in.AIEnabled, catalog: in.UIStrings,
+		AIEnabled: in.AIEnabled, catalog: in.UIStrings, Theme: in.Theme,
 	}
 	if s.SiteName == "" {
 		s.SiteName = s.T("文档")
@@ -180,7 +182,7 @@ func newShell(in ComposeHTMLInput, kind string) shell {
 	}
 	config, _ := json.Marshal(map[string]any{
 		"kind": kind, "locale": in.Locale, "documentId": in.DocumentID, "aiEnabled": in.AIEnabled, "askUrl": in.AskURL,
-		"languages": s.Languages, "ui": ui,
+		"languages": s.Languages, "ui": ui, "colorScheme": in.Theme.ColorScheme, "forcedScheme": in.Theme.Forced,
 	})
 	s.Config = string(config)
 	return s

@@ -36,7 +36,7 @@ func HandleAskShell(ctx context.Context, op platform.OperationContext, in Handle
 	page := askPage{shell: newShell(ComposeHTMLInput{
 		Metadata: "<title>" + html.EscapeString(title) + "</title><meta name=\"robots\" content=\"noindex\">" + meta.headTags(title, "", "", ""),
 		Locale:   in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/ask", in.Locale), Footer: footerHTML, SourceCodeURL: sourceURL,
-		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask", UIStrings: catalog,
+		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Theme: meta.Theme, AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask", UIStrings: catalog,
 	}, "ask"), Tree: tree}
 	// 引导来自同一份公开导航，不生成额外模型调用。
 	topics := []map[string]string{}

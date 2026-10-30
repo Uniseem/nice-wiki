@@ -560,6 +560,11 @@ func (c *SiteConfigClient) ReadConfigObject(ctx context.Context, objectId string
 	return c.binary(ctx, http.MethodGet, requestPath, nil, "")
 }
 
+// ReadPublicAppearance GET /v1/appearance/public（site-config:readPublicAppearance）。
+func (c *SiteConfigClient) ReadPublicAppearance(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/v1/appearance/public", nil, "")
+}
+
 // ReadRuntimeState GET /v1/runtime-state（site-config:readRuntimeState）。
 func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/runtime-state", nil, "")
@@ -568,6 +573,11 @@ func (c *SiteConfigClient) ReadRuntimeState(ctx context.Context) (json.RawMessag
 // ReadSiteConfig GET /v1/config（site-config:readSiteConfig）。
 func (c *SiteConfigClient) ReadSiteConfig(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/config", nil, "")
+}
+
+// ReadThemePackage GET /v1/appearance/packages/{digest}（site-config:readThemePackage）。
+func (c *SiteConfigClient) ReadThemePackage(ctx context.Context, digest string) (*http.Response, error) {
+	return c.binary(ctx, http.MethodGet, "/v1/appearance/packages/"+url.PathEscape(digest)+"", nil, "")
 }
 
 // RegisterActivation POST /v1/runtime-state/activations（site-config:registerActivation）。

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "forest",
+  "version": "1.0.0",
+  "name": { "zh": "森林", "zh-Hant": "森林", "en": "Forest", "ja": "フォレスト" },
+  "description": {
+    "zh": "沉静的绿色强调色、更大的圆角和无衬线正文。",
+    "zh-Hant": "沉靜的綠色強調色、更大的圓角和無襯線正文。",
+    "en": "Calm green accents, rounder corners and sans-serif body text.",
+    "ja": "落ち着いた緑のアクセント、大きめの角丸、本文はサンセリフ体。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["light", "dark"],
+  "tokens": {
+    "light": {
+      "background": "#eef2ec", "foreground": "#18231b", "surface": "#f8faf6", "surfaceSecondary": "#e9efe6", "surfaceTertiary": "#dbe4d6",
+      "overlay": "#ffffff", "muted": "#57655a", "default": "#dfe7da", "defaultForeground": "#18231b", "fieldBackground": "#f8faf6",
+      "border": "#cfdacb", "separator": "rgb(20 50 30 / 0.08)", "accent": "#2f6b45", "accentForeground": "#f4faf5", "focus": "#2f6b45"
+    },
+    "dark": {
+      "background": "#121a15", "foreground": "#e3ebe4", "surface": "#1a241d", "surfaceSecondary": "#1f2b23", "surfaceTertiary": "#28362c",
+      "overlay": "#1a241d", "muted": "#9fb0a3", "default": "#24312a", "defaultForeground": "#f0f6f1", "fieldBackground": "#1c2620",
+      "border": "rgb(227 235 228 / 0.1)", "separator": "rgb(227 235 228 / 0.06)", "accent": "#7fc99a", "accentForeground": "#0d1510", "focus": "#7fc99a"
+    }
+  },
+  "typography": {
+    "body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+    "bodySize": 17,
+    "lineHeight": 1.75
+  },
+  "shape": { "radius": "large" }
+}

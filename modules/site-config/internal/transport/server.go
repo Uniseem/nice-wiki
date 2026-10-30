@@ -73,6 +73,8 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			"resumeInitialization":      {"site-config"},
 			"readHomeReferenceDecision": {"media"},
 			"readPublicHome":            {"portal", "public-site"},
+			"readPublicAppearance":      {"portal", "public-site"},
+			"readThemePackage":          {"portal", "public-site"},
 			"listResourceReferences":    {"media", "data-protection"},
 			"readSnapshotArchive":       {"data-protection"},
 		},
@@ -153,6 +155,46 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
 		"abortInitialization":      serveJSON(siteconfig.AbortInitialization),
 		"readConfigObject":         http.HandlerFunc(serveConfigObject),
+		"readAppearance":           serveJSON(siteconfig.ReadAppearance),
+		"updateAppearance":         serveJSON(siteconfig.UpdateAppearance),
+		"readPublicAppearance":     serveJSON(siteconfig.ReadPublicAppearance),
+		"installTheme":             http.HandlerFunc(serveInstallTheme),
+		"deleteTheme": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := siteconfig.DeleteTheme(r.Context(), op, r.PathValue("digest"))
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readThemePackage": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			raw, err := siteconfig.ReadThemePackage(r.Context(), op, r.PathValue("digest"))
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `attachment; filename="theme.zip"`)
+			w.Header().Set("Cache-Control", "no-store")
+			_, _ = w.Write(raw)
+		}),
+		"readThemeMarket":    serveJSON(siteconfig.ReadThemeMarket),
+		"updateThemeMarket":  serveJSON(siteconfig.UpdateThemeMarket),
+		"installMarketTheme": serveJSON(siteconfig.InstallMarketTheme),
+		"readMarketThemePreview": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			raw, contentType, err := siteconfig.ReadMarketThemePreview(r.Context(), op, r.PathValue("themeId"), r.PathValue("version"))
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Content-Type", contentType)
+			w.Header().Set("Cache-Control", "private, max-age=600")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			_, _ = w.Write(raw)
+		}),
 		"readPublicHome": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			var language *string
@@ -346,6 +388,22 @@ func writeRequestProblem(w http.ResponseWriter, r *http.Request, err error) {
 	_ = problem.WriteProblem(w, problem.FromError(err, op.RequestID))
 }
 
+// serveInstallTheme 读取上传的外观包（合同已限定 Content-Length 不超过 2MiB）。
+func serveInstallTheme(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	raw, err := io.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+	if err != nil || int64(len(raw)) != r.ContentLength {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "外观包读取不完整"))
+		return
+	}
+	result, err := siteconfig.InstallTheme(r.Context(), op, raw)
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func serviceCallers() map[string][]string {
 	stateful := []string{"identity", "site-config", "content", "media", "public-site", "model-gateway", "knowledge", "qa", "localization", "memory", "traffic-guard", "jobs", "analytics", "data-protection"}
 	runtime := append(append([]string{}, stateful...), "portal", "agent")
@@ -355,9 +413,11 @@ func serviceCallers() map[string][]string {
 		"readConfigObject":         {"portal", "public-site", "data-protection"},
 		"readInitializationStatus": {"portal", "identity", "site-config", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "data-protection", "content", "media", "localization", "public-site"}, "resumeInitialization": {"portal", "site-config"},
 		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"portal", "media", "data-protection"}, "readHomeReferenceDecision": {"media"},
-		"readSnapshotArchive": {"data-protection"},
+		"readSnapshotArchive":  {"data-protection"},
+		"readPublicAppearance": {"portal", "public-site"}, "readThemePackage": {"portal", "public-site"},
 	}
-	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {
+	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision",
+		"readAppearance", "updateAppearance", "installTheme", "deleteTheme", "readThemeMarket", "updateThemeMarket", "readMarketThemePreview", "installMarketTheme"} {
 		callers[id] = []string{"portal"}
 	}
 	for _, id := range []string{"acquireBarrier", "releaseBarrier", "exportSnapshot", "stageSnapshot", "discardSnapshot"} {

@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 41 个：手写 39、生成 1、配置 1。函数 241 个：约束 21，参考 220。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 44 个：手写 42、生成 1、配置 1。函数 241 个：约束 21，参考 220。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -47,3 +47,6 @@
 | `libs/platform/lifecycle/snapshot_stage_scope.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.SnapshotStageBinding`（参考） |
 | `libs/platform/outbox/restore.go` | 手写 | 真实已认证恢复隔离副本机制 | `platform.MigrateRestoredDatabase`（参考）、`platform.PrepareRestoredOutbox`（参考） |
 | `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 | 无 |
+| `libs/platform/theme/theme.go` | 手写 | 外观包标准（docs/theme-standard.md）：解析、校验、摘要与确定性打包 | 无 |
+| `libs/platform/theme/css.go` | 手写 | 外观包 theme.css 安全检查与页面内联样式、版式开关 | 无 |
+| `libs/platform/theme/builtin.go` | 手写 | 随程序发布的内置外观 | 无 |

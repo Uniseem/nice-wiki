@@ -157,7 +157,7 @@ func HandleHome(ctx context.Context, op platform.OperationContext, in HandleHome
 	footerHTML, sourceURL := loadFooter(ctx, op)
 	page := homePage{shell: newShell(ComposeHTMLInput{
 		Metadata: head, Locale: in.Locale, Announcement: loadAnnouncement(ctx, op), Languages: languageLinks(ctx, "/"+in.Locale+"/", in.Locale),
-		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Footer: footerHTML, SourceCodeURL: sourceURL,
+		SiteName: meta.Name, LogoURL: meta.Logo.url(), ThemeColor: meta.ThemeColor, Theme: meta.Theme, Footer: footerHTML, SourceCodeURL: sourceURL,
 		UIStrings: loadUIStrings(ctx, in.Locale), AIEnabled: qaAvailable(ctx, op), AskURL: "/" + in.Locale + "/ask",
 	}, "home")}
 	if len(nodes) > 0 {
@@ -310,6 +310,7 @@ func renderNodeDetail(ctx context.Context, op platform.OperationContext, locale 
 		SiteName:      meta.Name,
 		LogoURL:       meta.Logo.url(),
 		ThemeColor:    meta.ThemeColor,
+		Theme:         meta.Theme,
 		SourceCodeURL: sourceURL,
 	})
 	if err != nil {

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "classic",
+  "version": "1.0.0",
+  "name": { "zh": "经典", "zh-Hant": "經典", "en": "Classic", "ja": "クラシック" },
+  "description": {
+    "zh": "nice-wiki 默认外观：中性灰配色、正文衬线字，明暗两套配色。",
+    "zh-Hant": "nice-wiki 預設外觀：中性灰配色、正文襯線字，明暗兩套配色。",
+    "en": "The default nice-wiki look: neutral greys, serif body text, light and dark.",
+    "ja": "nice-wiki の標準の外観。ニュートラルなグレー、本文はセリフ体、ライトとダーク。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["light", "dark"]
+}

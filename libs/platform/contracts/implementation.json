@@ -16414,6 +16414,21 @@
       "kind": "handwritten",
       "purpose": "通用有界异步任务秘密加密，不含业务授权与持久策略",
       "functions": []
+    },
+    {
+      "path": "libs/platform/theme/theme.go",
+      "kind": "handwritten",
+      "purpose": "外观包标准（docs/theme-standard.md）：解析、校验、摘要与确定性打包"
+    },
+    {
+      "path": "libs/platform/theme/css.go",
+      "kind": "handwritten",
+      "purpose": "外观包 theme.css 安全检查与页面内联样式、版式开关"
+    },
+    {
+      "path": "libs/platform/theme/builtin.go",
+      "kind": "handwritten",
+      "purpose": "随程序发布的内置外观"
     }
   ],
   "jobTypes": [],

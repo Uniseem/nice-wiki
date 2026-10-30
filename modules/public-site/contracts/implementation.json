@@ -1915,7 +1915,8 @@
             "解析路由",
             "render 并最终权威校验",
             "校验成功且 etag 相等才 304，否则完整 200",
-            "不存在或已删除时输出RenderNotFound（404）或410；页面访问统计由浏览器sendBeacon上报，服务端不重复计数"
+            "不存在或已删除时输出RenderNotFound（404）或410；页面访问统计由浏览器sendBeacon上报，服务端不重复计数",
+            "按站点外观（site-config 当前外观与外观包）生成版式开关和内联样式，读不到时用默认外观"
           ],
           "errors": [
             {
@@ -1952,7 +1953,9 @@
           "dependencies": [
             "public-site.ResolveRoute",
             "public-site.RenderPublicPage",
-            "public-site.RenderNotFound"
+            "public-site.RenderNotFound",
+            "site-config:readPublicAppearance",
+            "site-config:readThemePackage"
           ],
           "resources": [],
           "contract": "binding"
@@ -5683,6 +5686,71 @@
           "concurrency": "单页面实例；切换页面时取消未完成的读取",
           "idempotency": "写操作带 Idempotency-Key 与版本前提",
           "dependencies": [],
+          "resources": [],
+          "contract": "binding"
+        }
+      ]
+    },
+    {
+      "path": "modules/public-site/internal/appearance.go",
+      "kind": "handwritten",
+      "purpose": "站点外观：取外观包、生成页面样式、提供 /_theme/ 文件",
+      "functions": [
+        {
+          "id": "public-site.ServeThemeFile",
+          "name": "ServeThemeFile",
+          "signature": "func ServeThemeFile(ctx context.Context, w http.ResponseWriter, digest string, name string)",
+          "inputs": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "取消与截止传播",
+              "constraints": [
+                "截止到达即停止"
+              ]
+            },
+            {
+              "name": "w",
+              "type": "http.ResponseWriter",
+              "description": "响应",
+              "constraints": [
+                "只写允许对外的文件"
+              ]
+            },
+            {
+              "name": "digest",
+              "type": "string",
+              "description": "外观包摘要",
+              "constraints": [
+                "SHA-256 十六进制"
+              ]
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "description": "包内文件名",
+              "constraints": [
+                "theme.css、preview.*、assets/*"
+              ]
+            }
+          ],
+          "outputs": [],
+          "purpose": "提供外观样式表、预览图与资源",
+          "steps": [
+            "按摘要取本站可用的外观包",
+            "只提供可对外的文件",
+            "不可变长期缓存"
+          ],
+          "errors": [],
+          "sideEffects": [
+            "无"
+          ],
+          "authorization": "anonymous；只在本站当前可用的外观包里取",
+          "concurrency": "单站点 SQLite 事务；外观包按摘要去重",
+          "idempotency": "同一外观包或同一选择重复提交结果相同",
+          "dependencies": [
+            "site-config:readThemePackage"
+          ],
           "resources": [],
           "contract": "binding"
         }

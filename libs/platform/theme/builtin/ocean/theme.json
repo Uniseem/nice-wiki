@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "ocean",
+  "version": "1.0.0",
+  "name": { "zh": "海蓝", "zh-Hant": "海藍", "en": "Ocean", "ja": "オーシャン" },
+  "description": {
+    "zh": "明亮干净的产品文档风格，阅读栏更宽。",
+    "zh-Hant": "明亮乾淨的產品文件風格，閱讀欄更寬。",
+    "en": "Bright, clean product-docs style with a wider reading column.",
+    "ja": "明るくすっきりした製品ドキュメント風。本文幅は広め。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["light", "dark"],
+  "tokens": {
+    "light": {
+      "background": "#ffffff", "foreground": "#0f172a", "surface": "#f8fafc", "surfaceSecondary": "#f1f5f9", "surfaceTertiary": "#e2e8f0",
+      "overlay": "#ffffff", "muted": "#475569", "default": "#eef2f6", "defaultForeground": "#0f172a", "fieldBackground": "#ffffff",
+      "border": "#e2e8f0", "separator": "rgb(15 23 42 / 0.07)", "accent": "#0b6bcb", "accentForeground": "#ffffff", "focus": "#0b6bcb"
+    },
+    "dark": {
+      "background": "#0b1220", "foreground": "#e2e8f0", "surface": "#111a2e", "surfaceSecondary": "#16213a", "surfaceTertiary": "#1e2b47",
+      "overlay": "#111a2e", "muted": "#94a3b8", "default": "#1a2540", "defaultForeground": "#f1f5f9", "fieldBackground": "#131d33",
+      "border": "rgb(226 232 240 / 0.1)", "separator": "rgb(226 232 240 / 0.06)", "accent": "#5aa9f5", "accentForeground": "#06101f", "focus": "#5aa9f5"
+    }
+  },
+  "typography": {
+    "body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+    "bodySize": 16,
+    "lineHeight": 1.7
+  },
+  "shape": { "radius": "medium" },
+  "layout": { "contentWidth": "wide" }
+}

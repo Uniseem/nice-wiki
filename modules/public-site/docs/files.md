@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。仅登记未来实现位置，尚未创建这些源码；函数行为见 [functions.md](functions.md)。
 
-文件 64 个：手写 52、UI 1、生成 4、配置 6、迁移 1。函数 79 个：约束 33，参考 46。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
+文件 65 个：手写 53、UI 1、生成 4、配置 6、迁移 1。函数 80 个：约束 34，参考 46。入口、契约、配置和部署文件按清单建立；internal/ 与界面 src/ 下的拆分属于参考，实现时可调整并在交付时同步合同。
 
 | 未来路径 | 类别 | 职责 | 函数 |
 |---|---|---|---|
@@ -70,3 +70,4 @@
 | `modules/public-site/web/src/gen/api.gen.ts` | 生成 | make gen由openapi-typescript从本域openapi.json生成浏览器类型，配合openapi-fetch经portal同源调用；不手改 | 无 |
 | `modules/public-site/internal/snapshot_archive.go` | 手写 | 受控读取已完成域快照归档流 | `public-site.ReadSnapshotArchive` |
 | `modules/public-site/web/src/site.tsx` | UI | 公开页交互岛：一个 React 根通过 portal 接管页头操作（问答、语言、明暗）、窄屏文档树抽屉与问答区；另附代码复制、目录高亮、公式、访问信标等增强 | `public-site.Islands` |
+| `modules/public-site/internal/appearance.go` | 手写 | 站点外观：取外观包、生成页面样式、提供 /_theme/ 文件 | `public-site.ServeThemeFile` |
