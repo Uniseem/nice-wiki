@@ -444,12 +444,41 @@ func resolveFile(a *importArchive, from, target string) (string, bool) {
 	return joined, false
 }
 
+// parseMarkdown 把压缩包里的一篇 Markdown 转成块：站内链接按 byFile（小写路径 → 文档 ID）解析，图片交给媒体服务。
+func (im *importer) parseMarkdown(ctx context.Context, file string, byFile map[string]string) mdconv.Result {
+	a := im.archive
+	raw, _ := a.get(file)
+	return mdconv.Parse(raw, mdconv.Options{
+		Link: func(target string) (string, bool) {
+			resolved, _ := resolveFile(a, file, target)
+			for _, candidate := range []string{resolved, resolved + ".md", resolved + "/README.md", resolved + "/readme.md", resolved + "/index.md"} {
+				if id, ok := byFile[strings.ToLower(candidate)]; ok {
+					return id, true
+				}
+			}
+			return "", false
+		},
+		Image: func(src string) (map[string]any, bool) {
+			resolved, ok := resolveFile(a, file, src)
+			if !ok {
+				return nil, false
+			}
+			return im.uploadFile(ctx, resolved)
+		},
+	})
+}
+
 // ImportSite 把压缩包导入成当前站点的草稿文档。
 func (d SiteData) ImportSite(ctx context.Context, op OperationContext, data []byte, opt ImportOptions) (ImportResult, error) {
 	a, err := readArchive(data)
 	if err != nil {
 		return ImportResult{}, err
 	}
+	return d.importFrom(ctx, op, a, opt)
+}
+
+func (d SiteData) importFrom(ctx context.Context, op OperationContext, a *importArchive, opt ImportOptions) (ImportResult, error) {
+	var err error
 	format := opt.Format
 	if format == "" || format == "auto" {
 		format = detectFormat(a)
@@ -536,26 +565,7 @@ func (d SiteData) ImportSite(ctx context.Context, op OperationContext, data []by
 			regenerateIDs(parsed.Content, blockMap)
 			bodies[i] = parsed.Content
 		case plan[i].File != "":
-			raw, _ := a.get(plan[i].File)
-			file := plan[i].File
-			parsed := mdconv.Parse(raw, mdconv.Options{
-				Link: func(target string) (string, bool) {
-					resolved, _ := resolveFile(a, file, target)
-					for _, candidate := range []string{resolved, resolved + ".md", resolved + "/README.md", resolved + "/readme.md", resolved + "/index.md"} {
-						if id, ok := byFile[strings.ToLower(candidate)]; ok {
-							return id, true
-						}
-					}
-					return "", false
-				},
-				Image: func(src string) (map[string]any, bool) {
-					resolved, ok := resolveFile(a, file, src)
-					if !ok {
-						return nil, false
-					}
-					return im.uploadFile(ctx, resolved)
-				},
-			})
+			parsed := im.parseMarkdown(ctx, plan[i].File, byFile)
 			for _, w := range parsed.Warnings {
 				result.Warnings = append(result.Warnings, "《"+plan[i].Title+"》："+w)
 			}

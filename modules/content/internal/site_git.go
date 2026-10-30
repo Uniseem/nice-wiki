@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -32,6 +33,7 @@ import (
 
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/netguard"
+	"nice-wiki/modules/content/internal/gen"
 )
 
 // GitRemote 是接口返回的 Git 同步配置（不含令牌）。
@@ -132,6 +134,8 @@ func (d SiteData) PutGitRemote(ctx context.Context, op OperationContext, in GitR
 	db := d.db()
 	var exists int
 	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM git_remotes WHERE site_id=?`, op.Actor.SiteID).Scan(&exists)
+	// 换了仓库或分支：上次同步的提交和指纹都不再适用。
+	_, _ = db.ExecContext(ctx, `UPDATE git_remotes SET last_commit='',last_hash='' WHERE site_id=? AND (url<>? OR branch<>?)`, op.Actor.SiteID, u.String(), branch)
 	push := 0
 	if in.PushOnPublish {
 		push = 1
@@ -162,12 +166,13 @@ func (d SiteData) DeleteGitRemote(ctx context.Context, op OperationContext) erro
 
 type gitSettings struct {
 	url, branch, username, token string
+	lastCommit                   string // 上次推送或拉取时仓库分支的提交
 }
 
 func (d SiteData) openGitSettings(ctx context.Context, site string) (gitSettings, error) {
 	var g gitSettings
 	var nonce, cipher []byte
-	err := d.db().QueryRowContext(ctx, `SELECT url,branch,username,token_nonce,token_cipher FROM git_remotes WHERE site_id=?`, site).Scan(&g.url, &g.branch, &g.username, &nonce, &cipher)
+	err := d.db().QueryRowContext(ctx, `SELECT url,branch,username,token_nonce,token_cipher,last_commit FROM git_remotes WHERE site_id=?`, site).Scan(&g.url, &g.branch, &g.username, &nonce, &cipher, &g.lastCommit)
 	if errors.Is(err, sql.ErrNoRows) {
 		return g, platform.NewError(platform.CodeNotFound, false, "还没有配置 Git 仓库")
 	}
@@ -214,7 +219,7 @@ func (d SiteData) record(ctx context.Context, site, field, status, message, comm
 	case "push":
 		_, _ = db.ExecContext(ctx, `UPDATE git_remotes SET last_push_at=?,last_status=?,last_message=?,last_commit=CASE WHEN ?<>'' THEN ? ELSE last_commit END,last_hash=CASE WHEN ?<>'' THEN ? ELSE last_hash END WHERE site_id=?`, now, status, firstN(message, 300), commit, commit, hash, hash, site)
 	default:
-		_, _ = db.ExecContext(ctx, `UPDATE git_remotes SET last_pull_at=?,last_status=?,last_message=? WHERE site_id=?`, now, status, firstN(message, 300), site)
+		_, _ = db.ExecContext(ctx, `UPDATE git_remotes SET last_pull_at=?,last_status=?,last_message=?,last_commit=CASE WHEN ?<>'' THEN ? ELSE last_commit END WHERE site_id=?`, now, status, firstN(message, 300), commit, commit, site)
 	}
 }
 
@@ -312,6 +317,10 @@ func pushBundle(ctx context.Context, settings gitSettings, bundle ExportBundle) 
 	if err != nil {
 		return GitSyncResult{}, err
 	}
+	// 仓库里有站点没见过的提交（比如有人改了 Markdown）时不覆盖，先拉取。
+	if head, err := repo.Head(); err == nil && settings.lastCommit != "" && head.Hash().String() != settings.lastCommit {
+		return GitSyncResult{}, platform.NewError(platform.CodeConflict, false, "仓库里有还没拉取的新提交，先拉取再推送")
+	}
 	for _, p := range managedPaths {
 		_ = util.RemoveAll(fs, p)
 	}
@@ -351,7 +360,8 @@ func pushBundle(ctx context.Context, settings gitSettings, bundle ExportBundle) 
 	return GitSyncResult{Commit: hash.String(), Changed: true, Files: len(bundle.Files), Message: "已推送 " + hash.String()[:8]}, nil
 }
 
-// PullGit 从仓库拉取最新内容，导入成草稿文档；不动已有文档，确认后再发布。
+// PullGit 从仓库拉取最新内容，生成草稿，确认后再发布。
+// 本站推送出去的仓库按同步处理（见 syncPull）；其他仓库整体导入成新文档。
 func (d SiteData) PullGit(ctx context.Context, op OperationContext) (GitSyncResult, error) {
 	gitMu.Lock()
 	defer gitMu.Unlock()
@@ -361,34 +371,198 @@ func (d SiteData) PullGit(ctx context.Context, op OperationContext) (GitSyncResu
 		return GitSyncResult{}, err
 	}
 	installGitTransport(d.AllowLocal)
+	fail := func(err error) (GitSyncResult, error) {
+		d.record(ctx, site, "pull", "failed", errorText(err), "", "")
+		return GitSyncResult{}, err
+	}
 	fs := memfs.New()
-	repo, err := git.CloneContext(ctx, memory.NewStorage(), fs, &git.CloneOptions{URL: settings.url, Auth: settings.auth(), ReferenceName: plumbing.NewBranchReferenceName(settings.branch), SingleBranch: true, Depth: 1})
+	// 不做浅克隆：要和上次同步的提交比较改了哪些文件。
+	repo, err := git.CloneContext(ctx, memory.NewStorage(), fs, &git.CloneOptions{URL: settings.url, Auth: settings.auth(), ReferenceName: plumbing.NewBranchReferenceName(settings.branch), SingleBranch: true})
+	if errors.Is(err, transport.ErrEmptyRemoteRepository) || errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return fail(platform.NewError(platform.CodeNotFound, false, "仓库里还没有这个分支或没有内容"))
+	}
 	if err != nil {
-		wrapped := gitFailure(err, "拉取仓库")
-		if errors.Is(err, transport.ErrEmptyRemoteRepository) || errors.Is(err, plumbing.ErrReferenceNotFound) {
-			wrapped = platform.NewError(platform.CodeNotFound, false, "仓库里还没有这个分支或没有内容")
-		}
-		d.record(ctx, site, "pull", "failed", errorText(wrapped), "", "")
-		return GitSyncResult{}, wrapped
+		return fail(gitFailure(err, "拉取仓库"))
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return fail(gitFailure(err, "拉取仓库"))
+	}
+	commit := head.Hash().String()
+	if commit == settings.lastCommit {
+		message := "仓库没有新的提交"
+		d.record(ctx, site, "pull", "ok", message, "", "")
+		return GitSyncResult{Commit: commit, Message: message}, nil
 	}
 	archive, count, err := zipWorktree(fs)
 	if err != nil {
-		d.record(ctx, site, "pull", "failed", errorText(err), "", "")
-		return GitSyncResult{}, err
+		return fail(err)
 	}
-	head, _ := repo.Head()
-	commit := ""
-	if head != nil {
-		commit = head.Hash().String()
-	}
-	imported, err := d.ImportSite(ctx, op, archive, ImportOptions{Format: "auto"})
+	a, err := readArchive(archive)
 	if err != nil {
-		d.record(ctx, site, "pull", "failed", errorText(err), "", "")
-		return GitSyncResult{}, err
+		return fail(err)
 	}
-	message := fmt.Sprintf("已拉取 %s：导入 %d 篇文档（草稿）", firstN(commit, 8), imported.Documents)
-	d.record(ctx, site, "pull", "ok", message, "", "")
+	var imported ImportResult
+	var message string
+	var manifest ExportManifestFile
+	raw, ok := a.files[ExportManifest]
+	if ok && json.Unmarshal(raw, &manifest) == nil && manifest.Format == ExportFormat && manifest.SiteID == site {
+		var updated int
+		imported, updated, err = d.syncPull(ctx, op, a, manifest, changedFiles(ctx, repo, settings.lastCommit, head.Hash()))
+		message = fmt.Sprintf("已拉取 %s：更新 %d 篇、新增 %d 篇（草稿）", firstN(commit, 8), updated, imported.Documents-updated)
+	} else {
+		imported, err = d.importFrom(ctx, op, a, ImportOptions{Format: "auto"})
+		message = fmt.Sprintf("已拉取 %s：导入 %d 篇文档（草稿）", firstN(commit, 8), imported.Documents)
+	}
+	if err != nil {
+		return fail(err)
+	}
+	d.record(ctx, site, "pull", "ok", message, commit, "")
 	return GitSyncResult{Commit: commit, Changed: imported.Documents > 0, Files: count, Message: message, Import: &imported}, nil
+}
+
+// changedFiles 列出 base 之后改动或新增的文件；没有 base 或它不在历史里时返回 nil，表示逐个比对全部文件。
+func changedFiles(ctx context.Context, repo *git.Repository, base string, head plumbing.Hash) map[string]bool {
+	if base == "" {
+		return nil
+	}
+	from, err := repo.CommitObject(plumbing.NewHash(base))
+	if err != nil {
+		return nil
+	}
+	to, err := repo.CommitObject(head)
+	if err != nil {
+		return nil
+	}
+	fromTree, err := from.Tree()
+	if err != nil {
+		return nil
+	}
+	toTree, err := to.Tree()
+	if err != nil {
+		return nil
+	}
+	changes, err := fromTree.DiffContext(ctx, toTree)
+	if err != nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, change := range changes {
+		if change.To.Name != "" {
+			out[change.To.Name] = true
+		}
+	}
+	return out
+}
+
+// syncPull 处理本站推送出去的仓库：只拉回上次同步之后在仓库里改过的 Markdown。
+// 改过的文档存成它的新草稿（站内有未发布修改的不覆盖），docs/ 下新加的 Markdown 建成新的草稿文档；
+// 文档结构、改名和删除仍以站点为准。返回的 Documents 是更新与新增的总数，另返回更新的篇数。
+func (d SiteData) syncPull(ctx context.Context, op OperationContext, a *importArchive, manifest ExportManifestFile, changed map[string]bool) (ImportResult, int, error) {
+	ctx = d.Context(ctx)
+	docs, err := d.activeDocuments(ctx, op)
+	if err != nil {
+		return ImportResult{}, 0, err
+	}
+	current := map[string]gen.DocumentMetadata{}
+	for _, doc := range docs {
+		current[doc.DocumentId] = doc
+	}
+	result := ImportResult{Format: "nicewiki", Warnings: append([]string{}, a.warnings...), Failures: []string{}}
+	im := &importer{d: d, op: op, svc: ServiceOperation(op.Actor.SiteID, op.DataEpoch), archive: a, result: &result, uploaded: map[string]map[string]any{}}
+	files := map[string]string{}  // 文档 ID → 推送时的 Markdown 路径
+	byFile := map[string]string{} // 小写 Markdown 路径 → 站内文档 ID
+	dirs := map[string]string{}   // 子文档所在目录 → 站内文档 ID
+	tracked := map[string]bool{}
+	for _, doc := range manifest.Documents {
+		files[doc.ID] = doc.File
+		tracked[strings.ToLower(doc.File)] = true
+		if _, ok := current[doc.ID]; ok {
+			byFile[strings.ToLower(doc.File)] = doc.ID
+			dirs[strings.TrimSuffix(doc.File, ".md")] = doc.ID
+		}
+	}
+	mediaPaths := map[string]string{}
+	for _, m := range manifest.Media {
+		mediaPaths[fmt.Sprint(m.AssetID, ":", m.Version)] = m.File
+	}
+	bodies := make([][]any, len(manifest.Documents))
+	for i, doc := range manifest.Documents {
+		raw, _ := a.get(doc.Blocks)
+		var generic struct {
+			Content []any `json:"content"`
+		}
+		_ = json.Unmarshal(raw, &generic)
+		bodies[i] = generic.Content
+		// 仓库里已有的媒体文件对应站内现成的资源，Markdown 引用它们时不重复上传。
+		walkAssetRefs(generic.Content, func(ref map[string]any) map[string]any {
+			if file, ok := mediaPaths[fmt.Sprint(ref["assetId"], ":", ref["version"])]; ok {
+				im.uploaded[file] = ref
+			}
+			return nil
+		})
+	}
+	type target struct{ id, file, title string }
+	var edits, fresh []target
+	for i, doc := range manifest.Documents {
+		if changed != nil && !changed[doc.File] {
+			continue
+		}
+		// 按推送时的布局重新渲染块 JSON，和仓库里的 Markdown 一样就是没人改过。
+		raw, ok := a.get(doc.File)
+		if !ok || bytes.Equal(raw, exportMarkdown(doc, bodies[i], files, mediaPaths)) {
+			continue
+		}
+		meta, ok := current[doc.ID]
+		if !ok {
+			result.Warnings = append(result.Warnings, "《"+doc.Title+"》已在站内删除，仓库里的修改没有拉回")
+			continue
+		}
+		draft, err := ReadDraft(ctx, step(op), ReadDraftInput{DocumentId: doc.ID})
+		if err != nil {
+			result.Failures = append(result.Failures, "《"+meta.Title+"》读取草稿失败："+errorText(err))
+			continue
+		}
+		if meta.PublishedReference == nil || draft.Draft.BodyHash != meta.PublishedReference.ContentHash {
+			result.Warnings = append(result.Warnings, "《"+meta.Title+"》站内有未发布的修改，没有用仓库里的版本覆盖")
+			continue
+		}
+		edits = append(edits, target{doc.ID, doc.File, meta.Title})
+	}
+	// a.names 已排序，“docs/A.md”排在“docs/A/新.md”前面，上级文档先建好。
+	for _, name := range a.names {
+		if !strings.HasPrefix(name, "docs/") || !isMarkdown(name) || tracked[strings.ToLower(name)] || changed != nil && !changed[name] {
+			continue
+		}
+		var parent *Identifier
+		if id, ok := dirs[path.Dir(name)]; ok {
+			parent = &id
+		}
+		title := titleOf(a, name, false)
+		created, err := CreateDocument(ctx, step(op), CreateDocumentInput{ParentId: parent, Title: title})
+		if err != nil {
+			result.Failures = append(result.Failures, "《"+title+"》创建失败："+errorText(err))
+			continue
+		}
+		id := created.Metadata.DocumentId
+		byFile[strings.ToLower(name)] = id
+		dirs[strings.TrimSuffix(name, ".md")] = id
+		fresh = append(fresh, target{id, name, title})
+	}
+	for _, t := range append(edits, fresh...) {
+		parsed := im.parseMarkdown(ctx, t.file, byFile)
+		for _, w := range parsed.Warnings {
+			result.Warnings = append(result.Warnings, "《"+t.title+"》："+w)
+		}
+		if parsed.Title != "" && parsed.Title != t.title {
+			result.Warnings = append(result.Warnings, "《"+t.title+"》的标题改动没有同步，请在站内改名")
+		}
+		if err := d.saveImported(ctx, op, t.id, parsed.Blocks); err != nil {
+			result.Failures = append(result.Failures, "《"+t.title+"》正文没能保存："+errorText(err))
+		}
+	}
+	result.Documents = len(edits) + len(fresh)
+	return result, len(edits), nil
 }
 
 // zipWorktree 把检出的仓库文件打成 zip（跳过 .git），交给统一的导入流程。

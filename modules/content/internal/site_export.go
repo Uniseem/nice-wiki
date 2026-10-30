@@ -267,29 +267,33 @@ func (d SiteData) BuildExport(ctx context.Context, op OperationContext, publishe
 			bundle.Files = append(bundle.Files, exportFile{Name: file, Data: data})
 		}
 	}
-	// Markdown：站内链接指向对方文件的相对路径，图片指向媒体文件。
 	for _, doc := range bundle.Manifest.Documents {
-		blocks := bodies[doc.ID]
-		md := mdconv.Render(blocks, mdconv.RenderOptions{
-			Link: func(id string) (string, bool) {
-				if target, ok := files[id]; ok {
-					return relativePath(doc.File, target), true
-				}
-				return "", false
-			},
-			Asset: func(ref map[string]any) (string, bool) {
-				if file, ok := mediaPaths[fmt.Sprint(ref["assetId"], ":", ref["version"])]; ok {
-					return relativePath(doc.File, file), true
-				}
-				return "", false
-			},
-		})
-		bundle.Files = append(bundle.Files, exportFile{Name: doc.File, Data: []byte("# " + doc.Title + "\n\n" + md)})
+		bundle.Files = append(bundle.Files, exportFile{Name: doc.File, Data: exportMarkdown(doc, bodies[doc.ID], files, mediaPaths)})
 	}
 	manifest, _ := json.MarshalIndent(bundle.Manifest, "", "  ")
 	bundle.Files = append([]exportFile{{Name: ExportManifest, Data: manifest}}, bundle.Files...)
 	sort.SliceStable(bundle.Files[1:], func(i, j int) bool { return bundle.Files[1+i].Name < bundle.Files[1+j].Name })
 	return bundle, nil
+}
+
+// exportMarkdown 渲染导出里一篇文档的 Markdown：站内链接指向对方文件的相对路径，图片指向媒体文件。
+// files 是文档 ID → Markdown 路径，mediaPaths 是“资源ID:版本” → 媒体文件路径。
+func exportMarkdown(doc ExportDoc, blocks []any, files, mediaPaths map[string]string) []byte {
+	md := mdconv.Render(blocks, mdconv.RenderOptions{
+		Link: func(id string) (string, bool) {
+			if target, ok := files[id]; ok {
+				return relativePath(doc.File, target), true
+			}
+			return "", false
+		},
+		Asset: func(ref map[string]any) (string, bool) {
+			if file, ok := mediaPaths[fmt.Sprint(ref["assetId"], ":", ref["version"])]; ok {
+				return relativePath(doc.File, file), true
+			}
+			return "", false
+		},
+	})
+	return []byte("# " + doc.Title + "\n\n" + md)
 }
 
 // Fingerprint 是导出内容的指纹：清单里的导出时间不算，其余文件按名字和内容计入，
