@@ -12,7 +12,6 @@ pub struct Entry {
     pub headers: Vec<(HeaderName, HeaderValue)>,
     pub body: Bytes,
     pub expires: Instant,
-    pub host: String,
     /// 上游（portal）在响应头 X-Nw-Site 里标明的站点，按站点清缓存时用。
     pub site: String,
 }
@@ -73,16 +72,6 @@ impl Cache {
         }
     }
 
-    /// 清掉某个域名下的全部缓存页面，返回清掉的个数。
-    pub fn purge_host(&self, host: &str) -> usize {
-        let mut inner = self.inner.lock().unwrap();
-        let keys: Vec<String> = inner.map.iter().filter(|(_, entry)| entry.host == host).map(|(key, _)| key.clone()).collect();
-        for key in &keys {
-            Self::remove(&mut inner, key);
-        }
-        keys.len()
-    }
-
     /// 清掉某个站点的全部缓存页面（站点的任何域名下的），返回清掉的个数。
     pub fn purge_site(&self, site: &str) -> usize {
         let mut inner = self.inner.lock().unwrap();
@@ -91,10 +80,5 @@ impl Cache {
             Self::remove(&mut inner, key);
         }
         keys.len()
-    }
-
-    pub fn stats(&self) -> (usize, usize) {
-        let inner = self.inner.lock().unwrap();
-        (inner.map.len(), inner.bytes)
     }
 }

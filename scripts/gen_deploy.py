@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 """生成部署文件：各进程的 Dockerfile、deploy/docker-compose.yml、Caddyfile、各组件配置、密钥初始化与备份恢复脚本。
-拓扑见 docs/architecture-v2.md：Caddy（按需证书）→ edge（Rust，缓存与限流）→ account 进程里的 portal 组件；account、content、ai、ops 四个宿主进程各跑一组组件，
+拓扑见 docs/architecture-v2.md：Caddy（按需证书）→ edge（Rust，入口：鉴权转发、后台静态页、缓存与限流）→ 各宿主进程；account、content、ai、ops 四个宿主进程各跑一组组件，
 ai 进程里的 knowledge 组件配 search（Rust）；全部数据在一个带 pgvector 的 PostgreSQL 里，正文和媒体文件在 content 的数据卷。
 进程与组件清单只在本文件里维护，改完后重新运行即可。"""
 import json, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PORTS = {  # 组件: 端口
-    "portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103, "media": 8104,
+    "portal": 8090, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103, "media": 8104,
     "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108, "memory": 8109,
     "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114,
 }
-# 宿主进程 → 组件（同一进程里运行多个组件，各自监听、各自配置）；portal 随 account、knowledge 随 ai 运行。
-HOSTS = {"account": ["site-config", "identity", "portal"], "content": ["content", "media", "localization", "public-site"],
+# 宿主进程 → 组件（同一进程里运行多个组件，各自监听、各自配置）；knowledge 随 ai 运行。
+# portal 不是 Go 组件：edge 以 portal 的服务身份运行，用 config/portal.json 和 secrets/portal 里的签名、委托密钥。
+HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
          "ai": ["model-gateway", "qa", "agent", "memory", "knowledge"], "ops": ["jobs", "analytics", "traffic-guard"]}
 PROCESSES = list(HOSTS)
-PROCESS_OF = {c: p for p, comps in HOSTS.items() for c in comps}
-SEARCH_PORT, EDGE_PORT = 8120, 8090
+PROCESS_OF = {**{c: p for p, comps in HOSTS.items() for c in comps}, "portal": "edge"}
+SEARCH_PORT, EDGE_PORT = 8120, PORTS["portal"]
 WEB_MODULES = ["portal", "content", "site-config", "identity", "media", "localization", "model-gateway", "knowledge", "memory", "qa", "traffic-guard", "jobs", "analytics", "public-site"]
 MASTER_KEY_COMPONENTS = ["identity", "model-gateway", "content"]  # 需要主密钥（加密保存第三方凭据、自带密钥、备份凭据）
 SUBNET = "10.231.97.0/24"  # 内部桥接网络：用私有网段（服务器防火墙通常只给私有网段放行转发，文档保留段的容器出不了网），避开 Docker 默认地址池
 IMAGES = "ghcr.io/uniseem/nice-wiki"  # 发版流程推送的镜像：{IMAGES}-{进程}:{版本}
 UIDS = {name: 10000 + i for i, name in enumerate(PROCESSES + ["search", "edge"])}
 # 每个组件（和检索服务）一个数据库角色，只拥有自己的 schema；公共辅助函数和队列表归 nw_shared，各角色都是它的成员。
-DB_ROLES = {slug: "nw_" + slug.replace("-", "_") for slug in [*PORTS, "search"]}
+DB_ROLES = {slug: "nw_" + slug.replace("-", "_") for slug in [*PORTS, "search"] if slug != "portal"}
 
 
 def write(path, text, mode=None):
@@ -72,10 +73,6 @@ def go_dockerfile(proc):
     host = proc in HOSTS
     workdir = f"services/{proc}" if host else f"modules/{proc}"
     pre, copy_extra, base, env = "", "", "alpine:3.20", ""
-    if proc == "account":
-        pre = web_stage()
-        copy_extra = "COPY --from=web /out/web /web\nCOPY modules/portal/config/routes.json /config/routes.json\n"
-        env = "ENV NW_WEB_DIR=/web\n"
     if proc == "ai":
         pre = agent_stage()
         copy_extra = "COPY --from=native /src/agent-dist/ /opt/agent/\nCOPY --from=native /src/docs/licenses/ /opt/agent/licenses/\nCOPY THIRD_PARTY_NOTICES.md /opt/agent/THIRD_PARTY_NOTICES.md\n"
@@ -83,7 +80,6 @@ def go_dockerfile(proc):
         base = "node:24-alpine"
     uid = UIDS[proc]
     cmd = '["--config-dir", "/config"]' if host else f'["--config", "/config/{proc}.json"]'
-    wd = "/" if proc == "account" else "/config"
     return f"""# {proc} 进程镜像；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
 {pre}FROM golang:1.25-alpine AS build
 WORKDIR /src
@@ -97,14 +93,14 @@ FROM {base}
 RUN adduser -D -u {uid} {proc} && mkdir -p /data && chown {uid}:{uid} /data
 COPY --from=build /out/{proc} /usr/local/bin/{proc}
 {copy_extra}{env}USER {uid}:{uid}
-WORKDIR {wd}
+WORKDIR /config
 ENTRYPOINT ["/usr/local/bin/{proc}"]
 CMD {cmd}
 """
 
 
 RUST_DOCKERFILE = f"""# Rust 进程镜像（检索 search、公开入口 edge）；构建上下文为仓库根。由 scripts/gen_deploy.py 生成。
-FROM rust:1.95-bookworm AS build
+{web_stage()}FROM rust:1.95-bookworm AS build
 WORKDIR /src
 COPY rust/ rust/
 WORKDIR /src/rust
@@ -120,6 +116,8 @@ CMD ["/config/search.json"]
 FROM debian:bookworm-slim AS edge
 RUN useradd -u {UIDS['edge']} -m edge && mkdir -p /cache && chown {UIDS['edge']}:{UIDS['edge']} /cache
 COPY --from=build /src/rust/target/release/nw-edge /usr/local/bin/nw-edge
+COPY --from=web /out/web /web
+COPY modules/portal/config/routes.json /config/routes.json
 USER {UIDS['edge']}:{UIDS['edge']}
 ENTRYPOINT ["/usr/local/bin/nw-edge"]
 CMD ["/config/edge.json"]
@@ -141,6 +139,9 @@ def component_config(slug):
     if slug in ("portal", "traffic-guard"):
         cfg["budgetKeyRef"] = "/run/secrets/budget/budget-key.json"
     if slug == "portal":
+        # edge 用的服务配置：没有自己的数据和数据库，访客地址只信任内部网络里的 Caddy。
+        for field in ("listen", "dataRoot", "databaseRef"):
+            del cfg[field]
         cfg["delegationKeyRef"] = f"{secret_dir(slug)}/delegation-key.json"
         cfg["trustedProxyCIDRs"] = [SUBNET]
     if slug == "analytics":
@@ -182,7 +183,7 @@ def compose(release=False):
         vols += ["./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro", f"{proc}-data:/data"]
         if any(c in MASTER_KEY_COMPONENTS for c in comps):
             vols.append("./secrets/master-key:/run/secrets/master-key:ro")
-        if any(c in ("portal", "traffic-guard") for c in comps):
+        if "traffic-guard" in comps:
             vols.append("./secrets/budget:/run/secrets/budget:ro")
         vols += list(extra_volumes)
         block += ["    volumes:"] + [f"      - {v}" for v in vols]
@@ -191,14 +192,15 @@ def compose(release=False):
 
     # 主密钥文件权限 0600，宿主进程里有用到它的服务以 root 运行才读得到。
     public = {"NW_ALLOW_LOCAL_HTTP": '"false"', "NW_PUBLIC_BASE_URL": "https://${SITE_DOMAIN}"}
-    lines += app("account", HOSTS["account"], extra_env={**public, "NW_EDGE_PURGE_URL": f"http://edge:{EDGE_PORT}", "NW_EDGE_PURGE_SECRET_FILE": "/run/secrets/edge-purge-secret", "NW_CADDY_ADMIN_URL": "http://caddy:2019"},
-                 extra_volumes=["./secrets/edge/purge-secret:/run/secrets/edge-purge-secret:ro"], user="0:0")
+    lines += app("account", HOSTS["account"], extra_env={**public, "NW_CADDY_ADMIN_URL": "http://caddy:2019"}, user="0:0")
     lines += app("content", HOSTS["content"], extra_env=public, user="0:0")
     lines += app("ai", HOSTS["ai"], extra_volumes=["./secrets/search/secret:/run/secrets/search-secret:ro"], user="0:0")
     lines += app("ops", HOSTS["ops"], user="0:0")
     lines += ["  search:"] + image("search", "rust/Dockerfile", "search") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/search.json:/config/search.json:ro",
               "      - ./secrets/search/secret:/run/secrets/search-secret:ro", "      - ./secrets/search/database-url:/run/secrets/database-url:ro", "      - search-data:/data", "    depends_on:", "      postgres: {condition: service_healthy}", ""]
-    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    volumes:", "      - ./config/edge.json:/config/edge.json:ro", "      - ./secrets/edge/purge-secret:/run/secrets/purge-secret:ro", "      - edge-cache:/cache", "    depends_on: [account]", ""]
+    lines += ["  edge:"] + image("edge", "rust/Dockerfile", "edge") + ["    restart: unless-stopped", "    networks: [internal]", "    environment:", "      NW_PUBLIC_BASE_URL: https://${SITE_DOMAIN}", "    volumes:",
+              "      - ./config/edge.json:/config/edge.json:ro", "      - ./config/portal.json:/config/portal.json:ro", "      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro",
+              "      - ./secrets/portal:/run/secrets/portal:ro", "      - ./secrets/budget:/run/secrets/budget:ro", "      - edge-cache:/cache", "    depends_on: [account, content, ai, ops]", ""]
     lines += ["  caddy:", "    build: ./caddy", "    image: nice-wiki/caddy:${NW_VERSION:-dev}", "    restart: unless-stopped", "    networks: [internal]",
               "    ports: [\"${NW_BIND:-0.0.0.0}:80:80\", \"${NW_BIND:-0.0.0.0}:443:443\"]", "    environment:", "      SITE_DOMAIN: ${SITE_DOMAIN}",
               "    volumes:", "      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "      - ./caddy/conf.d:/etc/caddy/conf.d:ro", "      - caddy-data:/data", "      - caddy-config:/config",
@@ -215,8 +217,8 @@ FROM caddy:2-alpine
 COPY --from=build /usr/bin/caddy /usr/bin/caddy
 """
 
-CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 portal 组件的 /_tls/allow 判断），
-# 再把流量交给 edge（页面缓存与限流），edge 转给 account 进程里的 portal 组件。
+CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只给平台域名、已验证的自定义域名和平台子域名签（由 edge 的 /_tls/allow 问 identity 判断），
+# 再把流量交给 edge（鉴权转发、后台静态页、页面缓存与限流）。
 # 站主在后台填了 Cloudflare 令牌后，account 经管理接口（只在内部网络）加一条 DNS 验证策略，平台子域名改用一张泛域名证书。
 # 部署相关的定制（例如放在 Cloudflare 后面：只放行 Cloudflare 回源、取真实访客 IP）写成 conf.d 下的 global-*.caddy / site-*.caddy，本地文件不进 git。
 {
@@ -224,7 +226,7 @@ CADDYFILE = """# 公开入口：Caddy 终止 HTTPS，证书按需签发——只
 		origins caddy:2019
 	}
 	on_demand_tls {
-		ask http://account:8080/_tls/allow
+		ask http://edge:8090/_tls/allow
 	}
 	import /etc/caddy/conf.d/global-*.caddy
 }
@@ -279,7 +281,7 @@ cp "$budget" deploy/secrets/budget/budget.pem
 printf '{"keyId":"%s","privateKeyRef":"/run/secrets/budget/budget.pem"}\\n' "$(basename "$budget" .pem | sed 's/^budget-//')" > deploy/secrets/budget/budget-key.json
 for dir in deploy/secrets/*/; do
 	slug=$(basename "$dir")
-	case "$slug" in budget|postgres|search|edge) continue ;; esac
+	case "$slug" in budget|postgres|search) continue ;; esac
 	pem=$(ls "$dir"signing-*.pem | head -n1)
 	keyid=$(basename "$pem" .pem | sed 's/^signing-//')
 	cp "$pem" "$dir/signing.pem"
@@ -291,7 +293,7 @@ for dir in deploy/secrets/*/; do
 		printf '{"keyId":"%s","privateKeyRef":"/run/secrets/portal/delegation.pem"}\\n' "$did" > "$dir/delegation-key.json"
 	fi
 done
-mkdir -p deploy/secrets/postgres deploy/secrets/search deploy/secrets/edge
+mkdir -p deploy/secrets/postgres deploy/secrets/search
 rand() { head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'; }
 [ -f deploy/secrets/master-key ] || head -c 32 /dev/urandom > deploy/secrets/master-key
 [ -f deploy/secrets/postgres/superuser-password ] || rand > deploy/secrets/postgres/superuser-password
@@ -305,7 +307,6 @@ for slug in @DB_SLUGS@; do
 	printf "CREATE ROLE %s LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '%s' IN ROLE nw_shared;\\nGRANT CONNECT, CREATE ON DATABASE nicewiki TO %s;\\n" "$role" "$(cat "$dir/db-password")" "$role" >> deploy/secrets/postgres/roles.sql
 done
 [ -f deploy/secrets/search/secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/search/secret
-[ -f deploy/secrets/edge/purge-secret ] || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n' > deploy/secrets/edge/purge-secret
 # 容器里的服务用户（uid 与宿主机不同）要能读到挂载进去的密钥文件：文件放开读，靠顶层目录 0700 挡住宿主机上的其他用户；主密钥与数据库口令只给 root。
 find deploy/secrets -type d -exec chmod 755 {} +
 find deploy/secrets -type f -exec chmod 644 {} +
@@ -405,7 +406,7 @@ NW_BIND=0.0.0.0
 
 RELEASE_README = """# nice-wiki 部署包
 
-单机部署：公开入口（Caddy 按需证书 → edge → account 进程里的 portal 组件）、account、content、ai、ops、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
+单机部署：公开入口（Caddy 按需证书 → edge）、account、content、ai、ops、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
 服务器上不编译、不需要 Go。
 
 需要：Linux 服务器（amd64 或 arm64）、Docker 及 compose 插件、已解析到服务器的域名、可用的 80/443 端口。
@@ -439,12 +440,12 @@ def main():
     for slug in PORTS:
         write(f"deploy/config/{slug}.json", json.dumps(component_config(slug), indent=2, ensure_ascii=False) + "\n")
     write("deploy/config/search.json", json.dumps({"listen": f"0.0.0.0:{SEARCH_PORT}", "dataDir": "/data/index", "secretFile": "/run/secrets/search-secret", "databaseUrlFile": "/run/secrets/database-url"}, indent=2) + "\n")
-    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "upstream": "account:8080", "trustForwarded": True, "purgeSecretFile": "/run/secrets/purge-secret", "mediaDiskDir": "/cache/media"}, indent=2) + "\n")
+    write("deploy/config/edge.json", json.dumps({"listen": f"0.0.0.0:{EDGE_PORT}", "service": "/config/portal.json", "routes": "/config/routes.json", "webDir": "/web", "trustForwarded": True, "mediaDiskDir": "/cache/media"}, indent=2) + "\n")
     write("deploy/config/services.json", json.dumps({"version": 1, "services": [
         {"slug": s, "url": f"http://{PROCESS_OF[s]}:{p}", "port": p, "dataVolume": f"/data/{s}", "secretsDir": f"deploy/secrets/{s}"} for s, p in PORTS.items()]}, indent=2, ensure_ascii=False) + "\n")
     write("deploy/docker-compose.yml", compose())
     write("deploy/release/docker-compose.yml", compose(release=True))
-    rows = [f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t{'/' if p == 'account' else '/config'}\t{p}\t" + ("--config-dir,/config" if p in HOSTS else f"--config,/config/{p}.json") for p in PROCESSES]
+    rows = [f"{p}\t{UIDS[p]}\t{PORTS[p] if p in PORTS else PORTS[HOSTS[p][0]]}\t/config\t{p}\t" + ("--config-dir,/config" if p in HOSTS else f"--config,/config/{p}.json") for p in PROCESSES]
     rows += [f"search\t{UIDS['search']}\t{SEARCH_PORT}\t/config\tnw-search\t/config/search.json", f"edge\t{UIDS['edge']}\t{EDGE_PORT}\t/config\tnw-edge\t/config/edge.json"]
     write("deploy/release/images.tsv", "\n".join(rows) + "\n")
     write("deploy/release/README.md", RELEASE_README)

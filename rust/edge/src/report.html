@@ -1,9 +1,4 @@
-package transport
-
-import "net/http"
-
-// reportPage 是公开页页脚“举报此站点”指向的独立小页面：不依赖前端框架，匿名可用，直接提交到 /v1/reports。
-const reportPage = `<!doctype html>
+<!doctype html>
 <html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>举报 / Report</title>
 <style>
@@ -52,13 +47,4 @@ document.getElementById('f').addEventListener('submit',async(e)=>{
   }catch{msg.textContent='网络错误。Network error.';}
   go.disabled=false;
 });
-</script></main></body></html>`
-
-func mountReportPage(mux *http.ServeMux) {
-	mux.HandleFunc("GET /_report", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'")
-		_, _ = w.Write([]byte(reportPage))
-	})
-}
+</script></main></body></html>

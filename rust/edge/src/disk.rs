@@ -19,7 +19,6 @@ struct Meta {
     key: String,
     status: u16,
     headers: Vec<(String, String)>,
-    host: String,
     site: String,
     /// 过期时刻（Unix 秒）。
     expires: u64,
@@ -28,7 +27,6 @@ struct Meta {
 struct Item {
     size: u64,
     used: u64,
-    host: String,
     site: String,
 }
 
@@ -79,7 +77,7 @@ impl DiskCache {
             match (parsed, size) {
                 (Some(meta), Some(size)) => {
                     let modified = entry.metadata().and_then(|m| m.modified()).ok();
-                    found.push((modified, stem, Item { size, used: 0, host: meta.host, site: meta.site }));
+                    found.push((modified, stem, Item { size, used: 0, site: meta.site }));
                 }
                 _ => {
                     let _ = fs::remove_file(&path);
@@ -143,7 +141,7 @@ impl DiskCache {
             }
         }
         let headers = meta.headers.iter().filter_map(|(name, value)| Some((HeaderName::from_bytes(name.as_bytes()).ok()?, HeaderValue::from_str(value).ok()?))).collect();
-        Some(Entry { status: StatusCode::from_u16(meta.status).ok()?, headers, body: Bytes::from(body), expires: Instant::now(), host: meta.host, site: meta.site })
+        Some(Entry { status: StatusCode::from_u16(meta.status).ok()?, headers, body: Bytes::from(body), expires: Instant::now(), site: meta.site })
     }
 
     fn forget(&self, stem: &str) {
@@ -165,7 +163,6 @@ impl DiskCache {
             key: key.to_owned(),
             status: entry.status.as_u16(),
             headers: entry.headers.iter().filter_map(|(name, value)| Some((name.as_str().to_owned(), value.to_str().ok()?.to_owned()))).collect(),
-            host: entry.host.clone(),
             site: entry.site.clone(),
             expires: now_secs() + ttl_seconds,
         };
@@ -189,7 +186,7 @@ impl DiskCache {
         inner.tick += 1;
         let used = inner.tick;
         inner.bytes += size;
-        inner.items.insert(stem.clone(), Item { size, used, host: entry.host.clone(), site: entry.site.clone() });
+        inner.items.insert(stem.clone(), Item { size, used, site: entry.site.clone() });
         self.evict(&mut inner, &stem);
     }
 
@@ -203,10 +200,6 @@ impl DiskCache {
             self.remove_files(stem);
         }
         stems.len()
-    }
-
-    pub fn purge_host(&self, host: &str) -> usize {
-        self.purge_where(|item| item.host == host)
     }
 
     pub fn purge_site(&self, site: &str) -> usize {

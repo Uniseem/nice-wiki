@@ -1,7 +1,5 @@
 {
   "module": "portal",
-  "listen": "0.0.0.0:8080",
-  "dataRoot": "/data/portal",
   "trustAnchorRef": "/run/secrets/trust-anchors.json",
   "signingKeyRef": "/run/secrets/portal/signing-key.json",
   "dependencies": {
@@ -20,7 +18,6 @@
     "analytics": "http://ops:8112",
     "agent": "http://ai:8114"
   },
-  "databaseRef": "/run/secrets/portal/database-url",
   "budgetKeyRef": "/run/secrets/budget/budget-key.json",
   "delegationKeyRef": "/run/secrets/portal/delegation-key.json",
   "trustedProxyCIDRs": [

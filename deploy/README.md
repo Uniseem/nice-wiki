@@ -4,7 +4,7 @@
 
 - `docker-compose.yml`、各进程的 `Dockerfile`（`services/<进程>/`、`rust/`）：由 `scripts/gen_deploy.py` 生成，不要手改。
 - `release/`：发布包用的编排（拉取 ghcr.io 镜像）、说明和镜像规格 `images.tsv`，同样由 `scripts/gen_deploy.py` 生成。发版由 GitHub Actions（`.github/workflows/release.yml`）在推送 `v*` 标签时执行：Rust 程序在原生 amd64、arm64 机器上编成 musl 静态程序，Go 程序交叉编译，再用 crane 组装并推送镜像、打发布包，用 Actions 自带令牌，不需要另配密钥。
-- `caddy/Caddyfile`：Caddy 终止 HTTPS，证书按需签发——先问 account 进程里 portal 组件的 `/_tls/allow`，只给平台域名、`SITE_DOMAIN`、已验证的自定义域名和平台子域名签。流量交给 `edge`（Rust，页面缓存与限流），`edge` 转给 `portal`。
+- `caddy/Caddyfile`：Caddy 终止 HTTPS，证书按需签发——先问 `edge` 的 `/_tls/allow`（它再问 identity），只给平台域名、`SITE_DOMAIN`、已验证的自定义域名和平台子域名签。流量交给 `edge`（Rust）：它是唯一入口，以 portal 的服务身份（`config/portal.json`、`secrets/portal`）鉴权并转发到各服务，提供后台静态页，做页面缓存与限流。
 - `postgres/init/`：首次启动数据库时建非超级用户的应用角色（行级安全对它生效）并装 pgvector。
 - `config/*.json`：各组件的运行配置；`config/trust-anchors.json` 由 `nw-keys` 生成，只含公钥。
 - `init-secrets.sh`：首次部署生成各组件的签名密钥、主密钥、数据库与检索口令（写入 `deploy/secrets`，已被 git 忽略）。
@@ -14,11 +14,11 @@
 
 | 进程 | 组件 |
 |---|---|
-| `account` | site-config 8102、identity 8101、portal 8080 |
+| `account` | site-config 8102、identity 8101 |
 | `content` | content 8103、media 8104、localization 8108、public-site 8081 |
 | `ai` | model-gateway 8105、qa 8107、agent 8114（内含 Node 进程）、memory 8109、knowledge 8106 |
 | `ops` | jobs 8111、analytics 8112、traffic-guard 8110 |
-| `search` 8120、`edge` 8090、`postgres`、`caddy` | |
+| `search` 8120、`edge` 8090（portal 的服务身份）、`postgres`、`caddy` | |
 
 ## 用发布包部署（推荐）
 

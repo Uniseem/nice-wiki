@@ -2,6 +2,8 @@
 
 入口、后台外壳与模块装配；偏好由 identity 拥有，portal 无业务数据仓库。
 
+入口的运行实现是 Rust 的 [edge](../../rust/edge)：它沿用 portal 的服务身份（签名、委托、预算密钥和 config/portal.json），按本目录的 config/routes.json 转发，并直接提供 web/ 构建出的后台单页应用。本目录只留合同、路由表、文档和后台前端，不再有 Go 代码。
+
 ## 设计索引
 
 - [docs/requirements.md](docs/requirements.md)

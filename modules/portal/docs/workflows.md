@@ -21,9 +21,7 @@
 
 ### 后台任务
 
-| 函数 | 运行时机 | 作用 |
-|---|---|---|
-| `portal.CompileRouteRegistry` | 启动时（加载config/routes.json） | 校验并编译公开与管理 API 的静态路由表 |
+本域没有后台任务。
 <!-- flows:end -->
 
 ## 浏览器认证与敏感响应

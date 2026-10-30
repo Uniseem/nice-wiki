@@ -3,8 +3,8 @@
   "services": [
     {
       "slug": "portal",
-      "url": "http://account:8080",
-      "port": 8080,
+      "url": "http://edge:8090",
+      "port": 8090,
       "dataVolume": "/data/portal",
       "secretsDir": "deploy/secrets/portal"
     },

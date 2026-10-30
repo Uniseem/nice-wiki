@@ -354,14 +354,14 @@
 | 备份格式与增量 | Kopia（Apache-2.0）、restic（BSD-2）、rustic（Apache-2.0/MIT） | **只参考**。当前每次备份是完整的站点导出包（清单、块 JSON、Markdown、媒体，zip），站点一般不大，内容和上一份相同（指纹一致且那份还在远端）时不再上传新的一份；数据量上去后再换块级增量去重（可接 restic 兼容仓库）。平台级备份用 `deploy/backup.sh`（pg_dump 在线导出，正文与媒体增量复制，其余卷打包，可选加密与 rclone 同步） |
 | 国内网盘（后续） | OpenList / AList（AGPL-3.0）、aliyunpan（Apache-2.0）、BaiduPCS-Go（Apache-2.0）、115driver（MIT） | **后续版本**。OpenList 只参考驱动实现不复制；优先对接各家官方开放平台 |
 | 第三方登录 | golang.org/x/oauth2（BSD-3）、coreos/go-oidc（Apache-2.0）、goth（MIT） | **自己实现**：GitHub、Google、Linux DO 三家都是标准授权码流程，只需要换令牌与读用户信息；用 netguard 客户端出站，state 与回跳由 identity 签名。三家的端点以官方文档为准。库的抽象反而多出配置项，暂不引入 |
-| 自定义域名证书 | Caddy 按需证书（Apache-2.0）、certmagic（Apache-2.0） | **采用 Caddy 的 `on_demand_tls`**：`ask` 指向 portal 的 `/_tls/allow`，只给平台域名、部署时配置的域名、已验证的自定义域名和平台子域名签证书。用户子域名多了以后，Let's Encrypt 对同一注册域名每周 50 张新证书的限额会成为瓶颈，届时改用带 DNS 模块的 Caddy 签泛域名证书 |
+| 自定义域名证书 | Caddy 按需证书（Apache-2.0）、certmagic（Apache-2.0） | **采用 Caddy 的 `on_demand_tls`**：`ask` 指向 edge 的 `/_tls/allow`，只给平台域名、部署时配置的域名、已验证的自定义域名和平台子域名签证书。用户子域名多了以后，Let's Encrypt 对同一注册域名每周 50 张新证书的限额会成为瓶颈，届时改用带 DNS 模块的 Caddy 签泛域名证书 |
 | AI 额度与兑换码 | one-api（MIT）、new-api（AGPL-3.0）、doyensec/safeurl（Apache-2.0） | **只参考**模型与做法：邀请码额度、按用户记账、自带渠道优先；SSRF 防护按 safeurl 的思路自己写成 netguard（保存前解析检查 + 拨号时按实际 IP 再查）。new-api 只参考，不复制 |
-| edge | pingora（Apache-2.0）、axum / hyper（MIT）、governor（MIT）、moka（MIT/Apache-2.0）、maxminddb（ISC） | **采用 hyper 1 + tokio**（MIT）自己写：缓存、单飞、令牌桶、流式透传都很小；pingora 过重。国家库仍由 Go 侧 portal 用 maxminddb-golang 查 |
+| edge | pingora（Apache-2.0）、axum / hyper（MIT）、governor（MIT）、moka（MIT/Apache-2.0）、maxminddb（ISC） | **采用 hyper 1 + tokio**（MIT）自己写：缓存、单飞、令牌桶、流式透传都很小；pingora 过重。国家库由 edge 用 maxminddb 查 |
 | 检索 | tantivy（MIT）、jieba-rs（MIT）、tantivy-jieba（MIT）、pgvector（PostgreSQL License）、Meilisearch（MIT，对照） | **采用 tantivy + pgvector**。分词由 Go 侧（沿用现有切词）完成，search 只收词，避免在 Rust 里重复一套词典；向量索引按维度建 HNSW。Meilisearch 作对照，未采用（单独的数据副本、多租户隔离更难） |
 | PG 队列 | pgmq（PostgreSQL License）、River（MPL-2.0）、apalis（MIT） | **自己实现**：队列只有事件投递这一个用法，语义很小（可见超时当租约、读取次数计重试、`FOR UPDATE SKIP LOCKED` 并发领取），直接写在 `libs/platform/queue`，不引入这三个项目的依赖；做法参考 pgmq |
 | 导入 | goldmark（MIT）、comrak（BSD-2）、jomei/notionapi（BSD-2）、BookStack（MIT）、Docmost（AGPL-3.0） | **采用 goldmark**（GFM 表格、删除线、任务列表）；GitBook 的 `{% %}` 标签先改写成标准 Markdown，Notion 导出按“页面名 + 32 位 ID”的目录约定重建层级。Notion 官方 API 不用（导出包就是 Markdown）。BookStack 与 Docmost 只参考导入行为，不复制 |
 | Git 同步 | go-git（Apache-2.0）、gitoxide（Apache-2.0/MIT） | **采用 go-git**（内存克隆、提交、推送，不落盘、不依赖 git 命令）；出站 HTTP 走防 SSRF 的客户端 |
-| Rust 的 OpenAPI 代码生成 | — | **不生成**：两个 Rust 服务的接口很少（search 三个、edge 一个清缓存接口），手写请求体并在入口校验；服务间认证用共享密钥 HMAC |
+| Rust 的 OpenAPI 代码生成 | — | **不生成**：search 只有三个接口，手写请求体并在入口校验，与 knowledge 之间用共享密钥 HMAC 认证；edge 按 OpenAPI 生成的路由表转发，调用 Go 服务时签与 Go 平台库相同的服务断言 |
 
 ## 17 对现有规则的修改
 
@@ -382,12 +382,12 @@
 
 与上文设计相比，当前代码的实际状态如下；没写的部分按设计实现。
 
-- **服务划分**：共 6 个进程——edge（Rust）、account（含 portal 组件）、content、ai（含 knowledge 组件）、search（Rust）、ops。portal 的代理与鉴权、knowledge 的分块与索引编排仍是 Go 代码，只是并进了 account、ai 两个宿主进程；edge 放在 portal 前面，没有取代它；search 是 knowledge 的 Rust 检索后端。Rust 服务与 Go 之间用共享密钥 HMAC 认证，没有用服务断言（密钥在部署的私有卷里）。
+- **服务划分**：共 6 个进程——edge（Rust）、account、content、ai（含 knowledge 组件）、search（Rust）、ops。edge 已取代 portal：它沿用 portal 的服务身份（`iss=portal` 的 Ed25519 服务断言、用户委托证明、预算密钥和 `config/portal.json`），所以 Go 各服务的验签逻辑没变；路由表仍是 `modules/portal/config/routes.json`（由各服务 OpenAPI 生成），后台前端仍在 `modules/portal/web`，portal 目录里已没有 Go 代码。knowledge 的分块与索引编排仍是 Go 代码，并在 ai 进程里；search 是它的 Rust 检索后端，两者之间用共享密钥 HMAC 认证。
 - **数据与事件**：全部数据在一个 PostgreSQL，租户隔离用行级安全并默认拒绝：请求与后台任务按所属站点读写（会话变量 `nw.site`），上下文没给站点的访问读不到也写不进（日志记下调用位置），列出站点、迁移、跨站点恢复这类工作要用 `pgdb.WithSite(ctx, "")` 显式声明系统视角；事件走 PostgreSQL 队列（`queue` schema，`libs/platform/queue`）：生产方在业务事务内直接写事件，消费者按可见超时领取、本地去重后确认，已经没有 outbox 转发和 jobs 的事件中转；任务（claim、heartbeat 等）暂时仍经 ops 里 jobs 的 HTTP 接口。旧的跨域屏障、封口、快照、换目录恢复协议（含 data-protection 服务）已整体删除，运行状态只剩数据代次和修订号（site-config 的 `runtime_state` 表里旧版的阶段、屏障等列保留着固定初值，迁移只追加）。任务表和事件表是各站点共用的，带 `site_id`：人只能列出、读取、取消、重放当前站点的任务和死信，定时调度只有平台管理员（`system.manage`）能管。
 - **用户与站点**：注册（邀请码，不验证邮箱）、第三方登录（只写代码，没有联调）、站点上限与存储上限、成员角色、平台子域名与自定义域名（DNS 验证）、私有站点（一次性码换站点专用短期凭据）、举报与下架都已实现并在 NL 测试实例上验证。站点下架、恢复、删除时 identity 在同一事务里发 `identity.site.changed`，各租户组件经 `libs/platform/sitestate` 记进本 schema 的 `nw_site_state`，`pgdb.Sites` 只列正常站点；删站保留 30 天，期内所有者可恢复，到期发 `identity.site.purged`，各组件删掉该站点的行（按外键先子后父）和文件、检索服务删掉全文与向量，identity 删掉站点、成员和域名，站点名放出。邮件相关（验证、通知）没有做。
 - **AI**：自带渠道优先、平台兜底、AI 邀请码额度、访客问答每日上限、按用户记账都已实现并用假供应方与 OpenRouter 免费模型验证。
 - **统计**：访问信标、小时与日聚合按站点分别计数、分别查询；费用统计只给平台站点（旧账本观察管线已在 PostgreSQL 上跑通），站点主人的 AI 用量走 identity 的 `readAiUsage`。
-- **edge**：已实现页面缓存（默认 10 秒 TTL，上游说 no-cache 也按短缓存处理）、单飞、令牌桶限流、流式透传、按域名清缓存接口；发布、站点设置与域名变化后 portal 会通知 edge 按站点或域名清缓存；媒体字节有磁盘缓存（带内容哈希、最近使用淘汰、重启后沿用、随清缓存接口清掉）；人机验证、访问记录攒批还留在 portal。
+- **edge**：入口的全部职责——按域名找站点（下架提示、重定向、私有站点访问密码与分享链接）、CSRF 与权限复核（经 identity）、登录 cookie 适配、访客问答的准入与伪名身份、访问信标转交 analytics、`/_tls/allow`、后台静态页；另有页面缓存（默认 10 秒 TTL，上游说 no-cache 也按短缓存处理）、单飞、令牌桶限流、流式透传、媒体磁盘缓存（带内容哈希、最近使用淘汰、重启后沿用）。发布、站点设置与域名相关的写请求经过 edge 时，它直接清掉该站点的缓存，不再有清缓存接口。没做：访问信标攒批（逐条转交，与原 portal 相同）；原 portal 本地的 bootstrap、事件流、偏好、就绪汇总接口前端没用到，仍返回 404。
 - **导入、导出、备份、Git**：Markdown、GitBook、Notion、本站导出包导入（导入的都是草稿）；整站导出；S3、WebDAV 与海外网盘（Google Drive、OneDrive、Dropbox）备份目标（手动、每天、每周、保留份数）；Git 推送（只含已发布内容，发布后自动推送）与拉取。网盘只用假的网盘服务验证过授权、令牌换发和上传流程，没有拿真实账号与真实接口联调（平台设置里要先填各家的 OAuth 应用）；用户站点的备份每次是完整导出包（内容没变就不再上传新的一份，不做块级增量），恢复就是导入导出包；全平台备份用 `deploy/backup.sh`（正文与媒体增量复制、可选加密、可经 rclone 同步到异地）与 `deploy/restore.sh`（停机恢复）。
 - **部署**：`scripts/gen_deploy.py` 生成每个进程的 Dockerfile、编排、Caddyfile（按需证书）、密钥初始化与备份恢复脚本；已在 NL 上用 `docker compose` 实际构建全部镜像并起了一套（不含 Caddy，经 edge 访问），跑通首次初始化、发布、公开页、多用户建站和按需证书询问。发布流程（`scripts/release.sh` 与 GitHub Actions）已改成按进程出镜像、Rust 在原生 amd64 与 arm64 机器上编 musl 静态程序，但还没真正发过版。
 - **合同文件**：函数级登记和各模块的 `functions.md` 已删除；`implementation.json` 没有整个删掉，因为代码生成还要读它里面的文件登记（决定生成哪些文件）、`consumes`（本域调用的其他域接口，用来生成客户端）、任务类型和后台任务。

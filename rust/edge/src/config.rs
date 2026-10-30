@@ -12,8 +12,13 @@ pub struct Rate {
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub listen: String,
-    /// 上游（portal）地址，形如 127.0.0.1:8080。
-    pub upstream: String,
+    /// portal 的服务配置（edge 以 portal 的服务身份调各服务：信任锚、签名与委托密钥、依赖地址、受信代理网段）。
+    pub service: String,
+    /// 入口路由表（modules/portal/config/routes.json）。
+    pub routes: String,
+    /// 后台单页应用与公开页静态文件的目录（前端构建产物）；缺省时后台页面不可用。
+    #[serde(default)]
+    pub web_dir: Option<String>,
     /// 页面（HTML）在缓存里停留的秒数；上游说 no-cache 也按这个短缓存处理，发布后靠清缓存接口立即失效。
     #[serde(default = "default_html_ttl")]
     pub html_ttl_seconds: u64,
@@ -39,12 +44,9 @@ pub struct Config {
     pub read_rate: Rate,
     #[serde(default = "default_write_rate")]
     pub write_rate: Rate,
-    /// 前面是可信的反向代理（Caddy）时，取 X-Forwarded-For 的第一个地址当客户端地址。
+    /// 前面是可信的反向代理（Caddy）时，限流取 X-Forwarded-For 的第一个地址当客户端地址。
     #[serde(default)]
     pub trust_forwarded: bool,
-    /// 清缓存接口的共享密钥文件；缺省时不开放清缓存接口。
-    #[serde(default)]
-    pub purge_secret_file: Option<String>,
 }
 
 fn default_html_ttl() -> u64 {

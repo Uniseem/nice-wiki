@@ -23,29 +23,32 @@ PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "i
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114}.items()}
 # 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置；
-# portal 随 account 进程、knowledge 随 ai 进程运行（保持 edge、account、content、ai、search、ops 六个服务）。
-HOSTS = {"account": ["site-config", "identity", "portal"], "content": ["content", "media", "localization", "public-site"],
+# knowledge 随 ai 进程运行（保持 edge、account、content、ai、search、ops 六个服务）。
+# portal 不再是 Go 组件：Rust 的 edge 监听它的端口、沿用它的服务身份与配置（config/portal.json）。
+HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
          "ai": ["model-gateway", "qa", "agent", "memory", "knowledge"], "ops": ["jobs", "analytics", "traffic-guard"]}
 # Rust 检索服务（rust/search）：独立进程，没有 cargo 或设置了 NW_DEV_NO_SEARCH 时不启动，知识库退回进程内检索。
+# 入口 edge（rust/edge）是必需的，开发时也要有 cargo。
 SEARCH_PORT = 8120 + PORT_OFFSET
 USE_SEARCH = shutil.which("cargo") is not None and not os.environ.get("NW_DEV_NO_SEARCH")
-DEFAULT_UP = (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai"]
-LISTEN_PORTS = {**PORTS, "search": SEARCH_PORT}
+DEFAULT_UP = ["edge"] + (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai"]
+LISTEN_PORTS = {**PORTS, "search": SEARCH_PORT, "edge": PORTS["portal"]}
+RUST = ("search", "edge")
 
 
 def components(proc):
-    return ["search"] if proc == "search" else HOSTS.get(proc, [proc])
+    return [proc] if proc in RUST else HOSTS.get(proc, [proc])
 
 
 def workdir(proc):
-    if proc == "search":
+    if proc in RUST:
         return os.path.join(ROOT, "rust")
     return os.path.join(ROOT, "services" if proc in HOSTS else "modules", proc)
 
 
 def command(proc):
-    if proc == "search":
-        return [path("bin", "search"), path("config", "search.json")]
+    if proc in RUST:
+        return [path("bin", proc), path("config", proc + ".json")]
     if proc in HOSTS:
         return [path("bin", proc), "--config-dir", path("config")]
     return [path("bin", proc), "--config", path("config", proc + ".json")]
@@ -139,6 +142,10 @@ def setup():
             cfg["dependencies"]["search"] = f"http://127.0.0.1:{SEARCH_PORT}"
             cfg["searchSecretRef"] = path("secrets", "search", "secret")
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
+    # 入口：portal 的服务配置给 edge 用；开发时限流放宽，冒烟脚本连续写入不被挡。
+    json.dump({"listen": f"127.0.0.1:{PORTS['portal']}", "service": path("config", "portal.json"), "routes": os.path.join(ROOT, "modules", "portal", "config", "routes.json"),
+               "webDir": path("web"), "readRate": {"perSecond": 1000, "burst": 2000}, "writeRate": {"perSecond": 1000, "burst": 2000}},
+              open(path("config", "edge.json"), "w"), indent=2)
     if USE_SEARCH:
         # 检索服务：与 knowledge 共用一个 HMAC 密钥；索引放自己的目录，向量放同一个 PostgreSQL 的 search 模式。
         os.makedirs(path("secrets", "search"), exist_ok=True, mode=0o700)
@@ -158,10 +165,10 @@ def setup():
 
 def build(procs):
     for s in procs:
-        if s == "search":
-            subprocess.check_call(["cargo", "build", "--release", "-p", "nw-search"], cwd=workdir(s))
+        if s in RUST:
+            subprocess.check_call(["cargo", "build", "--release", "-p", "nw-" + s], cwd=workdir(s))
             target = os.environ.get("CARGO_TARGET_DIR") or os.path.join(workdir(s), "target")
-            shutil.copy(os.path.join(target, "release", "nw-search"), path("bin", "search"))
+            shutil.copy(os.path.join(target, "release", "nw-" + s), path("bin", s))
             continue
         subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=workdir(s))
 
@@ -193,13 +200,13 @@ def pidfile(s):
 
 
 def proc_env():
-    return {**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_WEB_DIR": path("web"), "NW_ROUTES_FILE": os.path.join(ROOT, "modules", "portal", "config", "routes.json"), "NW_ZCODE_WORKER": path("agent", "worker.mjs")}
+    return {**os.environ, "NW_DEBUG": "1", "NW_DEBUG_STACK": "1", "NW_DEV_NO_DISK_WATERMARK": "1", "NW_ZCODE_WORKER": path("agent", "worker.mjs")}
 
 
 def up(procs):
     setup()
     build(procs)
-    if "account" in procs or "ai" in procs:
+    if "edge" in procs or "ai" in procs:
         build_web()
     os.makedirs(path("run"), exist_ok=True)
     for s in procs:

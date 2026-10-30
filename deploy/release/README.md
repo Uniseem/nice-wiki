@@ -1,6 +1,6 @@
 # nice-wiki 部署包
 
-单机部署：公开入口（Caddy 按需证书 → edge → account 进程里的 portal 组件）、account、content、ai、ops、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
+单机部署：公开入口（Caddy 按需证书 → edge）、account、content、ai、ops、search 与带 pgvector 的 PostgreSQL，全部以 Docker 镜像运行。
 服务器上不编译、不需要 Go。
 
 需要：Linux 服务器（amd64 或 arm64）、Docker 及 compose 插件、已解析到服务器的域名、可用的 80/443 端口。

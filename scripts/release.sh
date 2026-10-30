@@ -57,12 +57,11 @@ images)
 			set -- usr
 			env=""
 			base=alpine:3.20
-			if [ "$slug" = account ]; then
+			if [ "$slug" = edge ]; then
 				cp -R web-dist "$files/web"
 				mkdir -p "$files/config"
 				cp modules/portal/config/routes.json "$files/config/routes.json"
 				set -- usr web config
-				env="--env=NW_WEB_DIR=/web"
 			fi
 			if [ "$slug" = ai ]; then
 				mkdir -p "$files/opt/agent/licenses"

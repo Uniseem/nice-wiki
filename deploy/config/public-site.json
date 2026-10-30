@@ -5,7 +5,7 @@
   "trustAnchorRef": "/run/secrets/trust-anchors.json",
   "signingKeyRef": "/run/secrets/public-site/signing-key.json",
   "dependencies": {
-    "portal": "http://account:8080",
+    "portal": "http://edge:8090",
     "identity": "http://account:8101",
     "site-config": "http://account:8102",
     "content": "http://content:8103",

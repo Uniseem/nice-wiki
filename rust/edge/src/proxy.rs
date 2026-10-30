@@ -7,42 +7,29 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use bytes::Bytes;
-use http_body_util::{combinators::BoxBody, BodyExt, Full};
+use http_body_util::{BodyExt, Full};
 use hyper::body::{Body as HttpBody, Frame, Incoming};
 use hyper::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper::{Method, Request, Response, StatusCode};
-use hyper_util::client::legacy::connect::HttpConnector;
-use hyper_util::client::legacy::Client;
-use hyper_util::rt::TokioExecutor;
 use tokio::sync::Notify;
 
 use crate::cache::{Cache, Entry};
 use crate::config::Config;
 use crate::disk::DiskCache;
+use crate::gateway::{Body, Gateway, Paths};
 use crate::limiter::Limiter;
-
-type Body = BoxBody<Bytes, hyper::Error>;
 
 pub struct State {
     pub config: Config,
     cache: Cache,
     disk: Option<Arc<DiskCache>>,
     limiter: Limiter,
-    client: Client<HttpConnector, Incoming>,
+    gateway: Gateway,
     inflight: Mutex<HashMap<String, Arc<Notify>>>,
-    purge_secret: Option<Vec<u8>>,
 }
 
 impl State {
     pub fn new(config: Config) -> anyhow::Result<Self> {
-        let purge_secret = match &config.purge_secret_file {
-            Some(path) => Some(std::fs::read_to_string(path)?.trim().as_bytes().to_vec()),
-            None => None,
-        };
-        let mut connector = HttpConnector::new();
-        connector.set_nodelay(true);
-        connector.set_connect_timeout(Some(Duration::from_secs(3)));
-        let client = Client::builder(TokioExecutor::new()).pool_idle_timeout(Duration::from_secs(30)).build(connector);
         let disk = match &config.media_disk_dir {
             Some(dir) => Some(Arc::new(DiskCache::open(dir, config.media_disk_bytes)?)),
             None => None,
@@ -51,11 +38,18 @@ impl State {
             cache: Cache::new(config.cache_bytes),
             disk,
             limiter: Limiter::new(config.read_rate.clone(), config.write_rate.clone()),
-            client,
+            gateway: Gateway::new(Paths { service: &config.service, routes: &config.routes, web_dir: config.web_dir.as_deref() })?,
             inflight: Mutex::new(HashMap::new()),
-            purge_secret,
             config,
         })
+    }
+
+    /// 发布、改站点设置等写入成功后：清掉这个站点的页面与媒体缓存。
+    fn purge_site(&self, site: &str) {
+        self.cache.purge_site(site);
+        if let Some(disk) = &self.disk {
+            disk.purge_site(site);
+        }
     }
 }
 
@@ -74,16 +68,6 @@ pub async fn handle(state: Arc<State>, peer: SocketAddr, request: Request<Incomi
             text(StatusCode::BAD_GATEWAY, "上游暂不可用")
         }
     })
-}
-
-const HOP_BY_HOP: [&str; 8] = ["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"];
-
-fn copy_headers(from: &HeaderMap, to: &mut HeaderMap) {
-    for (name, value) in from {
-        if !HOP_BY_HOP.contains(&name.as_str()) {
-            to.append(name.clone(), value.clone());
-        }
-    }
 }
 
 fn client_ip(state: &State, peer: SocketAddr, headers: &HeaderMap) -> IpAddr {
@@ -109,7 +93,7 @@ fn cacheable_path(path: &str, query: Option<&str>) -> bool {
     if let Some(rest) = path.strip_prefix("/v1/assets/") {
         return rest.ends_with("/bytes") && query.map(|q| q.contains("sha=")).unwrap_or(false);
     }
-    !(path.starts_with("/v1/") || path.starts_with("/admin") || path.starts_with("/_edge") || path.starts_with("/_tls") || path.starts_with("/_report"))
+    !(path.starts_with("/v1/") || path.starts_with("/admin") || path.starts_with("/_edge") || path.starts_with("/_tls") || path.starts_with("/_report") || path.starts_with("/_pv/"))
 }
 
 /// 带内容哈希的媒体字节（cacheable_path 已核对 sha 参数）。
@@ -121,9 +105,6 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
     let path = request.uri().path().to_owned();
     if path == "/_edge/healthz" {
         return Ok(text(StatusCode::OK, "ok"));
-    }
-    if path == "/_edge/purge" {
-        return Ok(purge(state, &request));
     }
     if path.starts_with("/_edge/") {
         return Ok(text(StatusCode::NOT_FOUND, "not found"));
@@ -185,19 +166,18 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
     if let Some(ttl) = ttl_for(state, &path, &parts.status, &parts.headers) {
         let max = if media && state.disk.is_some() { state.config.media_max_object_bytes } else { state.config.max_object_bytes };
         let length = parts.headers.get(header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<usize>().ok());
-        // 上游（portal）的页面是分块传输、没有 Content-Length：先攒到上限，攒得下就缓存，攒不下就把已读的部分接上剩余的继续流式转发。
+        // 渲染出的页面是分块传输、没有 Content-Length：先攒到上限，攒得下就缓存，攒不下就把已读的部分接上剩余的继续流式转发。
         let gathered = match length {
-            Some(n) if n > max => Gathered::Skip(body.boxed()),
+            Some(n) if n > max => Gathered::Skip(body),
             _ => gather(body, max).await?,
         };
         match gathered {
             Gathered::Full(collected) => {
-                let mut headers = HeaderMap::new();
-                copy_headers(&parts.headers, &mut headers);
+                let mut headers = parts.headers.clone();
                 headers.remove(header::CONTENT_LENGTH);
                 headers.remove(header::TRANSFER_ENCODING);
                 let site = headers.remove("x-nw-site").and_then(|v| v.to_str().ok().map(str::to_owned)).unwrap_or_default();
-                let entry = Entry { status: parts.status, headers: headers.into_iter().filter_map(|(name, value)| name.map(|n| (n, value))).collect(), body: collected, expires: std::time::Instant::now(), host, site };
+                let entry = Entry { status: parts.status, headers: headers.into_iter().filter_map(|(name, value)| name.map(|n| (n, value))).collect(), body: collected, expires: std::time::Instant::now(), site };
                 if let (true, Some(disk)) = (media, state.disk.clone()) {
                     let (stored_key, stored, seconds) = (key.clone(), entry.clone(), ttl.as_secs());
                     let _ = tokio::task::spawn_blocking(move || disk.put(&stored_key, &stored, seconds)).await;
@@ -214,7 +194,7 @@ async fn route(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>)
         }
     }
     parts.headers.remove("x-nw-site");
-    Ok(Response::from_parts(parts, body.boxed()))
+    Ok(Response::from_parts(parts, body))
 }
 
 enum Gathered {
@@ -223,7 +203,7 @@ enum Gathered {
 }
 
 /// 把响应体最多攒到 max 字节；攒不下时返回“已读部分 + 剩余”的流，调用方原样转发。
-async fn gather(mut body: Incoming, max: usize) -> anyhow::Result<Gathered> {
+async fn gather(mut body: Body, max: usize) -> anyhow::Result<Gathered> {
     let mut buffer = bytes::BytesMut::new();
     loop {
         match body.frame().await {
@@ -244,7 +224,7 @@ async fn gather(mut body: Incoming, max: usize) -> anyhow::Result<Gathered> {
 /// 先吐出已经读出的前缀，再接着读剩余的响应体。
 struct Replay {
     prefix: Option<Bytes>,
-    rest: Incoming,
+    rest: Body,
 }
 
 impl HttpBody for Replay {
@@ -259,10 +239,10 @@ impl HttpBody for Replay {
     }
 }
 /// 不缓存的响应原样透传（流式），只去掉入口内部用的站点标记头。
-fn passthrough(response: Response<Incoming>) -> Response<Body> {
+fn passthrough(response: Response<Body>) -> Response<Body> {
     let (mut parts, body) = response.into_parts();
     parts.headers.remove("x-nw-site");
-    Response::from_parts(parts, body.boxed())
+    Response::from_parts(parts, body)
 }
 
 /// 离开作用域时（无论成功失败）通知等待者。
@@ -313,57 +293,7 @@ fn from_entry(entry: Entry, method: &Method, label: &'static str) -> Response<Bo
     response
 }
 
-async fn forward(state: &State, peer: SocketAddr, request: Request<Incoming>) -> anyhow::Result<Response<Incoming>> {
-    let (mut parts, body) = request.into_parts();
-    let target = parts.uri.path_and_query().map(|p| p.as_str()).unwrap_or("/");
-    let uri: hyper::Uri = format!("http://{}{}", state.config.upstream, target).parse()?;
-    let mut headers = HeaderMap::new();
-    copy_headers(&parts.headers, &mut headers);
-    let forwarded = match parts.headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
-        Some(previous) if state.config.trust_forwarded => previous.to_owned(),
-        _ => peer.ip().to_string(),
-    };
-    headers.insert(HeaderName::from_static("x-forwarded-for"), HeaderValue::from_str(&forwarded)?);
-    parts.headers = headers;
-    parts.uri = uri;
-    let upstream = Request::from_parts(parts, body);
-    match tokio::time::timeout(Duration::from_secs(300), state.client.request(upstream)).await {
-        Ok(Ok(response)) => {
-            let (mut parts, body) = response.into_parts();
-            let mut headers = HeaderMap::new();
-            copy_headers(&parts.headers, &mut headers);
-            parts.headers = headers;
-            Ok(Response::from_parts(parts, body))
-        }
-        Ok(Err(error)) => Err(anyhow::anyhow!("上游请求失败：{error}")),
-        Err(_) => Err(anyhow::anyhow!("上游响应超时")),
-    }
-}
-
-fn purge(state: &State, request: &Request<Incoming>) -> Response<Body> {
-    let Some(secret) = &state.purge_secret else {
-        return text(StatusCode::NOT_FOUND, "not found");
-    };
-    if request.method() != Method::POST {
-        return text(StatusCode::METHOD_NOT_ALLOWED, "method not allowed");
-    }
-    let supplied = request.headers().get("x-nw-purge").and_then(|v| v.to_str().ok()).unwrap_or_default().as_bytes();
-    if supplied.len() != secret.len() || supplied.iter().zip(secret.iter()).fold(0u8, |acc, (a, b)| acc | (a ^ b)) != 0 {
-        return text(StatusCode::UNAUTHORIZED, "unauthorized");
-    }
-    let query = request.uri().query().unwrap_or_default();
-    let param = |name: &str| query.split('&').find_map(|pair| pair.strip_prefix(name)).unwrap_or_default().to_ascii_lowercase();
-    let (host, site) = (param("host="), param("site="));
-    let count = if !site.is_empty() {
-        state.cache.purge_site(&site) + state.disk.as_ref().map_or(0, |disk| disk.purge_site(&site))
-    } else if !host.is_empty() {
-        state.cache.purge_host(&host) + state.disk.as_ref().map_or(0, |disk| disk.purge_host(&host))
-    } else {
-        return text(StatusCode::BAD_REQUEST, "missing host or site");
-    };
-    let (entries, bytes) = state.cache.stats();
-    let body = format!("{{\"purged\":{count},\"entries\":{entries},\"bytes\":{bytes}}}");
-    let mut response = Response::new(Full::new(Bytes::from(body)).map_err(|never| match never {}).boxed());
-    response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    response
+/// 交给入口代理处理（路由、鉴权、转发都在 gateway）；写入成功后按站点清缓存。
+async fn forward(state: &Arc<State>, peer: SocketAddr, request: Request<Incoming>) -> anyhow::Result<Response<Body>> {
+    Ok(state.gateway.handle(peer, request, |site| state.purge_site(site)).await)
 }

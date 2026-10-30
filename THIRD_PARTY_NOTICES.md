@@ -63,6 +63,9 @@ go-git 的传递依赖（ProtonMail/go-crypto BSD-3-Clause、skeema/knownhosts M
 - tokio 1（MIT）、hyper 1 与 hyper-util、http-body-util（MIT）、axum 0.7（MIT）、bytes（MIT）：两个服务的异步运行时与 HTTP。
 - tokio-postgres 0.7 与 deadpool-postgres 0.14（MIT/Apache-2.0）：检索服务读写 pgvector 向量表。
 - serde、serde_json、anyhow、hmac、sha2、hex、subtle（MIT/Apache-2.0）：序列化、错误处理与服务间共享密钥的 HMAC 认证。
+- ed25519-dalek 2 与 curve25519-dalek（BSD-3-Clause，Copyright (c) isis agora lovecruft、Henry de Valence 等）：edge 签发和校验与 Go 平台库相同的 Ed25519 服务断言、委托证明与 cookie。来源 https://github.com/dalek-cryptography/curve25519-dalek 。
+- maxminddb 0.24（ISC，Copyright (c) Gregory J. Oschwald）：edge 按 GeoLite2 国家库查访客国家，库文件由部署方自备，不随本仓库分发。
+- base64、time、getrandom、percent-encoding、form_urlencoded（MIT/Apache-2.0）：edge 的编码、时间格式、随机数与 URL 解析。
 - pgvector（PostgreSQL License，Copyright (c) 2021-2026 Andrew Kane）：向量类型与 HNSW 索引，随部署用的 `pgvector/pgvector:pg17` 镜像分发，不在本仓库里。
 
 ## 部署镜像用到的第三方镜像
