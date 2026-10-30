@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -502,7 +503,10 @@ func (d SiteData) syncPull(ctx context.Context, op OperationContext, a *importAr
 			return nil
 		})
 	}
-	type target struct{ id, file, title string }
+	type target struct {
+		id, file, title string
+		old             []any // 推送时的正文：内容没变的块沿用原块 ID
+	}
 	var edits, fresh []target
 	for i, doc := range manifest.Documents {
 		if changed != nil && !changed[doc.File] {
@@ -527,7 +531,7 @@ func (d SiteData) syncPull(ctx context.Context, op OperationContext, a *importAr
 			result.Warnings = append(result.Warnings, "《"+meta.Title+"》站内有未发布的修改，没有用仓库里的版本覆盖")
 			continue
 		}
-		edits = append(edits, target{doc.ID, doc.File, meta.Title})
+		edits = append(edits, target{doc.ID, doc.File, meta.Title, bodies[i]})
 	}
 	// a.names 已排序，“docs/A.md”排在“docs/A/新.md”前面，上级文档先建好。
 	for _, name := range a.names {
@@ -547,7 +551,7 @@ func (d SiteData) syncPull(ctx context.Context, op OperationContext, a *importAr
 		id := created.Metadata.DocumentId
 		byFile[strings.ToLower(name)] = id
 		dirs[strings.TrimSuffix(name, ".md")] = id
-		fresh = append(fresh, target{id, name, title})
+		fresh = append(fresh, target{id: id, file: name, title: title})
 	}
 	for _, t := range append(edits, fresh...) {
 		parsed := im.parseMarkdown(ctx, t.file, byFile)
@@ -557,12 +561,35 @@ func (d SiteData) syncPull(ctx context.Context, op OperationContext, a *importAr
 		if parsed.Title != "" && parsed.Title != t.title {
 			result.Warnings = append(result.Warnings, "《"+t.title+"》的标题改动没有同步，请在站内改名")
 		}
-		if err := d.saveImported(ctx, op, t.id, parsed.Blocks); err != nil {
+		if err := d.saveImported(ctx, op, t.id, keepBlocks(t.old, parsed.Blocks)); err != nil {
 			result.Failures = append(result.Failures, "《"+t.title+"》正文没能保存："+errorText(err))
 		}
 	}
 	result.Documents = len(edits) + len(fresh)
 	return result, len(edits), nil
+}
+
+var blockIDField = regexp.MustCompile(`"blockId":"[^"]*"`)
+
+// keepBlocks 把解析出的块里和原正文内容相同（只差块 ID）的顶层块换回原块：Markdown 不带块 ID，
+// 不换回的话没改的段落也会换新 ID，指向段落的链接锚点和批注都会失效。
+func keepBlocks(old, parsed []any) []any {
+	key := func(block any) string {
+		raw, _ := json.Marshal(block)
+		return blockIDField.ReplaceAllString(string(raw), `"blockId":""`)
+	}
+	same := map[string][]any{}
+	for _, block := range old {
+		k := key(block)
+		same[k] = append(same[k], block)
+	}
+	for i, block := range parsed {
+		if list := same[key(block)]; len(list) > 0 {
+			parsed[i] = list[0]
+			same[key(block)] = list[1:]
+		}
+	}
+	return parsed
 }
 
 // zipWorktree 把检出的仓库文件打成 zip（跳过 .git），交给统一的导入流程。
