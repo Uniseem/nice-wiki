@@ -78,6 +78,9 @@ func StartDriveAuth(ctx context.Context, op OperationContext, cmd StartDriveAuth
 	if err != nil {
 		return gen.StartDriveAuthResult{}, err
 	}
+	if err := oauthCallbackAllowed(ctx, store.db, provider, cmd.Body.RedirectUri); err != nil {
+		return gen.StartDriveAuthResult{}, err
+	}
 	ep := driveProviderEndpoints[provider]
 	state := randomCode(24)
 	stateJSON, _ := json.Marshal(driveState{Site: cmd.SiteID, Target: cmd.Body.TargetId, Actor: op.Actor.SubjectID})

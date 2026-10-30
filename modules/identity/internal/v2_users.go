@@ -228,6 +228,9 @@ func startOAuth(ctx context.Context, redirectURI, linkUser string) (gen.OauthSta
 	if !conf.Enabled || conf.ClientID == "" {
 		return gen.OauthStartResult{}, platform.NewError(platform.CodeForbidden, false, "该登录方式未开启")
 	}
+	if err := oauthCallbackAllowed(ctx, store.db, provider, redirectURI); err != nil {
+		return gen.OauthStartResult{}, err
+	}
 	state := randomCode(24)
 	expires := time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339Nano)
 	if _, err := store.db.ExecContext(ctx, `DELETE FROM oauth_states WHERE expires_at<?`, nowRFC()); err != nil {
@@ -238,6 +241,19 @@ func startOAuth(ctx context.Context, redirectURI, linkUser string) (gen.OauthSta
 	}
 	query := url.Values{"client_id": {conf.ClientID}, "redirect_uri": {redirectURI}, "response_type": {"code"}, "scope": {ep.Scope}, "state": {state}}
 	return gen.OauthStartResult{AuthorizeUrl: ep.Authorize + "?" + query.Encode(), State: state}, nil
+}
+
+// oauthCallbackAllowed 回调只能回到本平台后台的 /admin/oauth/<服务商>（来源与 CSRF 认的一致）；服务商侧的回调登记之外，这里再挡掉外站地址。
+func oauthCallbackAllowed(ctx context.Context, db sqlQuerier, provider, redirectURI string) error {
+	fixed := ""
+	if runtime, err := sessionRuntimeFromContext(ctx); err == nil {
+		fixed = runtime.PublicOrigin
+	}
+	parsed, err := url.Parse(redirectURI)
+	if err != nil || parsed.Path != "/admin/oauth/"+provider || parsed.RawQuery != "" || parsed.Fragment != "" || !originAllowed(ctx, db, fixed, parsed.Scheme+"://"+parsed.Host) {
+		return platform.NewError(platform.CodeValidation, false, "回调地址必须是本平台后台的授权回调地址")
+	}
+	return nil
 }
 
 // consumeOAuthState 用掉一次性 state（删除成功才算用掉）；linkUser 必须和发起时一致（登录流程传空）。
