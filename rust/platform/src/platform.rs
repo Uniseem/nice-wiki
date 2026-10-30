@@ -28,7 +28,7 @@ pub struct ServiceConfig {
     pub dependencies: HashMap<String, String>,
     #[serde(default, rename = "publicBaseURL")]
     pub public_base_url: String,
-    #[serde(default)]
+    #[serde(default, rename = "trustedProxyCIDRs")]
     pub trusted_proxy_cidrs: Vec<String>,
     #[serde(default, rename = "geoipCountryDBRef")]
     pub geoip_country_db_ref: String,
