@@ -27,9 +27,8 @@ OpenAPI、JSON Schema、RFC等链接是协议参考，未复制其实现。设�
 - katex 0.16.22（MIT，Copyright (c) 2013-2020 Khan Academy and other contributors）：公开页公式渲染与编辑器里的公式预览，来源 https://github.com/KaTeX/KaTeX/tree/v0.16.22 ，随 portal 静态文件（/_site/katex/）分发其脚本、样式、字体，不改动源码。
 
 - github.com/tiktoken-go/tokenizer v0.7.0（MIT，Copyright (c) 2023 tiktoken-go）：经2026-10-18用户明确批准，用于模型网关显式绑定编码的离线BPE；固定来源 https://github.com/tiktoken-go/tokenizer/tree/v0.7.0 ，原许可 https://github.com/tiktoken-go/tokenizer/blob/v0.7.0/LICENSE 。仅Go模块依赖，不复制实现；发布程序保留依赖原LICENSE。
-- github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0（BSD-3-Clause，Copyright 2009 The Go Authors）：同次用户批准的PDF项目，实际固定版本为BSD三条款，非最初提问误称的MIT。来源 https://github.com/ledongthuc/pdf/tree/6c8c28e0e8a0 ，原许可 https://github.com/ledongthuc/pdf/blob/6c8c28e0e8a0/LICENSE 。用于有界隔离提取，仅模块依赖；保留原版权、许可与免责声明，不复制业务实现。
 
-本仓保留新批准依赖的固定原许可全文：[tokenizer MIT](docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE)、[PDF BSD三条款](docs/licenses/ledongthuc-pdf-6c8c28e0e8a0.LICENSE)。随二进制分发本声明和这些原许可，不以链接替代应保留文本。
+本仓保留新批准依赖的固定原许可全文：[tokenizer MIT](docs/licenses/tiktoken-go-tokenizer-v0.7.0.LICENSE)。随二进制分发本声明和该原许可，不以链接替代应保留文本。
 
 - github.com/oschwald/maxminddb-golang v1.13.1（ISC，ADR0005/D51已确认）：analytics只读取可信部署提供的本地MaxMind数据库，不下载数据库、不发送原始地址；libs/platform/geoip 用同一版本给 portal 查访客国家（语言建议的信号），只转国家代码，地址不出入口；固定来源 https://github.com/oschwald/maxminddb-golang/tree/v1.13.1 ，许可原文 https://github.com/oschwald/maxminddb-golang/blob/v1.13.1/LICENSE 。仅Go模块依赖，不复制源码；数据库内容不属于该库许可，仍由部署方自行提供合法数据。go.sum由GitLab Go工具生成。
 
@@ -59,13 +58,14 @@ go-git 的传递依赖（ProtonMail/go-crypto BSD-3-Clause、skeema/knownhosts M
 
 仓库里 `rust/` 是 Cargo 工作区，版本以 `rust/Cargo.lock` 为准，只作依赖，不复制源码；主要依赖与许可如下（传递依赖以锁文件为准，均为 MIT 或 Apache-2.0 一类宽松许可）：
 
-- tantivy 0.22（MIT，Copyright (c) Paul Masurel）：检索服务的全文倒排索引与 BM25 打分；分词由调用方（Go 侧）完成，服务只接收已切好的词。来源 https://github.com/quickwit-oss/tantivy 。
+- tantivy 0.22（MIT，Copyright (c) Paul Masurel）：检索服务的全文倒排索引与 BM25 打分；词项由服务自己切好（字母数字成词、中日韩取相邻双字）再交给它。来源 https://github.com/quickwit-oss/tantivy 。
 - tokio 1（MIT）、hyper 1 与 hyper-util、http-body-util（MIT）、axum 0.7（MIT）、bytes（MIT）：两个服务的异步运行时与 HTTP。
-- tokio-postgres 0.7 与 deadpool-postgres 0.14（MIT/Apache-2.0）：检索服务读写 pgvector 向量表。
-- serde、serde_json、anyhow、hmac、sha2、hex、subtle（MIT/Apache-2.0）：序列化、错误处理与服务间共享密钥的 HMAC 认证。
-- ed25519-dalek 2 与 curve25519-dalek（BSD-3-Clause，Copyright (c) isis agora lovecruft、Henry de Valence 等）：edge 签发和校验与 Go 平台库相同的 Ed25519 服务断言、委托证明与 cookie。来源 https://github.com/dalek-cryptography/curve25519-dalek 。
+- tokio-postgres 0.7 与 deadpool-postgres 0.14（MIT/Apache-2.0）：检索服务读写自己的 search 模式（构建、分块、pgvector 向量等）和公共事件队列。
+- unicode-normalization 0.1（MIT/Apache-2.0）：检索服务入库前的 NFKC 规范化与查询的 NFC 规范化。
+- serde、serde_json、anyhow、hmac、sha2、hex（MIT/Apache-2.0）：序列化、错误处理、摘要与私有摘要。
+- ed25519-dalek 2 与 curve25519-dalek（BSD-3-Clause，Copyright (c) isis agora lovecruft、Henry de Valence 等）：edge 与检索服务签发和校验与 Go 平台库相同的 Ed25519 服务断言、委托证明与 cookie。来源 https://github.com/dalek-cryptography/curve25519-dalek 。
 - maxminddb 0.24（ISC，Copyright (c) Gregory J. Oschwald）：edge 按 GeoLite2 国家库查访客国家，库文件由部署方自备，不随本仓库分发。
-- base64、time、getrandom、percent-encoding、form_urlencoded（MIT/Apache-2.0）：edge 的编码、时间格式、随机数与 URL 解析。
+- base64、time、getrandom、percent-encoding、form_urlencoded（MIT/Apache-2.0）：编码、时间格式、随机数与 URL 解析。
 - pgvector（PostgreSQL License，Copyright (c) 2021-2026 Andrew Kane）：向量类型与 HNSW 索引，随部署用的 `pgvector/pgvector:pg17` 镜像分发，不在本仓库里。
 
 ## 部署镜像用到的第三方镜像

@@ -1,0 +1,30 @@
+[package]
+name = "nw-platform"
+version = "0.1.0"
+edition = "2021"
+description = "nice-wiki 的 Rust 平台库：服务身份与断言、入站认证、出站调用、事件队列消费、模型网关调用"
+license = "AGPL-3.0-only"
+
+[features]
+# 数据库相关（连接池、事件队列）；edge 不连数据库，不开。
+db = ["dep:tokio-postgres", "dep:deadpool-postgres"]
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync"] }
+hyper = { version = "1", features = ["http1", "client"] }
+hyper-util = { version = "0.1", features = ["tokio", "client-legacy", "http1"] }
+http-body-util = "0.1"
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+ed25519-dalek = "2"
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+base64 = "0.22"
+getrandom = "0.2"
+percent-encoding = "2"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio-postgres = { version = "0.7", optional = true }
+deadpool-postgres = { version = "0.14", features = ["rt_tokio_1"], optional = true }

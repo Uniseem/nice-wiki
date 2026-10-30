@@ -86,16 +86,13 @@ services:
       - ./config/qa.json:/config/qa.json:ro
       - ./config/agent.json:/config/agent.json:ro
       - ./config/memory.json:/config/memory.json:ro
-      - ./config/knowledge.json:/config/knowledge.json:ro
       - ./secrets/model-gateway:/run/secrets/model-gateway:ro
       - ./secrets/qa:/run/secrets/qa:ro
       - ./secrets/agent:/run/secrets/agent:ro
       - ./secrets/memory:/run/secrets/memory:ro
-      - ./secrets/knowledge:/run/secrets/knowledge:ro
       - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
       - ai-data:/data
       - ./secrets/master-key:/run/secrets/master-key:ro
-      - ./secrets/search/secret:/run/secrets/search-secret:ro
     depends_on:
       postgres: {condition: service_healthy}
 
@@ -124,9 +121,9 @@ services:
     restart: unless-stopped
     networks: [internal]
     volumes:
-      - ./config/search.json:/config/search.json:ro
-      - ./secrets/search/secret:/run/secrets/search-secret:ro
-      - ./secrets/search/database-url:/run/secrets/database-url:ro
+      - ./config/knowledge.json:/config/knowledge.json:ro
+      - ./config/trust-anchors.json:/run/secrets/trust-anchors.json:ro
+      - ./secrets/knowledge:/run/secrets/knowledge:ro
       - search-data:/data
     depends_on:
       postgres: {condition: service_healthy}
@@ -144,7 +141,7 @@ services:
       - ./secrets/portal:/run/secrets/portal:ro
       - ./secrets/budget:/run/secrets/budget:ro
       - edge-cache:/cache
-    depends_on: [account, content, ai, ops]
+    depends_on: [account, content, ai, ops, search]
 
   caddy:
     build: ./caddy

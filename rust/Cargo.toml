@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["search", "edge"]
+members = ["platform", "search", "edge"]
 
 [profile.release]
 opt-level = 3

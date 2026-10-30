@@ -86,7 +86,6 @@ var SuperadminOnlyGrants = []string{
 // JobManagementGrants 派生入口粗能力；任务服务仍按持久类型核业务权限。
 var JobManagementGrants = []string{
 	"system.manage",
-	"knowledge.manage",
 	"localization.manage",
 	"media.manage",
 	"memory.manage",

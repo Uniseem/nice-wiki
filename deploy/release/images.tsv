@@ -2,5 +2,5 @@ account	10000	8102	/config	account	--config-dir,/config
 content	10001	8103	/config	content	--config-dir,/config
 ai	10002	8105	/config	ai	--config-dir,/config
 ops	10003	8111	/config	ops	--config-dir,/config
-search	10004	8120	/config	nw-search	/config/search.json
+search	10004	8106	/config	nw-search	/config/knowledge.json
 edge	10005	8090	/config	nw-edge	/config/edge.json

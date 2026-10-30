@@ -52,7 +52,7 @@
     },
     {
       "slug": "knowledge",
-      "url": "http://ai:8106",
+      "url": "http://search:8106",
       "port": 8106,
       "dataVolume": "/data/knowledge",
       "secretsDir": "deploy/secrets/knowledge"

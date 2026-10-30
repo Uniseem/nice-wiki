@@ -11,7 +11,7 @@ DEV = os.environ.get("NW_DEV_DIR") or os.path.join(ROOT, ".local", "dev")
 PORT_OFFSET = int(os.environ.get("NW_DEV_PORT_OFFSET", "0"))
 # PostgreSQL 连接串，如 postgres://用户:口令@127.0.0.1:5432/库?sslmode=disable；开发时用 docker 起一个 pgvector 实例。
 DATABASE_URL = os.environ.get("NW_DEV_DATABASE_URL", "")
-# 可选：按组件分开的连接串目录（<目录>/<组件名>，检索服务是 <目录>/search），用来在开发机上验证部署时“每个组件一个数据库角色”。
+# 可选：按组件分开的连接串目录（<目录>/<组件名>），用来在开发机上验证部署时“每个组件一个数据库角色”。
 DATABASE_URLS_DIR = os.environ.get("NW_DEV_DATABASE_URLS_DIR", "")
 
 
@@ -22,17 +22,12 @@ def database_url(slug):
 PORTS = {c: p + PORT_OFFSET for c, p in {"portal": 8080, "public-site": 8081, "identity": 8101, "site-config": 8102, "content": 8103,
          "media": 8104, "model-gateway": 8105, "knowledge": 8106, "qa": 8107, "localization": 8108,
          "memory": 8109, "traffic-guard": 8110, "jobs": 8111, "analytics": 8112, "agent": 8114}.items()}
-# 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置；
-# knowledge 随 ai 进程运行（保持 edge、account、content、ai、search、ops 六个服务）。
-# portal 不再是 Go 组件：Rust 的 edge 监听它的端口、沿用它的服务身份与配置（config/portal.json）。
+# 进程 → 组件：宿主进程（services/<进程>）在同一进程里运行多个组件，组件各自监听、各自配置（edge、account、content、ai、search、ops 六个服务）。
+# portal、knowledge 不是 Go 组件：Rust 的 edge、search 分别监听它们的端口、沿用它们的服务身份与配置（config/portal.json、config/knowledge.json），开发时要有 cargo。
 HOSTS = {"account": ["site-config", "identity"], "content": ["content", "media", "localization", "public-site"],
-         "ai": ["model-gateway", "qa", "agent", "memory", "knowledge"], "ops": ["jobs", "analytics", "traffic-guard"]}
-# Rust 检索服务（rust/search）：独立进程，没有 cargo 或设置了 NW_DEV_NO_SEARCH 时不启动，知识库退回进程内检索。
-# 入口 edge（rust/edge）是必需的，开发时也要有 cargo。
-SEARCH_PORT = 8120 + PORT_OFFSET
-USE_SEARCH = shutil.which("cargo") is not None and not os.environ.get("NW_DEV_NO_SEARCH")
-DEFAULT_UP = ["edge"] + (["search"] if USE_SEARCH else []) + ["account", "ops", "content", "ai"]
-LISTEN_PORTS = {**PORTS, "search": SEARCH_PORT, "edge": PORTS["portal"]}
+         "ai": ["model-gateway", "qa", "agent", "memory"], "ops": ["jobs", "analytics", "traffic-guard"]}
+DEFAULT_UP = ["edge", "search", "account", "ops", "content", "ai"]
+LISTEN_PORTS = {**PORTS, "search": PORTS["knowledge"], "edge": PORTS["portal"]}
 RUST = ("search", "edge")
 
 
@@ -48,7 +43,7 @@ def workdir(proc):
 
 def command(proc):
     if proc in RUST:
-        return [path("bin", proc), path("config", proc + ".json")]
+        return [path("bin", proc), path("config", {"search": "knowledge"}.get(proc, proc) + ".json")]
     if proc in HOSTS:
         return [path("bin", proc), "--config-dir", path("config")]
     return [path("bin", proc), "--config", path("config", proc + ".json")]
@@ -138,29 +133,11 @@ def setup():
         os.chmod(dsn_file, 0o600)
         cfg["databaseRef"] = dsn_file
         os.makedirs(cfg["dataRoot"], exist_ok=True, mode=0o700)
-        if slug == "knowledge" and USE_SEARCH:
-            cfg["dependencies"]["search"] = f"http://127.0.0.1:{SEARCH_PORT}"
-            cfg["searchSecretRef"] = path("secrets", "search", "secret")
         json.dump(cfg, open(path("config", f"{slug}.json"), "w"), indent=2)
     # 入口：portal 的服务配置给 edge 用；开发时限流放宽，冒烟脚本连续写入不被挡。
     json.dump({"listen": f"127.0.0.1:{PORTS['portal']}", "service": path("config", "portal.json"), "routes": os.path.join(ROOT, "modules", "portal", "config", "routes.json"),
                "webDir": path("web"), "readRate": {"perSecond": 1000, "burst": 2000}, "writeRate": {"perSecond": 1000, "burst": 2000}},
               open(path("config", "edge.json"), "w"), indent=2)
-    if USE_SEARCH:
-        # 检索服务：与 knowledge 共用一个 HMAC 密钥；索引放自己的目录，向量放同一个 PostgreSQL 的 search 模式。
-        os.makedirs(path("secrets", "search"), exist_ok=True, mode=0o700)
-        secret = path("secrets", "search", "secret")
-        if not os.path.exists(secret):
-            with open(secret, "w") as f:
-                f.write(os.urandom(32).hex())
-            os.chmod(secret, 0o600)
-        dsn_file = path("secrets", "search", "database-url")
-        with open(dsn_file, "w") as f:
-            f.write(database_url("search"))
-        os.chmod(dsn_file, 0o600)
-        os.makedirs(path("data", "search"), exist_ok=True, mode=0o700)
-        json.dump({"listen": f"127.0.0.1:{SEARCH_PORT}", "dataDir": path("data", "search", "index"), "secretFile": secret, "databaseUrlFile": dsn_file},
-                  open(path("config", "search.json"), "w"), indent=2)
 
 
 def build(procs):
@@ -168,7 +145,9 @@ def build(procs):
         if s in RUST:
             subprocess.check_call(["cargo", "build", "--release", "-p", "nw-" + s], cwd=workdir(s))
             target = os.environ.get("CARGO_TARGET_DIR") or os.path.join(workdir(s), "target")
-            shutil.copy(os.path.join(target, "release", "nw-" + s), path("bin", s))
+            # 先复制到临时名再换名：正在运行的旧程序占着原文件，直接覆盖会报 Text file busy。
+            shutil.copy(os.path.join(target, "release", "nw-" + s), path("bin", s + ".new"))
+            os.replace(path("bin", s + ".new"), path("bin", s))
             continue
         subprocess.check_call(["go", "build", "-o", path("bin", s), f"./cmd/{s}"], cwd=workdir(s))
 

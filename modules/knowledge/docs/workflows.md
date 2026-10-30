@@ -13,48 +13,22 @@
 
 | 事件 | 版本 | 处理函数 | 作用 |
 |---|---|---|---|
-| `content.publication.changed` | 1 | `knowledge.HandlePublication` | 消费content.publication.changed执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `content.publication.withdrawn` | 1 | `knowledge.RetireDocumentIndex` | 消费content.publication.withdrawn执行本域失效/任务/批准回执；不同步反向请求生产方。 |
-| `identity.site.changed` | 1 | `sitestate.RecordSite` | 记下站点状态：后台循环只处理正常站点 |
-| `identity.site.purged` | 1 | `sitestate.PurgeSite` | 删掉本域里该站点的全部数据和文件 |
+| `content.publication.changed` | 1 | `search::build::handle` | 消费content.publication.changed执行本域失效/任务/批准回执；不同步反向请求生产方。 |
+| `content.publication.withdrawn` | 1 | `search::build::withdraw` | 消费content.publication.withdrawn执行本域失效/任务/批准回执；不同步反向请求生产方。 |
+| `identity.site.changed` | 1 | `search::build::handle` | 记下站点状态：后台循环只处理正常站点 |
+| `identity.site.purged` | 1 | `search::build::handle` | 删掉本域里该站点的全部数据和文件 |
 
 ### 异步任务
 
-#### `knowledge.build`
-
-- 执行函数：`knowledge.ExecuteBuild`
-- 触发：HandlePublication、CreateBuild、RecoverBuildLeases创建
-
-1. 精确原job/ref/root/worker/fence读已批准完整BuildJobInput；已完成只返回原持久结果；付费前与最终写前使用平台CheckLease
-2. FetchPublishedSource核完整固定源；背景短句按章节分批（全文目录+所在章节原文，按背景模型窗口定批大小），长文档不因整篇长度失败；真实提取独立任务只等待同原ID
-3. 完整raw chunks、首次真实task memory、增强chunks与固定单块embedding batches各阶段只冻结一次；背景语义用原整组ID，配置漂移不能绕原unknown
-4. 原文字/offsets不改，机器context单独保存；同完整retrieval text/space真实向量复用，未命中按固定原单块批次付费
-5. 完整词项/向量/hash/一秒content权威证明后ActivateBuild，active/outbox/最终原JobExecutionResult同事务；jobs回执未知后只重交原真实结果
-6. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
-
-#### `knowledge.extract`
-
-- 执行函数：`knowledge.ExecuteExtraction`
-- 触发：ExecuteBuild经CreateExtraction创建
-
-1. 真实独立jobs租约读取完整原ExtractionJobInput；核原发布当前性、精确媒体version/hash授权及冻结任务计划
-2. PDF公共隔离runner真实提取，图片真实视觉，文本附件完整描述，上传视频只原可信正文元数据；未声明格式/无文字unsupported，无自动OCR/字幕/URL重抓
-3. 新付费前通过WithModelLease回核jobs；原owner/稳定语义/原记忆档位/key找回，unknown绝不新owner或换配置重算
-4. 核当前镜像fence/lease/cancel与原计划，提取结果/hash/实际模型证明和最终JobExecutionResult同事务；人工caption不动
-5. 错误边界持久当前原fence真实failure_code/state并保完整已知paid refs；如果最终业务已原子完成则只重交真实成功结果，不覆盖；控制元数据窗口不延长原批准
-6. 来源明确unsupported时直接真实unsupported，不下载超限资源或调用模型；真实模型付费前再次CheckExtractionPlan原声明，已外发仅原key观察
+本域没有登记的异步任务类型。
 
 ### 后台任务
 
 | 函数 | 运行时机 | 作用 |
 |---|---|---|
-| `knowledge.LoadRuntime` | 启动时 | 启动索引服务 |
-| `knowledge.RecoverBuildLeases` | 启动时及每60秒 | 恢复入库执行租约 |
-| `knowledge.CollectRetiredIndexes` | 每10分钟 | 回收失活索引代数 |
-| `knowledge.PublishOutbox` | 启动后持续，空闲每1秒 | 发布索引生命周期事件 |
-| `knowledge.ConsumeEvents` | 启动后持续 | 从jobs拉取本域订阅事件，交给events.json登记的处理函数，本地提交后再确认 |
-| `knowledge.RunWorker` | 启动后持续 | 主动领取本域持久任务 |
-| `knowledge.RefreshSiteOverview` | 启动后每分钟检查，距上次生成满24小时或从没生成过时在后台重算 | 立即重算全站概括 |
+| `search::build::consume` | 启动后持续 | 从 PostgreSQL 事件队列领取本域订阅的发布与站点事件，处理成功后确认 |
+| `search::build::work` | 启动后持续，空闲每5秒或有新构建时 | 领取到期的索引构建（15 分钟租约），失败按退避重排，5 次后记为失败 |
+| `search::overview::schedule` | 每分钟检查，启用索引的站点距上次检查满24小时或从没生成过时在后台重算 | 重算层级摘要与全站概括 |
 <!-- flows:end -->
 
 ## 2026-10-18 已编写链路

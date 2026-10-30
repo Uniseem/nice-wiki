@@ -5,7 +5,7 @@
       "event": "content.publication.changed",
       "version": 1,
       "consumer": "knowledge",
-      "handler": "knowledge.HandlePublication"
+      "handler": "search::build::handle"
     },
     {
       "event": "content.publication.changed",
@@ -29,7 +29,7 @@
       "event": "content.publication.withdrawn",
       "version": 1,
       "consumer": "knowledge",
-      "handler": "knowledge.RetireDocumentIndex"
+      "handler": "search::build::withdraw"
     },
     {
       "event": "content.publication.withdrawn",
@@ -82,8 +82,14 @@
     {
       "event": "identity.site.changed",
       "version": 1,
-      "consumer": "knowledge",
+      "consumer": "jobs",
       "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "search::build::handle"
     },
     {
       "event": "identity.site.changed",
@@ -113,6 +119,12 @@
       "event": "identity.site.changed",
       "version": 1,
       "consumer": "site-config",
+      "handler": "sitestate.RecordSite"
+    },
+    {
+      "event": "identity.site.changed",
+      "version": 1,
+      "consumer": "traffic-guard",
       "handler": "sitestate.RecordSite"
     },
     {
@@ -130,8 +142,14 @@
     {
       "event": "identity.site.purged",
       "version": 1,
-      "consumer": "knowledge",
+      "consumer": "jobs",
       "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "knowledge",
+      "handler": "search::build::handle"
     },
     {
       "event": "identity.site.purged",
@@ -161,6 +179,12 @@
       "event": "identity.site.purged",
       "version": 1,
       "consumer": "site-config",
+      "handler": "sitestate.PurgeSite"
+    },
+    {
+      "event": "identity.site.purged",
+      "version": 1,
+      "consumer": "traffic-guard",
       "handler": "sitestate.PurgeSite"
     },
     {

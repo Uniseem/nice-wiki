@@ -30,20 +30,6 @@
       "managementPermission": "system.manage"
     },
     {
-      "type": "knowledge.build",
-      "owner": "knowledge",
-      "executor": "knowledge.ExecuteBuild",
-      "schedule": null,
-      "managementPermission": "knowledge.manage"
-    },
-    {
-      "type": "knowledge.extract",
-      "owner": "knowledge",
-      "executor": "knowledge.ExecuteExtraction",
-      "schedule": null,
-      "managementPermission": "knowledge.manage"
-    },
-    {
       "type": "localization.document",
       "owner": "localization",
       "executor": "localization.ExecuteTranslation",

@@ -7,7 +7,7 @@
 use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use bytes::Bytes;
 use http_body_util::{combinators::BoxBody, BodyExt, Full};
@@ -36,7 +36,6 @@ pub struct Gateway {
     trusted: Vec<Cidr>,
     pub hosts: HostCache,
     default_site: Mutex<String>,
-    epoch: Mutex<(String, Instant)>,
     /// 部署时配置的公开地址（scheme://host[:port]）与它的主机名。
     public_origin: Option<String>,
     pub bootstrap_host: Option<String>,
@@ -50,7 +49,7 @@ pub struct Paths<'a> {
 
 impl Gateway {
     pub fn new(paths: Paths) -> anyhow::Result<Self> {
-        let config = ServiceConfig::load(paths.service)?;
+        let config = ServiceConfig::load(paths.service, "portal")?;
         let anchors = TrustAnchors::load(&config.trust_anchor_ref)?;
         let key = Key::load(&config.signing_key_ref)?;
         anyhow::ensure!(anchors.service("portal", &key.id) == Some(key.verifying()), "服务签名身份与信任锚不一致");
@@ -69,33 +68,18 @@ impl Gateway {
             None => (None, None),
         };
         Ok(Self {
-            upstream: Upstream::new(key, config.dependencies.clone()),
+            upstream: Upstream::new("portal", key, config.dependencies.clone()),
             registry: Registry::load(paths.routes)?,
             anchors, delegation, budget, countries, web_dir, trusted,
             hosts: HostCache::default(),
             default_site: Mutex::new(String::new()),
-            epoch: Mutex::new((String::new(), Instant::now())),
             public_origin, bootstrap_host,
         })
     }
 
     /// 当前数据代次（site-config 的运行状态，缓存 5 秒）；读不到时为空，下游按自己的运行状态处理。
     pub async fn data_epoch(&self) -> String {
-        {
-            let cached = self.epoch.lock().unwrap();
-            if !cached.0.is_empty() && cached.1 > Instant::now() {
-                return cached.0.clone();
-            }
-        }
-        let op = Operation::new("system", "");
-        match self.upstream.json("site-config", Method::GET, "/v1/runtime-state", None, &op).await {
-            Ok(body) => {
-                let epoch = body["state"]["dataEpoch"].as_str().unwrap_or_default().to_owned();
-                *self.epoch.lock().unwrap() = (epoch.clone(), Instant::now() + Duration::from_secs(5));
-                epoch
-            }
-            Err(_) => self.epoch.lock().unwrap().0.clone(),
-        }
+        self.upstream.data_epoch().await.unwrap_or_default()
     }
 
     /// 平台默认站点（单站点用法、平台域名）：初始化完成前为空，读到后不再变。

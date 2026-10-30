@@ -36,7 +36,7 @@ RUN useradd -u 10004 -m search && mkdir -p /data && chown 10004:10004 /data
 COPY --from=build /src/rust/target/release/nw-search /usr/local/bin/nw-search
 USER 10004:10004
 ENTRYPOINT ["/usr/local/bin/nw-search"]
-CMD ["/config/search.json"]
+CMD ["/config/knowledge.json"]
 
 FROM debian:bookworm-slim AS edge
 RUN useradd -u 10005 -m edge && mkdir -p /cache && chown 10005:10005 /cache

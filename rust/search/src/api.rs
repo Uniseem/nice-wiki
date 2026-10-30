@@ -1,155 +1,151 @@
-use std::collections::HashMap;
+//! HTTP 入口：路由表与 openapi.json 一致。每个业务请求先验服务断言得到操作上下文，再核调用方；
+//! 管理接口另经 identity 核对后台用户的 knowledge.manage 权限。
+
 use std::sync::Arc;
 
-use axum::extract::{DefaultBodyLimit, Path, State as AxumState};
-use axum::http::StatusCode;
-use axum::middleware;
-use axum::routing::{delete, get, post, put};
-use axum::{Json, Router};
-use serde::{Deserialize, Serialize};
+use axum::body::{to_bytes, Body};
+use axum::extract::{Request, State as AxumState};
+use axum::http::{HeaderValue, StatusCode};
+use axum::response::Response;
+use axum::Router;
+use percent_encoding::percent_decode_str;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 
-use crate::lexical::Entry;
-use crate::vector::VectorEntry;
+use nw_platform::inbound::authorize;
+use nw_platform::platform::Problem;
+use nw_platform::upstream::Operation;
+
 use crate::State;
 
-type Shared = AxumState<Arc<State>>;
-type ApiError = (StatusCode, Json<serde_json::Value>);
-
-fn fail(status: StatusCode, message: &str) -> ApiError {
-    (status, Json(serde_json::json!({ "error": message })))
-}
-
-fn internal(error: impl std::fmt::Display) -> ApiError {
-    eprintln!("内部错误：{error}");
-    fail(StatusCode::INTERNAL_SERVER_ERROR, "内部错误")
-}
-
-/// 站点、文档、空间标识都是系统生成的不透明 ID；这里只放行安全字符，避免拼进键里出歧义。
-fn check(value: &str, what: &str) -> Result<(), ApiError> {
-    let ok = !value.is_empty() && value.len() <= 128 && value.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'));
-    if ok {
-        Ok(())
-    } else {
-        Err(fail(StatusCode::BAD_REQUEST, &format!("{what}标识不合法")))
-    }
-}
+const BODY_LIMIT: usize = 16 << 20;
 
 pub fn router(state: Arc<State>) -> Router {
-    Router::new()
-        .route("/healthz", get(|| async { "ok" }))
-        .route("/v1/stats", get(stats))
-        .route("/v1/sites/:site", delete(delete_site))
-        .route("/v1/sites/:site/manifest", get(manifest))
-        .route("/v1/sites/:site/documents/:document", put(replace_document).delete(delete_document))
-        .route("/v1/sites/:site/search", post(search))
-        .layer(DefaultBodyLimit::max(64 << 20))
-        .layer(middleware::from_fn_with_state(state.clone(), crate::auth::require_signature))
-        .with_state(state)
+    Router::new().fallback(handle).with_state(state)
 }
 
-async fn stats(state: Shared) -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "lexicalChunks": state.lexical.doc_count() }))
+pub struct Ctx {
+    pub state: Arc<State>,
+    pub op: Operation,
+    pub body: Vec<u8>,
+    pub query: String,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ChunkBody {
-    chunk_id: String,
-    terms: HashMap<String, u32>,
-    #[serde(default)]
-    vector: Vec<f32>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ReplaceBody {
-    space_id: String,
-    build_id: String,
-    chunks: Vec<ChunkBody>,
-}
-
-async fn replace_document(state: Shared, Path((site, document)): Path<(String, String)>, Json(body): Json<ReplaceBody>) -> Result<Json<serde_json::Value>, ApiError> {
-    check(&site, "站点")?;
-    check(&document, "文档")?;
-    check(&body.space_id, "空间")?;
-    check(&body.build_id, "构建")?;
-    let count = body.chunks.len();
-    let lexical_entries: Vec<Entry> = body
-        .chunks
-        .iter()
-        .map(|chunk| Entry { chunk_id: chunk.chunk_id.clone(), build_id: body.build_id.clone(), terms: chunk.terms.iter().map(|(term, n)| (term.clone(), *n)).collect() })
-        .collect();
-    let vector_entries: Vec<VectorEntry> = body
-        .chunks
-        .iter()
-        .filter(|chunk| !chunk.vector.is_empty())
-        .map(|chunk| VectorEntry { chunk_id: chunk.chunk_id.clone(), build_id: body.build_id.clone(), vector: chunk.vector.clone() })
-        .collect();
-    state.vectors.replace_document(&site, &document, &body.space_id, &body.build_id, &vector_entries, count).await.map_err(internal)?;
-    let shared = state.0.clone();
-    let (s, d, sp) = (site.clone(), document.clone(), body.space_id.clone());
-    tokio::task::spawn_blocking(move || shared.lexical.replace_document(&s, &d, &sp, &lexical_entries)).await.map_err(internal)?.map_err(internal)?;
-    Ok(Json(serde_json::json!({ "chunks": count, "vectors": vector_entries.len() })))
-}
-
-async fn delete_document(state: Shared, Path((site, document)): Path<(String, String)>) -> Result<StatusCode, ApiError> {
-    check(&site, "站点")?;
-    check(&document, "文档")?;
-    state.vectors.delete_document(&site, &document).await.map_err(internal)?;
-    let shared = state.0.clone();
-    tokio::task::spawn_blocking(move || shared.lexical.delete_document(&site, &document)).await.map_err(internal)?.map_err(internal)?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn delete_site(state: Shared, Path(site): Path<String>) -> Result<StatusCode, ApiError> {
-    check(&site, "站点")?;
-    state.vectors.delete_site(&site).await.map_err(internal)?;
-    let shared = state.0.clone();
-    tokio::task::spawn_blocking(move || shared.lexical.delete_site(&site)).await.map_err(internal)?.map_err(internal)?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn manifest(state: Shared, Path(site): Path<String>) -> Result<Json<serde_json::Value>, ApiError> {
-    check(&site, "站点")?;
-    let documents = state.vectors.manifest(&site).await.map_err(internal)?;
-    Ok(Json(serde_json::json!({ "documents": documents })))
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SearchBody {
-    space_id: String,
-    #[serde(default)]
-    terms: Vec<String>,
-    #[serde(default)]
-    vector: Vec<f32>,
-    #[serde(default)]
-    documents: Vec<String>,
-    limit: Option<usize>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct HitOut {
-    chunk_id: String,
-    build_id: String,
-    document_id: String,
-    score: f64,
-}
-
-async fn search(state: Shared, Path(site): Path<String>, Json(body): Json<SearchBody>) -> Result<Json<serde_json::Value>, ApiError> {
-    check(&site, "站点")?;
-    check(&body.space_id, "空间")?;
-    for document in &body.documents {
-        check(document, "文档")?;
+impl Ctx {
+    pub fn input<T: DeserializeOwned>(&self) -> Result<T, Problem> {
+        serde_json::from_slice(&self.body).map_err(|e| Problem::new("VALIDATION", format!("请求正文不合法：{e}")))
     }
-    let limit = body.limit.unwrap_or(80).clamp(1, 200);
-    let shared = state.0.clone();
-    let (s, sp, terms, documents) = (site.clone(), body.space_id.clone(), body.terms.clone(), body.documents.clone());
-    let lexical = tokio::task::spawn_blocking(move || shared.lexical.search(&s, &sp, &terms, &documents, limit)).await.map_err(internal)?.map_err(internal)?;
-    let vector = state.vectors.search(&site, &body.space_id, &body.vector, &body.documents, limit as i64).await.map_err(internal)?;
-    Ok(Json(serde_json::json!({
-        "lexical": lexical.into_iter().map(|h| HitOut { chunk_id: h.chunk_id, build_id: h.build_id, document_id: h.document_id, score: h.score as f64 }).collect::<Vec<_>>(),
-        "vector": vector.into_iter().map(|h| HitOut { chunk_id: h.chunk_id, build_id: h.build_id, document_id: h.document_id, score: h.score }).collect::<Vec<_>>(),
-    })))
+
+    pub fn param(&self, name: &str) -> Option<String> {
+        self.query.split('&').filter_map(|pair| pair.split_once('=')).find(|(k, _)| *k == name).map(|(_, v)| percent_decode_str(v).decode_utf8_lossy().into_owned())
+    }
+}
+
+fn json(status: StatusCode, value: &Value) -> Response {
+    let mut response = Response::new(Body::from(value.to_string()));
+    *response.status_mut() = status;
+    response.headers_mut().insert("content-type", HeaderValue::from_static("application/json"));
+    response
+}
+
+fn problem(problem: &Problem, request_id: &str) -> Response {
+    let mut response = Response::new(Body::from(problem.body(request_id)));
+    *response.status_mut() = StatusCode::from_u16(problem.status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    response.headers_mut().insert("content-type", HeaderValue::from_static("application/problem+json"));
+    response
+}
+
+async fn handle(AxumState(state): AxumState<Arc<State>>, request: Request) -> Response {
+    let (parts, body) = request.into_parts();
+    let path = percent_decode_str(parts.uri.path()).decode_utf8_lossy().into_owned();
+    let request_id = parts.headers.get("x-request-id").and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
+    match (parts.method.as_str(), path.as_str()) {
+        ("GET", "/healthz") => return json(StatusCode::OK, &serde_json::json!({"module": crate::MODULE, "version": env!("CARGO_PKG_VERSION"), "status": "ready", "capabilities": []})),
+        ("GET", "/readyz") => {
+            let epoch = state.up.data_epoch().await.ok();
+            let health = serde_json::json!({"module": crate::MODULE, "version": env!("CARGO_PKG_VERSION"), "status": if epoch.is_some() { "ready" } else { "degraded" }, "capabilities": []});
+            return json(StatusCode::OK, &serde_json::json!({"health": health, "activeDataEpoch": epoch, "runtimeRevision": 1, "publicRequestsAllowed": true, "initialized": true, "journalRecovered": true}));
+        }
+        _ => {}
+    }
+    let body = match to_bytes(body, BODY_LIMIT).await {
+        Ok(body) => body,
+        Err(_) => return problem(&Problem::new("VALIDATION", "请求正文超过上限"), &request_id),
+    };
+    let epoch = match state.up.data_epoch().await {
+        Ok(epoch) => epoch,
+        Err(p) => return problem(&p, &request_id),
+    };
+    let op = match state.verifier.operation(&parts.method, &path, &parts.headers, &body, &epoch) {
+        Ok(op) => op,
+        Err(p) => return problem(&p, &request_id),
+    };
+    let request_id = op.request_id.clone();
+    let proof = parts.headers.get("x-portal-proof").and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
+    let ctx = Ctx { state, op, body: body.to_vec(), query: parts.uri.query().unwrap_or_default().to_owned() };
+    match dispatch(ctx, parts.method.as_str(), &path, &proof).await {
+        Ok((status, value)) => json(status, &value),
+        Err(p) => problem(&p, &request_id),
+    }
+}
+
+type Reply = Result<(StatusCode, Value), Problem>;
+
+fn ok(value: Value) -> Reply {
+    Ok((StatusCode::OK, value))
+}
+
+fn segments(path: &str) -> Vec<&str> {
+    path.trim_start_matches('/').split('/').collect()
+}
+
+async fn dispatch(ctx: Ctx, method: &str, path: &str, proof: &str) -> Reply {
+    let parts = segments(path);
+    // (操作、允许的调用方)；portal 调的都是后台管理接口。
+    let (operation, callers): (&str, &[&str]) = match (method, parts.as_slice()) {
+        ("PUT", ["v1", "index-config"]) => ("putIndexConfig", &["portal"]),
+        ("GET", ["v1", "index-config"]) => ("readIndexConfig", &["portal"]),
+        ("GET", ["v1", "index-options"]) => ("readIndexOptions", &["portal"]),
+        ("POST", ["v1", "builds"]) => ("createBuild", &["portal"]),
+        ("GET", ["v1", "builds"]) => ("listBuilds", &["portal"]),
+        ("GET", ["v1", "builds", _]) => ("getBuild", &["portal"]),
+        ("POST", ["v1", "builds", _, "cancel"]) => ("cancelBuild", &["portal"]),
+        ("GET", ["v1", "builds", _, "diagnostics"]) => ("redactDiagnostics", &["portal"]),
+        ("POST", ["v1", "rebuild-plans"]) => ("estimateRebuildPlan", &["portal"]),
+        ("POST", ["v1", "rebuild-plans", plan]) if plan.ends_with(":approve") => ("approveRebuildPlan", &["portal"]),
+        ("POST", ["v1", "site-overview:refresh"]) => ("refreshSiteOverview", &["portal"]),
+        ("POST", ["v1", "retrievals"]) => ("searchKnowledge", &["qa"]),
+        ("POST", ["v1", "sections:read"]) => ("readSections", &["qa"]),
+        ("POST", ["v1", "query-embeddings"]) => ("createQueryEmbedding", &["qa"]),
+        ("POST", ["v1", "document-index:read"]) => ("readDocumentIndex", &["qa"]),
+        ("POST", ["v1", "document-chunks:read"]) => ("readDocumentChunks", &["qa"]),
+        ("POST", ["v1", "site-overview:read"]) => ("readSiteOverview", &["qa"]),
+        ("POST", ["v1", "evidence:inspect"]) => ("inspectEvidence", &["data-protection"]),
+        ("POST", ["v1", "jobs", _, "recovery"]) => ("readJobRecovery", &["jobs"]),
+        _ => return Err(Problem::new("NOT_FOUND", "接口不存在")),
+    };
+    if !callers.contains(&ctx.op.caller.as_str()) {
+        return Err(Problem::new("FORBIDDEN", "调用方无权使用此接口"));
+    }
+    if callers == ["portal"] {
+        authorize(&ctx.state.up, &ctx.op, proof, "knowledge.manage", &format!("knowledge:{operation}")).await?;
+    }
+    match operation {
+        "putIndexConfig" => ok(crate::admin::put_config(&ctx).await?),
+        "readIndexConfig" => ok(crate::admin::read_config(&ctx).await?),
+        "readIndexOptions" => ok(crate::admin::options(&ctx).await?),
+        "createBuild" => Ok((StatusCode::ACCEPTED, crate::admin::create_build(&ctx).await?)),
+        "listBuilds" => ok(crate::admin::list_builds(&ctx).await?),
+        "getBuild" => ok(crate::admin::get_build(&ctx, parts[2]).await?),
+        "cancelBuild" => ok(crate::admin::cancel_build(&ctx, parts[2]).await?),
+        "refreshSiteOverview" => Ok((StatusCode::ACCEPTED, crate::overview::refresh(&ctx).await?)),
+        "searchKnowledge" => ok(crate::retrieve::search(&ctx).await?),
+        "readSections" => ok(crate::retrieve::read_sections(&ctx).await?),
+        "createQueryEmbedding" => ok(crate::retrieve::query_embedding(&ctx).await?),
+        "readDocumentChunks" => ok(crate::retrieve::read_document_chunks(&ctx).await?),
+        "readDocumentIndex" => ok(crate::docindex::read(&ctx).await?),
+        "readSiteOverview" => ok(crate::overview::read(&ctx).await?),
+        "readJobRecovery" => Err(Problem::new("NOT_FOUND", "本服务没有可恢复的任务")),
+        _ => Err(Problem::new("DEPENDENCY_UNAVAILABLE", "此功能尚未提供")),
+    }
 }

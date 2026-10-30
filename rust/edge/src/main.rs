@@ -17,11 +17,11 @@ mod disk;
 mod gateway;
 mod limiter;
 mod net;
-mod platform;
 mod proxy;
 mod routes;
 mod site;
-mod upstream;
+
+use nw_platform::{platform, upstream};
 
 use std::sync::Arc;
 

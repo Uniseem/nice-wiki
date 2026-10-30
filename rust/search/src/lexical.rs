@@ -17,9 +17,6 @@ pub struct Entry {
 
 pub struct Hit {
     pub chunk_id: String,
-    pub build_id: String,
-    pub document_id: String,
-    pub score: f32,
 }
 
 struct Fields {
@@ -33,7 +30,6 @@ struct Fields {
 }
 
 pub struct Lexical {
-    index: Index,
     reader: IndexReader,
     writer: Mutex<IndexWriter>,
     fields: Fields,
@@ -62,7 +58,7 @@ impl Lexical {
         index.tokenizers().register("nw_terms", WhitespaceTokenizer::default());
         let writer = index.writer(64 << 20)?;
         let reader = index.reader_builder().reload_policy(ReloadPolicy::Manual).try_into()?;
-        Ok(Self { index, reader, writer: Mutex::new(writer), fields: Fields { site, doc_key: doc_key_field, space, chunk, build, document, body } })
+        Ok(Self { reader, writer: Mutex::new(writer), fields: Fields { site, doc_key: doc_key_field, space, chunk, build, document, body } })
     }
 
     fn commit(&self, writer: &mut IndexWriter) -> anyhow::Result<()> {
@@ -133,20 +129,11 @@ impl Lexical {
         let searcher = self.reader.searcher();
         let top = searcher.search(&query, &TopDocs::with_limit(limit))?;
         let mut hits = Vec::with_capacity(top.len());
-        for (score, address) in top {
+        for (_, address) in top {
             let doc: TantivyDocument = searcher.doc(address)?;
-            let text = |field: Field| doc.get_first(field).and_then(|v| v.as_str()).unwrap_or_default().to_owned();
-            hits.push(Hit { chunk_id: text(self.fields.chunk), build_id: text(self.fields.build), document_id: text(self.fields.document), score });
+            hits.push(Hit { chunk_id: doc.get_first(self.fields.chunk).and_then(|v| v.as_str()).unwrap_or_default().to_owned() });
         }
         Ok(hits)
     }
 
-    pub fn doc_count(&self) -> u64 {
-        self.reader.searcher().num_docs()
-    }
-
-    #[allow(dead_code)]
-    pub fn index(&self) -> &Index {
-        &self.index
-    }
 }

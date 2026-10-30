@@ -3,42 +3,6 @@
   "version": 1,
   "events": [
     {
-      "name": "index.ready",
-      "version": 1,
-      "direction": "publish",
-      "payloadSchema": {
-        "$ref": "./types.json#/$defs/EventIndexReadyPayload"
-      },
-      "purpose": "发布index.ready对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
-      "delivery": "at-least-once",
-      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
-      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
-    },
-    {
-      "name": "index.retired",
-      "version": 1,
-      "direction": "publish",
-      "payloadSchema": {
-        "$ref": "./types.json#/$defs/EventIndexRetiredPayload"
-      },
-      "purpose": "发布index.retired对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
-      "delivery": "at-least-once",
-      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
-      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
-    },
-    {
-      "name": "index.build.failed",
-      "version": 1,
-      "direction": "publish",
-      "payloadSchema": {
-        "$ref": "./types.json#/$defs/EventIndexBuildFailedPayload"
-      },
-      "purpose": "发布index.build.failed对应已提交状态；载荷仅不可变ID/hash/版本，不广播正文。",
-      "delivery": "at-least-once",
-      "ordering": "以公共EventEnvelope.subjectId为聚合键、EventEnvelope.revision单调；跨对象不保证顺序，旧revision忽略。",
-      "idempotency": "消费者eventId+payloadHash唯一；同ID不同hash隔离并INTEGRITY_ERROR；dataEpoch不一致拒绝。"
-    },
-    {
       "name": "content.publication.changed",
       "version": 1,
       "direction": "consume",
@@ -49,7 +13,7 @@
       "delivery": "at-least-once",
       "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
       "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。",
-      "handler": "knowledge.HandlePublication"
+      "handler": "search::build::handle"
     },
     {
       "name": "content.publication.withdrawn",
@@ -62,7 +26,7 @@
       "delivery": "at-least-once",
       "ordering": "按生产方对象revision单调，仅接受更高版本；dataEpoch必须当前。",
       "idempotency": "inbox(eventId,payloadHash)唯一，与状态改变同事务；重复ACK。",
-      "handler": "knowledge.RetireDocumentIndex"
+      "handler": "search::build::withdraw"
     },
     {
       "name": "identity.site.changed",
@@ -75,7 +39,7 @@
       "delivery": "at-least-once",
       "ordering": "按站点 revision 单调，只接受更高版本",
       "idempotency": "按 revision 覆盖；清除可重复执行",
-      "handler": "sitestate.RecordSite"
+      "handler": "search::build::handle"
     },
     {
       "name": "identity.site.purged",
@@ -88,7 +52,7 @@
       "delivery": "at-least-once",
       "ordering": "按站点 revision 单调，只接受更高版本",
       "idempotency": "按 revision 覆盖；清除可重复执行",
-      "handler": "sitestate.PurgeSite"
+      "handler": "search::build::handle"
     }
   ]
 }

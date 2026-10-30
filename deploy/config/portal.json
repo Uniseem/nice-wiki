@@ -9,7 +9,7 @@
     "content": "http://content:8103",
     "media": "http://content:8104",
     "model-gateway": "http://ai:8105",
-    "knowledge": "http://ai:8106",
+    "knowledge": "http://search:8106",
     "qa": "http://ai:8107",
     "localization": "http://content:8108",
     "memory": "http://ai:8109",

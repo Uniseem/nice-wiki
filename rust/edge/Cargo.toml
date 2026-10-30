@@ -6,6 +6,7 @@ description = "nice-wiki 唯一入口：按域名定位站点、会话与权限�
 license = "AGPL-3.0-only"
 
 [dependencies]
+nw-platform = { path = "../platform" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "time", "sync", "io-util", "fs"] }
 hyper = { version = "1", features = ["http1", "server", "client"] }
 hyper-util = { version = "0.1", features = ["tokio", "server", "client-legacy", "http1"] }
