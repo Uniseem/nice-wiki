@@ -506,7 +506,9 @@
     ],
     "site-config": [
       "readConfigObject",
-      "readSiteConfig"
+      "readPublicAppearance",
+      "readSiteConfig",
+      "readThemePackage"
     ]
   }
 }

@@ -2,13 +2,15 @@
      交互（页头操作、移动端目录、AI 问答）由 /_site/site.js 里的 React 岛接管。界面文字一律经 .T 本地化。 */}}
 
 {{define "head"}}<!doctype html>
-<html lang="{{.Locale}}" dir="{{.Dir}}">
+<html lang="{{.Locale}}" dir="{{.Dir}}" data-nw-theme="{{.Theme.Look.ID}}" data-nw-sidebar="{{.Theme.Look.Sidebar}}" data-nw-toc="{{.Theme.Look.TOC}}" data-nw-header="{{.Theme.Look.Header}}" data-nw-schemes="{{.Theme.Look.Schemes}}"{{with .Theme.Forced}} class="{{.}}" data-theme="{{.}}"{{end}}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {{.Head}}
-<script>(function(){try{var t=localStorage.getItem('heroui-theme')||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t);document.documentElement.setAttribute('data-theme',t)}catch(e){}})()</script>
+<script>(function(){try{var t={{.Theme.Forced}}||localStorage.getItem('heroui-theme')||{{.Theme.ColorScheme}}||'system';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var e=document.documentElement;e.classList.remove('light','dark');e.classList.add(t);e.setAttribute('data-theme',t)}catch(e){}})()</script>
 <link rel="stylesheet" href="{{asset "site.css"}}">
+{{with .Theme.CSS}}<style>{{.}}</style>{{end}}
+{{with .Theme.Stylesheet}}<link rel="stylesheet" href="{{.}}">{{end}}
 {{if .Accent}}<style>:root{--nw-brand:{{.Accent}};--nw-brand-foreground:#fff}</style>{{end}}
 {{.ExtraHead}}
 <script type="module" src="{{asset "site.js"}}"></script>
@@ -72,7 +74,7 @@
 <div class="nw-reading-layout mx-auto flex w-full flex-1 items-start gap-10 px-4 sm:px-6">
   {{template "sidebar" .}}
   <main class="nw-document min-w-0 flex-1" id="nw-main">
-    <article class="mx-auto w-full max-w-[800px]">
+    <article class="nw-article mx-auto w-full">
       {{if .Breadcrumbs}}<nav aria-label="{{.T "面包屑"}}" class="mb-5 overflow-x-auto"><ol class="breadcrumbs">{{range $i, $c := .Breadcrumbs}}<li class="breadcrumbs__item">{{if $i}}<span class="breadcrumbs__separator" aria-hidden="true">{{template "icon-chevron"}}</span>{{end}}<a class="breadcrumbs__link" href="{{$c.URL}}"{{if $c.Current}} data-current="true" aria-current="page"{{end}}>{{$c.Label}}</a></li>{{end}}</ol></nav>{{end}}
       <h1 class="nw-document-title">{{.Title}}</h1>
       {{if .Untranslated}}<div class="alert alert--warning mt-6" role="status"><div class="alert__content"><p class="alert__title">{{.T "当前语言的译文尚未完成，部分内容显示旧译文或原文。"}}</p></div></div>{{end}}

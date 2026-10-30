@@ -28,5 +28,11 @@
 | GET `/healthz` | `health` | `site-config.Health` | `anonymous` | `—` → 200 `HealthStatus` | 本域进程存活 | `HTTP 503` |
 | GET `/readyz` | `ready` | `site-config.Ready` | `anonymous` | `—` → 200 `ServiceReadiness` | 本域启动/恢复就绪 | `HTTP 503` |
 | GET `/v1/reference-decisions/{sourceOperationId}` | `readHomeReferenceDecision` | `site-config.ReadHomeReferenceDecision` | `service` | `—` → 200 `ReadHomeReferenceDecisionResult` | 媒体核对首页资源来源持久决定 | `HTTP 403`、`HTTP 404`、`HTTP 409`、`HTTP 422`、`HTTP 503` |
+| GET `/v1/appearance` | `readAppearance` | `site-config.ReadAppearance` | `site.manage` | `—` → 200 `ReadAppearanceResult` | 读取站点外观与可选外观 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| PUT `/v1/appearance` | `updateAppearance` | `site-config.UpdateAppearance` | `site.manage` | `UpdateAppearanceInput` → 200 `Appearance` | 切换站点外观或访客默认明暗 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| POST `/v1/appearance/themes` | `installTheme` | `site-config.InstallTheme` | `site.manage` | `application/octet-stream` → 200 `InstallThemeResult` | 上传外观包（zip）装到本站 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| DELETE `/v1/appearance/themes/{digest}` | `deleteTheme` | `site-config.DeleteTheme` | `site.manage` | `—` → 200 `DeleteThemeResult` | 删除本站装的外观包（正在用的不能删） | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/appearance/public` | `readPublicAppearance` | `site-config.ReadPublicAppearance` | `anonymous` | `—` → 200 `PublicAppearance` | 读取公开站使用的外观 | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
+| GET `/v1/appearance/packages/{digest}` | `readThemePackage` | `site-config.ReadThemePackage` | `anonymous` | `—` → 200 `application/zip` | 按摘要下载外观包（内置或本站装的） | `VALIDATION`、`UNAUTHENTICATED`、`FORBIDDEN`、`NOT_FOUND`、`CONFLICT`、`RATE_LIMITED`、`DEPENDENCY_UNAVAILABLE` |
 <!-- openapi:end -->
 

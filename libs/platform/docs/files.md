@@ -2,7 +2,7 @@
 
 本文件由 `make docs` 从 [implementation.json](../contracts/implementation.json) 生成，不手改。登记入口、契约、配置、部署和生成文件的位置，其余源码按需要建立，不逐个登记。
 
-文件 29 个：手写 27、生成 1、配置 1。
+文件 32 个：手写 30、生成 1、配置 1。
 
 | 路径 | 类别 | 职责 |
 |---|---|---|
@@ -35,3 +35,6 @@
 | `libs/platform/web/module-api.ts` | 手写 | 浏览器非序列化模块API端口与bootstrap类型，不暴露HttpOnly秘密 |
 | `libs/platform/lifecycle/identity.go` | 手写 | 各域启动服务身份描述与本站签名公钥匹配共用边界 |
 | `libs/platform/lifecycle/task_secret.go` | 手写 | 通用有界异步任务秘密加密，不含业务授权与持久策略 |
+| `libs/platform/theme/theme.go` | 手写 | 外观包标准：解析与校验 zip、内容摘要、重新打包 |
+| `libs/platform/theme/css.go` | 手写 | 外观样式表校验，配色/字体/版式渲染成公开站内联样式 |
+| `libs/platform/theme/builtin.go` | 手写 | 内置外观（builtin/ 下的外观包） |

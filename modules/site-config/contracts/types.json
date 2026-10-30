@@ -3250,6 +3250,159 @@
         "text",
         "url"
       ]
+    },
+    "ThemeEntry": {
+      "type": "object",
+      "description": "可选用的外观：内置外观或本站装的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "builtin": {
+          "type": "boolean"
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "installedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "digest",
+        "builtin",
+        "byteSize",
+        "manifest"
+      ],
+      "x-v2": true
+    },
+    "Appearance": {
+      "type": "object",
+      "description": "站点当前的外观选择",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        "updatedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ],
+      "x-v2": true
+    },
+    "ReadAppearanceResult": {
+      "type": "object",
+      "description": "外观页：当前选择与全部可选外观",
+      "additionalProperties": false,
+      "properties": {
+        "appearance": {
+          "$ref": "#/$defs/Appearance"
+        },
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThemeEntry"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "appearance",
+        "themes"
+      ],
+      "x-v2": true
+    },
+    "UpdateAppearanceInput": {
+      "type": "object",
+      "description": "切换外观或访客默认明暗",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ],
+      "x-v2": true
+    },
+    "PublicAppearance": {
+      "type": "object",
+      "description": "公开站渲染用的外观选择",
+      "additionalProperties": false,
+      "properties": {
+        "themeDigest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "colorScheme": {
+          "type": "string",
+          "enum": [
+            "system",
+            "light",
+            "dark"
+          ]
+        }
+      },
+      "required": [
+        "themeDigest",
+        "colorScheme"
+      ],
+      "x-v2": true
+    },
+    "InstallThemeResult": {
+      "type": "object",
+      "description": "装好的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "$ref": "#/$defs/ThemeEntry"
+        }
+      },
+      "required": [
+        "theme"
+      ],
+      "x-v2": true
+    },
+    "DeleteThemeResult": {
+      "type": "object",
+      "description": "删掉的外观包",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        }
+      },
+      "required": [
+        "deleted"
+      ],
+      "x-v2": true
     }
   }
 }

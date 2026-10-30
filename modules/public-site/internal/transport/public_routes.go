@@ -74,6 +74,12 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			w.Header().Set("Cache-Control", "no-cache")
 			_, _ = w.Write([]byte(result.HTML))
 		}),
+		"handleThemeFile": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			publicsite.ServeThemeFile(requestContext(r, directory), w, r.PathValue("digest"), r.PathValue("file"))
+		}),
+		"handleThemeAsset": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			publicsite.ServeThemeFile(requestContext(r, directory), w, r.PathValue("digest"), "assets/"+r.PathValue("file"))
+		}),
 		"handleAskShell": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			page, err := publicsite.HandleAskShell(requestContext(r, directory), op, publicsite.HandleAskShellInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})

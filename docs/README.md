@@ -34,7 +34,7 @@
 每个模块 README.md 索引 requirements / architecture / data / api / workflows / files / functions / operations / acceptance 九份子文档和四份机器契约。
 
 
-产品行为以 [需求保留矩阵](product-preservation.md) 和 [旧设计基线](product-baseline/README.md) 为准；AI上下文与缓存见 [详细规格](ai-context-and-cache.md)；决策模型（Jev）的全站用法和文档索引见 [决策模型架构](decision-model.md)。
+产品行为以 [需求保留矩阵](product-preservation.md) 和 [旧设计基线](product-baseline/README.md) 为准；AI上下文与缓存见 [详细规格](ai-context-and-cache.md)；公开站外观（皮肤）的包结构见 [外观包标准](theme-standard.md)；决策模型（Jev）的全站用法和文档索引见 [决策模型架构](decision-model.md)。
 
 工作方式见根 [AGENTS.md](../AGENTS.md)，进度只看根 [STATUS.md](../STATUS.md)。这些设计文档按需查阅，不必通读。
 

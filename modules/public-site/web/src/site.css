@@ -30,6 +30,12 @@
     --nw-brand: var(--foreground);
     --nw-brand-foreground: var(--background);
   }
+  /* 外观可调的版式变量（docs/theme-standard.md），这里是默认外观的取值。 */
+  :root {
+    --nw-content-width: 800px;
+    --nw-radius-control: .75rem;
+    --nw-radius-card: 1rem;
+  }
 
   /* 锚点跳转后停在页头（4rem）下方留一点空。始终显示滚动条轨道：鼠标用户的滚动条占宽度，短页面和长页面之间
      切换时页面不再因滚动条出现、消失而左右移动（根元素上的 scrollbar-gutter 并非处处生效）；触控板的悬浮滚动条不受影响。 */
@@ -56,11 +62,15 @@
 @layer components {
   /* 导航、控件和各级标题用无衬线字，只有正文的字母和数字用 Georgia；小圆角、细边，不叠加厚重阴影。 */
   .button {
-    @apply rounded-xl font-medium tracking-[-0.2px];
+    @apply font-medium tracking-[-0.2px];
+    border-radius: var(--nw-radius-control);
     font-family: var(--font-sans);
   }
   .card {
-    @apply rounded-2xl;
+    border-radius: var(--nw-radius-card);
+  }
+  .nw-article {
+    max-width: var(--nw-content-width);
   }
   .nw-site-header {
     background: color-mix(in srgb, var(--background) 85%, transparent);
@@ -156,7 +166,8 @@
     @apply ms-3 mt-0.5 border-s border-separator ps-2;
   }
   .nw-tree-item {
-    @apply flex min-h-8 cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-1 text-muted transition-colors hover:bg-default hover:text-foreground;
+    @apply flex min-h-8 cursor-pointer items-center justify-between gap-2 px-2.5 py-1 text-muted transition-colors hover:bg-default hover:text-foreground;
+    border-radius: var(--nw-radius-control);
   }
   .nw-tree-item > a {
     @apply min-w-0 flex-1 truncate py-0.5;
@@ -325,6 +336,15 @@ body[data-page="home"] .nw-site-header { border-color: transparent; }
   .nw-footer-inner { flex-direction: column; padding-block: 3rem; }
   .nw-document { padding-top: 2.5rem; }
 }
+
+/* 外观的版式开关（<html data-nw-*>）：写在层外，压过工具类。 */
+[data-nw-sidebar="right"] .nw-reading-layout { flex-direction: row-reverse; }
+[data-nw-sidebar="right"] .nw-sidebar { padding-inline: .75rem 0; }
+[data-nw-toc="hidden"] :is(#nw-toc, .nw-toc-mobile) { display: none; }
+[data-nw-header="static"] { scroll-padding-top: 1.5rem; }
+[data-nw-header="static"] .nw-site-header { position: static; }
+[data-nw-header="static"] :is(.nw-sidebar, #nw-toc) { top: 0; max-height: 100dvh; }
+[data-nw-header="static"] .nw-prose :is(h1, h2, h3, h4) { scroll-margin-top: 1.5rem; }
 
 @media print {
   header,

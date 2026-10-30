@@ -1,0 +1,116 @@
+{
+  "types": {
+    "ThemeEntry": {
+      "description": "可选用的外观：内置外观或本站装的外观包",
+      "props": {
+        "digest": "hash",
+        "builtin": "bool",
+        "byteSize": "int:0",
+        "installedAt": "ts?",
+        "manifest": "any"
+      }
+    },
+    "Appearance": {
+      "description": "站点当前的外观选择",
+      "props": {
+        "themeDigest": "hash",
+        "colorScheme": "enum:system|light|dark",
+        "updatedAt": "ts?"
+      }
+    },
+    "ReadAppearanceResult": {
+      "description": "外观页：当前选择与全部可选外观",
+      "props": {
+        "appearance": "Appearance",
+        "themes": "[ThemeEntry]"
+      }
+    },
+    "UpdateAppearanceInput": {
+      "description": "切换外观或访客默认明暗",
+      "props": {
+        "themeDigest": "hash",
+        "colorScheme": "enum:system|light|dark"
+      }
+    },
+    "PublicAppearance": {
+      "description": "公开站渲染用的外观选择",
+      "props": {
+        "themeDigest": "hash",
+        "colorScheme": "enum:system|light|dark"
+      }
+    },
+    "InstallThemeResult": {
+      "description": "装好的外观包",
+      "props": {
+        "theme": "ThemeEntry"
+      }
+    },
+    "DeleteThemeResult": {
+      "description": "删掉的外观包",
+      "props": {
+        "deleted": "hash"
+      }
+    }
+  },
+  "ops": [
+    {
+      "id": "readAppearance",
+      "method": "get",
+      "path": "/v1/appearance",
+      "perm": "site.manage",
+      "summary": "读取站点外观与可选外观",
+      "out": "ReadAppearanceResult"
+    },
+    {
+      "id": "updateAppearance",
+      "method": "put",
+      "path": "/v1/appearance",
+      "perm": "site.manage",
+      "summary": "切换站点外观或访客默认明暗",
+      "in": "UpdateAppearanceInput",
+      "out": "Appearance"
+    },
+    {
+      "id": "installTheme",
+      "method": "post",
+      "path": "/v1/appearance/themes",
+      "perm": "site.manage",
+      "summary": "上传外观包（zip）装到本站",
+      "raw_in": {
+        "type": "application/octet-stream",
+        "max": 2097152
+      },
+      "out": "InstallThemeResult"
+    },
+    {
+      "id": "deleteTheme",
+      "method": "delete",
+      "path": "/v1/appearance/themes/{digest}",
+      "path_params": [
+        "digest"
+      ],
+      "perm": "site.manage",
+      "summary": "删除本站装的外观包（正在用的不能删）",
+      "out": "DeleteThemeResult"
+    },
+    {
+      "id": "readPublicAppearance",
+      "method": "get",
+      "path": "/v1/appearance/public",
+      "perm": "anonymous",
+      "summary": "读取公开站使用的外观",
+      "out": "PublicAppearance"
+    },
+    {
+      "id": "readThemePackage",
+      "method": "get",
+      "path": "/v1/appearance/packages/{digest}",
+      "path_params": [
+        "digest"
+      ],
+      "perm": "anonymous",
+      "summary": "按摘要下载外观包（内置或本站装的）",
+      "raw_out": "application/zip"
+    }
+  ]
+}

@@ -64,6 +64,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_theme/{digest}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 外观样式表与预览图
+         * @description 按摘要提供站点当前可用外观包里允许对外的文件（docs/theme-standard.md），内容不可变、长期缓存
+         */
+        get: operations["handleThemeFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_theme/{digest}/assets/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 外观包里的图片与字体
+         * @description 按摘要提供站点当前可用外观包里允许对外的文件（docs/theme-standard.md），内容不可变、长期缓存
+         */
+        get: operations["handleThemeAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sitemap/{locale}/{shard}.xml": {
         parameters: {
             query?: never;
@@ -1136,6 +1176,80 @@ export interface operations {
             };
             /** @description 公共错误；DEPENDENCY_UNAVAILABLE */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    handleThemeFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
+                "X-Request-Id"?: components["schemas"]["Identifier"];
+            };
+            path: {
+                /** @description 外观包摘要 */
+                digest: string;
+                /** @description 包内文件名 */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 外观样式表与预览图 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description 公共错误；NOT_FOUND：站点没有这个外观包或文件不对外 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    handleThemeAsset: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 缺省由入口生成；幂等写另使用Idempotency-Key绑定inputHash */
+                "X-Request-Id"?: components["schemas"]["Identifier"];
+            };
+            path: {
+                /** @description 外观包摘要 */
+                digest: string;
+                /** @description 包内文件名 */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 外观包里的图片与字体 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description 公共错误；NOT_FOUND：站点没有这个外观包或文件不对外 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

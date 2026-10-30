@@ -4426,6 +4426,165 @@
         "allowed"
       ],
       "x-v2": true
+    },
+    "MarketTheme": {
+      "type": "object",
+      "description": "外观市场里上架的外观（每个 id 取最新通过审核的版本）",
+      "additionalProperties": false,
+      "properties": {
+        "themeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "publisher": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "publishedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "themeId",
+        "version",
+        "digest",
+        "manifest",
+        "byteSize",
+        "publisher",
+        "publishedAt"
+      ],
+      "x-v2": true
+    },
+    "ListThemeMarketResult": {
+      "type": "object",
+      "description": "外观市场列表",
+      "additionalProperties": false,
+      "properties": {
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarketTheme"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "themes"
+      ],
+      "x-v2": true
+    },
+    "ThemeSubmission": {
+      "type": "object",
+      "description": "提交到外观市场的一个版本及其审核状态",
+      "additionalProperties": false,
+      "properties": {
+        "themeId": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Identifier"
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "digest": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Hash"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "publisher": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "reviewNote": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "submittedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        },
+        "reviewedAt": {
+          "$ref": "../../../contracts/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "themeId",
+        "version",
+        "digest",
+        "manifest",
+        "byteSize",
+        "publisher",
+        "status",
+        "reviewNote",
+        "submittedAt"
+      ],
+      "x-v2": true
+    },
+    "ListThemeSubmissionsResult": {
+      "type": "object",
+      "description": "外观提交列表",
+      "additionalProperties": false,
+      "properties": {
+        "submissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ThemeSubmission"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "submissions"
+      ],
+      "x-v2": true
+    },
+    "ReviewThemeInput": {
+      "type": "object",
+      "description": "审核外观提交",
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "reject"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "x-v2": true
     }
   }
 }

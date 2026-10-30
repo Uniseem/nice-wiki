@@ -5,7 +5,7 @@ import { Matrix } from '@modules/qa/web/src/island/loader';
 import { rememberLanguage } from './enhance';
 
 export type Language = { tag: string; href: string; label: string; current: boolean; prompt?: Record<string, string> };
-export type Config = { welcome?: import('../../../qa/web/src/island/QaChat').QaWelcome; kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string> };
+export type Config = { welcome?: import('../../../qa/web/src/island/QaChat').QaWelcome; kind: string; locale: string; documentId: string; aiEnabled: boolean; askUrl: string; languages: Language[] | null; ui: Record<string, string>; colorScheme?: string; forcedScheme?: string };
 export type Translate = (key: string) => string;
 
 // 语言名用该语言自己的写法（English、日本語…），浏览器不支持时退回服务端给的名字。
@@ -62,7 +62,7 @@ export function HeaderActions({ config, t, onAsk, onAskIntent, onSearch, onSearc
             </Dropdown.Popover>
           </Dropdown>
         )}
-        <ThemeSwitch t={t} />
+        {!config.forcedScheme && <ThemeSwitch t={t} defaultScheme={config.colorScheme || 'system'} />}
       </div>
     </>
   );
@@ -96,8 +96,9 @@ export function LanguageSuggestion({ config, t, target, onClose }: { config: Con
   );
 }
 
-function ThemeSwitch({ t }: { t: Translate }) {
-  const { theme, resolvedTheme, setTheme } = useTheme();
+// 外观只支持一种配色时不渲染（服务端已写好）；访客没选过时按站点设置的默认明暗。
+function ThemeSwitch({ t, defaultScheme }: { t: Translate; defaultScheme: string }) {
+  const { theme, resolvedTheme, setTheme } = useTheme(defaultScheme);
   const options = [['light', t('浅色'), Sun], ['dark', t('深色'), Moon], ['system', t('跟随系统'), Display]] as const;
   return (
     <Dropdown>

@@ -304,11 +304,11 @@ impl Inbound {
 }
 
 /// 会改变公开页内容或访问规则的写入操作：成功后清掉这个站点的页面缓存。
-const PURGE_OPERATIONS: [&str; 26] = [
+const PURGE_OPERATIONS: [&str; 27] = [
     "content:publishDocument", "content:withdrawDocument", "content:rollbackPublishedRevision", "content:updateDocumentMetadata",
     "content:trashDocument", "content:restoreDocument", "content:moveDocument", "content:reorderChildren", "content:purgeDocuments",
     "site-config:updateBanner", "site-config:updateBranding", "site-config:updateSiteConfig", "site-config:restoreConfigRevision",
-    "site-config:updateFooter", "site-config:updateHome",
+    "site-config:updateFooter", "site-config:updateHome", "site-config:updateAppearance",
     "localization:putLanguage", "localization:setLanguageEnabled", "localization:approveLanguagePlan", "localization:putInterfaceString",
     "identity:updateSite", "identity:setPrimaryDomain", "identity:removeSiteDomain", "identity:setSiteStatus",
     "identity:setSitePassword", "identity:deleteSite", "identity:restoreSite",
@@ -323,8 +323,8 @@ fn admin_cost_class(action: &str) -> &'static str {
     }
 }
 
-/// 匿名路由里允许对已登录管理员附带委托的操作（含停用语言的列表；编辑器里刚上传、草稿还没保存的图片预览）。
-const OPTIONAL_ADMIN: [&str; 3] = ["localization:listLanguages", "media:readAssetBytes", "media:headAssetBytes"];
+/// 匿名路由里允许对已登录管理员附带委托的操作（含停用语言的列表；编辑器里刚上传、草稿还没保存的图片预览；后台导出所选站点的外观包）。
+const OPTIONAL_ADMIN: [&str; 4] = ["localization:listLanguages", "media:readAssetBytes", "media:headAssetBytes", "site-config:readThemePackage"];
 
 /// 浏览器请求里允许原样转发的业务头；身份、转发地址、平台可信头一律不转发，可信头由入口重新写入。
 const FORWARDABLE: [&str; 14] = [

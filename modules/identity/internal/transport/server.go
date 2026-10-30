@@ -105,6 +105,7 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 	for id := range handlers {
 		limits[id] = 16 << 10
 	}
+	limits["submitTheme"] = 2 << 20
 	handler, err := apivalidate.NewServiceHandler(spec, platform.ServiceBoundaryConfig{
 		Self: moduleName, Anchors: anchors, OpenedDataEpoch: openedEpoch, AllowedCallers: callers,
 		ServiceActorCallers: serviceCallers,

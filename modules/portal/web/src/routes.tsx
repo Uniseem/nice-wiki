@@ -1,4 +1,4 @@
-import { Archive, BookOpen, ChartColumn, Comments, Database, FaceRobot, FileText, Gear, Globe, House, ListCheck, Person, Persons, Picture, Shield, ShieldCheck } from '@gravity-ui/icons';
+import { Archive, BookOpen, ChartColumn, Comments, Database, FaceRobot, FileText, Gear, Globe, House, ListCheck, Palette, Person, Persons, Picture, Shield, ShieldCheck } from '@gravity-ui/icons';
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import groups from '../../../../contracts/permission-groups.json';
 import { t } from '@ui';
@@ -34,6 +34,7 @@ const ui: Record<string, Omit<Page, 'key' | 'path' | 'label' | 'permissions' | '
   content: { section: t('内容'), icon: FileText, component: lazy(() => import('@modules/content/web/src')), bleed: true },
   media: { section: t('内容'), icon: Picture, component: lazy(() => import('@modules/media/web/src')) },
   settings: { section: t('站点'), icon: Gear, component: lazy(() => import('@modules/site-config/web/src')) },
+  appearance: { section: t('站点'), icon: Palette, component: lazy(() => import('@modules/site-config/web/src/Appearance')) },
   localization: { section: t('站点'), icon: Globe, component: lazy(() => import('@modules/localization/web/src')) },
   models: { section: 'AI', icon: FaceRobot, component: lazy(() => import('@modules/model-gateway/web/src')) },
   knowledge: { section: 'AI', icon: Database, component: lazy(() => import('@modules/knowledge/web/src')) },
@@ -46,7 +47,7 @@ const ui: Record<string, Omit<Page, 'key' | 'path' | 'label' | 'permissions' | '
   backup: { section: t('系统'), icon: Archive, component: lazy(() => import('@modules/content/web/src/data')) },
 };
 
-const order = ['sites', 'myai', 'platform', 'privateAccess', 'dashboard', 'content', 'media', 'settings', 'localization', 'models', 'knowledge', 'memory', 'qa', 'team', 'accounts', 'analytics', 'jobs', 'guard', 'backup', 'me'];
+const order = ['sites', 'myai', 'platform', 'privateAccess', 'dashboard', 'content', 'media', 'settings', 'appearance', 'localization', 'models', 'knowledge', 'memory', 'qa', 'team', 'accounts', 'analytics', 'jobs', 'guard', 'backup', 'me'];
 
 export const pages: Page[] = order.map((key) => {
   const route = (groups.adminRoutes as Contract[]).find((item) => item.key === key)!;

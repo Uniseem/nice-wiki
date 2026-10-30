@@ -156,6 +156,9 @@ var AdminRoutes = []AdminRouteEntry{
 	{Key: "settings", Path: "/admin/site", Permissions: []string{
 		"site.manage",
 	}, LabelZH: "站点设置", LabelEN: "Settings", Navigation: true},
+	{Key: "appearance", Path: "/admin/appearance", Permissions: []string{
+		"site.manage",
+	}, LabelZH: "外观", LabelEN: "Appearance", Navigation: true},
 	{Key: "accounts", Path: "/admin/accounts", Permissions: []string{
 		"account.manage",
 	}, LabelZH: "账号权限", LabelEN: "Accounts", Navigation: true},

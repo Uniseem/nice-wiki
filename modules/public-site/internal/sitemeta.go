@@ -73,12 +73,13 @@ type siteMeta struct {
 	Logo          *assetRef
 	Favicon       *assetRef
 	ShareImage    *assetRef
+	Theme         siteTheme
 }
 
 func loadSiteMeta(ctx context.Context) siteMeta {
 	raw, ok := readSiteConfigCached(ctx)
 	if !ok {
-		return siteMeta{}
+		return siteMeta{Theme: loadSiteTheme(ctx)}
 	}
 	var envelope struct {
 		Config struct {
@@ -92,10 +93,10 @@ func loadSiteMeta(ctx context.Context) siteMeta {
 		} `json:"config"`
 	}
 	if json.Unmarshal(raw, &envelope) != nil {
-		return siteMeta{}
+		return siteMeta{Theme: loadSiteTheme(ctx)}
 	}
 	c := envelope.Config
-	return siteMeta{c.Name, c.Description, c.TitleTemplate, c.ThemeColor, c.Logo, c.Favicon, c.DefaultShareImage}
+	return siteMeta{c.Name, c.Description, c.TitleTemplate, c.ThemeColor, c.Logo, c.Favicon, c.DefaultShareImage, loadSiteTheme(ctx)}
 }
 
 // pageTitle 按标题模板拼 <title>：{title} 换成文档标题，{site} 换成站名；没有站名或模板时只用文档标题。

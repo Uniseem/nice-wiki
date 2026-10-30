@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -143,5 +144,62 @@ func (a *Application) registerV2(handlers map[string]http.Handler) {
 	handlers["listReports"] = jsonOperation(a, identity.ListReports)
 	handlers["resolveReport"] = v2Operation(a, identity.ResolveReport, func(b gen.ResolveReportInput, r *http.Request) identity.ResolveReportCmd {
 		return identity.ResolveReportCmd{ReportID: r.PathValue("reportId"), Body: b}
+	})
+	a.registerThemeMarket(handlers)
+}
+
+// registerThemeMarket 登记外观市场：提交与下载是原始字节，其余是 JSON。
+func (a *Application) registerThemeMarket(handlers map[string]http.Handler) {
+	version := func(_ none, r *http.Request) identity.ThemeVersionRef {
+		return identity.ThemeVersionRef{ThemeID: r.PathValue("themeId"), Version: r.PathValue("version")}
+	}
+	handlers["listThemeMarket"] = jsonOperation(a, identity.ListThemeMarket)
+	handlers["listMyThemeSubmissions"] = jsonOperation(a, identity.ListMyThemeSubmissions)
+	handlers["listThemeReviews"] = jsonOperation(a, identity.ListThemeReviews)
+	handlers["withdrawTheme"] = v2Operation(a, identity.WithdrawTheme, version)
+	handlers["reviewTheme"] = v2Operation(a, identity.ReviewTheme, func(b gen.ReviewThemeInput, r *http.Request) identity.ReviewThemeCmd {
+		return identity.ReviewThemeCmd{ThemeID: r.PathValue("themeId"), Version: r.PathValue("version"), Body: b}
+	})
+	handlers["submitTheme"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := a.identityContext(r.Context())
+		op, _ := platform.OperationContextFrom(ctx)
+		raw, err := io.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+		if err != nil || int64(len(raw)) != r.ContentLength {
+			writeProblem(w, platform.NewError(platform.CodeValidation, false, "外观包读取不完整"))
+			return
+		}
+		result, err := identity.SubmitTheme(ctx, op, raw)
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+	zipHandler := func(read func(context.Context, identity.ThemeVersionRef) ([]byte, error), cache string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ref := identity.ThemeVersionRef{ThemeID: r.PathValue("themeId"), Version: r.PathValue("version")}
+			raw, err := read(a.identityContext(r.Context()), ref)
+			if err != nil {
+				writeProblem(w, err)
+				return
+			}
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `attachment; filename="`+ref.ThemeID+"-"+ref.Version+`.zip"`)
+			w.Header().Set("Cache-Control", cache)
+			_, _ = w.Write(raw)
+		})
+	}
+	handlers["readMarketThemePackage"] = zipHandler(identity.ReadMarketThemePackage, "public, max-age=300")
+	handlers["readThemeSubmissionPackage"] = zipHandler(identity.ReadThemeSubmissionPackage, "no-store")
+	handlers["readMarketThemePreview"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, kind, err := identity.ReadMarketThemePreview(a.identityContext(r.Context()), identity.ThemeVersionRef{ThemeID: r.PathValue("themeId"), Version: r.PathValue("version")})
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		w.Header().Set("Content-Type", kind)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		_, _ = w.Write(raw)
 	})
 }

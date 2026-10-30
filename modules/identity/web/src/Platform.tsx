@@ -1,6 +1,7 @@
 import { Copy, Plus } from '@gravity-ui/icons';
 import { Button, Chip, Form, Modal, Table, Tabs } from '@heroui/react';
 import { api, askText, CheckGroupInput, confirmAction, EmptyBlock, ErrorBlock, fmtDateTime, fmtMoney, FormGrid, LoadingBlock, Mono, Notice, notify, NumberInput, PageHeader, Panel, SelectInput, SwitchInput, TextInput, useAction, useLoad, t } from '@ui';
+import { downloadFile, localized, ThemeSwatch, type Manifest } from '@modules/site-config/web/src/themes';
 import { useEffect, useState } from 'react';
 
 type Provider = { provider: 'github' | 'google' | 'linuxdo' | 'gdrive' | 'onedrive' | 'dropbox'; enabled: boolean; clientId: string; clientSecretSet: boolean };
@@ -10,6 +11,7 @@ type RegInvite = { inviteId: string; note: string; maxUses: number; used: number
 type AiInvite = { inviteId: string; note: string; capMicros: number; period: 'once' | 'monthly'; tasks: string[]; maxUses: number; used: number; maxSites?: number; storageBytes?: number; expiresAt?: string; revoked: boolean; createdAt: string };
 type User = { userId: string; email: string; displayName: string; status: 'active' | 'disabled' | 'deleted'; siteCount: number; createdAt: string };
 type AdminSite = { siteId: string; slug: string; name: string; ownerEmail: string; status: 'active' | 'suspended' | 'deleted'; createdAt: string };
+type ThemeSubmission = { themeId: string; version: string; digest: string; manifest: Manifest; byteSize: number; publisher: string; status: 'pending' | 'approved' | 'rejected'; reviewNote: string; submittedAt: string };
 type Report = { reportId: string; siteId: string; host: string; url: string; reason: string; detail: string; status: 'open' | 'dismissed' | 'takedown' | 'banned'; resolution: string; createdAt: string };
 
 const providerNames = { github: 'GitHub', google: 'Google', linuxdo: 'Linux DO', gdrive: 'Google Drive', onedrive: 'OneDrive', dropbox: 'Dropbox' };
@@ -35,6 +37,7 @@ export default function PlatformPage() {
             <Tabs.Tab id="users">{t('用户')}<Tabs.Indicator /></Tabs.Tab>
             <Tabs.Tab id="sites">{t('站点')}<Tabs.Indicator /></Tabs.Tab>
             <Tabs.Tab id="reports">{t('举报')}<Tabs.Indicator /></Tabs.Tab>
+            <Tabs.Tab id="themes">{t('外观审核')}<Tabs.Indicator /></Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
         <Tabs.Panel id="settings"><SettingsTab /></Tabs.Panel>
@@ -43,6 +46,7 @@ export default function PlatformPage() {
         <Tabs.Panel id="users"><UsersTab /></Tabs.Panel>
         <Tabs.Panel id="sites"><SitesTab /></Tabs.Panel>
         <Tabs.Panel id="reports"><ReportsTab /></Tabs.Panel>
+        <Tabs.Panel id="themes"><ThemeReviewsTab /></Tabs.Panel>
       </Tabs>
     </div>
   );
@@ -314,6 +318,42 @@ function ReportsTab() {
             <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void resolve(report, 'ban_owner')}>{t('封禁')}</Button>
           </span>
         ) : null])} />
+  );
+}
+
+// 外观市场的审核：下载外观包检查 theme.css 与资源（不能有外部地址、不能隐藏举报入口），通过即上架，驳回要写原因。
+function ThemeReviewsTab() {
+  const list = useLoad((signal) => api<{ submissions: ThemeSubmission[] }>('/v1/platform/theme-reviews', { signal }).then((result) => result.submissions), []);
+  const { busy, run } = useAction();
+  const path = (item: ThemeSubmission) => `/v1/platform/theme-reviews/${item.themeId}/${item.version}`;
+  const approve = (item: ThemeSubmission) => run(() => api(path(item), { method: 'PUT', body: { decision: 'approve' } }), t('已上架')).then(list.reload);
+  const reject = async (item: ThemeSubmission) => {
+    const note = await askText({ title: t('驳回 {0} {1}', item.themeId, item.version), label: t('驳回原因'), description: t('提交者会在“我提交的外观”里看到。'), multiline: true, required: true, confirmLabel: t('驳回') });
+    if (note) await run(() => api(path(item), { method: 'PUT', body: { decision: 'reject', note } }), t('已驳回'));
+    list.reload();
+  };
+  const takedown = async (item: ThemeSubmission) => {
+    if (!(await confirmAction({ title: t('下架 {0} {1}？', item.themeId, item.version), body: t('市场里不再显示这个版本，已经装了它的站点不受影响。'), confirmLabel: t('下架'), tone: 'danger' }))) return;
+    await run(() => api(`/v1/theme-market/${item.themeId}/${item.version}`, { method: 'DELETE' }), t('已下架'));
+    list.reload();
+  };
+  if (list.error) return <ErrorBlock error={list.error} onRetry={list.reload} />;
+  if (!list.data) return <LoadingBlock lines={4} />;
+  const statusLabel = { pending: t('待审核'), approved: t('已上架'), rejected: t('已驳回') };
+  const statusColor = { pending: 'warning', approved: 'success', rejected: 'default' } as const;
+  return (
+    <SimpleTable label={t('外观审核')} empty={t('没有外观提交')} columns={[t('外观'), t('提交者'), t('时间'), t('状态'), '']}
+      rows={list.data.map((item) => [
+        <span key="n" className="flex items-center gap-3"><ThemeSwatch className="!h-12 w-20 shrink-0" manifest={item.manifest} /><span><span className="block font-medium text-foreground">{localized(item.manifest.name)}</span><span className="block text-xs text-muted">{item.themeId} {item.version}</span></span></span>,
+        item.publisher, fmtDateTime(item.submittedAt),
+        <Chip key="s" color={statusColor[item.status]} size="sm" variant="soft">{statusLabel[item.status]}</Chip>,
+        <span key="a" className="inline-flex gap-1">
+          <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void downloadFile(`${path(item)}/package`, `${item.themeId}-${item.version}.zip`)}>{t('下载')}</Button>
+          {item.status !== 'approved' && <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void approve(item)}>{t('通过')}</Button>}
+          {item.status === 'pending' && <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void reject(item)}>{t('驳回')}</Button>}
+          {item.status === 'approved' && <Button isDisabled={busy} size="sm" variant="ghost" onPress={() => void takedown(item)}>{t('下架')}</Button>}
+        </span>,
+      ])} />
   );
 }
 

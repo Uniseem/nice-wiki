@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "version": "1.0.0",
+  "name": { "zh": "午夜", "zh-Hant": "午夜", "en": "Midnight", "ja": "ミッドナイト" },
+  "description": {
+    "zh": "只有深色配色，文档树放在右侧，目录在左侧。",
+    "zh-Hant": "只有深色配色，文件樹放在右側，目錄在左側。",
+    "en": "Dark only, with the document tree on the right and the outline on the left.",
+    "ja": "ダークのみ。ドキュメントツリーは右、目次は左。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["dark"],
+  "tokens": {
+    "dark": {
+      "background": "#0d0f14", "foreground": "#e6e8ee", "surface": "#151820", "surfaceSecondary": "#1b1f29", "surfaceTertiary": "#252a36",
+      "overlay": "#151820", "muted": "#9aa1b2", "default": "#1f2430", "defaultForeground": "#f3f4f8", "fieldBackground": "#171a23",
+      "border": "rgb(230 232 238 / 0.09)", "separator": "rgb(230 232 238 / 0.06)", "accent": "#c4b5fd", "accentForeground": "#120f1f", "focus": "#c4b5fd"
+    }
+  },
+  "typography": {
+    "body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+    "lineHeight": 1.75
+  },
+  "shape": { "radius": "medium" },
+  "layout": { "sidebar": "right" }
+}

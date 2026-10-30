@@ -70,7 +70,7 @@ export function selectSite(site: { siteId: string; grants: string[] } | null): v
 }
 
 // 个人级接口（站点列表、个人 AI、平台管理、认证）不带站点头：它们不属于某个站点。
-const personalPath = /^\/v1\/(sites($|[/?])|auth\/|ai\/channels|me\/|users|platform\/|registration-invites|ai-invites|admin\/sites|reports|sessions|self|oauth\/|challenges|registration)/;
+const personalPath = /^\/v1\/(sites($|[/?])|auth\/|ai\/channels|me\/|users|platform\/|registration-invites|ai-invites|admin\/sites|reports|sessions|self|oauth\/|challenges|registration|theme-market)/;
 
 // 其他标签页登录、刷新或退出：授权项跟着变；退出了就回登录页。
 if (typeof window !== 'undefined') {

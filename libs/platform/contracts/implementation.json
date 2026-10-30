@@ -185,6 +185,21 @@
       "path": "libs/platform/lifecycle/task_secret.go",
       "kind": "handwritten",
       "purpose": "通用有界异步任务秘密加密，不含业务授权与持久策略"
+    },
+    {
+      "path": "libs/platform/theme/theme.go",
+      "kind": "handwritten",
+      "purpose": "外观包标准：解析与校验 zip、内容摘要、重新打包"
+    },
+    {
+      "path": "libs/platform/theme/css.go",
+      "kind": "handwritten",
+      "purpose": "外观样式表校验，配色/字体/版式渲染成公开站内联样式"
+    },
+    {
+      "path": "libs/platform/theme/builtin.go",
+      "kind": "handwritten",
+      "purpose": "内置外观（builtin/ 下的外观包）"
     }
   ],
   "jobTypes": [],

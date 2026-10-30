@@ -12,6 +12,8 @@
 | GET `/robots.txt` | `handleRobots` | `public-site.HandleRobots` | `anonymous` | `—` → 200 `string` | 机器人规则 | `DEPENDENCY_UNAVAILABLE` |
 | GET `/llms.txt` | `handleLLMsRoot` | `public-site.HandleLLMsRoot` | `anonymous` | `—` → 200 `HandleLLMsRootResult` | 根llms语言索引 | `DEPENDENCY_UNAVAILABLE` |
 | GET `/sitemap.xml` | `handleSitemapIndex` | `public-site.HandleSitemapIndex` | `anonymous` | `—` → 200 `string` | sitemap 索引 HTTP | `DEPENDENCY_UNAVAILABLE` |
+| GET `/_theme/{digest}/{file}` | `handleThemeFile` | `public-site.HandleThemeFile` | `anonymous` | `—` → 200 `application/octet-stream` | 外观样式表与预览图 | `NOT_FOUND` |
+| GET `/_theme/{digest}/assets/{file}` | `handleThemeAsset` | `public-site.HandleThemeAsset` | `anonymous` | `—` → 200 `application/octet-stream` | 外观包里的图片与字体 | `NOT_FOUND` |
 | GET `/sitemap/{locale}/{shard}.xml` | `handleSitemapShard` | `public-site.HandleSitemapShard` | `anonymous` | `—` → 200 `string` | 单分片 sitemap | `VALIDATION`、`DEPENDENCY_UNAVAILABLE` |
 | POST `/v1/preview/tokens` | `issuePreviewToken` | `public-site.IssuePreviewToken` | `content.preview` | `IssuePreviewTokenRequestBody` → 200 `IssuePreviewTokenResult` | 签发草稿预览授权 | `FORBIDDEN`、`NOT_FOUND` |
 | GET `/v1/preview/{token}` | `handlePreview` | `public-site.HandlePreview` | `content.preview` | `—` → 200 `string` | 预览 HTTP 入口 | `STALE_RESULT`、`FORBIDDEN`、`DEPENDENCY_UNAVAILABLE` |

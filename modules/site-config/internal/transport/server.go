@@ -72,6 +72,8 @@ func NewApplication(config platform.ServiceConfig, anchors platform.TrustAnchors
 			"resumeInitialization":      {"site-config"},
 			"readHomeReferenceDecision": {"media"},
 			"readPublicHome":            {"portal", "public-site"},
+			"readPublicAppearance":      {"portal", "public-site"},
+			"readThemePackage":          {"portal", "public-site"},
 			"listResourceReferences":    {"media"},
 		},
 		Authorize: authorize,
@@ -135,6 +137,31 @@ func (a *Application) serviceHandlers() map[string]http.Handler {
 		"resumeInitialization":     serveJSON(siteconfig.ResumeInitialization),
 		"abortInitialization":      serveJSON(siteconfig.AbortInitialization),
 		"readConfigObject":         http.HandlerFunc(serveConfigObject),
+		"readAppearance":           serveJSON(siteconfig.ReadAppearance),
+		"updateAppearance":         serveJSON(siteconfig.UpdateAppearance),
+		"readPublicAppearance":     serveJSON(siteconfig.ReadPublicAppearance),
+		"installTheme":             http.HandlerFunc(serveInstallTheme),
+		"deleteTheme": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			result, err := siteconfig.DeleteTheme(r.Context(), op, r.PathValue("digest"))
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, result)
+		}),
+		"readThemePackage": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			op, _ := platform.OperationContextFrom(r.Context())
+			raw, err := siteconfig.ReadThemePackage(r.Context(), op, r.PathValue("digest"))
+			if err != nil {
+				writeRequestProblem(w, r, err)
+				return
+			}
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `attachment; filename="theme.zip"`)
+			w.Header().Set("Cache-Control", "no-store")
+			_, _ = w.Write(raw)
+		}),
 		"readPublicHome": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
 			var language *string
@@ -180,6 +207,22 @@ func serveJSON[Input, Result any](handler func(context.Context, platform.Operati
 		}
 		writeJSON(w, http.StatusOK, result)
 	})
+}
+
+// serveInstallTheme 读取上传的外观包（合同已限定 Content-Length 不超过 2MiB）。
+func serveInstallTheme(w http.ResponseWriter, r *http.Request) {
+	op, _ := platform.OperationContextFrom(r.Context())
+	raw, err := io.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+	if err != nil || int64(len(raw)) != r.ContentLength {
+		writeRequestProblem(w, r, platform.NewError(platform.CodeValidation, false, "外观包读取不完整"))
+		return
+	}
+	result, err := siteconfig.InstallTheme(r.Context(), op, raw)
+	if err != nil {
+		writeRequestProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func serveConfigHistory(w http.ResponseWriter, r *http.Request) {
@@ -292,8 +335,10 @@ func serviceCallers() map[string][]string {
 		"readConfigObject":         {"portal", "public-site"},
 		"readInitializationStatus": {"portal", "identity", "site-config", "knowledge", "model-gateway", "memory", "qa", "analytics", "traffic-guard", "jobs", "content", "media", "localization", "public-site"}, "resumeInitialization": {"portal", "site-config"},
 		"readPublicHome": {"portal", "public-site"}, "listResourceReferences": {"portal", "media"}, "readHomeReferenceDecision": {"media"},
+		"readPublicAppearance": {"portal", "public-site"}, "readThemePackage": {"portal", "public-site"},
 	}
-	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision"} {
+	for _, id := range []string{"initializeSite", "abortInitialization", "updateSiteConfig", "updateHome", "updateBranding", "updateFooter", "updateBanner", "readConfigHistory", "restoreConfigRevision",
+		"readAppearance", "updateAppearance", "installTheme", "deleteTheme"} {
 		callers[id] = []string{"portal"}
 	}
 	return callers
