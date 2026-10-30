@@ -294,7 +294,10 @@ fn write_canonical(out: &mut Vec<u8>, value: &serde_json::Value) {
     match value {
         Value::Null => out.extend_from_slice(b"null"),
         Value::Bool(b) => out.extend_from_slice(if *b { b"true" } else { b"false" }),
-        Value::Number(n) => out.extend_from_slice(n.to_string().as_bytes()),
+        Value::Number(n) => match n.as_f64().filter(|_| n.is_f64()) {
+            Some(f) => write_go_float(out, f),
+            None => out.extend_from_slice(n.to_string().as_bytes()),
+        },
         Value::String(s) => write_go_string(out, s),
         Value::Array(items) => {
             out.push(b'[');
@@ -321,6 +324,74 @@ fn write_canonical(out: &mut Vec<u8>, value: &serde_json::Value) {
             out.push(b'}');
         }
     }
+}
+
+/// 按 Go encoding/json 写浮点数：1e-6 ≤ |x| < 1e21 用最短小数（不带指数、整数不带 .0），其余用最短科学计数，
+/// 指数至少两位、负的一位指数去掉补零（e-7、e-10、e+21）。serde_json 的写法在 1e-5 以下就换成指数，向量摘要会对不上。
+fn write_go_float(out: &mut Vec<u8>, f: f64) {
+    if f == 0.0 {
+        out.extend_from_slice(if f.is_sign_negative() { b"-0" } else { b"0" });
+        return;
+    }
+    if f.is_sign_negative() {
+        out.push(b'-');
+    }
+    let abs = f.abs();
+    let (digits, exponent) = go_shortest(abs);
+    let text = if (1e-6..1e21).contains(&abs) {
+        let point = exponent + 1;
+        if point <= 0 {
+            format!("0.{}{digits}", "0".repeat(point.unsigned_abs() as usize))
+        } else if point as usize >= digits.len() {
+            format!("{digits}{}", "0".repeat(point as usize - digits.len()))
+        } else {
+            format!("{}.{}", &digits[..point as usize], &digits[point as usize..])
+        }
+    } else {
+        let tail = if digits.len() > 1 { format!(".{}", &digits[1..]) } else { String::new() };
+        if exponent < 0 { format!("{}{tail}e-{}", &digits[..1], -exponent) } else { format!("{}{tail}e+{exponent:02}", &digits[..1]) }
+    };
+    out.extend_from_slice(text.as_bytes());
+}
+
+/// 能还原成 f 的最短十进制数字串与首位的十进制指数（f > 0）。Rust 与 Go 都取最短、最近的那个，
+/// 但精确值恰好落在两个候选正中间时 Rust 向上取、Go 取末位为偶数的（模型返回的 float32 分量常见这种情况），这里按 Go 改。
+fn go_shortest(f: f64) -> (String, i32) {
+    let scientific = format!("{f:e}");
+    let (mantissa, exponent) = scientific.split_once('e').unwrap_or((&scientific, "0"));
+    let exponent: i32 = exponent.parse().unwrap_or(0);
+    let digits = mantissa.replace('.', "");
+    // f64 的精确十进制展开不超过 767 位有效数字，多留出余量就是精确值。
+    let exact = format!("{:.*e}", digits.len() + 800, f);
+    let (exact_mantissa, exact_exponent) = exact.split_once('e').unwrap_or((&exact, "0"));
+    let exact_digits = exact_mantissa.replace('.', "");
+    if exact_exponent.parse::<i32>().ok() != Some(exponent) {
+        return (digits, exponent);
+    }
+    let (head, rest) = exact_digits.split_at(digits.len());
+    let tie = rest.starts_with('5') && rest[1..].bytes().all(|b| b == b'0');
+    if !tie {
+        return (digits, exponent);
+    }
+    let lower = head.to_owned();
+    let mut upper = lower.clone().into_bytes();
+    let mut index = upper.len();
+    while index > 0 {
+        index -= 1;
+        if upper[index] == b'9' {
+            upper[index] = b'0';
+        } else {
+            upper[index] += 1;
+            break;
+        }
+    }
+    let upper = String::from_utf8(upper).unwrap_or_default();
+    let even = if (lower.as_bytes()[lower.len() - 1] - b'0') % 2 == 0 { lower } else { upper };
+    let candidate = format!("{}.{}e{exponent}", &even[..1], &even[1..]);
+    if even != digits && !even.starts_with('0') && candidate.parse::<f64>() == Ok(f) {
+        return (even.trim_end_matches('0').to_owned(), exponent);
+    }
+    (digits, exponent)
 }
 
 fn write_go_string(out: &mut Vec<u8>, text: &str) {

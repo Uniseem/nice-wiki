@@ -16,7 +16,8 @@ hyper-util = { version = "0.1", features = ["tokio", "client-legacy", "http1"] }
 http-body-util = "0.1"
 bytes = "1"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# float_roundtrip：解析与 Go 写出的浮点数逐位一致（默认的快速解析约四分之一的小数会差 1 ULP，向量摘要会对不上）。
+serde_json = { version = "1", features = ["float_roundtrip"] }
 anyhow = "1"
 ed25519-dalek = "2"
 sha2 = "0.10"

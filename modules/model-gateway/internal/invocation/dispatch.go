@@ -185,6 +185,12 @@ func DispatchInvocation(ctx context.Context, op OperationContext, input Dispatch
 		if current.ActiveAttemptID == active.Attempt.AttemptId {
 			current.Invocation.ProviderRequestId = &outcome.RequestID
 		}
+		// 调用快照里的尝试列表要和尝试记录一致，否则读取结果时会判为快照不一致（以前要等记用量时才补上）。
+		for i := range current.Invocation.Attempts {
+			if current.Invocation.Attempts[i].AttemptId == active.Attempt.AttemptId {
+				current.Invocation.Attempts[i] = active.Attempt
+			}
+		}
 	}
 	if err := gatewayruntime.SaveAttemptRecord(final, active); err != nil {
 		return DispatchInvocationResult{}, err
