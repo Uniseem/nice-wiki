@@ -103,7 +103,8 @@ impl Gateway {
             response.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=300"));
             return Some(response);
         }
-        if site.visibility == "private" && !private_open_path(path) && !self.has_private_access(headers, &site.site_id) && cookie(headers, "nw_sid").is_none_or(|v| v.is_empty()) {
+        // 只认站点专用的访问凭据：后台会话 cookie 只在平台域名上，站点域名上出现的 nw_sid 不能当作成员身份。
+        if site.visibility == "private" && !private_open_path(path) && !self.has_private_access(headers, &site.site_id) {
             return Some(self.deny_private(site, method, uri, headers));
         }
         None
