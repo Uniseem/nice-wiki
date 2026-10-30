@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -16,7 +17,8 @@ import (
 
 // 平台子域名的泛域名证书：站主在后台填 Cloudflare API 令牌后，本域经 Caddy 管理接口（NW_CADDY_ADMIN_URL，只在内部网络）
 // 加一条 DNS 验证的签发策略并让 Caddy 管理 *.<站点域名> 证书；令牌只加密存在库里和 Caddy 的内存配置里，不写配置文件。
-// Caddy 重启会回到 Caddyfile，所以后台每分钟检查一次，缺了就补；令牌换了就替换策略。没填令牌时子域名照旧按需签证书。
+// Caddy 重启会回到 Caddyfile，所以后台每分钟检查一次，缺了就补；令牌换了就替换策略，清掉了就撤下策略。
+// 没填令牌时子域名照旧按需签证书。
 
 const dnsSecretName = "dns:cloudflare"
 
@@ -36,12 +38,53 @@ func syncCaddyWildcard(ctx context.Context, db *sql.DB) {
 		return
 	}
 	token, found, err := loadSecret(ctx, db, dnsSecretName)
-	if err != nil || !found {
+	if err != nil {
 		return
 	}
-	if err := pushCaddyWildcard(ctx, admin, "*."+settings.SitesDomain, token); err != nil {
-		fmt.Fprintf(os.Stderr, "下发泛域名证书策略失败 err=%v\n", err)
+	if found {
+		err = pushCaddyWildcard(ctx, admin, "*."+settings.SitesDomain, token)
+	} else {
+		err = dropCaddyWildcard(ctx, admin, "*."+settings.SitesDomain)
 	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "同步泛域名证书策略失败 err=%v\n", err)
+	}
+}
+
+// dropCaddyWildcard 在令牌清掉后撤下泛域名策略和托管条目，Caddy 内存里不再留着令牌。
+func dropCaddyWildcard(ctx context.Context, admin, wildcard string) error {
+	caddyPushed.Lock()
+	defer caddyPushed.Unlock()
+	caddyPushed.token = ""
+	var policies []struct {
+		Subjects []string `json:"subjects"`
+	}
+	if err := caddyJSON(ctx, http.MethodGet, admin+"/config/apps/tls/automation/policies", nil, &policies); err != nil {
+		return err
+	}
+	for i := len(policies) - 1; i >= 0; i-- {
+		if slices.Contains(policies[i].Subjects, wildcard) {
+			if err := caddyJSON(ctx, http.MethodDelete, admin+"/config/apps/tls/automation/policies/"+strconv.Itoa(i), nil, nil); err != nil {
+				return err
+			}
+		}
+	}
+	certificates := map[string]any{}
+	if err := caddyJSON(ctx, http.MethodGet, admin+"/config/apps/tls/certificates", nil, &certificates); err != nil {
+		return err
+	}
+	automate, _ := certificates["automate"].([]any)
+	kept := []any{}
+	for _, subject := range automate {
+		if subject != wildcard {
+			kept = append(kept, subject)
+		}
+	}
+	if len(kept) == len(automate) {
+		return nil
+	}
+	certificates["automate"] = kept
+	return caddyJSON(ctx, http.MethodPost, admin+"/config/apps/tls/certificates", certificates, nil)
 }
 
 func pushCaddyWildcard(ctx context.Context, admin, wildcard, token string) error {
