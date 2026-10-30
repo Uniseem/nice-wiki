@@ -311,8 +311,17 @@ func ConsumeProviderFrame(raw []byte, adapter, capability, expectedModel, curren
 		return platform.NewError(platform.CodeDependencyUnavailable, false, "供应方明确返回错误，原费用证据保留")
 	}
 	if capability == "embedding" {
-		// 聚合网关（如 OpenRouter）可能只回模型名、不带厂商前缀，按去掉前缀后的名字比对。
-		bare := func(name string) string { return name[strings.LastIndex(name, "/")+1:] }
+		// 聚合网关（如 OpenRouter）回的是上游原名：可能不带厂商前缀，大小写和连字符也不同
+		// （请求 liquid/lfm-2.5-embedding-350m:free，回 openrouter:LiquidAI/LFM2.5-Embedding-350M:free），
+		// 所以去掉前缀后只比较小写字母和数字。
+		bare := func(name string) string {
+			return strings.Map(func(r rune) rune {
+				if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+					return r
+				}
+				return -1
+			}, strings.ToLower(name[strings.LastIndex(name, "/")+1:]))
+		}
 		for _, returned := range []string{frame.Model, frame.ModelVersion} {
 			if returned != "" && returned != expectedModel && bare(returned) != bare(expectedModel) {
 				outcome.ProviderMessage = providerMessage("返回的向量模型是 " + returned)
