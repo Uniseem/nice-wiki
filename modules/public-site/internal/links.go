@@ -44,6 +44,16 @@ type LinkDirectory struct {
 
 type linkDirectoryKey struct{}
 
+type publicOriginKey struct{}
+
+// WithPublicOrigin 记下入口写入的站点公开地址；空表示请求不是经站点域名来的，沿用站点配置。
+func WithPublicOrigin(ctx context.Context, origin string) context.Context {
+	if origin == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, publicOriginKey{}, origin)
+}
+
 // WithLinkDirectory 把已装配的权威客户端放进调用链。
 func WithLinkDirectory(ctx context.Context, directory LinkDirectory) context.Context {
 	return context.WithValue(ctx, linkDirectoryKey{}, directory)
@@ -196,11 +206,17 @@ func readSiteSnapshot(ctx context.Context, client *gen.SiteConfigClient) (siteSn
 	if *envelope.Config.PublicBaseURL == "" || *envelope.Config.BaseLanguage == "" || *envelope.Config.Revision < 0 {
 		return siteSnapshot{}, dependency("站点配置权威不完整")
 	}
-	return siteSnapshot{
+	snapshot := siteSnapshot{
 		publicBaseURL: *envelope.Config.PublicBaseURL,
 		baseLanguage:  *envelope.Config.BaseLanguage,
 		revision:      *envelope.Config.Revision,
-	}, nil
+	}
+	// 多站点平台上站点的公开地址是它当前的主域名（改名、换自定义域名都会变），由入口按请求写入；
+	// 配置里的是建站时的平台地址，只在没经过站点域名的调用里用。
+	if origin, ok := ctx.Value(publicOriginKey{}).(string); ok {
+		snapshot.publicBaseURL = origin
+	}
+	return snapshot, nil
 }
 
 func readLanguageSnapshot(ctx context.Context, client *gen.LocalizationClient) (languageSnapshot, error) {

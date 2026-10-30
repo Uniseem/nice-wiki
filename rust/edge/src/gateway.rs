@@ -19,7 +19,7 @@ use crate::beacons::{self, Beacons};
 use crate::net::{budget_scopes, client_address, login_scopes, Cidr};
 use crate::platform::{self, canonical, new_id, now_plus, parse_time, sha256_hex, sign_delegation, timestamp, valid_identifier, AuthContext, Key, Problem, ServiceConfig, TrustAnchors};
 use crate::routes::{Matched, Registry};
-use crate::site::HostCache;
+use crate::site::{request_scheme, HostCache};
 use crate::upstream::{read_limited, Call, Operation, Upstream};
 
 pub type Body = BoxBody<Bytes, hyper::Error>;
@@ -238,7 +238,8 @@ impl Gateway {
             }
         }
         let host_site_id = host_site.as_ref().filter(|s| !s.primary_host.is_empty()).map(|s| s.site_id.clone()).unwrap_or_default();
-        let incoming = Inbound { peer, method: parts.method.clone(), path, query, headers: parts.headers, body, site: site.clone(), host_site_id, origins };
+        let public_origin = host_site.as_ref().filter(|s| !s.primary_host.is_empty()).map(|s| format!("{}://{}", request_scheme(&parts.headers), s.primary_host)).unwrap_or_default();
+        let incoming = Inbound { peer, method: parts.method.clone(), path, query, headers: parts.headers, body, site: site.clone(), host_site_id, public_origin, origins };
         let mut extra = HeaderMap::new();
         // 公开页响应带上站点标记，供本进程的缓存按站点清除（缓存层不会把它交给浏览器）。
         if incoming.method == Method::GET && site != "system" {
@@ -290,6 +291,8 @@ struct Inbound {
     body: Bytes,
     site: String,
     host_site_id: String,
+    /// 站点域名上的请求：站点的公开地址（主域名），公开页的规范链接、站点地图按它生成。
+    public_origin: String,
     origins: Vec<String>,
 }
 
@@ -510,6 +513,11 @@ impl Gateway {
                 if let Ok(value) = HeaderValue::from_str(&country) {
                     headers.insert(HeaderName::from_static("x-visitor-country"), value);
                 }
+            }
+        }
+        if !req.public_origin.is_empty() {
+            if let Ok(value) = HeaderValue::from_str(&req.public_origin) {
+                headers.insert(HeaderName::from_static("x-nw-public-origin"), value);
             }
         }
         if let Some(accept) = req.headers.get(header::ACCEPT) {

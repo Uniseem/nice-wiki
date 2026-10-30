@@ -897,6 +897,8 @@ const (
 	HeaderAuthorization   = "Authorization"
 	// HeaderLanguagePreference 是入口从访客 lang cookie 取出、校验后转给拥有服务的语言选择；浏览器直接发的同名头不转发。
 	HeaderLanguagePreference = "X-Language-Preference"
+	// HeaderPublicOrigin 是入口按访问域名写入的站点公开地址（如 https://docs.example.com），客户端发来的同名头不转发。
+	HeaderPublicOrigin = "X-Nw-Public-Origin"
 	// HeaderVisitorCountry 是入口用离线库查出的访客国家代码（不含地址），只转给需要它的接口；浏览器直接发的同名头不转发。
 	HeaderVisitorCountry = "X-Visitor-Country"
 )

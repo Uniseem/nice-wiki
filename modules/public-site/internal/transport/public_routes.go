@@ -14,6 +14,11 @@ import (
 	"nice-wiki/modules/public-site/internal/gen"
 )
 
+// requestContext 给公开页请求装上权威客户端和入口写入的站点公开地址。
+func requestContext(r *http.Request, directory publicsite.LinkDirectory) context.Context {
+	return publicsite.WithPublicOrigin(publicsite.WithLinkDirectory(r.Context(), directory), r.Header.Get(platform.HeaderPublicOrigin))
+}
+
 // BindRoutes 把已实现的公开页面、导航、robots、sitemap 与 llms 入口挂到 mux；
 // 尚未实现的操作（预览、屏障、快照、.md、分片 sitemap）从规格里剔除，请求落到 404。
 func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publicsite.LinkDirectory) error {
@@ -23,7 +28,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 	text := func(contentType string, run func(ctx context.Context, op platform.OperationContext, r *http.Request) (int, string, error)) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			status, body, err := run(publicsite.WithLinkDirectory(r.Context(), directory), op, r)
+			status, body, err := run(requestContext(r, directory), op, r)
 			if err != nil {
 				writeProblem(w, err)
 				return
@@ -43,7 +48,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			op, _ := platform.OperationContextFrom(r.Context())
 			// 入口不转发 Cookie，访客的 lang cookie 由入口校验后放在专用头里。
 			in := publicsite.HandleRootRedirectInput{LanguageCookie: r.Header.Get(platform.HeaderLanguagePreference), AcceptLanguage: r.Header.Get("Accept-Language"), DataEpoch: string(op.DataEpoch)}
-			result, err := publicsite.HandleRootRedirect(publicsite.WithLinkDirectory(r.Context(), directory), op, in)
+			result, err := publicsite.HandleRootRedirect(requestContext(r, directory), op, in)
 			if err != nil {
 				writeProblem(w, err)
 				return
@@ -55,7 +60,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		}),
 		"handleHome": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			result, err := publicsite.HandleHome(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleHomeInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
+			result, err := publicsite.HandleHome(requestContext(r, directory), op, publicsite.HandleHomeInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
 				writePageProblem(w, r, err)
 				return
@@ -71,7 +76,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		}),
 		"handleAskShell": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			page, err := publicsite.HandleAskShell(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleAskShellInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
+			page, err := publicsite.HandleAskShell(requestContext(r, directory), op, publicsite.HandleAskShellInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
 				writePageProblem(w, r, err)
 				return
@@ -86,7 +91,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 			if r.PathValue("locale") == "sitemap" {
 				if language, file, ok := strings.Cut(r.PathValue("slug"), "/"); ok && strings.HasSuffix(file, ".xml") {
 					if shard, convErr := strconv.Atoi(strings.TrimSuffix(file, ".xml")); convErr == nil {
-						result, sitemapErr := publicsite.HandleSitemapShard(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleSitemapShardInput{Locale: language, Shard: shard, DataEpoch: string(op.DataEpoch)})
+						result, sitemapErr := publicsite.HandleSitemapShard(requestContext(r, directory), op, publicsite.HandleSitemapShardInput{Locale: language, Shard: shard, DataEpoch: string(op.DataEpoch)})
 						if sitemapErr != nil {
 							writeProblem(w, sitemapErr)
 							return
@@ -98,7 +103,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 					}
 				}
 			}
-			result, err := publicsite.HandlePage(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePageInput{Locale: r.PathValue("locale"), Slug: r.PathValue("slug"), DataEpoch: string(op.DataEpoch)})
+			result, err := publicsite.HandlePage(requestContext(r, directory), op, publicsite.HandlePageInput{Locale: r.PathValue("locale"), Slug: r.PathValue("slug"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
 				writePageProblem(w, r, err)
 				return
@@ -131,7 +136,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 				writeProblem(w, platform.NewError(platform.CodeValidation, false, "预览请求无法转换"))
 				return
 			}
-			result, err := publicsite.IssuePreviewToken(publicsite.WithLinkDirectory(r.Context(), directory), op, input)
+			result, err := publicsite.IssuePreviewToken(requestContext(r, directory), op, input)
 			if err != nil {
 				writeProblem(w, err)
 				return
@@ -141,7 +146,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		}),
 		"handlePreview": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			result, err := publicsite.HandlePreview(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandlePreviewInput{PreviewID: r.URL.Query().Get("previewId"), Token: r.PathValue("token")})
+			result, err := publicsite.HandlePreview(requestContext(r, directory), op, publicsite.HandlePreviewInput{PreviewID: r.URL.Query().Get("previewId"), Token: r.PathValue("token")})
 			if err != nil {
 				writePageProblem(w, r, err)
 				return
@@ -155,7 +160,7 @@ func BindRoutes(app *Application, anchors platform.TrustAnchors, directory publi
 		}),
 		"handleNavigation": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			op, _ := platform.OperationContextFrom(r.Context())
-			result, err := publicsite.HandleNavigation(publicsite.WithLinkDirectory(r.Context(), directory), op, publicsite.HandleNavigationInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
+			result, err := publicsite.HandleNavigation(requestContext(r, directory), op, publicsite.HandleNavigationInput{Locale: r.PathValue("locale"), DataEpoch: string(op.DataEpoch)})
 			if err != nil {
 				writeProblem(w, err)
 				return
