@@ -38,10 +38,7 @@ func ReadQueueSiteID(ctx context.Context, client *gen.SiteConfigClient, epoch st
 	}
 	return result.Config.SiteID, nil
 }
-func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.SigningKey, siteID jobs.SiteIDProvider) (jobs.OwnerRecoveryChecker, error) {
-	if siteID == nil {
-		return nil, platform.NewError(platform.CodeDependencyUnavailable, true, "站点身份按需读取器尚未装配")
-	}
+func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.SigningKey) (jobs.OwnerRecoveryChecker, error) {
 	validate, err := apivalidate.NewPayloadValidator([]byte(gen.PayloadValidationSpec), "KnowledgeOwnerRecoveryResult")
 	if err != nil {
 		return nil, err
@@ -65,14 +62,9 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 		if input.DataEpoch != original.DataEpoch {
 			return result, platform.NewError(platform.CodeVersionMismatch, false, "原任务恢复读取代次不可确认")
 		}
-		currentSiteID, err := siteID(ctx, input.DataEpoch)
-		if err != nil {
-			return result, err
-		}
-		if currentSiteID == "" {
-			return result, platform.NewError(platform.CodeDependencyUnavailable, true, "原任务恢复读取站点尚未建立")
-		}
-		if !platform.ValidIdentifier(currentSiteID) {
+		// 任务按站点隔离，人工重试请求的站点就是原任务所在站点。
+		currentSiteID := original.Actor.SiteID
+		if !platform.ValidIdentifier(string(currentSiteID)) {
 			return jobs.OwnerRecoveryResult{}, platform.NewError(platform.CodeIntegrityError, false, "原任务恢复读取站点身份不合法")
 		}
 		work, cancel := context.WithTimeout(ctx, 5*time.Second)

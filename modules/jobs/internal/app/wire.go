@@ -86,7 +86,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 	siteID := func(ctx context.Context, epoch platform.Identifier) (string, error) {
 		return ReadQueueSiteID(ctx, siteClient, string(epoch), siteValidator)
 	}
-	recovery, err := NewOwnerRecoveryChecker(config, key, siteID)
+	recovery, err := NewOwnerRecoveryChecker(config, key)
 	if err != nil {
 		return nil, err
 	}
