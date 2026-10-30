@@ -62,6 +62,7 @@ go-git 的传递依赖（ProtonMail/go-crypto BSD-3-Clause、skeema/knownhosts M
 - tokio 1（MIT）、hyper 1 与 hyper-util、http-body-util（MIT）、axum 0.7（MIT）、bytes（MIT）：两个服务的异步运行时与 HTTP。
 - tokio-postgres 0.7 与 deadpool-postgres 0.14（MIT/Apache-2.0）：检索服务读写自己的 search 模式（构建、分块、pgvector 向量等）和公共事件队列。
 - unicode-normalization 0.1（MIT/Apache-2.0）：检索服务入库前的 NFKC 规范化与查询的 NFC 规范化。
+- pdf-extract 0.12（MIT，Copyright (c) Jeff Muizelaar）及其依赖 lopdf（MIT）、adobe-cmap-parser、type1-encoding-parser、pom、nom（MIT）、encoding_rs（(Apache-2.0 OR MIT) AND BSD-3-Clause）、zlib-rs（Zlib）等：检索服务读取正文附件 PDF 的文字层，仅作 crate 依赖，不复制源码。来源 https://github.com/jrmuizel/pdf-extract 。
 - serde、serde_json、anyhow、hmac、sha2、hex（MIT/Apache-2.0）：序列化、错误处理、摘要与私有摘要。
 - ed25519-dalek 2 与 curve25519-dalek（BSD-3-Clause，Copyright (c) isis agora lovecruft、Henry de Valence 等）：edge 与检索服务签发和校验与 Go 平台库相同的 Ed25519 服务断言、委托证明与 cookie。来源 https://github.com/dalek-cryptography/curve25519-dalek 。
 - maxminddb 0.24（ISC，Copyright (c) Gregory J. Oschwald）：edge 按 GeoLite2 国家库查访客国家，库文件由部署方自备，不随本仓库分发。

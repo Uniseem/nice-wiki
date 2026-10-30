@@ -1062,16 +1062,6 @@
       "streaming": false
     },
     {
-      "method": "GET",
-      "path": "/v1/builds/{buildId}/diagnostics",
-      "owner": "knowledge",
-      "operationId": "redactDiagnostics",
-      "permission": "knowledge.manage",
-      "admission": null,
-      "timeoutMs": 5000,
-      "streaming": false
-    },
-    {
       "method": "POST",
       "path": "/v1/catalog:refresh",
       "owner": "model-gateway",
@@ -2139,26 +2129,6 @@
       "permission": "system.manage",
       "admission": null,
       "timeoutMs": null,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/rebuild-plans",
-      "owner": "knowledge",
-      "operationId": "estimateRebuildPlan",
-      "permission": "knowledge.manage",
-      "admission": null,
-      "timeoutMs": 180000,
-      "streaming": false
-    },
-    {
-      "method": "POST",
-      "path": "/v1/rebuild-plans/{planId}:approve",
-      "owner": "knowledge",
-      "operationId": "approveRebuildPlan",
-      "permission": "knowledge.manage",
-      "admission": null,
-      "timeoutMs": 180000,
       "streaming": false
     },
     {

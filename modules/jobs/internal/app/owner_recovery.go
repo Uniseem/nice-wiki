@@ -48,9 +48,6 @@ func NewOwnerRecoveryChecker(config platform.ServiceConfig, key platform.Signing
 	}
 	// 各任务所属服务提供同一形状的恢复证明接口（结果都是公共 OwnerRecoveryResult）。
 	owners := map[string]func(context.Context, string, any) (json.RawMessage, error){}
-	if url := config.Dependencies["knowledge"]; url != "" {
-		owners["knowledge"] = gen.NewKnowledgeClient(url, ModuleSlug, key).ReadJobRecovery
-	}
 	if url := config.Dependencies["analytics"]; url != "" {
 		owners["analytics"] = gen.NewAnalyticsClient(url, ModuleSlug, key).ReadJobRecovery
 	}

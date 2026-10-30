@@ -112,26 +112,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/builds/{buildId}/diagnostics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 返回安全诊断
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 knowledge.manage；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        get: operations["redactDiagnostics"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/sections:read": {
         parameters: {
             query?: never;
@@ -146,26 +126,6 @@ export interface paths {
          * @description 返回当前活动证据块及完整逐UTF8字节sourceOffsets，所有来源经content权威校验。
          */
         post: operations["readSections"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/evidence:inspect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 快速检索员有限核查
-         * @description 可信OperationContext从已验证网关/服务传递；public输入不可设置costClass。权限 service；HTTP入口identity:checkAuthorization校验服务/访客/管理员身份，actor.siteId一致且对象owner验证；costClass/rootOperationId仅可信op传递。
-         */
-        post: operations["inspectEvidence"];
         delete?: never;
         options?: never;
         head?: never;
@@ -226,46 +186,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/rebuild-plans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 估算全量重建费用
-         * @description 估算全量重建费用
-         */
-        post: operations["estimateRebuildPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/rebuild-plans/{planId}:approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 批准全量重建
-         * @description 批准全量重建
-         */
-        post: operations["approveRebuildPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/index-options": {
         parameters: {
             query?: never;
@@ -280,26 +200,6 @@ export interface paths {
         get: operations["readIndexOptions"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/jobs/{jobId}/recovery": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 读取原知识任务恢复证明
-         * @description 仅jobs纯服务。path/body jobId一致；核原inputRef/root/epoch/worker/fence/attempt及持久取消事实，未知不重派。
-         */
-        post: operations["readJobRecovery"];
         delete?: never;
         options?: never;
         head?: never;
@@ -751,17 +651,6 @@ export interface components {
             documentIds?: components["schemas"]["Identifier"][];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        RedactDiagnosticsResult: {
-            /** @description 构建 */
-            buildId: components["schemas"]["Identifier"];
-            /** @description 状态 */
-            state: string;
-            /** @description 分块向量词项计数 */
-            counts: number[];
-            /** @description 空间摘要 */
-            spaceId: components["schemas"]["Hash"];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadSectionsResult: {
             /** @description 当前可见分块 */
             chunks: components["schemas"]["Chunk"][];
@@ -772,65 +661,6 @@ export interface components {
             chunkIds: components["schemas"]["Identifier"][];
             /** @description 调用所见来源 */
             documentRefs: components["schemas"]["PublishedRevisionRef"][];
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        InspectEvidenceResult: {
-            /** @description 相关ID */
-            selectedIds: components["schemas"]["Identifier"][];
-            /** @description 最多剩余子查询 */
-            additionalQueries: string[];
-            /** @description 需展开小节 */
-            expandSectionIds: components["schemas"]["Identifier"][];
-            /** @description 停止 */
-            finished: boolean;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        types_QuestionPlan: {
-            /** @description 原问题 */
-            originalQuestion: string;
-            /** @description 完整基准语言问题 */
-            canonicalQuestion: string;
-            /** @description 旧计划兼容字段；当前前置改写和缓存匹配不再需要英文译文 */
-            englishQuestion?: string;
-            /** @description 回答语言 */
-            visitorLanguage: string;
-            /** @description 意思完整且无需缺失指代 */
-            complete: boolean;
-            /** @description 完整非个人化且非敏感动态问题 */
-            cacheEligible: boolean;
-            /** @description 最多4个完整子问题 */
-            subqueries: string[];
-            /**
-             * @description 类型
-             * @enum {string}
-             */
-            classification: "smalltalk" | "out_of_scope" | "simple" | "complex" | "needs_clarification";
-            /**
-             * @description 并入前置模型风险
-             * @enum {string}
-             */
-            risk: "normal" | "suspicious" | "abusive";
-            /** @description 当前页历史及记忆摘要 */
-            contextFingerprint: components["schemas"]["Hash"];
-            /**
-             * @description 仅可信qa.preflight Planner输出：所有代词/省略的主体与来源已落实为独立canonicalQuestion；缺失按false，不从浏览器接受
-             * @default false
-             */
-            resolvedReferences: boolean;
-        };
-        QuestionPlan: components["schemas"]["types_QuestionPlan"];
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        InspectEvidenceInput: {
-            /** @description 问题计划 */
-            plan: components["schemas"]["QuestionPlan"];
-            /** @description knowledge候选 */
-            candidateIds: components["schemas"]["Identifier"][];
-            /** @description 1..3 */
-            round: number;
-            /** @description 0..5 */
-            toolCallsUsed: number;
-            /** @description 问答费用分支必须传递本轮已消费签名许可，绑定原访客与rootOperationId；后台费用分支省略。 */
-            admissionPermit?: components["schemas"]["AdmissionPermit"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         CreateQueryEmbeddingResult: {
@@ -875,108 +705,6 @@ export interface components {
             /** @description journal完整恢复 */
             journalRecovered: boolean;
         };
-        /** @description 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限 */
-        "common.schema_Money": {
-            /**
-             * @description 唯一支持USD
-             * @constant
-             */
-            currency: "USD";
-            /** @description 百万分之一美元，整数，禁止浮点累计 */
-            micros: number;
-        };
-        Money: components["schemas"]["common.schema_Money"];
-        types_Identifier: components["schemas"]["Identifier"];
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        PriceSnapshot: {
-            /** @description 快照ID */
-            priceSnapshotId: components["schemas"]["Identifier"];
-            /** @description 模型ID */
-            modelId: components["schemas"]["Identifier"];
-            /** @description 百万输入token费率；Money.currency=USD且micros非负整数 */
-            inputPerMillionCost?: components["schemas"]["common.schema_Money"];
-            /** @description 百万输出token费率；Money.currency=USD且micros非负整数 */
-            outputPerMillionCost?: components["schemas"]["common.schema_Money"];
-            /** @description 每调用固定费；Money.currency=USD且micros非负整数 */
-            fixedCost?: components["schemas"]["common.schema_Money"];
-            /**
-             * @description 结算币种
-             * @enum {string}
-             */
-            currency: "USD";
-            /** @description 生效时刻 */
-            effectiveAt: components["schemas"]["Timestamp"];
-            /** @description 是否可预算 */
-            pricingKnown: boolean;
-            /** @description 缺价无法完整计入费用上限的原产品提示 */
-            warning?: string;
-        };
-        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
-        QuoteCostResult: {
-            /** @description 已知价保守报价 */
-            maximumCost?: components["schemas"]["common.schema_Money"];
-            /** @description 包含pricingKnown */
-            priceSnapshot: components["schemas"]["PriceSnapshot"];
-            /** @description 是否可预留金额 */
-            pricingKnown: boolean;
-            /** @description 原产品缺价警告 */
-            warning?: string;
-        };
-        /** @description 固定声明主备用/任务覆盖候选的真实整数报价；总计覆盖每个潜在收费候选，不表示均会派发 */
-        RebuildQuoteComponent: {
-            taskId: string;
-            modelId: components["schemas"]["types_Identifier"];
-            quantity: number;
-            /** @description 该真实声明模型完整输入窗口上界，非伪造分词计数 */
-            inputTokens: number;
-            maximumOutputTokens: number;
-            quote: components["schemas"]["QuoteCostResult"];
-        };
-        /** @description 真实多组件费用计划，不冒充单一PriceSnapshot；未产资源文字或缺价使总上限未知 */
-        RebuildQuote: {
-            pricingKnown: boolean;
-            /** @description 全部分块数和真实分项最大费已知时才提供；整数micros求和，未知不0 */
-            maximumCost?: components["schemas"]["Money"];
-            warning?: string;
-            components: components["schemas"]["RebuildQuoteComponent"][];
-        };
-        /** @description 全量重建计划与估价 */
-        EstimateRebuildPlanResult: {
-            /** @description 计划ID，24小时内可批准 */
-            planId: components["schemas"]["Identifier"];
-            /** @description 需重建的已发布文档数 */
-            documentCount: number;
-            /** @description 已知材料真实BPE分块扣实际可复用向量数；chunkCountKnown=false不声称完整总数 */
-            chunkCount: number;
-            /** @description 真实多任务/多候选分项报价；任何总上限未知则省略maximumCost */
-            quote: components["schemas"]["RebuildQuote"];
-            /** @description 批准时必须一致 */
-            quoteHash: components["schemas"]["Hash"];
-            /** @description 过期时间 */
-            expiresAt: components["schemas"]["Timestamp"];
-            /** @description 未生成的资源文字使完整分块数未知时false；chunkCount仍为已知材料扣实际可复用向量后的数量 */
-            chunkCountKnown: boolean;
-        };
-        /** @description 估算全量重建的输入 */
-        EstimateRebuildPlanInput: {
-            /**
-             * @description 重建原因
-             * @enum {string}
-             */
-            reason: "embedding_space_changed" | "chunking_changed" | "manual";
-        };
-        /** @description 批准结果 */
-        ApproveRebuildPlanResult: {
-            /** @description 创建的构建任务数 */
-            buildJobs: number;
-        };
-        /** @description 批准全量重建 */
-        ApproveRebuildPlanInput: {
-            /** @description 计划ID */
-            planId: components["schemas"]["Identifier"];
-            /** @description 估价hash */
-            quoteHash: components["schemas"]["Hash"];
-        };
         /**
          * @description 可信服务上下文决定，公开请求不能指定
          * @enum {string}
@@ -1016,44 +744,6 @@ export interface components {
             /** @description 全站概括生成时间 */
             siteOverviewUpdatedAt?: components["schemas"]["Timestamp"];
         };
-        /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
-        ObjectRef: {
-            /** @description 模块 slug */
-            owner: string;
-            /** @description 本域不可变对象ID */
-            objectId: components["schemas"]["Identifier"];
-            /** @description 对象或协议版本 */
-            version: components["schemas"]["Revision"];
-            /** @description 完整字节内容SHA256 */
-            sha256: components["schemas"]["Hash"];
-            /** @description 规范媒体类型，按允许集验证 */
-            mediaType: string;
-            /** @description 完整对象字节数，读取结束复核 */
-            byteSize: number;
-        };
-        /** @description jobs从自己持久任务与失效租约读取，只读owner恢复证明；不得浏览器自报或新建dedupeKey绕过孤立。 */
-        OwnerRecoveryRequest: {
-            jobId: components["schemas"]["Identifier"];
-            /** @enum {string} */
-            owner: "memory" | "qa" | "knowledge" | "public-site" | "localization" | "analytics" | "media";
-            type: string;
-            inputRef: components["schemas"]["ObjectRef"];
-            rootOperationId: components["schemas"]["Identifier"];
-            dataEpoch: components["schemas"]["Identifier"];
-            expiredFence: number;
-            workerId: "" | components["schemas"]["Identifier"];
-            attempt: number;
-            cancelRequested: boolean;
-        };
-        ReadJobRecoveryInput: components["schemas"]["OwnerRecoveryRequest"];
-        /** @description owner以精确inputRef/root/epoch/fence/attempt匹配原持久事实；不能证明安全则pending/unknown。completed只交原结果，safeToRetry必须能复用原hash/checkpoint/付费结果且无未决派发费用；未知绝不作0或重算。 */
-        OwnerRecoveryResult: {
-            /** @enum {string} */
-            status: "completed" | "safeToRetry" | "pending" | "unknown";
-            resultRef?: components["schemas"]["ObjectRef"];
-            paidResultRefs: components["schemas"]["Identifier"][];
-        };
-        ReadJobRecoveryResult: components["schemas"]["OwnerRecoveryResult"];
         /** @description 文档索引视图里的一个选项：一篇文档或一个折叠后的分区 */
         DocumentIndexEntry: {
             /**
@@ -1342,6 +1032,16 @@ export interface components {
             /** @description 不含密钥声明 */
             models: components["schemas"]["ModelWithSpace"][];
         };
+        /** @description 美元整数微额，USD与micros；禁止浮点累计，0仅在明确额度配置中表示不限 */
+        Money: {
+            /**
+             * @description 唯一支持USD
+             * @constant
+             */
+            currency: "USD";
+            /** @description 百万分之一美元，整数，禁止浮点累计 */
+            micros: number;
+        };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         Profile: {
             /** @description 档位ID */
@@ -1358,11 +1058,11 @@ export interface components {
             /** @description 第一为主其余有序备用 */
             orderedModelIds: components["schemas"]["Identifier"][];
             /** @description 本请求最大费用，0表示不限；不能释放或覆盖旧unknown held */
-            maximumCost: components["schemas"]["common.schema_Money"];
+            maximumCost: components["schemas"]["Money"];
             /** @description 并发上限 */
             concurrency: number;
             /** @description site+UTC日+profile独立预算，0不限；profile已绑定costClass，background不占QA额度 */
-            dailyLimitCost: components["schemas"]["common.schema_Money"];
+            dailyLimitCost: components["schemas"]["Money"];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         ReadProfilesResult: {
@@ -2312,6 +2012,21 @@ export interface components {
             /** @description 任务/档位/覆盖声明 */
             assignments: components["schemas"]["TaskAssignment"][];
         };
+        /** @description 所属服务提供的不可变受控对象，按sha256与byteSize验证，不是任意磁盘路径 */
+        ObjectRef: {
+            /** @description 模块 slug */
+            owner: string;
+            /** @description 本域不可变对象ID */
+            objectId: components["schemas"]["Identifier"];
+            /** @description 对象或协议版本 */
+            version: components["schemas"]["Revision"];
+            /** @description 完整字节内容SHA256 */
+            sha256: components["schemas"]["Hash"];
+            /** @description 规范媒体类型，按允许集验证 */
+            mediaType: string;
+            /** @description 完整对象字节数，读取结束复核 */
+            byteSize: number;
+        };
         /** @description 领取任务引用和fencing；job.state在领取时由任务状态响应说明，AcceptedJob为创建结果 */
         ClaimedJob: {
             /** @description 当前领取任务 */
@@ -2414,6 +2129,30 @@ export interface components {
             resultRefs: string[];
         };
         /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        PriceSnapshot: {
+            /** @description 快照ID */
+            priceSnapshotId: components["schemas"]["Identifier"];
+            /** @description 模型ID */
+            modelId: components["schemas"]["Identifier"];
+            /** @description 百万输入token费率；Money.currency=USD且micros非负整数 */
+            inputPerMillionCost?: components["schemas"]["Money"];
+            /** @description 百万输出token费率；Money.currency=USD且micros非负整数 */
+            outputPerMillionCost?: components["schemas"]["Money"];
+            /** @description 每调用固定费；Money.currency=USD且micros非负整数 */
+            fixedCost?: components["schemas"]["Money"];
+            /**
+             * @description 结算币种
+             * @enum {string}
+             */
+            currency: "USD";
+            /** @description 生效时刻 */
+            effectiveAt: components["schemas"]["Timestamp"];
+            /** @description 是否可预算 */
+            pricingKnown: boolean;
+            /** @description 缺价无法完整计入费用上限的原产品提示 */
+            warning?: string;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
         LedgerEntry: {
             /** @description 不可变账本ID */
             entryId: components["schemas"]["Identifier"];
@@ -2422,7 +2161,7 @@ export interface components {
             /** @description 供应方幂等收费标识 */
             providerRequestId: string;
             /** @description 最终费用；Money.currency=USD且micros非负整数 */
-            actualCost?: components["schemas"]["common.schema_Money"];
+            actualCost?: components["schemas"]["Money"];
             /** @description 供应方输入token */
             inputTokens: number;
             /** @description 供应方输出token */
@@ -2446,9 +2185,9 @@ export interface components {
             /** @description 本根账本 */
             entries: components["schemas"]["LedgerEntry"][];
             /** @description 调用created_at位于查询窗内、当前held的完整总额；任一held金额未知则整项省略，非历史时点余额 */
-            heldCost?: components["schemas"]["common.schema_Money"];
+            heldCost?: components["schemas"]["Money"];
             /** @description ledger.created_at位于查询窗内的完整已结算总额；任一账单金额未知则整项省略 */
-            settledCost?: components["schemas"]["common.schema_Money"];
+            settledCost?: components["schemas"]["Money"];
             /** @description 本次窗内完整未知金额/未知收费调用ID，不能用0代替；超响应预算失败不截断 */
             unknownInvocationIds: components["schemas"]["Identifier"][];
             /** @description 兼容可选，实际生产始终给；仅完整原root全部调用accepted/reserved且全部attempt未派发为true；旧证据不完整/未知/成功结果/零金额都不表示可重算。仅继续原输入hash阶段，仍须原paidRefs与费用准入。 */
@@ -2457,6 +2196,17 @@ export interface components {
             windowCoversRoot?: boolean;
             /** @description 兼容可选，实际本实现始终给。原root完整调用/真实attempt列表匹配且全部终局、无活动执行lease才true；外层succeeded不证明unknown/仍活动attempt已终局，旧缺事实false或严格失败。不等于safeToRetry或新付费准入。 */
             allInvocationsFinal?: boolean;
+        };
+        /** @description 封闭字段集合；可选字段缺失表示不提供，显式null一律拒绝。 */
+        QuoteCostResult: {
+            /** @description 已知价保守报价 */
+            maximumCost?: components["schemas"]["Money"];
+            /** @description 包含pricingKnown */
+            priceSnapshot: components["schemas"]["PriceSnapshot"];
+            /** @description 是否可预留金额 */
+            pricingKnown: boolean;
+            /** @description 原产品缺价警告 */
+            warning?: string;
         };
         /** @description 免费配置快照，不过滤供应方或解密凭据。 */
         ResolveProfileResult: {
@@ -3156,98 +2906,6 @@ export interface operations {
             };
         };
     };
-    redactDiagnostics: {
-        parameters: {
-            query: {
-                /** @description 计数开关 */
-                includeCounts: boolean;
-            };
-            header: {
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path: {
-                /** @description 必须与请求体内同名对象标识一致，否则VALIDATION；不由客户端指定其他对象。 */
-                buildId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 返回安全诊断成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RedactDiagnosticsResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 对象不存在、游标已过保留期或公开派生结果尚不可用。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本地屏障阻止新业务写入或执行，恢复控制许可例外。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     readSections: {
         parameters: {
             query?: never;
@@ -3313,98 +2971,6 @@ export interface operations {
             };
             /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 全链路截止已到，取消子调用；费用未知仍交MG对账。 */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 公共Problem；错误code必须来自处理函数集合。 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    inspectEvidence: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 若输入schema含idempotencyKey必须一致；同键不同hash为409。 */
-                "Idempotency-Key"?: string;
-                /** @description 入口生成/验证并串联op.requestId，禁止传递未经验证的费用类别。 */
-                "X-Request-Id": components["schemas"]["Identifier"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InspectEvidenceInput"];
-            };
-        };
-        responses: {
-            /** @description 快速检索员有限核查成功；202仅accepted，不保证模型完成或收费已结算。 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InspectEvidenceResult"];
-                };
-            };
-            /** @description 服务凭证、访客凭证或管理会话缺失/过期。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 身份、租户、对象拥有者或登记权限不满足。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 贯穿取消已经生效，禁止后续业务写入与流输出。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 本服务内部错误，事务回滚且记录脱敏requestId。 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 必需上游/供应方不可达；收费可能未知时retryable=false且返回调用ID状态查询路径。 */
-            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3591,102 +3157,6 @@ export interface operations {
             };
         };
     };
-    estimateRebuildPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EstimateRebuildPlanInput"];
-            };
-        };
-        responses: {
-            /** @description 估算全量重建费用成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EstimateRebuildPlanResult"];
-                };
-            };
-            /** @description FORBIDDEN：权限不足 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 完整源/费用/预算/CAS或依赖错误；缺事实不截断或伪造零费用 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    approveRebuildPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 计划ID */
-                planId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApproveRebuildPlanInput"];
-            };
-        };
-        responses: {
-            /** @description 批准全量重建成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApproveRebuildPlanResult"];
-                };
-            };
-            /** @description VALIDATION：计划过期或不符 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description CONFLICT：已批准 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description 完整源/费用/预算/CAS或依赖错误；缺事实不截断或伪造零费用 */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
     readIndexOptions: {
         parameters: {
             query?: never;
@@ -3707,41 +3177,6 @@ export interface operations {
             };
             /** @description FORBIDDEN：权限不足 */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    readJobRecovery: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                jobId: components["schemas"]["Identifier"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReadJobRecoveryInput"];
-            };
-        };
-        responses: {
-            /** @description 真实原任务证明，paidResultRefs始终为完整数组 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReadJobRecoveryResult"];
-                };
-            };
-            /** @description 公共Problem */
-            default: {
                 headers: {
                     [name: string]: unknown;
                 };

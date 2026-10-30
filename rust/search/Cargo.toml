@@ -19,4 +19,5 @@ hex = "0.4"
 anyhow = "1"
 percent-encoding = "2"
 unicode-normalization = "0.1"
+pdf-extract = "0.12"
 time = { version = "0.3", features = ["formatting", "parsing"] }

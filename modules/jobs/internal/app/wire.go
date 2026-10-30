@@ -264,7 +264,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"createJob":    queueCallers,
 			"publishEvent": producerCallers, "acknowledgeEvent": consumerCallers, "subscribeEvents": consumerCallers,
 			"listJobs":       {"portal"},
-			"cancelJob":      {"portal", "knowledge", "memory", "qa"},
+			"cancelJob":      {"portal", "memory", "qa"},
 			"readJob":        readJobCallers,
 			"listDeliveries": {"portal"},
 			"replayDelivery": {"portal"},
@@ -275,7 +275,7 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 			"updateSchedule": {"portal"},
 		},
 		ServiceActorCallers: map[string][]string{
-			"cancelJob":      {"knowledge", "memory", "qa"},
+			"cancelJob":      {"memory", "qa"},
 			"createJob":      queueCallers,
 			"readJob":        queueCallers,
 			"createSchedule": scheduleOwners,

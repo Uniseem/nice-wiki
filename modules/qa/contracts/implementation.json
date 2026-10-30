@@ -470,7 +470,6 @@
     ],
     "knowledge": [
       "createQueryEmbedding",
-      "inspectEvidence",
       "readDocumentChunks",
       "readDocumentIndex",
       "readSections",

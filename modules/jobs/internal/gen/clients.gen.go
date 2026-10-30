@@ -281,18 +281,6 @@ func (c *IdentityClient) CheckAuthorization(ctx context.Context, body any) (json
 	return c.do(ctx, http.MethodPost, "/v1/authorizations/check", body, "")
 }
 
-// KnowledgeClient 调用knowledge服务（自动附服务断言）。
-type KnowledgeClient struct{ *producerClient }
-
-func NewKnowledgeClient(baseURL, issuer string, key platform.SigningKey) *KnowledgeClient {
-	return &KnowledgeClient{newProducerClient("knowledge", baseURL, issuer, key)}
-}
-
-// ReadJobRecovery POST /v1/jobs/{jobId}/recovery（knowledge:readJobRecovery）。
-func (c *KnowledgeClient) ReadJobRecovery(ctx context.Context, jobId string, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/jobs/"+url.PathEscape(jobId)+"/recovery", body, "")
-}
-
 // MediaClient 调用media服务（自动附服务断言）。
 type MediaClient struct{ *producerClient }
 

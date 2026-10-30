@@ -2,7 +2,7 @@
 
 将content权威发布修订转换为版本化分块、词项和向量索引；只返回经权威可见性校验的材料。
 
-运行实现是 Rust 的 [search](../../rust/search)：它沿用 knowledge 的服务身份、端口与接口（config/knowledge.json），数据在 PostgreSQL 的 search 模式。本目录只留合同、文档和后台前端，不再有 Go 代码。资源（图片、PDF、视频）的文字提取暂未移植。
+运行实现是 Rust 的 [search](../../rust/search)：它沿用 knowledge 的服务身份、端口与接口（config/knowledge.json），数据在 PostgreSQL 的 search 模式。本目录只留合同、文档和后台前端，不再有 Go 代码。正文引用的图片、文本附件和 PDF 在构建时提取文字一起入库（视觉模型描述图片和扫描件，PDF 文字层在本机读取，结果按资源哈希复用）。
 
 - [requirements](docs/requirements.md)
 - [architecture](docs/architecture.md)

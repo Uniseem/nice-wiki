@@ -1,6 +1,7 @@
 //! 接口与存储共用的类型，字段与 modules/knowledge/contracts/types.json 一致（问答服务按该 schema 严格校验响应）。
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -67,6 +68,8 @@ pub struct Chunk {
     pub context_version_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub embedding_token_count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset: Option<Value>,
 }
 
 impl Chunk {

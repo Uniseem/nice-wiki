@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS search.tree_summaries (
 CREATE TABLE IF NOT EXISTS search.overviews (
     site_id text PRIMARY KEY, input_hash text NOT NULL, overview text NOT NULL, overview_en text NOT NULL,
     updated_at timestamptz NOT NULL, checked_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS search.extractions (
+    site_id text NOT NULL, sha256 text NOT NULL, variant text NOT NULL, pages jsonb NOT NULL, PRIMARY KEY (site_id, sha256, variant));
 CREATE TABLE IF NOT EXISTS search.sites (site_id text PRIMARY KEY, status text NOT NULL, revision bigint NOT NULL);
 ";
 
@@ -102,7 +104,7 @@ pub async fn site_active(pool: &Pool, site: &str) -> Result<bool, Problem> {
 pub async fn purge_site(pool: &Pool, site: &str) -> Result<(), Problem> {
     let mut client = pool.get().await.map_err(storage)?;
     let tx = client.transaction().await.map_err(storage)?;
-    for table in ["configs", "receipts", "builds", "documents", "chunks", "watermarks", "contexts", "embeddings", "query_embeddings", "cards", "tree_summaries", "overviews"] {
+    for table in ["configs", "receipts", "builds", "documents", "chunks", "watermarks", "contexts", "embeddings", "query_embeddings", "cards", "tree_summaries", "overviews", "extractions"] {
         tx.execute(&format!("DELETE FROM search.{table} WHERE site_id = $1"), &[&site]).await.map_err(storage)?;
     }
     tx.commit().await.map_err(storage)

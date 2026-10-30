@@ -12,6 +12,7 @@ mod admin;
 mod api;
 mod build;
 mod docindex;
+mod extract;
 mod lexical;
 mod overview;
 mod retrieve;

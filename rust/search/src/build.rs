@@ -345,12 +345,14 @@ async fn execute(state: &State, job: &Job) -> Result<(), Problem> {
     let (profile_id, model_id, window) = (profile.profile_id.clone(), model.model_id.clone(), model.max_input_tokens.max(1) as usize);
 
     stage(state, job, "extracting", None).await?;
+    let mut leaves = text::collect_leaves(&body, &job.document)?;
+    leaves.extend(crate::extract::leaves(state, &op, &body, &job.document, &config.language, &|semantic| model_key(job, semantic)).await?);
     let mut sources = Vec::new();
-    for leaf in text::collect_leaves(&body, &job.document)? {
+    for leaf in leaves {
         let (normalized, offsets) = text::normalize(&leaf.text);
         let token_ends = tokenize(state, &op, &model_id, &config.space, &normalized).await?;
         let context_hash = hash_json(&json!([job.document, leaf.block, config.space.preprocessing_version]));
-        sources.push(Source { leaf_block: leaf.block, path: leaf.path, source_end: leaf.text.len() as i64, normalized, offsets, token_ends, context_hash });
+        sources.push(Source { leaf_block: leaf.block, path: leaf.path, source_end: leaf.text.len() as i64, normalized, offsets, token_ends, context_hash, asset: leaf.asset });
     }
     let mut chunks = text::split(&job.document, &sources, config.chunk_tokens as usize, config.overlap_tokens as usize)?;
 

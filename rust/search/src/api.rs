@@ -110,9 +110,6 @@ async fn dispatch(ctx: Ctx, method: &str, path: &str, proof: &str) -> Reply {
         ("GET", ["v1", "builds"]) => ("listBuilds", &["portal"]),
         ("GET", ["v1", "builds", _]) => ("getBuild", &["portal"]),
         ("POST", ["v1", "builds", _, "cancel"]) => ("cancelBuild", &["portal"]),
-        ("GET", ["v1", "builds", _, "diagnostics"]) => ("redactDiagnostics", &["portal"]),
-        ("POST", ["v1", "rebuild-plans"]) => ("estimateRebuildPlan", &["portal"]),
-        ("POST", ["v1", "rebuild-plans", plan]) if plan.ends_with(":approve") => ("approveRebuildPlan", &["portal"]),
         ("POST", ["v1", "site-overview:refresh"]) => ("refreshSiteOverview", &["portal"]),
         ("POST", ["v1", "retrievals"]) => ("searchKnowledge", &["qa"]),
         ("POST", ["v1", "sections:read"]) => ("readSections", &["qa"]),
@@ -120,8 +117,6 @@ async fn dispatch(ctx: Ctx, method: &str, path: &str, proof: &str) -> Reply {
         ("POST", ["v1", "document-index:read"]) => ("readDocumentIndex", &["qa"]),
         ("POST", ["v1", "document-chunks:read"]) => ("readDocumentChunks", &["qa"]),
         ("POST", ["v1", "site-overview:read"]) => ("readSiteOverview", &["qa"]),
-        ("POST", ["v1", "evidence:inspect"]) => ("inspectEvidence", &["data-protection"]),
-        ("POST", ["v1", "jobs", _, "recovery"]) => ("readJobRecovery", &["jobs"]),
         _ => return Err(Problem::new("NOT_FOUND", "接口不存在")),
     };
     if !callers.contains(&ctx.op.caller.as_str()) {
@@ -145,7 +140,6 @@ async fn dispatch(ctx: Ctx, method: &str, path: &str, proof: &str) -> Reply {
         "readDocumentChunks" => ok(crate::retrieve::read_document_chunks(&ctx).await?),
         "readDocumentIndex" => ok(crate::docindex::read(&ctx).await?),
         "readSiteOverview" => ok(crate::overview::read(&ctx).await?),
-        "readJobRecovery" => Err(Problem::new("NOT_FOUND", "本服务没有可恢复的任务")),
-        _ => Err(Problem::new("DEPENDENCY_UNAVAILABLE", "此功能尚未提供")),
+        _ => unreachable!("上面的路由表只给出这些操作"),
     }
 }

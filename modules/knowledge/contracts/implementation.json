@@ -42,7 +42,7 @@
     {
       "id": "M08-R901",
       "description": "运行实现是 Rust 的 search 进程（rust/search），沿用 knowledge 的服务身份、端口与接口；健康和就绪不调用模型。",
-      "acceptance": "search 以 config/knowledge.json 启动，openapi.json 登记的接口均可路由；未完成的接口返回 DEPENDENCY_UNAVAILABLE。"
+      "acceptance": "search 以 config/knowledge.json 启动，openapi.json 登记的接口均可路由。"
     }
   ],
   "dependencies": [
@@ -75,6 +75,12 @@
       "mode": "sync",
       "purpose": "公共HTTP边界即时管理员权限权威，不复制会话或授权规则",
       "failurePolicy": "权威不可达失败关闭，不以菜单或本地角色缓存代替授权。"
+    },
+    {
+      "module": "media",
+      "mode": "sync",
+      "purpose": "按发布引用读取附件精确版本的字节，做文字提取",
+      "failurePolicy": "读取失败时本次构建按可重试错误退避重试；资源已不可读时跳过该附件。"
     }
   ],
   "files": [
@@ -115,6 +121,9 @@
     ],
     "identity": [
       "checkAuthorization"
+    ],
+    "media": [
+      "readAssetBytes"
     ],
     "memory": [
       "resolveContext"

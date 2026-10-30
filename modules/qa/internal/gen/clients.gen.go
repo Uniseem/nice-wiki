@@ -383,11 +383,6 @@ func (c *KnowledgeClient) CreateQueryEmbedding(ctx context.Context, body any) (j
 	return c.do(ctx, http.MethodPost, "/v1/query-embeddings", body, "")
 }
 
-// InspectEvidence POST /v1/evidence:inspect（knowledge:inspectEvidence）。
-func (c *KnowledgeClient) InspectEvidence(ctx context.Context, body any) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodPost, "/v1/evidence:inspect", body, "")
-}
-
 // ReadDocumentChunks POST /v1/document-chunks:read（knowledge:readDocumentChunks）。
 func (c *KnowledgeClient) ReadDocumentChunks(ctx context.Context, body any) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodPost, "/v1/document-chunks:read", body, "")

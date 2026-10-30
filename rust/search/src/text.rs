@@ -18,6 +18,8 @@ pub struct Leaf {
     pub block: BlockRef,
     pub path: String,
     pub text: String,
+    /// 附件提取出的文字叶记下来源资源。
+    pub asset: Option<Value>,
 }
 
 fn integrity(detail: &str) -> Problem {
@@ -58,7 +60,7 @@ pub fn collect_leaves(body: &Value, document: &DocRef) -> Result<Vec<Leaf>, Prob
             }
         }
         match &mut group {
-            None => group = Some((Leaf { block: block.block, path: block.first, text: block.text }, block.last)),
+            None => group = Some((Leaf { block: block.block, path: block.first, text: block.text, asset: None }, block.last)),
             Some((leaf, last)) => {
                 leaf.text.push('\n');
                 leaf.text.push_str(&block.text);
@@ -90,7 +92,7 @@ fn walk(node: &Value, path: &str, current: Option<&BlockRef>, document: &DocRef,
         if text.len() > 4 << 20 {
             return Err(integrity("原叶超过分词预算"));
         }
-        out.push(Leaf { block: block.clone(), path: format!("{path}{suffix}"), text: text.to_owned() });
+        out.push(Leaf { block: block.clone(), path: format!("{path}{suffix}"), text: text.to_owned(), asset: None });
         Ok(())
     };
     push(out, &node["text"], "/text")?;
@@ -156,6 +158,7 @@ pub struct Source {
     pub offsets: Vec<i64>,
     pub token_ends: Vec<usize>,
     pub context_hash: String,
+    pub asset: Option<Value>,
 }
 
 /// 按 token 切块（不跨原文叶），相邻块重叠 overlap 个 token，每块不超过 64 KiB 且落在完整 UTF-8 边界上。
@@ -199,6 +202,7 @@ pub fn split(document: &DocRef, sources: &[Source], chunk_tokens: usize, overlap
                 context_prefix: None,
                 context_version_hash: Some(source.context_hash.clone()),
                 embedding_token_count: None,
+                asset: source.asset.clone(),
             });
             if last == ends.len() {
                 break;
