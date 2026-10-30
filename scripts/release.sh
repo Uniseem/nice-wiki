@@ -52,7 +52,10 @@ images)
 		for arch in $arches; do
 			files="$work/$slug-$arch/files"
 			data="$work/$slug-$arch/data"
-			mkdir -p "$files/usr/local/bin" "$data/data/$slug"
+			# 可写目录归服务用户：edge 只写 /cache（媒体磁盘缓存），其余写 /data/<服务>。
+			datadir="data/$slug"
+			[ "$slug" = edge ] && datadir=cache
+			mkdir -p "$files/usr/local/bin" "$data/$datadir"
 			cp "release/linux-$arch/$binary" "$files/usr/local/bin/$binary"
 			set -- usr
 			env=""
@@ -73,7 +76,7 @@ images)
 				base=node:24-alpine
 			fi
 			mktar 0 "$files" "$work/$slug-$arch-files.tar" "$@"
-			mktar "$uid" "$data" "$work/$slug-$arch-data.tar" data
+			mktar "$uid" "$data" "$work/$slug-$arch-data.tar" "${datadir%%/*}"
 			crane append --platform "linux/$arch" -b "$base" -f "$work/$slug-$arch-files.tar" -f "$work/$slug-$arch-data.tar" -t "$images-$slug:$tag-$arch"
 			crane mutate "$images-$slug:$tag-$arch" --entrypoint="/usr/local/bin/$binary" --cmd="$cmd" --user="$uid:$uid" --workdir="$workdir" --exposed-ports="$port/tcp" $env \
 				--label=org.opencontainers.image.source=https://github.com/Uniseem/nice-wiki --label="org.opencontainers.image.version=$tag" --label=org.opencontainers.image.licenses=AGPL-3.0-only \
