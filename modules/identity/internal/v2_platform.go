@@ -74,6 +74,13 @@ func UpdatePlatformSettings(ctx context.Context, op OperationContext, input gen.
 		for _, update := range *input.Providers {
 			name := string(update.Provider)
 			settings.Providers[name] = providerConf{Enabled: update.Enabled, ClientID: strings.TrimSpace(update.ClientId)}
+			// 清空 Client ID 就是移除这个应用：密钥一起删掉，不留在库里。
+			if settings.Providers[name].ClientID == "" {
+				if err := deleteSecret(ctx, store.db, providerSecretName(name)); err != nil {
+					return gen.PlatformSettings{}, err
+				}
+				continue
+			}
 			if update.ClientSecret != nil && *update.ClientSecret != "" {
 				if err := saveProviderSecret(ctx, store.db, name, *update.ClientSecret); err != nil {
 					return gen.PlatformSettings{}, err
