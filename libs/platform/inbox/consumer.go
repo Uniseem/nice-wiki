@@ -3,8 +3,10 @@ package inbox
 import (
 	"context"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"nice-wiki/libs/platform"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -191,6 +193,7 @@ func (c *consumerLoop) dispatch(parent context.Context, ctx context.Context, str
 			return true
 		}
 		if decision == outcomeFailed {
+			fmt.Fprintf(os.Stderr, "事件不合订阅或载荷约定 consumer=%s type=%s event=%s\n", c.config.ConsumerID, event.EventType, event.EventID)
 			c.failed.Add(1)
 			continue
 		}
@@ -242,6 +245,7 @@ func (c *consumerLoop) process(ctx context.Context, event platform.EventEnvelope
 	err := c.handlers.Handler(event.EventType)(work, platform.EventDelivery{Envelope: event})
 	cancel()
 	if err != nil && !errors.Is(err, ErrEventSkipped) {
+		fmt.Fprintf(os.Stderr, "事件处理失败 consumer=%s type=%s event=%s err=%v\n", c.config.ConsumerID, event.EventType, event.EventID, err)
 		c.failed.Add(1)
 		return
 	}

@@ -41,6 +41,10 @@ func ConsumeEvents(ctx context.Context, op OperationContext, input ConsumeEvents
 		if !ok {
 			return platform.NewError(platform.CodeUnauthenticated, false, "订阅上下文缺失")
 		}
+		// 费用统计只对平台站点同步；用户站点的 AI 用量由 identity 按用户记账。
+		if string(call.Actor.SiteID) != rt.SiteID {
+			return inbox.ErrEventSkipped
+		}
 		result, err := ConsumeAnalyticsEvent(WithUsageGateway(WithRuntime(ctx, rt), rt.UsageGateway), call, ConsumeAnalyticsEventInput{Event: event.Envelope})
 		if err == nil && !result.Accepted {
 			return inbox.ErrEventSkipped

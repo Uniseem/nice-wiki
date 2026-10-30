@@ -380,7 +380,7 @@ func EnqueueExecutionEvent(tx *ExecutionTransaction, op OperationContext, eventT
 	if err != nil {
 		return platform.NewError(platform.CodeIntegrityError, false, "费用事件不能编码")
 	}
-	return queue.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: eventType + "." + platform.HashBytes(raw), EventType: eventType, EventVersion: 1, Producer: "model-gateway", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, Payload: raw})
+	return queue.EnqueueEvent(tx.Tx, platform.EventEnvelope{EventID: eventType + "." + platform.HashBytes(raw), EventType: eventType, EventVersion: 1, Producer: "model-gateway", SubjectID: subject, Revision: int64(revision), OccurredAt: platform.Now(), DataEpoch: op.DataEpoch, SiteID: op.Actor.SiteID, Payload: raw})
 }
 
 func ReleaseResolvedReferences(tx *ExecutionTransaction, record InvocationRecord) error {
