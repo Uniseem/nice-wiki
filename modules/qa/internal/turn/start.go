@@ -96,6 +96,18 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 	if err != nil || replay {
 		return result, err
 	}
+	// 上面的计数在只读事务里，并发提问可能都看到没满；写事务互斥，在这里按同一口径再数一次才算数。
+	if dailyCap > 0 {
+		dayStart := time.Now().UTC().Truncate(24 * time.Hour).UnixNano()
+		if err := tx.Tx.QueryRowContext(tx.Context, `SELECT COUNT(*) FROM turns WHERE site_id=? AND created_ns>=?`, op.Actor.SiteID, dayStart).Scan(&today); err != nil {
+			return result, qaruntime.StorageError(err)
+		}
+		if today >= dailyCap {
+			tx.Close()
+			runtime.NoteVisitorCapReached(ctx, op)
+			return result, platform.NewError(platform.CodeRateLimited, true, "今天这个站点的提问次数已达上限，请明天再来")
+		}
+	}
 	stored := op
 	stored.CostClass = platform.CostClassQA
 	stored.LoginNetworkScopes, stored.NetworkBudgetScopes = nil, nil

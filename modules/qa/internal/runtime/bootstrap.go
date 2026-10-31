@@ -78,25 +78,33 @@ type capEntry struct {
 
 var visitorCaps sync.Map // 站点 -> capEntry
 
-// VisitorDailyCap 是站点所有者设定的访客每日提问上限，0 表示不限。读不到策略时不限，不能因此挡住访客。
+// fallbackVisitorCap 是读不到站点策略、也没有缓存时用的上限，与平台默认值一致：花的是站点所有者的钱，不能因为身份服务暂时不可读就放开。
+const fallbackVisitorCap = 50
+
+// VisitorDailyCap 是站点所有者设定的访客每日提问上限，0 表示不限。读不到策略时沿用上次读到的值，从没读到过就用平台默认值。
 func (r Runtime) VisitorDailyCap(ctx context.Context, op platform.OperationContext) int {
 	site := string(op.Actor.SiteID)
-	if cached, ok := visitorCaps.Load(site); ok && time.Now().Before(cached.(capEntry).expires) {
+	cached, known := visitorCaps.Load(site)
+	if known && time.Now().Before(cached.(capEntry).expires) {
 		return cached.(capEntry).cap
 	}
+	fallback := fallbackVisitorCap
+	if known {
+		fallback = cached.(capEntry).cap
+	}
 	if r.Identity == nil {
-		return 0
+		return fallback
 	}
 	read := ServiceReadContext(ctx, op)
 	raw, err := r.Identity.ReadSiteAiPolicy(read, site)
 	if err != nil {
-		return 0
+		return fallback
 	}
 	var policy struct {
 		VisitorQaDaily int `json:"visitorQaDaily"`
 	}
 	if json.Unmarshal(raw, &policy) != nil {
-		return 0
+		return fallback
 	}
 	visitorCaps.Store(site, capEntry{policy.VisitorQaDaily, time.Now().Add(15 * time.Second)})
 	return policy.VisitorQaDaily
