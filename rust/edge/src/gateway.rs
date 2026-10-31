@@ -266,8 +266,8 @@ impl Gateway {
             Ok((response, owner, operation, target)) => {
                 let ok = response.status().as_u16() < 300;
                 let action = format!("{owner}:{operation}");
-                // 停用用户会连带下架其名下全部站点，入口不知道是哪些，整体清空。
-                if !read && ok && action == "identity:setUserStatus" {
+                // 停用用户、处理举报（下架站点或封禁所有者）会停掉哪些站点，入口不知道，整体清空。
+                if !read && ok && matches!(action.as_str(), "identity:setUserStatus" | "identity:resolveReport") {
                     purge(None);
                 } else if !read && ok && PURGE_OPERATIONS.contains(&action.as_str()) && !target.is_empty() && target != "system" {
                     purge(Some(&target.to_ascii_lowercase()));
@@ -406,9 +406,16 @@ impl Gateway {
         let matched = self.registry.resolve(req.method.as_str(), &req.path)?;
         let route = matched.route;
         let action = route.action();
-        // 已下架站点的域名上，访客接口（问答、检索、媒体字节）一律不再放行；登录后的后台接口照常由各服务核权。
+        // 已下架站点的域名上，访客接口（问答、检索、公开读取、媒体字节、信标）不再放行。
+        // 后台在这个域名上照常可用：登录与会话（identity）、启动时读的初始化状态和界面文字、带会话的可选后台读取。
         if req.site_inactive && route.anonymous() {
-            return Err(Problem::new("GONE", "该站点已下架或已删除"));
+            let signed_in = cookie(&req.headers, "nw_sid").is_some_and(|v| !v.is_empty());
+            let admin = route.owner == "identity"
+                || matches!(action.as_str(), "site-config:readInitializationStatus" | "localization:readInterfaceCatalog")
+                || (signed_in && OPTIONAL_ADMIN.contains(&action.as_str()));
+            if !admin {
+                return Err(Problem::new("GONE", "该站点已下架或已删除"));
+            }
         }
         let public_ai = route.anonymous() && (route.owner == "qa" || route.owner == "traffic-guard");
         if public_ai {
@@ -417,6 +424,13 @@ impl Gateway {
             extra.insert(HeaderName::from_static("cross-origin-resource-policy"), HeaderValue::from_static("same-origin"));
         }
         let authentication = authentication_operation(&matched);
+        if !authentication.is_empty() {
+            // 登录、注册、改口令每次都是新的一次尝试：不用浏览器带来的操作号和幂等键，
+            // 否则同一个操作号重放会拿回旧的登录尝试，跳过失败计数和人机验证。
+            let id = new_id();
+            op.operation_id = id.clone();
+            op.root_operation_id = id;
+        }
         if !authentication.is_empty() || action == "identity:revokeSession" {
             extra.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
             extra.insert(header::PRAGMA, HeaderValue::from_static("no-cache"));
@@ -513,7 +527,7 @@ impl Gateway {
         // 转发头：白名单内的业务头、语言切换器选的语言、语言建议用的访客国家。
         let mut headers = HeaderMap::new();
         for (name, value) in req.headers.iter() {
-            if FORWARDABLE.contains(&name.as_str()) {
+            if FORWARDABLE.contains(&name.as_str()) && !(name == "idempotency-key" && !authentication.is_empty()) {
                 if value.len() > 8192 {
                     return Err(Problem::new("VALIDATION", "请求头值不合法"));
                 }
