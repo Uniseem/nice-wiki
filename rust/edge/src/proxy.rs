@@ -44,8 +44,8 @@ impl State {
         })
     }
 
-    /// 发布、改站点设置等写入成功后：清掉这个站点的页面与媒体缓存。
-    fn purge_site(&self, site: &str) {
+    /// 发布、改站点设置等写入成功后：清掉这个站点的页面与媒体缓存；None 清掉全部站点的。
+    fn purge_site(&self, site: Option<&str>) {
         self.cache.purge_site(site);
         if let Some(disk) = &self.disk {
             disk.purge_site(site);
@@ -70,11 +70,10 @@ pub async fn handle(state: Arc<State>, peer: SocketAddr, request: Request<Incomi
     })
 }
 
+/// 限流用的访客地址：与入口核权、预算同一口径，只信受信代理写进 X-Forwarded-For 的部分，访客自己伪造的头不算。
 fn client_ip(state: &State, peer: SocketAddr, headers: &HeaderMap) -> IpAddr {
     if state.config.trust_forwarded {
-        if let Some(first) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()).and_then(|v| v.split(',').next()).and_then(|v| v.trim().parse::<IpAddr>().ok()) {
-            return first;
-        }
+        return state.gateway.client_ip(peer, headers);
     }
     peer.ip()
 }

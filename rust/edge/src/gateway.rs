@@ -173,8 +173,14 @@ pub fn http_date(at: time::OffsetDateTime) -> String {
 // ---------- 入口 ----------
 
 impl Gateway {
+    /// 访客真实地址；代理链不合法时退回连接地址（请求本身稍后会被核权环节拒绝）。
+    pub fn client_ip(&self, peer: SocketAddr, headers: &HeaderMap) -> IpAddr {
+        let forwarded: Vec<&str> = headers.get_all("x-forwarded-for").iter().filter_map(|v| v.to_str().ok()).collect();
+        client_address(peer, &forwarded.join(","), &self.trusted).unwrap_or_else(|_| peer.ip())
+    }
+
     /// 一次入口请求；purge 在改变公开页内容的写入成功后被调用（参数是站点）。
-    pub async fn handle(&self, peer: SocketAddr, request: Request<Incoming>, purge: impl Fn(&str)) -> Response<Body> {
+    pub async fn handle(&self, peer: SocketAddr, request: Request<Incoming>, purge: impl Fn(Option<&str>)) -> Response<Body> {
         let (parts, body) = request.into_parts();
         let path = parts.uri.path().to_owned();
         let query = parts.uri.query().unwrap_or_default().to_owned();
@@ -239,7 +245,8 @@ impl Gateway {
         }
         let host_site_id = host_site.as_ref().filter(|s| !s.primary_host.is_empty()).map(|s| s.site_id.clone()).unwrap_or_default();
         let public_origin = host_site.as_ref().filter(|s| !s.primary_host.is_empty()).map(|s| format!("{}://{}", request_scheme(&parts.headers), s.primary_host)).unwrap_or_default();
-        let incoming = Inbound { peer, method: parts.method.clone(), path, query, headers: parts.headers, body, site: site.clone(), host_site_id, public_origin, origins };
+        let site_inactive = host_site.as_ref().is_some_and(|s| !s.primary_host.is_empty() && !s.status.is_empty() && s.status != "active");
+        let incoming = Inbound { peer, method: parts.method.clone(), path, query, headers: parts.headers, body, site: site.clone(), host_site_id, site_inactive, public_origin, origins };
         let mut extra = HeaderMap::new();
         // 公开页响应带上站点标记，供本进程的缓存按站点清除（缓存层不会把它交给浏览器）。
         if incoming.method == Method::GET && site != "system" {
@@ -256,13 +263,14 @@ impl Gateway {
         }
         let result = self.proxy(&incoming, op, &mut extra).await;
         let mut response = match result {
-            Ok((response, owner, operation)) => {
+            Ok((response, owner, operation, target)) => {
                 let ok = response.status().as_u16() < 300;
-                if !read && ok && PURGE_OPERATIONS.contains(&format!("{owner}:{operation}").as_str()) {
-                    let target = Some(header_str(&incoming.headers, "x-nw-site")).filter(|v| valid_identifier(v)).unwrap_or(&incoming.host_site_id).to_ascii_lowercase();
-                    if !target.is_empty() {
-                        purge(&target);
-                    }
+                let action = format!("{owner}:{operation}");
+                // 停用用户会连带下架其名下全部站点，入口不知道是哪些，整体清空。
+                if !read && ok && action == "identity:setUserStatus" {
+                    purge(None);
+                } else if !read && ok && PURGE_OPERATIONS.contains(&action.as_str()) && !target.is_empty() && target != "system" {
+                    purge(Some(&target.to_ascii_lowercase()));
                 }
                 if !read && ok && owner == "identity" {
                     self.hosts.forget();
@@ -291,6 +299,8 @@ struct Inbound {
     body: Bytes,
     site: String,
     host_site_id: String,
+    /// 访问域名是已下架或已删除站点的登记域名（开发环境按 IP、localhost 落到的站点不算）。
+    site_inactive: bool,
     /// 站点域名上的请求：站点的公开地址（主域名），公开页的规范链接、站点地图按它生成。
     public_origin: String,
     origins: Vec<String>,
@@ -391,10 +401,15 @@ fn same_origin(origin: &str, host: &str, configured: &[String]) -> bool {
 }
 
 impl Gateway {
-    async fn proxy(&self, req: &Inbound, mut op: Operation, extra: &mut HeaderMap) -> Result<(Response<Body>, String, String), Problem> {
+    /// 返回响应、路由所属组件、操作名和这次请求实际作用的站点（核权后的站点）。
+    async fn proxy(&self, req: &Inbound, mut op: Operation, extra: &mut HeaderMap) -> Result<(Response<Body>, String, String, String), Problem> {
         let matched = self.registry.resolve(req.method.as_str(), &req.path)?;
         let route = matched.route;
         let action = route.action();
+        // 已下架站点的域名上，访客接口（问答、检索、媒体字节）一律不再放行；登录后的后台接口照常由各服务核权。
+        if req.site_inactive && route.anonymous() {
+            return Err(Problem::new("GONE", "该站点已下架或已删除"));
+        }
         let public_ai = route.anonymous() && (route.owner == "qa" || route.owner == "traffic-guard");
         if public_ai {
             // 入口提前拒绝的响应同样不能被浏览器或中间缓存复用。
@@ -493,7 +508,7 @@ impl Gateway {
         if action == "analytics:ingestBeacon" {
             let beacon = self.trusted_beacon(req, &body, &op, extra)?;
             self.beacons.push(&req.site, &op.data_epoch, beacon);
-            return Ok((full(StatusCode::NO_CONTENT, "", Bytes::new()), route.owner.clone(), route.operation.clone()));
+            return Ok((full(StatusCode::NO_CONTENT, "", Bytes::new()), route.owner.clone(), route.operation.clone(), op.site_id.clone()));
         }
         // 转发头：白名单内的业务头、语言切换器选的语言、语言建议用的访客国家。
         let mut headers = HeaderMap::new();
@@ -539,7 +554,7 @@ impl Gateway {
         } else {
             stream_response(upstream, req.method == Method::HEAD)
         };
-        Ok((response, route.owner.clone(), route.operation.clone()))
+        Ok((response, route.owner.clone(), route.operation.clone(), op.site_id.clone()))
     }
 
     /// 会话授权由 identity 核对 access token、当前版本与成员角色；入口再按路由权限预检一次。

@@ -72,10 +72,10 @@ impl Cache {
         }
     }
 
-    /// 清掉某个站点的全部缓存页面（站点的任何域名下的），返回清掉的个数。
-    pub fn purge_site(&self, site: &str) -> usize {
+    /// 清掉某个站点的全部缓存页面（站点的任何域名下的），None 清掉全部；返回清掉的个数。
+    pub fn purge_site(&self, site: Option<&str>) -> usize {
         let mut inner = self.inner.lock().unwrap();
-        let keys: Vec<String> = inner.map.iter().filter(|(_, entry)| entry.site == site).map(|(key, _)| key.clone()).collect();
+        let keys: Vec<String> = inner.map.iter().filter(|(_, entry)| site.is_none_or(|s| entry.site == s)).map(|(key, _)| key.clone()).collect();
         for key in &keys {
             Self::remove(&mut inner, key);
         }

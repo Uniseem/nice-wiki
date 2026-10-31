@@ -202,7 +202,7 @@ impl DiskCache {
         stems.len()
     }
 
-    pub fn purge_site(&self, site: &str) -> usize {
-        self.purge_where(|item| item.site == site)
+    pub fn purge_site(&self, site: Option<&str>) -> usize {
+        self.purge_where(|item| site.is_none_or(|s| item.site == s))
     }
 }
