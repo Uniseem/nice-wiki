@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"net/url"
 	"nice-wiki/libs/platform"
 	"nice-wiki/libs/platform/netguard"
 	"nice-wiki/modules/model-gateway/internal/gen"
@@ -434,11 +436,14 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 	var sent atomic.Bool
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{WroteHeaders: func() { sent.Store(true) }}))
 	dialer := &net.Dialer{Timeout: time.Duration(min(provider.ConnectTimeoutMs, 10000)) * time.Millisecond}
+	proxy := http.ProxyFromEnvironment
 	if ownership.IsChannelProvider(provider.ProviderId) {
 		// 用户自带渠道的地址是用户填的：连接时再按实际 IP 检查一遍，挡住内网、环回、云元数据地址和 DNS 重绑定。
+		// 不走环境里的代理：走代理时连接检查只能看到代理的地址，看不到用户填的目标。
 		dialer.Control = netguard.Control(ownership.AllowLoopback)
+		proxy = nil
 	}
-	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: dialer.DialContext, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: time.Duration(min(provider.RequestTimeoutMs, 180000)) * time.Millisecond}
+	transport := &http.Transport{Proxy: proxy, DialContext: dialer.DialContext, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: time.Duration(min(provider.RequestTimeoutMs, 180000)) * time.Millisecond}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)
@@ -446,8 +451,14 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		if !sent.Load() {
 			outcome.AcceptanceProof = "not_accepted"
 		}
-		outcome.ProviderMessage = providerMessage(err.Error())
-		fmt.Fprintf(os.Stderr, "供应方请求未完成 url=%s err=%q\n", request.URL, outcome.ProviderMessage)
+		// 用户自带渠道的地址可能带凭据：日志和记录里只留错误本身，不留 URL。
+		message := err.Error()
+		var failure *url.Error
+		if errors.As(err, &failure) {
+			message = failure.Op + ": " + failure.Err.Error()
+		}
+		outcome.ProviderMessage = providerMessage(message)
+		fmt.Fprintf(os.Stderr, "供应方请求未完成 provider=%s err=%q\n", provider.ProviderId, outcome.ProviderMessage)
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方请求未完成，原费用状态不能假定为零")
 	}
 	defer response.Body.Close()
