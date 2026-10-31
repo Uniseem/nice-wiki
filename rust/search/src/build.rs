@@ -175,9 +175,13 @@ async fn handle(state: &State, event: Event) -> Result<(), Problem> {
 
 /// 撤回：文档退出检索（全文、向量、生效指针、卡片），未结束的构建被替代。
 async fn withdraw(state: &State, site: &str, document: &str, visibility: i64) -> Result<(), Problem> {
-    tokio::task::block_in_place(|| state.lexical.delete_document(site, document)).map_err(storage)?;
     let mut client = state.db.get().await.map_err(storage)?;
     let tx = client.transaction().await.map_err(storage)?;
+    let known = tx.query_opt("SELECT visibility_revision FROM search.watermarks WHERE site_id = $1 AND document_id = $2 FOR UPDATE", &[&site, &document]).await.map_err(storage)?;
+    if known.is_some_and(|row| row.get::<_, i64>(0) >= visibility) {
+        return Ok(());
+    }
+    tokio::task::block_in_place(|| state.lexical.delete_document(site, document)).map_err(storage)?;
     raise_watermark(&tx, site, document, visibility, true).await?;
     tx.execute(&format!("UPDATE search.builds SET state = 'superseded', updated_at = now() WHERE site_id = $1 AND document_id = $2 AND state NOT IN {TERMINAL}"), &[&site, &document])
         .await
