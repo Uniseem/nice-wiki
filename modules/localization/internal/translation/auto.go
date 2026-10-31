@@ -133,21 +133,25 @@ func missingDescription(ctx context.Context, op OperationContext, document local
 	return strings.TrimSpace(source.Description) != "", nil
 }
 
+// maxAttempts 是同一发布修订、同一语言自动建译文的总份数上限（首次加 3 次重试）。到了就停，等下次发布或站点人员手动重试：
+// 自动翻译花的是站点所有者的钱，不能无限重来。
+const maxAttempts = 4
+
 // nextAttempt 判断这门语言是否该为这次发布修订（再）建译文：在排队、在翻或术语变更后待更新（stale）就不用；已完成且没有单元退回原文也不用。
 // 完成了但有单元退回原文（模型几次都没按格式译出）的，再建一份：已译单元沿用，只把退回的交给模型。
-// 失败、取消或补译都按次数退避（5 分钟起翻倍，最长 1 小时，换好密钥或模型后不用等太久）；同一修订补满 3 次仍有退回的，之后每天再补一次。
+// 失败或补译按次数退避（5 分钟起翻倍，最长 1 小时，换好密钥或模型后不用等太久），总份数到 maxAttempts 为止；有人取消过的不再自动重建。
 // 返回本修订已有的译文份数作为本次尝试序号，用于幂等键（每建一份就加一，不会和之前的键重复）。
 func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionID, tag string) (int, bool, error) {
 	const scope = `target_language=? AND data_epoch=? AND json_extract(publication_ref,'$.documentId')=? AND json_extract(publication_ref,'$.publishedRevisionId')=?`
-	var total, busy, done, failed, fallback int
+	var total, busy, done, failed, cancelled, fallback int
 	var lastDone, lastFailed sql.NullString
 	err := language.ReadData(ctx, op, func(tx *sql.Tx) error {
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*),COUNT(CASE WHEN state NOT IN('ready','review','failed','cancelled') THEN 1 END),COUNT(CASE WHEN state IN('ready','review') THEN 1 END),COUNT(CASE WHEN state IN('failed','cancelled') THEN 1 END),MAX(CASE WHEN state IN('ready','review') THEN updated_at END),MAX(CASE WHEN state IN('failed','cancelled') THEN updated_at END) FROM translation_manifests WHERE `+scope, tag, op.DataEpoch, documentID, revisionID).Scan(&total, &busy, &done, &failed, &lastDone, &lastFailed); err != nil || done == 0 {
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*),COUNT(CASE WHEN state NOT IN('ready','review','failed','cancelled') THEN 1 END),COUNT(CASE WHEN state IN('ready','review') THEN 1 END),COUNT(CASE WHEN state='failed' THEN 1 END),COUNT(CASE WHEN state='cancelled' THEN 1 END),MAX(CASE WHEN state IN('ready','review') THEN updated_at END),MAX(CASE WHEN state='failed' THEN updated_at END) FROM translation_manifests WHERE `+scope, tag, op.DataEpoch, documentID, revisionID).Scan(&total, &busy, &done, &failed, &cancelled, &lastDone, &lastFailed); err != nil || done == 0 {
 			return language.StorageError(err)
 		}
 		return language.StorageError(tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM translation_units WHERE status='fallback' AND translation_id=(SELECT translation_id FROM translation_manifests WHERE state IN('ready','review') AND `+scope+` ORDER BY updated_at DESC LIMIT 1)`, tag, op.DataEpoch, documentID, revisionID).Scan(&fallback))
 	})
-	if err != nil || busy > 0 || done > 0 && fallback == 0 {
+	if err != nil || busy > 0 || cancelled > 0 || done > 0 && fallback == 0 || done+failed >= maxAttempts {
 		return 0, false, err
 	}
 	var last time.Time
@@ -156,16 +160,8 @@ func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionI
 			last = at
 		}
 	}
-	if done+failed > 0 {
-		delay := retryDelay(done + failed)
-		// 补译次数只数完成的译文（整份失败另按退避重来）。补满 3 次仍有段落退回原文的，改为每天再补一次：
-		// 不会一直花钱，翻译规则改进后卡住的段落也能自己补上。
-		if done > 3 {
-			delay = 24 * time.Hour
-		}
-		if time.Since(last) < delay {
-			return 0, false, nil
-		}
+	if done+failed > 0 && time.Since(last) < retryDelay(done+failed) {
+		return 0, false, nil
 	}
 	return total, true, nil
 }
