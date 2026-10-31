@@ -750,5 +750,21 @@
   "th": "หน้าในภาษาหลักมาจากเนื้อหาเอกสารโดยตรง ส่วนภาษาอื่นจะถูกสร้างขึ้นผ่านการแปล การแปลจะเรียกใช้โมเดล: เพียงเพิ่มช่องทางของคุณเองหรือแลกโค้ดคำเชิญ AI ใน \"AI & Quota\"",
   "id": "Halaman dalam bahasa dasar berasal langsung dari dokumentasi; bahasa lain dihasilkan melalui terjemahan. Terjemahan memerlukan model: cukup tambahkan saluran sendiri atau tukarkan kode undangan AI di \"AI & Quota\".",
   "ar": "الصفحات باللغة الأساسية تأتي مباشرة من نص التوثيق؛ أما اللغات الأخرى فيتم إنشاؤها عبر الترجمة. تتطلب الترجمة نموذجًا: ما عليك سوى إضافة قناتك الخاصة أو استرداد رمز دعوة AI في \"AI & Quota\"."
+ },
+ "已停止，等下次发布": {
+  "zh-Hant": "已停止，等下次發布",
+  "en": "Stopped until next publish",
+  "ja": "停止中（次回公開まで）",
+  "ko": "중지됨, 다음 게시까지 대기",
+  "fr": "Arrêté jusqu'à la prochaine publication",
+  "de": "Gestoppt bis zur nächsten Veröffentlichung",
+  "es": "Detenido hasta la próxima publicación",
+  "pt": "Parado até a próxima publicação",
+  "ru": "Остановлено до следующей публикации",
+  "it": "Fermo fino alla prossima pubblicazione",
+  "vi": "Đã dừng, chờ lần xuất bản sau",
+  "th": "หยุดแล้ว รอการเผยแพร่ครั้งถัดไป",
+  "id": "Dihentikan hingga terbit berikutnya",
+  "ar": "متوقف حتى النشر التالي"
  }
 }

@@ -4262,9 +4262,10 @@
                   "translated",
                   "translating",
                   "retrying",
+                  "stopped",
                   "waiting"
                 ],
-                "description": "translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；waiting 还没开始"
+                "description": "translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；stopped 自动重试已用完或被取消过，等下次发布；waiting 还没开始"
               },
               "previous": {
                 "type": "boolean",

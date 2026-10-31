@@ -7,7 +7,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 type Language = { tag: string; version: number; enabled: boolean; isDefault: boolean; automaticTranslation: boolean; direction: 'ltr' | 'rtl'; reflectionEnabled: boolean; batchOutputTokens: number; translationMemoryMinimumCharacters: number };
-type DocState = 'translated' | 'translating' | 'retrying' | 'waiting';
+type DocState = 'translated' | 'translating' | 'retrying' | 'stopped' | 'waiting';
 type Progress = { documents: { documentId: string; language: string; state: DocState; previous: boolean }[]; modelReady: boolean };
 type NavNode = { documentId: string; title?: string; publication: unknown };
 
@@ -126,8 +126,8 @@ function Translations({ base, languages }: { base: string; languages: Language[]
     return <Panel title={t('文档译文')}><EmptyBlock icon={<Globe />} title={t('还没有启用的其他语言')} description={t('先在上面启用一个非基准语言，才能翻译文档。')} /></Panel>;
   }
   const count = (state: DocState) => rows.filter((item) => item.state === state).length;
-  const labels: Record<DocState, [string, 'success' | 'accent' | 'warning' | 'default']> = {
-    translated: [t('已翻译'), 'success'], translating: [t('翻译中'), 'accent'], retrying: [t('稍后自动重试'), 'warning'], waiting: [t('等待翻译'), 'default'],
+  const labels: Record<DocState, [string, 'success' | 'accent' | 'warning' | 'danger' | 'default']> = {
+    translated: [t('已翻译'), 'success'], translating: [t('翻译中'), 'accent'], retrying: [t('稍后自动重试'), 'warning'], stopped: [t('已停止，等下次发布'), 'danger'], waiting: [t('等待翻译'), 'default'],
   };
   return (
     <Panel

@@ -1697,10 +1697,10 @@ export interface components {
                 /** @description 目标语言 */
                 language: string;
                 /**
-                 * @description translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；waiting 还没开始
+                 * @description translated 已翻译；translating 排队或翻译中；retrying 上次失败，稍后自动重试；stopped 自动重试已用完或被取消过，等下次发布；waiting 还没开始
                  * @enum {string}
                  */
-                state: "translated" | "translating" | "retrying" | "waiting";
+                state: "translated" | "translating" | "retrying" | "stopped" | "waiting";
                 /** @description 当前修订还没译好时，访客是否先看到旧修订的译文 */
                 previous: boolean;
             }[];

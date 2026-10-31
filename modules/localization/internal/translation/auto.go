@@ -18,7 +18,7 @@ import (
 const maximumRunningTranslations = 3
 
 // AutoTranslate 让启用的每门非基准语言自动跟上：公开树里每篇文档的当前发布修订，这门语言还没有可用译文就创建一份。
-// 全自动、后台不用管：模型还没配好时先不建（配好后下一轮自动开始）；失败或取消过的修订按退避自动重来。
+// 全自动、后台不用管：模型还没配好时先不建（配好后下一轮自动开始）；失败的修订按退避自动重来，见 nextAttempt。
 // 库里还在排队或翻译中、但本进程没在翻的（进程重启时中断的）先接着翻；同时在翻的不超过 3 份。
 func AutoTranslate(ctx context.Context, op OperationContext) error {
 	var languages, unfinished []string
@@ -139,7 +139,7 @@ const maxAttempts = 4
 
 // nextAttempt 判断这门语言是否该为这次发布修订（再）建译文：在排队、在翻或术语变更后待更新（stale）就不用；已完成且没有单元退回原文也不用。
 // 完成了但有单元退回原文（模型几次都没按格式译出）的，再建一份：已译单元沿用，只把退回的交给模型。
-// 失败或补译按次数退避（5 分钟起翻倍，最长 1 小时，换好密钥或模型后不用等太久），总份数到 maxAttempts 为止；有人取消过的不再自动重建。
+// 失败或补译按次数退避（10 分钟、1 小时、6 小时，供应方或密钥短暂出问题撑得过去），总份数到 maxAttempts 为止；有人取消过的不再自动重建。
 // 返回本修订已有的译文份数作为本次尝试序号，用于幂等键（每建一份就加一，不会和之前的键重复）。
 func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionID, tag string) (int, bool, error) {
 	const scope = `target_language=? AND data_epoch=? AND json_extract(publication_ref,'$.documentId')=? AND json_extract(publication_ref,'$.publishedRevisionId')=?`
@@ -167,7 +167,7 @@ func nextAttempt(ctx context.Context, op OperationContext, documentID, revisionI
 }
 
 func retryDelay(failures int) time.Duration {
-	return min(5*time.Minute<<min(failures-1, 10), time.Hour)
+	return [...]time.Duration{10 * time.Minute, time.Hour, 6 * time.Hour}[min(failures, 3)-1]
 }
 
 func queryStrings(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]string, error) {

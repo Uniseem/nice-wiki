@@ -151,24 +151,36 @@ func documentStates(ctx context.Context, op OperationContext, filter string) ([]
 		}
 		defer rows.Close()
 		rank := map[string]int{"retrying": 1, "translating": 2, "translated": 3}
+		// 与 nextAttempt 同一口径：份数到 maxAttempts 或有人取消过，就不会再自动重来。
+		attempts, cancelled := map[string]int{}, map[string]bool{}
 		for rows.Next() {
 			var document, revision, tag, state string
 			if err = rows.Scan(&document, &revision, &tag, &state); err != nil {
 				return language.StorageError(err)
 			}
+			key := document + "\x00" + revision + "\x00" + tag
 			status := ""
 			switch state {
 			case "ready", "review", "stale":
 				status = "translated"
 				completed[document+"\x00"+tag] = true
+				attempts[key]++
 			case "queued", "running":
 				status = "translating"
-			case "failed", "cancelled":
+			case "failed":
 				status = "retrying"
+				attempts[key]++
+			case "cancelled":
+				status = "retrying"
+				cancelled[key] = true
 			}
-			key := document + "\x00" + revision + "\x00" + tag
 			if rank[status] > rank[states[key]] {
 				states[key] = status
+			}
+		}
+		for key, status := range states {
+			if status == "retrying" && (cancelled[key] || attempts[key] >= maxAttempts) {
+				states[key] = "stopped"
 			}
 		}
 		return language.StorageError(rows.Err())
