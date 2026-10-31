@@ -2,7 +2,7 @@
 # 从 backup.sh 的备份恢复：停应用，恢复数据库与文件卷，再启动。会覆盖当前数据，请先确认。
 # 用法：deploy/restore.sh <备份目录> <时间戳>
 # 备份加密过时，用环境变量 BACKUP_PASSPHRASE_FILE 给出同一个口令文件。
-# 密钥要用同一套：secrets-<时间戳>.tar.gz（加密的是 .enc）解到 deploy/secrets，本脚本不动密钥。
+# 密钥要用同一套：secrets-<时间戳>.tar.gz（加密的是 .enc）在 deploy 目录里解开（得到 secrets/ 和 config/trust-anchors.json），本脚本不动密钥。
 set -eu
 cd "$(dirname "$0")"
 project="${COMPOSE_PROJECT_NAME:-nice-wiki}"

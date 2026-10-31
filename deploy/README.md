@@ -49,7 +49,9 @@ for s in postgres account content ai ops search edge; do docker compose -f deplo
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
-备份必须连同 `deploy/secrets` 一起保管（含主密钥，没有它加密保存的第三方登录凭证、用户自带的 AI 密钥和备份凭据都解不开）。
+打开后台注册站主时要填安装令牌，在服务器上用 `docker compose -f deploy/docker-compose.yml exec account cat /data/identity/control/setup-token` 查看（注册成功后自动删除）。
+
+备份必须连同 `deploy/secrets` 和 `deploy/config/trust-anchors.json` 一起保管（`backup.sh` 已把两者打进同一个密钥包；含主密钥，没有它加密保存的第三方登录凭证、用户自带的 AI 密钥和备份凭据都解不开）。
 
 ## 域名
 

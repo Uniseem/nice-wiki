@@ -31,7 +31,7 @@ DB_ROLES = {slug: "nw_" + slug.replace("-", "_") for slug in PORTS if slug != "p
 def write(path, text, mode=None):
     full = os.path.join(ROOT, path)
     os.makedirs(os.path.dirname(full), exist_ok=True)
-    open(full, "w").write(text)
+    open(full, "w", newline="\n").write(text)
     if mode:
         os.chmod(full, mode)
 
@@ -323,8 +323,9 @@ BACKUP_SH = """#!/bin/sh
 #   BACKUP_REMOTE           rclone 目标（如 s3:桶/nicewiki、dav:nicewiki、gdrive:nicewiki，需先 rclone config）。
 #                           设置后备份完成会把输出目录同步过去（rclone copy，已有的文件不重传）；要加密正文和媒体，
 #                           把它配成 rclone 的 crypt 远端。
-# 密钥含主密钥：没有加密时，备份目录请放在受控的存储里。
+# 密钥含主密钥：没有加密时，备份目录请放在受控的存储里；备份文件只给本用户读写。
 set -eu
+umask 077
 cd "$(dirname "$0")"
 project="${COMPOSE_PROJECT_NAME:-nice-wiki}"
 out="${1:-./backups}"
@@ -343,7 +344,8 @@ docker run --rm -v "${project}_content-data":/data:ro -v "$out/content-data":/ou
 for volume in @VOLUMES@; do
 	docker run --rm -v "${project}_$volume":/data:ro -v "$out":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
 done
-tar czf "$out/secrets-$stamp.tar.gz" -C . secrets
+# 公钥表 config/trust-anchors.json 和密钥是同一次 init-secrets 生成的一套，缺了它各服务互相验不了签、起不来。
+tar czf "$out/secrets-$stamp.tar.gz" -C . secrets config/trust-anchors.json
 seal "$out/secrets-$stamp.tar.gz"
 if [ -n "${BACKUP_REMOTE:-}" ]; then
 	rclone copy "$out" "$BACKUP_REMOTE"
@@ -355,7 +357,7 @@ RESTORE_SH = """#!/bin/sh
 # 从 backup.sh 的备份恢复：停应用，恢复数据库与文件卷，再启动。会覆盖当前数据，请先确认。
 # 用法：deploy/restore.sh <备份目录> <时间戳>
 # 备份加密过时，用环境变量 BACKUP_PASSPHRASE_FILE 给出同一个口令文件。
-# 密钥要用同一套：secrets-<时间戳>.tar.gz（加密的是 .enc）解到 deploy/secrets，本脚本不动密钥。
+# 密钥要用同一套：secrets-<时间戳>.tar.gz（加密的是 .enc）在 deploy 目录里解开（得到 secrets/ 和 config/trust-anchors.json），本脚本不动密钥。
 set -eu
 cd "$(dirname "$0")"
 project="${COMPOSE_PROJECT_NAME:-nice-wiki}"
@@ -381,8 +383,9 @@ read answer
 docker compose stop caddy edge account content ai ops search
 docker compose up -d postgres
 docker compose exec -T postgres sh -c 'until pg_isready -U postgres -d nicewiki; do sleep 1; done'
-docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \\$\\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \\$\\$;"
-unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres -d nicewiki
+# pg_dump 不写 CREATE SCHEMA public（默认就有），删光后要先建回来，扩展和表才建得进去。
+docker compose exec -T postgres psql -U postgres -d nicewiki -c "DROP SCHEMA IF EXISTS public CASCADE; DO \\$\\$ DECLARE r record; BEGIN FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\\\_%' AND nspname <> 'information_schema' LOOP EXECUTE 'DROP SCHEMA IF EXISTS ' || quote_ident(r.nspname) || ' CASCADE'; END LOOP; END \\$\\$; CREATE SCHEMA public;"
+unseal "$dir/db-$stamp.dump" | docker compose exec -T postgres pg_restore -U postgres --single-transaction -d nicewiki
 docker run --rm -v "${project}_content-data":/data -v "$dir/content-data":/in:ro alpine sh -c "find /data -mindepth 1 -delete && cp -a /in/. /data/"
 for volume in @VOLUMES@; do
 	docker run --rm -v "${project}_$volume":/data -v "$dir":/in:ro alpine sh -c "find /data -mindepth 1 -delete && tar xzf /in/$volume-$stamp.tar.gz -C /data"
@@ -418,10 +421,16 @@ docker compose -f deploy/docker-compose.yml up -d
 ```
 
 然后用浏览器打开 `https://你的域名/admin`，选语言、注册站主并填站名，再到“平台管理”填写平台域名与站点子域名后缀、登录方式等。
+注册站主要填安装令牌（只有登得上服务器的人拿得到，防止别人抢先注册），在服务器上查看：
+
+```sh
+docker compose -f deploy/docker-compose.yml exec account cat /data/identity/control/setup-token
+```
 
 ## 升级
 
-数据在 Docker 卷里，不随目录变化。下载新版本的部署包并解压，把旧目录里的 `deploy/secrets`、`deploy/.env`、`deploy/caddy/conf.d` 拷到新目录，
+数据在 Docker 卷里，不随目录变化。升级前先跑一次 `deploy/backup.sh`：数据库结构随新版本迁移后不能退回旧版本。
+下载新版本的部署包并解压，把旧目录里的 `deploy/secrets`、`deploy/config/trust-anchors.json`、`deploy/.env`、`deploy/caddy/conf.d` 拷到新目录，
 把 `deploy/.env` 里的 `NW_VERSION` 改成新版本，再在新目录执行 `docker compose -f deploy/docker-compose.yml up -d`。数据库结构随服务启动自动迁移。
 
 ## 备份

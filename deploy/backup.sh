@@ -9,8 +9,9 @@
 #   BACKUP_REMOTE           rclone 目标（如 s3:桶/nicewiki、dav:nicewiki、gdrive:nicewiki，需先 rclone config）。
 #                           设置后备份完成会把输出目录同步过去（rclone copy，已有的文件不重传）；要加密正文和媒体，
 #                           把它配成 rclone 的 crypt 远端。
-# 密钥含主密钥：没有加密时，备份目录请放在受控的存储里。
+# 密钥含主密钥：没有加密时，备份目录请放在受控的存储里；备份文件只给本用户读写。
 set -eu
+umask 077
 cd "$(dirname "$0")"
 project="${COMPOSE_PROJECT_NAME:-nice-wiki}"
 out="${1:-./backups}"
@@ -29,7 +30,8 @@ docker run --rm -v "${project}_content-data":/data:ro -v "$out/content-data":/ou
 for volume in account-data ai-data ops-data search-data; do
 	docker run --rm -v "${project}_$volume":/data:ro -v "$out":/out alpine tar czf "/out/$volume-$stamp.tar.gz" -C /data .
 done
-tar czf "$out/secrets-$stamp.tar.gz" -C . secrets
+# 公钥表 config/trust-anchors.json 和密钥是同一次 init-secrets 生成的一套，缺了它各服务互相验不了签、起不来。
+tar czf "$out/secrets-$stamp.tar.gz" -C . secrets config/trust-anchors.json
 seal "$out/secrets-$stamp.tar.gz"
 if [ -n "${BACKUP_REMOTE:-}" ]; then
 	rclone copy "$out" "$BACKUP_REMOTE"

@@ -15,10 +15,16 @@ docker compose -f deploy/docker-compose.yml up -d
 ```
 
 然后用浏览器打开 `https://你的域名/admin`，选语言、注册站主并填站名，再到“平台管理”填写平台域名与站点子域名后缀、登录方式等。
+注册站主要填安装令牌（只有登得上服务器的人拿得到，防止别人抢先注册），在服务器上查看：
+
+```sh
+docker compose -f deploy/docker-compose.yml exec account cat /data/identity/control/setup-token
+```
 
 ## 升级
 
-数据在 Docker 卷里，不随目录变化。下载新版本的部署包并解压，把旧目录里的 `deploy/secrets`、`deploy/.env`、`deploy/caddy/conf.d` 拷到新目录，
+数据在 Docker 卷里，不随目录变化。升级前先跑一次 `deploy/backup.sh`：数据库结构随新版本迁移后不能退回旧版本。
+下载新版本的部署包并解压，把旧目录里的 `deploy/secrets`、`deploy/config/trust-anchors.json`、`deploy/.env`、`deploy/caddy/conf.d` 拷到新目录，
 把 `deploy/.env` 里的 `NW_VERSION` 改成新版本，再在新目录执行 `docker compose -f deploy/docker-compose.yml up -d`。数据库结构随服务启动自动迁移。
 
 ## 备份
