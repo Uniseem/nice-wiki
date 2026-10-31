@@ -104,6 +104,9 @@ func StartTurn(ctx context.Context, op OperationContext, input StartTurnInput) (
 		}
 		if today >= dailyCap {
 			tx.Close()
+			if runtime.Guard != nil {
+				_, _ = runtime.Guard.ReleaseAdmission(qaruntime.ServiceReadContext(ctx, op), input.Admission.AdmissionId, struct{}{}, "qa.turn.release."+platform.HashBytes([]byte(op.RootOperationID+":"+input.Admission.AdmissionId)))
+			}
 			runtime.NoteVisitorCapReached(ctx, op)
 			return result, platform.NewError(platform.CodeRateLimited, true, "今天这个站点的提问次数已达上限，请明天再来")
 		}
