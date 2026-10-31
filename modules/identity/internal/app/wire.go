@@ -57,6 +57,10 @@ func BuildApplication(ctx context.Context, config platform.ServiceConfig) (*tran
 		store.Close()
 		return nil, err
 	}
+	if err := store.EnsureSetupToken(ctx); err != nil {
+		store.Close()
+		return nil, err
+	}
 	openedEpoch := view.DataEpoch
 	origin, err := lifecycle.CanonicalPublicOrigin(config.PublicBaseURL)
 	if err != nil {

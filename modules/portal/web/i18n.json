@@ -2622,5 +2622,37 @@
   "th": "รูปลักษณ์",
   "id": "Tampilan",
   "ar": "المظهر"
+ },
+ "安装令牌": {
+  "zh-Hant": "安裝權杖",
+  "en": "Setup token",
+  "ja": "セットアップトークン",
+  "ko": "설치 토큰",
+  "fr": "Jeton d'installation",
+  "de": "Einrichtungstoken",
+  "es": "Token de instalación",
+  "pt": "Token de instalação",
+  "ru": "Токен установки",
+  "it": "Token di installazione",
+  "vi": "Mã cài đặt",
+  "th": "โทเค็นการติดตั้ง",
+  "id": "Token penyiapan",
+  "ar": "رمز الإعداد"
+ },
+ "在部署机上查看：{0}": {
+  "zh-Hant": "在部署機上查看：{0}",
+  "en": "Find it on the server: {0}",
+  "ja": "サーバーで確認：{0}",
+  "ko": "서버에서 확인: {0}",
+  "fr": "À lire sur le serveur : {0}",
+  "de": "Auf dem Server nachsehen: {0}",
+  "es": "Consúltalo en el servidor: {0}",
+  "pt": "Consulte no servidor: {0}",
+  "ru": "Посмотрите на сервере: {0}",
+  "it": "Leggilo sul server: {0}",
+  "vi": "Xem trên máy chủ: {0}",
+  "th": "ดูได้บนเซิร์ฟเวอร์: {0}",
+  "id": "Lihat di server: {0}",
+  "ar": "تجده على الخادم: {0}"
  }
 }

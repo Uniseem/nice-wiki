@@ -680,12 +680,19 @@
         "passwordConfirmation": {
           "$ref": "#/$defs/Password",
           "description": "首次注册确认口令，UI新口令输入两遍"
+        },
+        "setupToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "安装令牌：部署机上身份服务数据目录 control/setup-token 的内容，证明注册的人能登上部署机"
         }
       },
       "required": [
         "accountName",
         "password",
-        "passwordConfirmation"
+        "passwordConfirmation",
+        "setupToken"
       ]
     },
     "RegisterFirstSuperadminResult": {

@@ -69,7 +69,9 @@ def main():
     s, reg = call("GET", "/v1/registration")
     print("registration", reg)
     if reg.get("registrationOpen"):
-        body = step("注册首个超管", call("POST", "/v1/registration", {"accountName": ACCOUNT, "password": PASSWORD, "passwordConfirmation": PASSWORD}))
+        # 安装令牌：容器部署用 NW_SETUP_TOKEN 传入（docker compose exec account cat /data/identity/control/setup-token），本地实例直接读文件。
+        token = os.environ.get("NW_SETUP_TOKEN") or open(os.path.join(os.environ.get("NW_DEV_DIR") or ".local/dev", "data", "identity", "control", "setup-token")).read().strip()
+        body = step("注册首个超管", call("POST", "/v1/registration", {"accountName": ACCOUNT, "password": PASSWORD, "passwordConfirmation": PASSWORD, "setupToken": token}))
     else:
         body = step("登录", call("POST", "/v1/sessions", {"accountName": ACCOUNT, "password": PASSWORD}))
     state["csrf"] = body["session"]["csrfToken"] if "session" in body else body["tokens"]["csrfToken"]

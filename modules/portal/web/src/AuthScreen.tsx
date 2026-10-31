@@ -32,6 +32,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
   const [options, setOptions] = useState<Options | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const brand = useSiteBrand();
 
   // 站点还没初始化时，没选过语言就先选语言（选完整页刷新，界面换成该语言）。
@@ -72,7 +73,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
   const submit = () => run(async () => {
     if (step === 'register') {
       if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
-      await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation } }));
+      await afterLogin(await api<SessionReply>('/v1/registration', { method: 'POST', body: { accountName, password, passwordConfirmation: confirmation, setupToken: setupToken.trim() } }));
     } else if (step === 'signup') {
       if (password !== confirmation) throw new Error(t('两次输入的口令不一致'));
       await afterLogin(await api<SessionReply>('/v1/users:register', { method: 'POST', body: { email: accountName.trim(), password, passwordConfirmation: confirmation, displayName: displayName.trim() || accountName.split('@')[0], ...(inviteCode.trim() ? { inviteCode: inviteCode.trim() } : {}) } }));
@@ -150,6 +151,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
                   {(step === 'register' || step === 'signup') && (
                     <TextInput isRequired autoComplete="new-password" label={t('确认口令')} type="password" value={confirmation} onChange={setConfirmation} error={confirmation && confirmation !== password ? t('两次输入的口令不一致') : null} />
                   )}
+                  {step === 'register' && <TextInput isRequired autoComplete="off" label={t('安装令牌')} value={setupToken} onChange={setSetupToken} description={t('在部署机上查看：{0}', 'docker compose exec account cat /data/identity/control/setup-token')} />}
                   {step === 'signup' && options?.inviteRequired && <TextInput isRequired label={t('邀请码')} placeholder="nwr-…" value={inviteCode} onChange={setInviteCode} />}
                 </>
               )}

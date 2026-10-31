@@ -27,6 +27,7 @@ type RegisterFirstSuperadminInput struct {
 	AccountName          AccountName `json:"accountName"`
 	Password             Password    `json:"password"`
 	PasswordConfirmation Password    `json:"passwordConfirmation"`
+	SetupToken           string      `json:"setupToken"`
 }
 
 // SessionTokens 是注册结果需要返回给 cookie adapter 的敏感会话结果。
@@ -146,6 +147,9 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if !ok || runtime == nil {
 		return RegisterFirstSuperadminResult{}, platform.NewError(platform.CodeDependencyUnavailable, true, "注册依赖尚未装配")
 	}
+	if err := store.checkSetupToken(input.SetupToken); err != nil {
+		return RegisterFirstSuperadminResult{}, err
+	}
 	digest, keyID, err := privateIdentityDigest(ctx, op, "registerFirstSuperadmin", input)
 	if err != nil {
 		return RegisterFirstSuperadminResult{}, err
@@ -236,6 +240,7 @@ func RegisterFirstSuperadmin(ctx context.Context, op OperationContext, input Reg
 	if err := markBootstrapCommitted(ctx, store, claim); err != nil {
 		return RegisterFirstSuperadminResult{}, err
 	}
+	store.removeSetupToken()
 	return RegisterFirstSuperadminResult{Account: account, Tokens: issued.Tokens, NextRoute: "/admin/setup"}, nil
 }
 

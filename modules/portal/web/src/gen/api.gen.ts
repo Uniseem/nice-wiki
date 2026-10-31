@@ -528,6 +528,8 @@ export interface components {
             password: components["schemas"]["Password"];
             /** @description 首次注册确认口令，UI新口令输入两遍 */
             passwordConfirmation: components["schemas"]["Password"];
+            /** @description 安装令牌：部署机上身份服务数据目录 control/setup-token 的内容，证明注册的人能登上部署机 */
+            setupToken: string;
         };
         /** @description 浏览器刷新结果；不返回内部tokens */
         BrowserRefreshSessionResult: {
