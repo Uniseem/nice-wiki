@@ -575,7 +575,7 @@ func SendProviderRequest(ctx context.Context, request BuildProviderRequestResult
 		}
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		fmt.Fprintf(os.Stderr, "供应方HTTP状态 status=%d url=%s\n", response.StatusCode, request.URL)
+		fmt.Fprintf(os.Stderr, "供应方HTTP状态 status=%d provider=%s\n", response.StatusCode, provider.ProviderId)
 		return outcome, platform.NewError(platform.CodeDependencyUnavailable, false, "供应方HTTP状态不表示成功")
 	}
 	outcome.AcceptanceProof = "accepted"
