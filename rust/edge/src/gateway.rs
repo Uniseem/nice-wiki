@@ -711,7 +711,9 @@ impl Gateway {
         let (file, cache) = if path == "/admin" || path.starts_with("/admin/") {
             (dir.join("index.html"), "no-cache")
         } else if let Some(rest) = path.strip_prefix("/_admin/") {
-            (dir.join(safe_relative(rest)?), "no-cache")
+            // assets/ 下的文件名带内容哈希，可以长期缓存；其余（theme-init.js 等）文件名不变，要每次校验。
+            let cache = if rest.starts_with("assets/") { "public, max-age=31536000, immutable" } else { "no-cache" };
+            (dir.join(safe_relative(rest)?), cache)
         } else {
             let rest = path.strip_prefix("/_site/")?;
             // 公开页按 /_site/v/<版本>/site.js 引用，去掉版本段后是同一批文件，可以长期缓存。
