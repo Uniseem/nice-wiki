@@ -159,7 +159,7 @@ function StatsTab() {
           </p>
           <Panel
             title={view === 'docs' ? t('热门文档') : t('按小时明细')}
-            actions={<SelectInput aria-label={t('视图')} className="w-36" options={[{ value: 'docs', label: t('按文档') }, { value: 'hours', label: t('按小时') }]} value={view} onChange={(value) => setView(value as 'docs' | 'hours')} variant="primary" />}
+            actions={<SelectInput aria-label={t('视图')} className="w-36" options={[{ value: 'docs', label: t('按文档') }, { value: 'hours', label: t('按小时') }]} value={view} onChange={(value) => setView(value as 'docs' | 'hours')} />}
           >
             {!result.rows.length ? <EmptyBlock icon={<ChartColumn />} title={t('这个区间还没有访问数据')} description={t('统计按小时聚合，新访问稍后才会出现。')} /> : view === 'docs' ? (
               <Table variant="secondary">
@@ -263,7 +263,7 @@ function AuditTab() {
   return (
     <div className="flex flex-col gap-5">
       <Form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setCursors(['']); void load(''); }}>
-        <SelectInput className="w-36" label={t('区间')} options={Object.entries(presets).map(([value, [label]]) => ({ value, label }))} value={preset} onChange={setPreset} variant="primary" />
+        <SelectInput className="w-36" label={t('区间')} options={Object.entries(presets).map(([value, [label]]) => ({ value, label }))} value={preset} onChange={setPreset} />
         <TextInput className="w-56" label={t('动作')} placeholder={t('留空查看全部')} value={action} onChange={setAction} variant="primary" />
         <Button isPending={loading} type="submit" variant="secondary">{t('查询')}</Button>
         <span className="flex-1" />

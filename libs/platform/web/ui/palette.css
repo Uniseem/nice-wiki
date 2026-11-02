@@ -3,22 +3,24 @@
   :root,
   [data-theme="light"] {
     --nw-font-body: Georgia, var(--font-sans);
-    --background: #e6e6e6;
+    --background: #f1f1f1;
     --foreground: #171717;
-    --surface: #f8f8f8;
-    --surface-secondary: #eeeeee;
-    --surface-tertiary: #dedede;
+    --surface: #ffffff;
+    --surface-secondary: #f6f6f6;
+    --surface-tertiary: #ebebeb;
     --overlay: #ffffff;
-    --muted: #626262;
-    --default: #dcdcdc;
+    --muted: #5e5e5e;
+    --default: #e8e8e8;
     --default-foreground: #171717;
-    --field-background: #f8f8f8;
-    --border: #d2d2d2;
+    --field-background: #ffffff;
+    --field-border: #d4d4d4;
+    --field-border-width: 1px;
+    --border: #dcdcdc;
     --separator: rgb(0 0 0 / 0.08);
     --accent: #171717;
     --accent-foreground: #fcfcfc;
     --focus: #171717;
-    --surface-shadow: none;
+    --surface-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
     --field-shadow: none;
     --overlay-shadow: 0 1px 2px rgb(5 5 5 / 0.04), 0 16px 40px -16px rgb(5 5 5 / 0.18);
   }
@@ -32,7 +34,9 @@
     --muted: #a5a9ac;
     --default: #303436;
     --default-foreground: #fcfcfc;
-    --field-background: #25282a;
+    --field-background: #1c1e20;
+    --field-border: rgb(252 252 252 / 0.14);
+    --surface-shadow: 0 0 0 1px rgb(252 252 252 / 0.05);
     --border: rgb(252 252 252 / 0.09);
     --separator: rgb(252 252 252 / 0.06);
     --accent: #fcfcfc;

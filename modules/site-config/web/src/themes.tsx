@@ -19,7 +19,7 @@ export function localized(values: Record<string, string> | undefined): string {
 
 // 默认外观（classic）的配色，外观没写的颜色用它补齐，和 palette.css 一致。
 const defaults: Record<'light' | 'dark', Required<Palette>> = {
-  light: { background: '#e6e6e6', foreground: '#171717', surface: '#f8f8f8', muted: '#626262', default: '#dcdcdc', border: '#d2d2d2', accent: '#171717', accentForeground: '#fcfcfc' },
+  light: { background: '#f1f1f1', foreground: '#171717', surface: '#ffffff', muted: '#5e5e5e', default: '#e8e8e8', border: '#dcdcdc', accent: '#171717', accentForeground: '#fcfcfc' },
   dark: { background: '#17191b', foreground: '#ededed', surface: '#222426', muted: '#a5a9ac', default: '#303436', border: 'rgb(252 252 252 / 0.09)', accent: '#fcfcfc', accentForeground: '#050505' },
 };
 const radii: Record<string, string> = { none: '0', small: '3px', medium: '6px', large: '10px' };

@@ -149,7 +149,7 @@ export function TreePanel({ docs, treeRevision, selected, publicPath, onSelect, 
         {canEdit && <Button isIconOnly aria-label={t('新建顶层文档')} size="sm" variant="ghost" onPress={() => create(null)}><Plus /></Button>}
       </div>
       <div className="px-3 pb-2">
-        <SearchField aria-label={t('搜索文档')} value={query} variant="secondary" onChange={setQuery}>
+        <SearchField aria-label={t('搜索文档')} value={query} onChange={setQuery}>
           <SearchField.Group>
             <SearchField.SearchIcon />
             <SearchField.Input placeholder={t('搜索标题')} />

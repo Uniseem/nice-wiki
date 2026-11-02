@@ -6,7 +6,7 @@ import { openSite, type Site } from '@modules/identity/web/src/MySites';
 import { Component, createContext, Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Account } from './App';
 import { canOpen, legacyPath, pageFor, pages, sections, type Page } from './routes';
-import { SiteMark, useSiteBrand } from './brand';
+import { brandName, SiteMark, useSiteBrand } from './brand';
 
 const AccountContext = createContext<Account | null>(null);
 export const useAccount = () => useContext(AccountContext)!;
@@ -34,7 +34,7 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   const rail = documents ? railDocuments : railOther;
   const setRail = documents ? setRailDocuments : setRailOther;
   // 侧栏边缘可以拖动改宽度，往里拖过阈值就收成图标窄栏，从窄栏往外拖又展开。
-  const sidebar = useResizablePane({ widthKey: 'nw-admin-sidebar-width', initial: 256, min: 200, max: 360, collapsedWidth: 64, collapsed: rail, onCollapsedChange: setRail });
+  const sidebar = useResizablePane({ widthKey: 'nw-admin-sidebar-width', initial: 240, min: 200, max: 360, collapsedWidth: 64, collapsed: rail, onCollapsedChange: setRail });
 
   useEffect(() => {
     const moved = legacyPath(path);
@@ -42,7 +42,6 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
     if (!page && visible.length) navigate(account.mustChangePassword ? '/admin/me' : visible[0].path, true);
   }, [path, page, visible, account.mustChangePassword]);
 
-  const nav = <Navigation pages={visible} current={page} onNavigate={() => setNavOpen(false)} />;
   // 整屏页面可以把自己的顶栏内容放进这里（见 InHeader），只留一层顶栏。
   const [slotElement, setSlotElement] = useState<HTMLDivElement | null>(null);
   const [claims, setClaims] = useState(0);
@@ -53,9 +52,8 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
       <div className="flex min-h-dvh bg-background">
         <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-separator bg-surface lg:flex', !sidebar.dragging && 'transition-[width] duration-200')} style={{ width: sidebar.width }}>
           <Brand brand={brand} compact={rail} />
-          {!account.mustChangePassword && <SiteSwitcher compact={rail} sites={sites.data} />}
           <ScrollShadow className={cn('flex-1 pb-4', rail ? 'px-2' : 'px-3')} hideScrollBar>
-            <Navigation compact={rail} pages={visible} current={page} onNavigate={() => setNavOpen(false)} />
+            <SidebarNav compact={rail} current={page} pages={visible} showSwitcher={!account.mustChangePassword} sites={sites.data} onNavigate={() => setNavOpen(false)} />
           </ScrollShadow>
           <AccountBox account={account} compact={rail} onSignOut={onSignOut} />
           <ResizeHandle label={t('调整侧栏宽度')} pane={sidebar} />
@@ -65,8 +63,9 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
           <Drawer.Content placement="left">
             <Drawer.Dialog aria-label={t('后台导航')} className="flex h-full w-72 max-w-[85vw] flex-col p-0">
               <Brand brand={brand} />
-              {!account.mustChangePassword && <SiteSwitcher sites={sites.data} onPicked={() => setNavOpen(false)} />}
-              <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
+              <div className="flex-1 overflow-y-auto px-3 pb-4">
+                <SidebarNav current={page} pages={visible} showSwitcher={!account.mustChangePassword} sites={sites.data} onNavigate={() => setNavOpen(false)} />
+              </div>
               <AccountBox account={account} onSignOut={onSignOut} />
             </Drawer.Dialog>
           </Drawer.Content>
@@ -112,6 +111,17 @@ export function AdminLayout({ account, onSignOut }: { account: Account; onAccoun
   );
 }
 
+// 侧栏分两段：账号级页面在上，切换器和它管辖的站点级页面在下，一眼能看出切换器影响的范围。
+function SidebarNav({ pages: items, current, sites, showSwitcher, compact = false, onNavigate }: { pages: Page[]; current?: Page; sites: Site[] | undefined; showSwitcher: boolean; compact?: boolean; onNavigate: () => void }) {
+  return (
+    <nav aria-label={t('后台页面')} className="flex flex-col gap-3">
+      <Navigation compact={compact} current={current} pages={items.filter((page) => page.personal)} onNavigate={onNavigate} />
+      {showSwitcher && <SiteSwitcher compact={compact} sites={sites} onPicked={onNavigate} />}
+      <Navigation compact={compact} current={current} pages={items.filter((page) => !page.personal)} onNavigate={onNavigate} />
+    </nav>
+  );
+}
+
 // 站点切换：后台其余页面都在选中的站点里工作。列表里的站点也用来刷新当前站点的授权项（角色可能被改过）。
 function SiteSwitcher({ compact = false, sites, onPicked }: { compact?: boolean; sites: Site[] | undefined; onPicked?: () => void }) {
   const site = useCurrentSite();
@@ -122,11 +132,11 @@ function SiteSwitcher({ compact = false, sites, onPicked }: { compact?: boolean;
     else selectSite(null);
   }, [sites, current]);
   return (
-    <div className={cn('shrink-0 pb-2', compact ? 'px-2' : 'px-3')}>
+    <div className="shrink-0">
       <Dropdown>
-        <Button aria-label={t('切换站点')} className={cn('h-auto w-full gap-2 py-2', compact ? 'justify-center px-0' : 'justify-start px-3')} variant="secondary">
+        <Button aria-label={t('切换站点')} className={cn('h-9 w-full gap-2', compact ? 'justify-center px-0' : 'justify-between px-3')} size="sm" variant="outline">
+          <span className={cn('min-w-0 flex-1 truncate text-start text-sm', compact && 'hidden')}>{current?.name ?? (sites ? t('选择站点') : '')}</span>
           <ChevronsExpandVertical className="size-4 shrink-0 text-muted" />
-          <span className={cn('min-w-0 flex-1 truncate text-start text-sm', compact && 'hidden')}>{current?.name ?? t('选择站点')}</span>
         </Button>
         <Dropdown.Popover className="min-w-56" placement="bottom start">
           <Dropdown.Menu onAction={(key: Key) => {
@@ -146,10 +156,10 @@ function SiteSwitcher({ compact = false, sites, onPicked }: { compact?: boolean;
 
 function Brand({ brand, compact = false }: { brand: ReturnType<typeof useSiteBrand>; compact?: boolean }) {
   return (
-    <a className={cn('flex h-14 shrink-0 items-center gap-2.5', compact ? 'justify-center px-0' : 'px-5')} href="/admin/sites" title={compact ? brand.name || 'nice-wiki' : undefined} onClick={(event) => { event.preventDefault(); navigate(currentSite() ? '/admin/dashboard' : '/admin/sites'); }}>
+    <a className={cn('flex h-14 shrink-0 items-center gap-2.5', compact ? 'justify-center px-0' : 'px-5')} href="/admin/sites" title={compact ? brandName(brand) : undefined} onClick={(event) => { event.preventDefault(); navigate(currentSite() ? '/admin/dashboard' : '/admin/sites'); }}>
       <SiteMark brand={brand} className="size-8 shrink-0 rounded-lg text-sm" />
       <span className={cn('min-w-0', compact && 'hidden')}>
-        <span className="block truncate text-sm font-semibold text-foreground">{brand.name || 'nice-wiki'}</span>
+        <span className="block truncate text-sm font-semibold text-foreground">{brandName(brand)}</span>
         <span className="block text-xs text-muted">{t('后台管理')}</span>
       </span>
     </a>
@@ -157,11 +167,11 @@ function Brand({ brand, compact = false }: { brand: ReturnType<typeof useSiteBra
 }
 
 function Navigation({ pages: items, current, compact = false, onNavigate }: { pages: Page[]; current?: Page; compact?: boolean; onNavigate: () => void }) {
-  const nav = useRef<HTMLElement>(null);
+  const nav = useRef<HTMLDivElement>(null);
   // 侧栏较长时，让当前页面的条目保持在可见范围内。
-  useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }); }, [current?.key]);
+  useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'center' }); }, [current?.key]);
   return (
-    <nav ref={nav} aria-label={t('后台页面')} className={cn('flex flex-col pt-2', compact ? 'gap-2' : 'gap-4')}>
+    <div ref={nav} className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
       {sections.map((section) => {
         // 必须先改口令时只剩“个人设置”一页（它平时不在导航里），也显示出来，免得侧栏空着。
         const group = items.filter((page) => (page.navigation || items.length === 1) && page.section === section);
@@ -177,7 +187,7 @@ function Navigation({ pages: items, current, compact = false, onNavigate }: { pa
                   key={page.key}
                   aria-current={active ? 'page' : undefined}
                   aria-label={compact ? page.label : undefined}
-                  className={cn('flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-default text-foreground' : 'text-muted hover:bg-default/70 hover:text-foreground')}
+                  className={cn('flex items-center gap-2.5 rounded-lg py-1.5 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-default text-foreground' : 'text-muted hover:bg-default/70 hover:text-foreground')}
                   href={page.path}
                   title={compact ? page.label : undefined}
                   onClick={(event) => {
@@ -195,7 +205,7 @@ function Navigation({ pages: items, current, compact = false, onNavigate }: { pa
           </div>
         );
       })}
-    </nav>
+    </div>
   );
 }
 

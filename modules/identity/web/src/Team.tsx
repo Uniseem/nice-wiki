@@ -238,7 +238,7 @@ function PrivateAccess({ siteId }: { siteId: string }) {
       <Panel title={t('分享链接')} description={t('拿到链接的人不用登录就能看。每个链接可以单独作废。')}>
         <Form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void create(); }}>
           <TextInput className="max-w-xs" label={t('备注')} maxLength={200} placeholder={t('例如：给评审组')} value={note} onChange={setNote} />
-          <SelectInput label={t('有效期')} value={days} onChange={setDays} options={[{ value: '7', label: t('7 天') }, { value: '30', label: t('30 天') }, { value: '365', label: t('一年') }, { value: 'never', label: t('长期有效') }]} />
+          <SelectInput className="w-36" label={t('有效期')} value={days} onChange={setDays} options={[{ value: '7', label: t('7 天') }, { value: '30', label: t('30 天') }, { value: '365', label: t('一年') }, { value: 'never', label: t('长期有效') }]} />
           <Button isPending={busy} type="submit"><Plus />{t('生成链接')}</Button>
         </Form>
         {created && (

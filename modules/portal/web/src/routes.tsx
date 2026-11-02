@@ -1,4 +1,4 @@
-import { Archive, BookOpen, ChartColumn, Comments, Database, FaceRobot, FileText, Gear, Globe, House, ListCheck, Palette, Person, Persons, Picture, Shield, ShieldCheck } from '@gravity-ui/icons';
+import { Archive, BookOpen, ChartColumn, Comments, Cpu, Database, FileText, Gear, Globe, House, LayoutHeaderCellsLarge, ListCheck, Palette, Person, PersonGear, Persons, Picture, PlugConnection, Shield, ShieldCheck } from '@gravity-ui/icons';
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import groups from '../../../../contracts/permission-groups.json';
 import { t } from '@ui';
@@ -24,11 +24,11 @@ export type Page = {
 };
 
 const ui: Record<string, Omit<Page, 'key' | 'path' | 'label' | 'permissions' | 'navigation'>> = {
-  sites: { section: '', icon: Globe, personal: true, component: lazy(() => import('@modules/identity/web/src/MySites')) },
+  sites: { section: '', icon: LayoutHeaderCellsLarge, personal: true, component: lazy(() => import('@modules/identity/web/src/MySites')) },
   privateAccess: { section: '', icon: Globe, personal: true, component: lazy(() => import('@modules/identity/web/src/PrivateAccess')) },
   team: { section: t('站点'), icon: Persons, component: lazy(() => import('@modules/identity/web/src/Team')) },
-  myai: { section: '', icon: FaceRobot, personal: true, component: lazy(() => import('@modules/identity/web/src/MyAi')) },
-  platform: { section: t('平台'), icon: ShieldCheck, personal: true, component: lazy(() => import('@modules/identity/web/src/Platform')) },
+  myai: { section: '', icon: Cpu, personal: true, component: lazy(() => import('@modules/identity/web/src/MyAi')) },
+  platform: { section: '', icon: ShieldCheck, personal: true, component: lazy(() => import('@modules/identity/web/src/Platform')) },
   dashboard: { section: '', icon: House, component: lazy(() => import('./Dashboard')) },
   me: { section: '', icon: Person, personal: true, component: lazy(() => import('./Profile')) },
   content: { section: t('内容'), icon: FileText, component: lazy(() => import('@modules/content/web/src')), bleed: true },
@@ -36,11 +36,11 @@ const ui: Record<string, Omit<Page, 'key' | 'path' | 'label' | 'permissions' | '
   settings: { section: t('站点'), icon: Gear, component: lazy(() => import('@modules/site-config/web/src')) },
   appearance: { section: t('站点'), icon: Palette, component: lazy(() => import('@modules/site-config/web/src/Appearance')) },
   localization: { section: t('站点'), icon: Globe, component: lazy(() => import('@modules/localization/web/src')) },
-  models: { section: 'AI', icon: FaceRobot, component: lazy(() => import('@modules/model-gateway/web/src')) },
+  models: { section: 'AI', icon: PlugConnection, component: lazy(() => import('@modules/model-gateway/web/src')) },
   knowledge: { section: 'AI', icon: Database, component: lazy(() => import('@modules/knowledge/web/src')) },
   memory: { section: 'AI', icon: BookOpen, component: lazy(() => import('@modules/memory/web/src')) },
   qa: { section: 'AI', icon: Comments, component: lazy(() => import('@modules/qa/web/src')) },
-  accounts: { section: t('系统'), icon: Persons, component: lazy(() => import('@modules/identity/web/src')) },
+  accounts: { section: t('系统'), icon: PersonGear, component: lazy(() => import('@modules/identity/web/src')) },
   analytics: { section: t('系统'), icon: ChartColumn, component: lazy(() => import('@modules/analytics/web/src')) },
   jobs: { section: t('系统'), icon: ListCheck, component: lazy(() => import('@modules/jobs/web/src')) },
   guard: { section: t('系统'), icon: Shield, component: lazy(() => import('@modules/traffic-guard/web/src')) },
@@ -54,7 +54,7 @@ export const pages: Page[] = order.map((key) => {
   return { key, path: route.path, label: t(route.labelZH), permissions: route.permissions, navigation: route.navigation, ...ui[key] };
 });
 
-export const sections = ['', t('平台'), t('内容'), t('站点'), 'AI', t('系统')];
+export const sections = ['', t('内容'), t('站点'), 'AI', t('系统')];
 
 // 旧版后台按服务名的地址，打开时换成登记的新地址。
 const legacy: Record<string, string> = {

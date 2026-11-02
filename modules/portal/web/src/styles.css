@@ -42,8 +42,10 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
   }
+  /* 说明文字里常有很长的地址（如 OAuth 回调），不换行会把手机上的整页撑宽。 */
   body {
     font-family: var(--font-sans);
+    overflow-wrap: break-word;
   }
   /* 拖动侧栏宽度时整页保持左右箭头光标，也不选中文字。 */
   html.nw-resizing,
@@ -65,6 +67,17 @@
   .nw-page-title {
     font-family: var(--font-sans);
     letter-spacing: -0.025em;
+  }
+  /* 标签条贴合内容、不拉满整行；标签内容与页头左缘对齐（HeroUI 默认给面板留了内边距）。 */
+  .tabs__list-container {
+    width: fit-content;
+    max-width: 100%;
+  }
+  .tabs__tab {
+    white-space: nowrap;
+  }
+  .tabs__panel {
+    @apply p-0;
   }
 
   /* —— 编辑器（Tiptap / ProseMirror）—— */
@@ -104,6 +117,10 @@
   }
   .ProseMirror pre {
     @apply relative;
+  }
+  /* 语言标签单独占一行的高度，窄屏上不压住第一行代码。 */
+  .ProseMirror pre[data-language] {
+    padding-top: 2rem;
   }
   .ProseMirror pre[data-language]::after {
     content: attr(data-language);

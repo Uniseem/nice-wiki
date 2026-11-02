@@ -32,7 +32,7 @@ export function ImportPanel() {
     <div className="flex flex-col gap-6">
       <Panel title={t('导入文档')} description={t('选一个 .zip 压缩包（16MB 以内）。导入的文档都是草稿，不会自动发布；检查没问题后在“文档”里发布。')}>
         <div className="flex flex-col gap-4">
-          <SelectInput label={t('压缩包格式')} value={format} onChange={setFormat} options={formatOptions} />
+          <SelectInput className="max-w-xs" label={t('压缩包格式')} value={format} onChange={setFormat} options={formatOptions} />
           <div className="flex flex-wrap items-center gap-3">
             <FileButton accept=".zip,application/zip" onFile={setFile}><Archive />{file ? t('换一个文件') : t('选择压缩包')}</FileButton>
             {file && <span className="text-sm text-muted">{file.name}</span>}

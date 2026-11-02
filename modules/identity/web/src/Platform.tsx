@@ -74,10 +74,12 @@ function SettingsTab() {
   const providerCard = (item: Provider) => (
     <div key={item.provider} className="flex flex-col gap-3 rounded-xl border border-separator p-4">
       <SwitchInput isSelected={item.enabled} label={providerNames[item.provider]} onChange={(value) => setProvider(item.provider, { enabled: value })} />
-      <FormGrid>
-        <TextInput label="Client ID" value={item.clientId} onChange={(value) => setProvider(item.provider, { clientId: value.trim() })} />
-        <TextInput autoComplete="off" label="Client secret" placeholder={item.clientSecretSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets[item.provider] ?? ''} onChange={(value) => setSecrets({ ...secrets, [item.provider]: value })} />
-      </FormGrid>
+      {item.enabled && (
+        <FormGrid>
+          <TextInput label="Client ID" value={item.clientId} onChange={(value) => setProvider(item.provider, { clientId: value.trim() })} />
+          <TextInput autoComplete="off" label="Client secret" placeholder={item.clientSecretSet ? t('已设置，留空保持不变') : ''} type="password" value={secrets[item.provider] ?? ''} onChange={(value) => setSecrets({ ...secrets, [item.provider]: value })} />
+        </FormGrid>
+      )}
     </div>
   );
   return (
@@ -124,7 +126,8 @@ function SettingsTab() {
       <Panel title={t('网盘备份')} description={t('站点所有者可以把备份存到自己的网盘。在对应平台创建 OAuth 应用并只申请应用文件夹权限（Google 用 drive.file，OneDrive 用 Files.ReadWrite.AppFolder，Dropbox 选 App folder），回调地址填 {0}。', `${location.origin}/admin/oauth/<gdrive|onedrive|dropbox>`)}>
         <div className="flex flex-col gap-5">{form.providers.filter((item) => driveProviders.includes(item.provider)).map(providerCard)}</div>
       </Panel>
-      <div><Button isPending={busy} type="submit">{t('保存')}</Button></div>
+      {/* 这一页很长，保存按钮贴在视口底部，不用翻到最后。 */}
+      <div className="sticky bottom-0 z-10 -mx-4 flex justify-end border-t border-separator bg-background/85 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"><Button isPending={busy} type="submit">{t('保存')}</Button></div>
     </Form>
   );
 }

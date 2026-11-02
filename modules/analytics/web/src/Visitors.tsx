@@ -15,7 +15,7 @@ export default function Visitors() {
   const interval = useMemo(() => { const to = new Date(); return new URLSearchParams({ from: new Date(to.getTime() - Number(days) * 86400_000).toISOString(), to: to.toISOString() }).toString(); }, [days]);
   const visitors = useLoad((signal) => api<Result>(`/v1/statistics/visitors?${interval}&limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }), [interval, cursor]);
   return <div className="flex flex-col gap-5">
-    <div className="flex flex-wrap items-end justify-between gap-3"><SelectInput label={t('时间范围')} value={days} onChange={(value) => { setDays(value); setCursor(''); }} options={[{ value: '1', label: t('近 24 小时') }, { value: '7', label: t('近 7 天') }, { value: '30', label: t('近 30 天') }]} /><Button variant="secondary" onPress={visitors.reload}>{t('刷新')}</Button></div>
+    <div className="flex flex-wrap items-end justify-between gap-3"><SelectInput className="w-44" label={t('时间范围')} value={days} onChange={(value) => { setDays(value); setCursor(''); }} options={[{ value: '1', label: t('近 24 小时') }, { value: '7', label: t('近 7 天') }, { value: '30', label: t('近 30 天') }]} /><Button variant="secondary" onPress={visitors.reload}>{t('刷新')}</Button></div>
     <p className="text-sm text-muted">{t('按站内访客标识去重，同一访客跨页面和跨天只计一次。活动、IP 和设备信息保留 30 天。')}</p>
     {visitors.error ? <ErrorBlock error={visitors.error} onRetry={visitors.reload} /> : !visitors.data ? <LoadingBlock lines={5} /> : <>
       <div className="grid gap-4 sm:grid-cols-2"><MiniStat label={t('独立访客')} value={fmtNumber(visitors.data.totalVisitors)} /><MiniStat label={t('浏览量')} value={fmtNumber(visitors.data.pageViews)} /></div>

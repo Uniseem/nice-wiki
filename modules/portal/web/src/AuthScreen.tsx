@@ -1,10 +1,10 @@
-import { ArrowRight, Globe, Lock, Person } from '@gravity-ui/icons';
+import { ArrowRight, Globe } from '@gravity-ui/icons';
 import { Button, Card, Form, Spinner } from '@heroui/react';
 import { adminLanguage, api, ApiError, chosenAdminLanguage, errorText, findSiteLanguage, LanguageMenu, newKey, Notice, setAdminLanguage, siteLanguages, storeSession, TextInput, ThemeMenu, t } from '@ui';
 import { solveChallenge } from '@ui/pow';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { ensureBaseLanguage, type Account } from './App';
-import { SiteMark, useSiteBrand } from './brand';
+import { brandName, SiteMark, useSiteBrand } from './brand';
 
 // 进入后台的向导。首次进站：选语言 → 注册唯一的超级管理员 → 填站点名完成初始化；所选语言既是站点基准语言，也是后台界面语言。
 // 已有账号 → 登录；登录后站点还没初始化 → 继续选语言和填站点名。
@@ -99,7 +99,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
     loading: ['', ''],
     language: ['', ''],
     register: [t('创建管理员账号'), t('这是站点的第一个账号，将成为唯一的超级管理员。')],
-    login: [t('登录'), t('使用邮箱和口令登录，或用第三方账号登录。')],
+    login: [t('登录'), options?.providers.length ? t('使用邮箱和口令登录，或用第三方账号登录。') : ''],
     signup: [t('注册'), options?.inviteRequired ? t('需要邀请码。邮箱不会验证，请确认填写正确。') : t('邮箱不会验证，请确认填写正确。')],
     site: [t('初始化站点'), t('给站点起个名字。初始化不调用模型。')],
   };
@@ -111,7 +111,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
       <div className="mb-8 flex items-center gap-3">
         <SiteMark brand={brand} className="size-10 shrink-0 rounded-xl text-lg" />
         <div>
-          <div className="text-lg font-semibold text-foreground">{brand.name || 'nice-wiki'}</div>
+          <div className="text-lg font-semibold text-foreground">{brandName(brand)}</div>
           <div className="text-xs text-muted">{t('文档站后台')}</div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
           <>
             <Card.Header className="gap-1.5">
               <Card.Title className="text-xl font-semibold">{heading[step][0]}</Card.Title>
-              <Card.Description className="leading-6">{heading[step][1]}</Card.Description>
+              {heading[step][1] && <Card.Description className="leading-6">{heading[step][1]}</Card.Description>}
             </Card.Header>
             <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
               {step === 'site' ? (
@@ -142,12 +142,8 @@ export function AuthScreen({ onSignedIn, pending }: { onSignedIn: (account: Acco
               ) : (
                 <>
                   {step === 'signup' && <TextInput label={t('昵称')} maxLength={100} value={displayName} onChange={setDisplayName} />}
-                  <IconField icon={<Person />}>
-                    <TextInput isRequired autoComplete="username" label={step === 'login' || step === 'signup' ? t('邮箱') : t('账号名')} value={accountName} onChange={setAccountName} />
-                  </IconField>
-                  <IconField icon={<Lock />}>
-                    <TextInput isRequired autoComplete={step === 'register' || step === 'signup' ? 'new-password' : 'current-password'} label={t('口令')} minLength={step === 'register' || step === 'signup' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' || step === 'signup' ? t('至少 8 位，建议使用密码管理器生成。') : undefined} />
-                  </IconField>
+                  <TextInput isRequired autoComplete="username" label={step === 'login' || step === 'signup' ? t('邮箱') : t('账号名')} value={accountName} onChange={setAccountName} />
+                  <TextInput isRequired autoComplete={step === 'register' || step === 'signup' ? 'new-password' : 'current-password'} label={t('口令')} minLength={step === 'register' || step === 'signup' ? 8 : undefined} type="password" value={password} onChange={setPassword} description={step === 'register' || step === 'signup' ? t('至少 8 位，建议使用密码管理器生成。') : undefined} />
                   {(step === 'register' || step === 'signup') && (
                     <TextInput isRequired autoComplete="new-password" label={t('确认口令')} type="password" value={confirmation} onChange={setConfirmation} error={confirmation && confirmation !== password ? t('两次输入的口令不一致') : null} />
                   )}
@@ -206,9 +202,4 @@ function LanguagePicker() {
       </div>
     </>
   );
-}
-
-function IconField({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  // 图标只做视觉提示，挂在标签旁边，不改变输入框结构。
-  return <div className="relative [&_label]:ps-6"><span className="pointer-events-none absolute start-0 top-0.5 text-muted [&>svg]:size-4">{icon}</span>{children}</div>;
 }

@@ -37,7 +37,9 @@ export function useSiteBrand(): Brand {
   return brand;
 }
 
-// 配置读到之前只占位，标志不会先画成默认色再变成主题色。
+// 配置读到之前站名和标志都只占位，不会先闪一下默认名字和默认色。
+export const brandName = (brand: Brand) => (brand.themeColor ? brand.name || 'nice-wiki' : ' ');
+
 export function SiteMark({ brand, className }: { brand: Brand; className: string }) {
   if (brand.logo) return <img alt="" className={cn(className, 'object-contain')} src={assetURL(brand.logo)} />;
   if (!brand.themeColor) return <span className={className} />;

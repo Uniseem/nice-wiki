@@ -82,8 +82,8 @@ function JobsTab() {
   return (
     <div className="flex flex-col gap-4">
       <Form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void load(false); }}>
-        <SelectInput className="w-40" label={t('状态')} options={[{ value: 'active', label: t('活动') }, { value: 'failed', label: t('失败') }, { value: 'dead-letter', label: t('死信') }, { value: 'all', label: t('全部') }]} value={state} onChange={setState} variant="primary" />
-        <SelectInput className="w-48" label={t('分类')} options={categories} value={owner} onChange={setOwner} variant="primary" />
+        <SelectInput className="w-40" label={t('状态')} options={[{ value: 'active', label: t('活动') }, { value: 'failed', label: t('失败') }, { value: 'dead-letter', label: t('死信') }, { value: 'all', label: t('全部') }]} value={state} onChange={setState} />
+        <SelectInput className="w-48" label={t('分类')} options={categories} value={owner} onChange={setOwner} />
         <Button isPending={loading} type="submit" variant="secondary"><ArrowsRotateRight />{t('刷新')}</Button>
       </Form>
       {error ? <ErrorBlock error={error} onRetry={() => void load(false)} /> : !jobs ? <LoadingBlock lines={5} /> : !jobs.length ? (

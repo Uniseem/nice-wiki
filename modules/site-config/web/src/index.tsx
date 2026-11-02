@@ -142,7 +142,7 @@ function HomeTab({ config, onSaved }: TabProps) {
   const fromConfig = () => ({
     mainTitle: config.home.mainTitle, subtitle: config.home.subtitle, backgroundText: config.home.backgroundText,
     mode: config.home.background?.kind === 'color' ? 'color' as const : 'theme' as const,
-    color: config.home.background?.color ?? '#e6e6e6', overlayPercent: config.home.overlayPercent, textColor: config.home.textColor as 'light' | 'dark',
+    color: config.home.background?.color ?? '#f1f1f1', overlayPercent: config.home.overlayPercent, textColor: config.home.textColor as 'light' | 'dark',
     headerLinks: config.home.headerLinks ?? [],
   });
   const [form, setForm] = useState(fromConfig);

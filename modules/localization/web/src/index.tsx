@@ -133,7 +133,7 @@ function Translations({ base, languages }: { base: string; languages: Language[]
     <Panel
       title={t('文档译文')}
       description={t('启用的语言会自动翻译每篇已发布文档，重新发布后自动更新，不需要手动操作。')}
-      actions={<SelectInput aria-label={t('目标语言')} className="w-48" options={languages.map((language) => ({ value: language.tag, label: t('{0}（{1}）', nameOf(language.tag), language.tag) }))} value={target} onChange={setTarget} variant="primary" />}
+      actions={<SelectInput aria-label={t('目标语言')} className="w-48" options={languages.map((language) => ({ value: language.tag, label: t('{0}（{1}）', nameOf(language.tag), language.tag) }))} value={target} onChange={setTarget} />}
     >
       {progress.error ? <ErrorBlock error={progress.error} onRetry={progress.reload} /> : !progress.data ? <LoadingBlock lines={3} /> : (
         <>

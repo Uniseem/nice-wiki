@@ -1823,22 +1823,6 @@
   "id": "Ini kata sandi awal yang diatur admin utama. Ubah untuk memakai fitur admin lainnya.",
   "ar": "هذه كلمة المرور الأولية التي عيّنها لك المسؤول الأعلى. غيّرها لتستخدم بقية لوحة الإدارة."
  },
- "这里汇总站点的整体情况。从左侧进入各个功能页面。": {
-  "zh-Hant": "這裡彙整網站的整體狀況。從左側進入各個功能頁面。",
-  "en": "An overview of your site. Use the left sidebar to open each section.",
-  "ja": "サイト全体の状況をまとめています。左側から各機能ページに移動できます。",
-  "ko": "사이트 전체 현황입니다. 왼쪽에서 각 기능 페이지로 이동하세요.",
-  "fr": "Vue d'ensemble de votre site. Utilisez la barre latérale pour ouvrir chaque section.",
-  "de": "Überblick über Ihre Website. Über die linke Seitenleiste erreichen Sie die einzelnen Bereiche.",
-  "es": "Resumen general de tu sitio. Usa la barra lateral izquierda para abrir cada sección.",
-  "pt": "Visão geral do seu site. Use a barra lateral esquerda para abrir cada seção.",
-  "ru": "Обзор сайта. Разделы открываются из меню слева.",
-  "it": "Panoramica del sito. Usa la barra laterale sinistra per aprire ogni sezione.",
-  "vi": "Tổng quan về trang. Dùng thanh bên trái để mở từng mục.",
-  "th": "ภาพรวมของเว็บไซต์ ใช้แถบด้านซ้ายเพื่อเปิดแต่ละหน้า",
-  "id": "Ringkasan situs Anda. Gunakan bilah samping kiri untuk membuka setiap bagian.",
-  "ar": "نظرة عامة على موقعك. استخدم الشريط الجانبي لفتح كل قسم."
- },
  "退出": {
   "zh-Hant": "登出",
   "en": "Sign out",
@@ -2094,22 +2078,6 @@
   "th": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ",
   "id": "Sudah punya akun? Masuk",
   "ar": "لديك حساب بالفعل؟ تسجيل الدخول"
- },
- "平台": {
-  "zh-Hant": "平台",
-  "en": "Platform",
-  "ja": "プラットフォーム",
-  "ko": "플랫폼",
-  "fr": "Plateforme",
-  "de": "Plattform",
-  "es": "Plataforma",
-  "pt": "Plataforma",
-  "ru": "Платформа",
-  "it": "Piattaforma",
-  "vi": "Nền tảng",
-  "th": "แพลตฟอร์ม",
-  "id": "Platform",
-  "ar": "المنصة"
  },
  "平台管理": {
   "zh-Hant": "平台管理",

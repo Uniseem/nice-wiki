@@ -114,7 +114,7 @@ function CleanupPage() {
           <Tabs.Panel id="all"><span /></Tabs.Panel>
           <Tabs.Panel id="unused"><span /></Tabs.Panel>
         </Tabs>
-        <SelectInput aria-label={t('类别')} className="w-44" options={[{ value: 'all', label: t('全部类别') }, ...Object.entries(kinds).map(([value, label]) => ({ value, label }))]} placeholder={t('全部类别')} value={kind} onChange={setKind} variant="primary" />
+        <SelectInput aria-label={t('类别')} className="w-44" options={[{ value: 'all', label: t('全部类别') }, ...Object.entries(kinds).map(([value, label]) => ({ value, label }))]} placeholder={t('全部类别')} value={kind} onChange={setKind} />
       </div>
       {tab === 'unused' && <Notice status="accent">{t('这里只列当前没有任何文档或站点设置引用的资源。勾选后生成清理计划；仍被历史版本引用的会单独提示风险。')}</Notice>}
 

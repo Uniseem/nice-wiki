@@ -113,7 +113,7 @@ function TurnsTab() {
   if (!turns.data) return <LoadingBlock lines={5} />;
   return <div className="flex flex-col gap-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <SelectInput label={t('结果')} value={filter} onChange={(value) => { setFilter(value); setCursor(''); }} options={[
+      <SelectInput className="w-44" label={t('结果')} value={filter} onChange={(value) => { setFilter(value); setCursor(''); }} options={[
         { value: 'all', label: t('全部') }, { value: 'no_evidence', label: t('无依据') }, { value: 'failed', label: t('失败') }, { value: 'unhelpful', label: t('没帮助') },
       ]} />
       <Button variant="secondary" onPress={turns.reload}>{t('刷新')}</Button>

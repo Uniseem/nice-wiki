@@ -70,12 +70,12 @@ export default function MySitesPage() {
       {sites.error ? <ErrorBlock error={sites.error} onRetry={sites.reload} /> : !sites.data ? <LoadingBlock lines={4} /> : (
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label={t('站点列表')} className="min-w-[720px]">
+            <Table.Content aria-label={t('站点列表')}>
               <Table.Header>
                 <Table.Column isRowHeader>{t('站点')}</Table.Column>
-                <Table.Column>{t('我的角色')}</Table.Column>
-                <Table.Column>{t('状态')}</Table.Column>
-                <Table.Column className="w-48 text-end">{t('操作')}</Table.Column>
+                <Table.Column className="hidden sm:table-cell">{t('我的角色')}</Table.Column>
+                <Table.Column className="hidden sm:table-cell">{t('状态')}</Table.Column>
+                <Table.Column className="w-32 text-end sm:w-48">{t('操作')}</Table.Column>
               </Table.Header>
               <Table.Body renderEmptyState={() => <EmptyBlock className="m-4" icon={<Globe />} title={t('还没有站点')} description={t('新建一个站点，开始写文档。')} />}>
                 {sites.data.sites.map((site) => (
@@ -83,9 +83,11 @@ export default function MySitesPage() {
                     <Table.Cell>
                       <span className="block font-medium text-foreground">{site.name}</span>
                       <span className="block text-xs text-muted">{site.primaryHost || site.slug}{site.visibility === 'private' ? ` · ${t('私有')}` : ''}</span>
+                      {/* 手机上状态列收起，只有异常状态才在站点名下面提示。 */}
+                      {site.status !== 'active' && <Chip className="mt-1 sm:hidden" color={statusText[site.status]?.tone ?? 'default'} size="sm" variant="soft">{statusText[site.status]?.label ?? site.status}</Chip>}
                     </Table.Cell>
-                    <Table.Cell><Chip size="sm" variant="soft">{roleText[site.role]}</Chip></Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell className="hidden sm:table-cell"><Chip size="sm" variant="soft">{roleText[site.role]}</Chip></Table.Cell>
+                    <Table.Cell className="hidden sm:table-cell">
                       <Chip color={statusText[site.status]?.tone ?? 'default'} size="sm" variant="soft">{statusText[site.status]?.label ?? site.status}</Chip>
                       {site.purgeAt && <span className="ms-2 text-xs text-muted">{t('{0} 天后永久清除', Math.max(1, Math.ceil((Date.parse(site.purgeAt) - Date.now()) / 86400000)))}</span>}
                       {site.failedDomains > 0 && <Chip className="ms-1" color="danger" size="sm" variant="soft">{t('自定义域名已失效')}</Chip>}

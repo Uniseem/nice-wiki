@@ -1,6 +1,6 @@
 import { ArrowRight, ChartColumn, CircleCheck, Circle, FileText, Globe, Plus, TrashBin } from '@gravity-ui/icons';
 import { buttonVariants, Card, Chip, cn } from '@heroui/react';
-import { api, fmtNumber, fmtRelative, navigate, PageHeader, Stat, useGrants, t } from '@ui';
+import { api, fmtNumber, fmtRelative, LoadingBlock, navigate, PageHeader, Stat, useGrants, t } from '@ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAccount } from './AdminLayout';
 
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [tiles, setTiles] = useState<Tiles>({});
   const [recent, setRecent] = useState<Doc[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,6 +61,7 @@ export default function Dashboard() {
     void Promise.all(tasks).then(() => {
       if (signal.aborted) return;
       setTiles({ ...next });
+      setReady(true);
       const order = ['doc', 'lang', 'model', 'qa'];
       setSteps(checklist.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key)));
     });
@@ -73,7 +75,6 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t('{0}，{1}', greeting, account.accountName)}
-        description={t('这里汇总站点的整体情况。从左侧进入各个功能页面。')}
         actions={grants.includes('content.edit') ? (
           <a className={buttonVariants({ variant: 'primary' })} href="/admin/content" onClick={(event) => { event.preventDefault(); navigate('/admin/content'); }}>
             <Plus />{t('写文档')}
@@ -81,6 +82,7 @@ export default function Dashboard() {
         ) : undefined}
       />
 
+      {!ready && <LoadingBlock lines={5} />}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {tiles.total !== undefined && <Stat icon={<FileText />} label={t('文档')} value={fmtNumber(tiles.total)} hint={t('{0} 篇已发布 · {1} 篇草稿', tiles.published ?? 0, tiles.drafts ?? 0)} />}
         {tiles.trash !== undefined && <Stat icon={<TrashBin />} label={t('回收站')} value={tiles.trash} hint={t('可以恢复或彻底删除')} />}
@@ -88,7 +90,7 @@ export default function Dashboard() {
         {tiles.languages !== undefined && <Stat icon={<Globe />} label={t('启用的语言')} value={fmtNumber(tiles.languages)} hint={t('含基准语言')} />}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid items-start gap-4 lg:grid-cols-5">
         {steps.length > 0 && (
           <Card className="gap-4 p-5 lg:col-span-3">
             <div className="flex items-center justify-between gap-3">
@@ -104,7 +106,7 @@ export default function Dashboard() {
                   <LinkRow href={step.href}>
                     {step.done ? <CircleCheck className="mt-0.5 size-5 shrink-0 text-success" /> : <Circle className="mt-0.5 size-5 shrink-0 text-muted" />}
                     <span className="min-w-0 flex-1">
-                      <span className={cn('block text-sm font-medium', step.done ? 'text-muted line-through' : 'text-foreground')}>{step.title}</span>
+                      <span className={cn('block text-sm font-medium', step.done ? 'text-muted' : 'text-foreground')}>{step.title}</span>
                       <span className="block text-sm text-muted">{step.description}</span>
                     </span>
                     <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted rtl:-scale-x-100" />

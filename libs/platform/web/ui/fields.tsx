@@ -3,7 +3,7 @@ import type { Key } from '@heroui/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { t } from './i18n';
 
-// 表单控件：统一 HeroUI 的 标签 + 输入 + 说明 + 校验错误 组合。卡片里默认用 secondary（无阴影的填充样式）。
+// 表单控件：统一 HeroUI 的 标签 + 输入 + 说明 + 校验错误 组合。
 
 type Variant = 'primary' | 'secondary';
 type Common = {
@@ -29,7 +29,7 @@ function useRecommit<T extends HTMLElement>(error: string | null | undefined) {
   return ref;
 }
 
-export function TextInput({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, placeholder, type, maxLength, minLength, pattern, autoComplete, autoFocus, isReadOnly, name, onBlur, validate, ...rest }: Common & {
+export function TextInput({ label, description, error, isRequired, isDisabled, className, variant = 'primary', value, onChange, placeholder, type, maxLength, minLength, pattern, autoComplete, autoFocus, isReadOnly, name, onBlur, validate, ...rest }: Common & {
   value: string; onChange: (value: string) => void; placeholder?: string; type?: 'text' | 'password' | 'email' | 'url' | 'search' | 'tel';
   maxLength?: number; minLength?: number; pattern?: string; autoComplete?: string; autoFocus?: boolean; isReadOnly?: boolean; name?: string;
   onBlur?: () => void; validate?: (value: string) => string | null | undefined;
@@ -63,7 +63,7 @@ export function TextInput({ label, description, error, isRequired, isDisabled, c
   );
 }
 
-export function TextAreaInput({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, placeholder, rows = 4, maxLength, isReadOnly, ...rest }: Common & {
+export function TextAreaInput({ label, description, error, isRequired, isDisabled, className, variant = 'primary', value, onChange, placeholder, rows = 4, maxLength, isReadOnly, ...rest }: Common & {
   value: string; onChange: (value: string) => void; placeholder?: string; rows?: number; maxLength?: number; isReadOnly?: boolean;
 }) {
   const area = useRecommit<HTMLTextAreaElement>(error);
@@ -87,7 +87,7 @@ export function TextAreaInput({ label, description, error, isRequired, isDisable
   );
 }
 
-export function NumberInput({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, minValue, maxValue, step, formatOptions, ...rest }: Common & {
+export function NumberInput({ label, description, error, isRequired, isDisabled, className, variant = 'primary', value, onChange, minValue, maxValue, step, formatOptions, ...rest }: Common & {
   value: number; onChange: (value: number) => void; minValue?: number; maxValue?: number; step?: number; formatOptions?: Intl.NumberFormatOptions;
 }) {
   return (
@@ -119,7 +119,7 @@ export function NumberInput({ label, description, error, isRequired, isDisabled,
 
 export type Option<V extends string = string> = { value: V; label: ReactNode; text?: string; description?: ReactNode; disabled?: boolean };
 
-export function SelectInput<V extends string>({ label, description, error, isRequired, isDisabled, className, variant = 'secondary', value, onChange, options, placeholder = t('请选择'), ...rest }: Common & {
+export function SelectInput<V extends string>({ label, description, error, isRequired, isDisabled, className, variant = 'primary', value, onChange, options, placeholder = t('请选择'), ...rest }: Common & {
   value: V | '' | null; onChange: (value: V) => void; options: Option<V>[]; placeholder?: string;
 }) {
   return (

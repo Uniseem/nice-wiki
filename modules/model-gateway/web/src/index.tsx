@@ -175,7 +175,7 @@ function AdvancedModelsPage() {
                     task[0],
                     <span><span className="block">{task[2]}</span><Mono>{task[0]}</Mono></span>,
                     <Chip size="sm" variant="soft">{tiers[task[1]]}</Chip>,
-                    <SelectInput aria-label={t('{0}指定模型', task[2])} className="w-56" isDisabled={busy} options={[{ value: '__tier', label: t('按档位') }, ...eligible.map((model) => ({ value: model.modelId, label: model.providerModelVersion }))]} value={current?.overrideModelId ?? '__tier'} onChange={(value) => void assign(task, value === '__tier' ? '' : value)} variant="primary" />,
+                    <SelectInput aria-label={t('{0}指定模型', task[2])} className="w-56" isDisabled={busy} options={[{ value: '__tier', label: t('按档位') }, ...eligible.map((model) => ({ value: model.modelId, label: model.providerModelVersion }))]} value={current?.overrideModelId ?? '__tier'} onChange={(value) => void assign(task, value === '__tier' ? '' : value)} />,
                     current ? <Chip color="success" size="sm" variant="soft">{t('已分配')}</Chip> : <Chip color="warning" size="sm" variant="soft">{t('未分配')}</Chip>,
                   ];
                 })} />
