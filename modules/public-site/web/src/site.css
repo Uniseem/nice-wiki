@@ -112,27 +112,47 @@
     align-items: start;
     justify-content: space-between;
     gap: 2rem;
-    padding-block: 4rem;
+    padding-block: 3rem;
   }
   .nw-footer-brand {
     font-family: var(--font-sans);
-    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
     font-weight: 600;
     line-height: 1;
     letter-spacing: -0.05em;
     overflow-wrap: anywhere;
   }
+  /* 分隔线和文字同宽（线画在内边距之内）；自定义页脚靠左，两个固定链接靠右。 */
   .nw-footer-bottom {
+    position: relative;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--separator);
     font-size: 0.75rem;
+  }
+  .nw-footer-bottom::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline: clamp(1.25rem, 5.5vw, 5rem);
+    height: 1px;
+    background: var(--separator);
+  }
+  .nw-footer-bottom > :first-child {
+    margin-inline-end: auto;
+  }
+  /* 文档页三栏更宽，页头页脚跟着对齐到同一条左右边线。 */
+  body:has(.nw-reading-layout) :is(.nw-header-inner, .nw-footer-inner, .nw-footer-bottom) {
+    max-width: 1600px;
+    padding-inline: 1.5rem;
+  }
+  body:has(.nw-reading-layout) .nw-footer-bottom::before {
+    inset-inline: 1.5rem;
   }
   .nw-reading-layout {
     max-width: 1600px;
     gap: clamp(1.5rem, 2.5vw, 3rem);
   }
   .nw-document {
-    padding-block: clamp(3rem, 6vw, 6rem) 5rem;
+    padding-block: 3rem 5rem;
   }
   .nw-document-title {
     font-family: var(--font-sans);
@@ -301,6 +321,10 @@
   }
   .code-block:hover::before {
     @apply opacity-0;
+  }
+  /* 语言标签单独占一行的高度，窄屏上不压住第一行代码。 */
+  .code-block[data-language]:not([data-language="plaintext"]) pre {
+    padding-top: 2rem;
   }
 
   .nw-home-links { align-items: center; gap: 1.5rem; max-width: 50vw; overflow-x: auto; color: var(--muted); font-size: 0.875rem; }

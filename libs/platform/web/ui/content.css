@@ -2,7 +2,7 @@
 
 @layer components {
   .nw-prose {
-    @apply text-muted;
+    color: color-mix(in srgb, var(--foreground) 86%, transparent);
     font-size: var(--nw-prose-size, 1.125rem);
     line-height: var(--nw-prose-leading, 1.75);
     font-family: var(--nw-font-body);
