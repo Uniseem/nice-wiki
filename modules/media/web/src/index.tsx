@@ -24,7 +24,7 @@ const kindIcon = (kind: string) => kind === 'image' || kind === 'platform_cover'
 
 export default function LibraryPage() {
  const [tab,setTab]=useState('library');
- return <div className="flex flex-col gap-6"><PageHeader title={t('资源库')} description={t('本地存储的图片、视频和附件，按分组管理、预览和分享。')} /><Tabs selectedKey={tab} onSelectionChange={(key)=>setTab(String(key))}><Tabs.ListContainer><Tabs.List aria-label={t('资源库')}><Tabs.Tab id="library">{t('全部资源')}<Tabs.Indicator /></Tabs.Tab><Tabs.Tab id="cleanup">{t('引用与清理')}<Tabs.Indicator /></Tabs.Tab></Tabs.List></Tabs.ListContainer><Tabs.Panel id="library"><LibraryBrowser /></Tabs.Panel><Tabs.Panel id="cleanup"><CleanupPage /></Tabs.Panel></Tabs></div>;
+ return <div className="flex flex-col gap-6"><PageHeader title={t('资源库')} description={t('本地存储的图片、视频和附件，按分组管理、预览和分享。')} /><Tabs selectedKey={tab} onSelectionChange={(key)=>setTab(String(key))}><Tabs.ListContainer className="mb-4"><Tabs.List aria-label={t('资源库')}><Tabs.Tab id="library">{t('全部资源')}<Tabs.Indicator /></Tabs.Tab><Tabs.Tab id="cleanup">{t('引用与清理')}<Tabs.Indicator /></Tabs.Tab></Tabs.List></Tabs.ListContainer><Tabs.Panel id="library"><LibraryBrowser /></Tabs.Panel><Tabs.Panel id="cleanup"><CleanupPage /></Tabs.Panel></Tabs></div>;
 }
 
 function CleanupPage() {
@@ -102,7 +102,7 @@ function CleanupPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('资源库')} description={t('文档和站点设置里上传的图片、视频、附件与画板。删除需要先生成清理计划，并经过保护窗口。')} />
+      <p className="text-sm leading-6 text-muted">{t('文档和站点设置里上传的图片、视频、附件与画板。删除需要先生成清理计划，并经过保护窗口。')}</p>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <Tabs selectedKey={tab} onSelectionChange={(key) => setTab(key as 'all' | 'unused')}>
           <Tabs.ListContainer>

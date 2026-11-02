@@ -118,7 +118,7 @@ export function Stat({ label, value, hint, icon }: { label: ReactNode; value: Re
 export function MiniStat({ label, value, tone = 'default' }: { label: ReactNode; value: ReactNode; tone?: Tone }) {
   const color = { default: 'text-foreground', accent: 'text-accent', success: 'text-success', warning: 'text-warning', danger: 'text-danger' }[tone];
   return (
-    <div className="rounded-xl border border-border bg-surface-secondary/60 px-4 py-3">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <div className="text-xs text-muted">{label}</div>
       <div className={cn('mt-1 text-2xl font-semibold tabular-nums', color)}>{value}</div>
     </div>

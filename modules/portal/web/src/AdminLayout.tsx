@@ -169,7 +169,7 @@ function Brand({ brand, compact = false }: { brand: ReturnType<typeof useSiteBra
 function Navigation({ pages: items, current, compact = false, onNavigate }: { pages: Page[]; current?: Page; compact?: boolean; onNavigate: () => void }) {
   const nav = useRef<HTMLDivElement>(null);
   // 侧栏较长时，让当前页面的条目保持在可见范围内。
-  useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'center' }); }, [current?.key]);
+  useEffect(() => { nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' }); }, [current?.key]);
   return (
     <div ref={nav} className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
       {sections.map((section) => {
@@ -187,7 +187,7 @@ function Navigation({ pages: items, current, compact = false, onNavigate }: { pa
                   key={page.key}
                   aria-current={active ? 'page' : undefined}
                   aria-label={compact ? page.label : undefined}
-                  className={cn('flex items-center gap-2.5 rounded-lg py-1.5 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-default text-foreground' : 'text-muted hover:bg-default/70 hover:text-foreground')}
+                  className={cn('flex scroll-my-10 items-center gap-2.5 rounded-lg py-1.5 text-sm font-medium transition-colors', compact ? 'justify-center px-0' : 'px-3', active ? 'bg-default text-foreground' : 'text-muted hover:bg-default/70 hover:text-foreground')}
                   href={page.path}
                   title={compact ? page.label : undefined}
                   onClick={(event) => {

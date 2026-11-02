@@ -4271,22 +4271,6 @@
   "id": "Verifikasi",
   "ar": "تحقق"
  },
- "验证 {0}": {
-  "zh-Hant": "驗證 {0}",
-  "en": "Verify {0}",
-  "ja": "{0} を検証",
-  "ko": "{0} 인증",
-  "fr": "Vérifier {0}",
-  "de": "{0} verifizieren",
-  "es": "Verificar {0}",
-  "pt": "Verificar {0}",
-  "ru": "Проверить {0}",
-  "it": "Verifica {0}",
-  "vi": "Xác minh {0}",
-  "th": "ยืนยัน {0}",
-  "id": "Verifikasi {0}",
-  "ar": "تحقق من {0}"
- },
  "验证失败": {
   "zh-Hant": "驗證失敗",
   "en": "Verification Failed",
@@ -5470,5 +5454,21 @@
   "th": "เหตุผลที่ปฏิเสธ",
   "id": "Alasan penolakan",
   "ar": "سبب الرفض"
+ },
+ "已用完": {
+  "zh-Hant": "已用完",
+  "en": "Used up",
+  "ja": "使い切り済み",
+  "ko": "모두 사용됨",
+  "fr": "Épuisé",
+  "de": "Aufgebraucht",
+  "es": "Agotado",
+  "pt": "Esgotado",
+  "ru": "Исчерпан",
+  "it": "Esaurito",
+  "vi": "Đã dùng hết",
+  "th": "ใช้ครบแล้ว",
+  "id": "Habis",
+  "ar": "مستنفد"
  }
 }

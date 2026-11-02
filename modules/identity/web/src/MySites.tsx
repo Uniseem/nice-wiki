@@ -80,7 +80,7 @@ export default function MySitesPage() {
               <Table.Body renderEmptyState={() => <EmptyBlock className="m-4" icon={<Globe />} title={t('还没有站点')} description={t('新建一个站点，开始写文档。')} />}>
                 {sites.data.sites.map((site) => (
                   <Table.Row key={site.siteId} id={site.siteId}>
-                    <Table.Cell>
+                    <Table.Cell className="whitespace-normal">
                       <span className="block font-medium text-foreground">{site.name}</span>
                       <span className="block text-xs text-muted">{site.primaryHost || site.slug}{site.visibility === 'private' ? ` · ${t('私有')}` : ''}</span>
                       {/* 手机上状态列收起，只有异常状态才在站点名下面提示。 */}

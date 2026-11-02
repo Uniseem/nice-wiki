@@ -173,7 +173,7 @@ function RegInvitesTab() {
       <div className="flex justify-end"><Button onPress={() => setCreating(true)}><Plus />{t('生成邀请码')}</Button></div>
       {invites.error ? <ErrorBlock error={invites.error} onRetry={invites.reload} /> : !invites.data ? <LoadingBlock lines={3} /> : (
         <SimpleTable label={t('注册邀请码')} empty={t('还没有邀请码')} columns={[t('备注'), t('已用 / 可用'), t('状态'), '']}
-          rows={invites.data.map((invite) => [invite.note || '—', `${invite.used} / ${invite.maxUses}`, invite.revoked ? <Chip key="s" size="sm" variant="soft">{t('已作废')}</Chip> : <Chip key="s" color="success" size="sm" variant="soft">{t('可用')}</Chip>, invite.revoked ? null : <Button key="a" isDisabled={busy} size="sm" variant="ghost" onPress={() => void revoke(invite)}>{t('作废')}</Button>])} />
+          rows={invites.data.map((invite) => [invite.note || '—', `${invite.used} / ${invite.maxUses}`, invite.revoked ? <Chip key="s" size="sm" variant="soft">{t('已作废')}</Chip> : invite.used >= invite.maxUses ? <Chip key="s" size="sm" variant="soft">{t('已用完')}</Chip> : <Chip key="s" color="success" size="sm" variant="soft">{t('可用')}</Chip>, invite.revoked || invite.used >= invite.maxUses ? null : <Button key="a" isDisabled={busy} size="sm" variant="ghost" onPress={() => void revoke(invite)}>{t('作废')}</Button>])} />
       )}
       {creating && (
         <Modal.Backdrop isOpen onOpenChange={(open) => { if (!open) setCreating(false); }}>

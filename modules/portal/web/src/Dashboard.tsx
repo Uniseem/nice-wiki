@@ -90,7 +90,7 @@ export default function Dashboard() {
         {tiles.languages !== undefined && <Stat icon={<Globe />} label={t('启用的语言')} value={fmtNumber(tiles.languages)} hint={t('含基准语言')} />}
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-5">
         {steps.length > 0 && (
           <Card className="gap-4 p-5 lg:col-span-3">
             <div className="flex items-center justify-between gap-3">
@@ -117,7 +117,7 @@ export default function Dashboard() {
           </Card>
         )}
         {recent.length > 0 && (
-          <Card className={cn('gap-3 p-5', steps.length ? 'lg:col-span-2' : 'lg:col-span-5')}>
+          <Card className={cn('min-w-0 gap-3 p-5', steps.length ? 'lg:col-span-2' : 'lg:col-span-5')}>
             <Card.Header className="gap-1">
               <Card.Title className="text-base font-semibold">{t('最近发布')}</Card.Title>
               <Card.Description>{t('点开继续编辑。')}</Card.Description>

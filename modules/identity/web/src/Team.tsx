@@ -152,14 +152,15 @@ function Domains({ siteId }: { siteId: string }) {
         <TextInput className="max-w-sm" label={t('绑定自己的域名')} placeholder="docs.example.com" value={host} onChange={setHost} />
         <Button isDisabled={!host.trim()} isPending={busy} type="submit"><Plus />{t('添加')}</Button>
       </Form>
-      {pending.map((domain) => (
-        <Notice key={domain.host} status="warning" title={t('验证 {0}', domain.host)}>
-          <p className="text-sm leading-6">{t('在域名解析里添加一条 TXT 记录：')}</p>
-          <p className="text-sm"><Mono>{domain.verifyName}</Mono> → <Mono>{domain.verifyToken}</Mono></p>
+      {pending.length > 0 && (
+        <Notice status="warning" title={t('在域名解析里添加一条 TXT 记录：')}>
+          <div className="my-1 flex flex-col gap-1">
+            {pending.map((domain) => <p key={domain.host} className="text-sm"><Mono>{domain.verifyName}</Mono> → <Mono>{domain.verifyToken}</Mono></p>)}
+          </div>
           <p className="text-sm leading-6">{t('并把域名 CNAME 指向平台地址。证书会在第一次访问时自动签发。')}</p>
           <p className="text-sm leading-6">{t('这条 TXT 记录验证后也要一直保留：平台每天复核，连续 3 天查不到会停用这个域名，补回记录后重新验证即可。')}</p>
         </Notice>
-      ))}
+      )}
       {domains.error ? <ErrorBlock error={domains.error} onRetry={domains.reload} /> : !domains.data ? <LoadingBlock lines={3} /> : (
         <Table>
           <Table.ScrollContainer>

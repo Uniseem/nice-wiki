@@ -108,7 +108,7 @@ export default function KnowledgePage() {
         <>
           {o.modelsState !== 'ready' && <Notice status="warning" title={t('模型目录暂不可用')}>{operator ? t('无法配置索引（{0}）。请先检查“模型接入”。', o.modelErrorCode ?? o.modelsState) : t('无法配置索引（{0}）。请稍后重试，或联系站主。', o.modelErrorCode ?? o.modelsState)}</Notice>}
           {o.modelsState === 'ready' && !embeddingProfiles.length && <Notice status="warning" title={t('还没有向量档位')}>{operator ? t('先在“模型接入”里添加带“向量”能力的模型，并生成档位。') : t('平台还没有配置向量档位，请联系站主。')}</Notice>}
-          <div className="grid gap-6 xl:grid-cols-5">
+          <div className="grid items-start gap-6 xl:grid-cols-5">
             <Panel className="xl:col-span-2" title={t('入库配置')} description={t('切块越小检索越精细，但块数更多、调用次数更多。')}>
               <Form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void saveConfig(); }}>
                 <SelectInput

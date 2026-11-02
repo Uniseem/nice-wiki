@@ -79,6 +79,32 @@
   .tabs__panel {
     @apply p-0;
   }
+  /* 手机上表格整体横向滚动，单元格不折行，日期和状态标签才不会被挤成两行。 */
+  @media (max-width: 639px) {
+    :is(.table__cell, .table__column) {
+      white-space: nowrap;
+    }
+  }
+  .chip {
+    white-space: nowrap;
+  }
+  /* 弹窗标题和页面里的面板标题同一字重；表单包在 Form 里时 HeroUI 的“标题 + 正文”间距不生效，统一在标题下留白。 */
+  :is(.modal__heading, .alert-dialog__heading, .drawer__heading) {
+    @apply font-semibold;
+  }
+  :is(.modal__header, .drawer__header) {
+    @apply mb-3;
+  }
+  .modal__header + .modal__body {
+    @apply mt-0;
+  }
+  /* 表单包在 Form 里时内容区不是弹窗的直接子元素，HeroUI 的内部滚动失效，矮屏上提交按钮会被裁掉点不到。 */
+  .modal__dialog > form {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
 
   /* —— 编辑器（Tiptap / ProseMirror）—— */
   .ProseMirror {

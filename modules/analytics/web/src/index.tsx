@@ -134,6 +134,8 @@ function StatsTab() {
     }
     return [...map.values()].sort((a, b) => b.views - a.views);
   }, [result]);
+  // 访问统计里公开首页记作 home，不是文档。
+  const docName = (documentId: string) => documentId === 'home' ? t('首页') : titles.get(documentId) ?? (titles.size ? t('已撤回或删除的文档') : <Mono>{documentId}</Mono>);
   const totals = byDoc.reduce((sum, row) => ({ views: sum.views + row.views, visits: sum.visits + row.visits }), { views: 0, visits: 0 });
   const hours = result?.rows.slice(page * 100, (page + 1) * 100) ?? [];
 
@@ -174,7 +176,7 @@ function StatsTab() {
                     <Table.Body>
                       {byDoc.slice(0, 50).map((row) => (
                         <Table.Row key={row.documentId} id={row.documentId}>
-                          <Table.Cell>{titles.get(row.documentId) ?? (titles.size ? t('已撤回或删除的文档') : <Mono>{row.documentId}</Mono>)}</Table.Cell>
+                          <Table.Cell>{docName(row.documentId)}</Table.Cell>
                           <Table.Cell><span className="flex flex-wrap gap-1">{[...row.locales].map((locale) => <Chip key={locale} size="sm" variant="soft">{locale}</Chip>)}</span></Table.Cell>
                           <Table.Cell className="text-end tabular-nums">{fmtNumber(row.views)}</Table.Cell>
                           <Table.Cell className="text-end tabular-nums">{fmtNumber(row.visits)}</Table.Cell>
@@ -200,7 +202,7 @@ function StatsTab() {
                         {hours.map((row) => (
                           <Table.Row key={row.periodStart + row.documentId + row.locale} id={row.periodStart + row.documentId + row.locale}>
                             <Table.Cell>{fmtDateTime(row.periodStart)}</Table.Cell>
-                            <Table.Cell>{titles.get(row.documentId) ?? (titles.size ? t('已撤回或删除的文档') : <Mono>{row.documentId}</Mono>)}</Table.Cell>
+                            <Table.Cell>{docName(row.documentId)}</Table.Cell>
                             <Table.Cell>{row.locale}</Table.Cell>
                             <Table.Cell className="text-end tabular-nums">{row.views}</Table.Cell>
                             <Table.Cell className="text-end tabular-nums">{row.visits}</Table.Cell>

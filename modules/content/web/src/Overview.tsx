@@ -39,7 +39,7 @@ export function Overview({ docs, leading, onCreate, onSelect }: { docs: Meta[] |
               </div>
               {canEdit && <Button onPress={onCreate}><Plus />{t('新建文档')}</Button>}
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <DocList docs={docs} empty={t('还没有发布过文档。')} icon={<CircleCheck className="size-4 text-success" />} items={recent} title={t('最近发布')} onSelect={onSelect}
                 meta={(doc) => doc.lastPublishedAt ? <span title={fmtDateTime(doc.lastPublishedAt)}>{fmtRelative(doc.lastPublishedAt)}</span> : null} />
               <DocList docs={docs} empty={t('没有未发布的草稿。')} icon={<Pencil className="size-4 text-muted" />} items={drafts} title={t('尚未发布的草稿')} onSelect={onSelect} />
@@ -55,7 +55,7 @@ function DocList({ title, icon, items, docs, empty, meta, onSelect }: {
   title: string; icon: ReactNode; items: Meta[]; docs: Meta[]; empty: string; meta?: (doc: Meta) => ReactNode; onSelect: (id: string) => void;
 }) {
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex min-w-0 flex-col gap-2">
       <h2 className="flex items-center gap-2 px-1 text-sm font-medium text-foreground">{icon}{title}</h2>
       {!items.length ? <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">{empty}</p> : (
         <ul className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
