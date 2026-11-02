@@ -252,8 +252,8 @@ fn escape_html(text: &str) -> String {
 /// 私有站点的访问密码页（纯表单，不依赖脚本）。
 fn password_page(status: StatusCode, back: &str, member: &str, problem: &str) -> Response<Body> {
     let mut page = String::from(r#"<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>私有站点</title>"#);
-    page.push_str(r#"<style>body{font:16px/1.6 system-ui,sans-serif;max-width:22rem;margin:15vh auto;padding:0 1rem;color:#222}input,button{font:inherit;width:100%;box-sizing:border-box;padding:.5rem;margin:.25rem 0}button{cursor:pointer}.e{color:#b00020}a{color:inherit}@media(prefers-color-scheme:dark){body{background:#111;color:#eee}}</style>"#);
-    page.push_str(r#"<h1 style="font-size:1.25rem">这个站点需要访问密码</h1>"#);
+    page.push_str(r#"<style>:root{color-scheme:light dark;--bg:#f1f1f1;--surface:#fff;--fg:#171717;--muted:#5e5e5e;--line:#d4d4d4;--accent:#171717;--accent-fg:#fcfcfc}@media(prefers-color-scheme:dark){:root{--bg:#17191b;--surface:#222426;--fg:#ededed;--muted:#a5a9ac;--line:rgb(252 252 252 / .14);--accent:#fcfcfc;--accent-fg:#050505}}body{min-height:100dvh;margin:0;padding:1rem;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"PingFang SC","Microsoft YaHei UI",sans-serif}main{width:100%;max-width:24rem;padding:2rem;box-sizing:border-box;background:var(--surface);border-radius:1rem;box-shadow:0 0 0 1px rgb(0 0 0 / .05)}h1{font-size:1.25rem;font-weight:600;letter-spacing:-.02em;margin:0 0 1rem}input,button{font:inherit;color:inherit;width:100%;box-sizing:border-box;padding:.55rem .75rem;margin:.25rem 0;border:1px solid var(--line);border-radius:.75rem;background:transparent}button{cursor:pointer;margin-top:.5rem;background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:500}.e{color:#c81e3a;margin:0 0 .5rem}p{font-size:.875rem;margin:.75rem 0 0;color:var(--muted)}a{color:inherit}</style><main>"#);
+    page.push_str("<h1>这个站点需要访问密码</h1>");
     if !problem.is_empty() {
         page.push_str(&format!(r#"<p class="e">{}</p>"#, escape_html(problem)));
     }
@@ -262,5 +262,6 @@ fn password_page(status: StatusCode, back: &str, member: &str, problem: &str) ->
     if !member.is_empty() {
         page.push_str(&format!(r#"<p><a href="{}">我是站点成员，去登录</a></p>"#, escape_html(member)));
     }
+    page.push_str("</main>");
     no_store(html(status, page))
 }

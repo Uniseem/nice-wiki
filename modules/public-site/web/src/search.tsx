@@ -148,7 +148,7 @@ export default function Search({ open, locale, t, deep: deepEnabled, onOpenChang
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-foreground">{hit.node.title}</span>
                         {hit.trail && <span className="block truncate text-xs text-muted">{hit.trail}</span>}
-                        {hit.node.seoDescription && <span className="mt-0.5 line-clamp-1 text-xs text-muted">{hit.node.seoDescription}</span>}
+                        {hit.node.seoDescription && hit.node.seoDescription !== hit.node.title && <span className="mt-0.5 line-clamp-1 text-xs text-muted">{hit.node.seoDescription}</span>}
                       </span>
                     </a>
                   </li>,
