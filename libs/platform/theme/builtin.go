@@ -11,7 +11,7 @@ import (
 var builtinFiles embed.FS
 
 // builtinOrder 是内置外观的展示顺序，第一个是默认外观。
-var builtinOrder = []string{"classic", "paper", "forest", "ocean", "midnight"}
+var builtinOrder = []string{"classic", "paper", "forest", "ocean", "midnight", "low-poly"}
 
 var builtins = loadBuiltins()
 

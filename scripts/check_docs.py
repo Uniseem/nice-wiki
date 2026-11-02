@@ -403,6 +403,22 @@ def check_go_modules():
                 break
 
 
+BUILTIN_THEME_IMAGE = re.compile(r'^libs/platform/theme/builtin/[a-z0-9-]+/assets/[a-z0-9._-]+\.webp$')
+
+
+def is_builtin_theme_image(name, raw):
+    """唯一放行的二进制：内置外观 assets/ 下的 WebP，而且只能有图像分块（没有 EXIF、XMP，文件尾也不能夹带数据），隐私扫描才不算落空。"""
+    if not BUILTIN_THEME_IMAGE.match(name) or raw[:4] != b'RIFF' or raw[8:12] != b'WEBP':
+        return False
+    position = 12
+    while position + 8 <= len(raw):
+        size = int.from_bytes(raw[position + 4:position + 8], 'little')
+        if raw[position:position + 4] not in (b'VP8 ', b'VP8L', b'VP8X', b'ALPH'):
+            return False
+        position += 8 + size + (size & 1)
+    return position == len(raw)
+
+
 def check_staged():
     try:
         names = subprocess.check_output(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z'], cwd=ROOT).decode().split('\0')
@@ -414,7 +430,8 @@ def check_staged():
             try:
                 scan_privacy('暂存:' + name, raw.decode('utf-8'))
             except UnicodeDecodeError:
-                fail('暂存:' + name, '设计阶段不允许未审阅二进制')
+                if not is_builtin_theme_image(name, raw):
+                    fail('暂存:' + name, '不允许二进制文件（只放行内置外观 assets/ 下不带元数据的 WebP）')
     except subprocess.CalledProcessError:
         fail('暂存区', 'Git暂存扫描失败')
 

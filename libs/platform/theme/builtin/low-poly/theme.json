@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "low-poly",
+  "version": "1.0.0",
+  "name": { "zh": "低三角形", "zh-Hant": "低三角形", "en": "Low Poly", "ja": "ローポリ" },
+  "description": {
+    "zh": "三角面拼成的群山和底纹，切角的卡片与按钮，页脚是一道山脊。",
+    "zh-Hant": "三角面拼成的群山和底紋，切角的卡片與按鈕，頁尾是一道山脊。",
+    "en": "Faceted mountains and backgrounds, chamfered cards and buttons, and a ridge along the footer.",
+    "ja": "三角面で組んだ山並みと背景、面取りしたカードとボタン、フッターには稜線。"
+  },
+  "author": "nice-wiki",
+  "license": "MIT",
+  "colorSchemes": ["light", "dark"],
+  "tokens": {
+    "light": {
+      "background": "#eef2f3", "foreground": "#16262e", "surface": "#fbfcfc", "surfaceSecondary": "#e9eff0", "surfaceTertiary": "#d9e3e5",
+      "overlay": "#ffffff", "muted": "#4c5f68", "default": "#dfe7e9", "defaultForeground": "#16262e", "fieldBackground": "#fbfcfc",
+      "border": "#cdd9dc", "separator": "rgb(22 38 46 / 0.1)", "accent": "#b93c0a", "accentForeground": "#fff7f2", "focus": "#b93c0a"
+    },
+    "dark": {
+      "background": "#0f1a20", "foreground": "#e4eef0", "surface": "#1a2a32", "surfaceSecondary": "#21343c", "surfaceTertiary": "#2b4048",
+      "overlay": "#1a2a32", "muted": "#9db2b9", "default": "#26393f", "defaultForeground": "#eef6f7", "fieldBackground": "#14222a",
+      "border": "rgb(228 238 240 / 0.11)", "separator": "rgb(228 238 240 / 0.07)", "accent": "#ff9a66", "accentForeground": "#1c0f08", "focus": "#ff9a66"
+    }
+  },
+  "typography": {
+    "body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+    "bodySize": 17,
+    "lineHeight": 1.8
+  },
+  "shape": { "radius": "none" },
+  "layout": { "contentWidth": "wide" },
+  "stylesheet": "theme.css"
+}

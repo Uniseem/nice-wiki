@@ -1,0 +1,309 @@
+/* 低三角形：页面铺三角面底纹，首页是一幅群山，页脚是一道山脊；控件不用圆角，改成切角和双色折面。
+   图片由 scripts/gen_low_poly_theme.py 生成。颜色分两套写在变量里，两种配色只换变量和图片。 */
+:root,
+[data-theme="light"] {
+  --lp-footer: #10323b;
+  --lp-footer-text: #e4efec;
+  --lp-footer-muted: #a9c4c2;
+  --lp-teal: #17606b;
+  --radius: 0;
+  --field-radius: 0;
+  --lp-hex: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+:is(.dark, [data-theme="dark"]) {
+  --lp-footer: #091217;
+  --lp-footer-text: #dbe7e9;
+  --lp-footer-muted: #93aab0;
+  --lp-teal: #5fb6b4;
+}
+
+/* 切角：左上和右下各切一刀，大小由各元素的 --lp-corner 决定（右上留给代码块的复制按钮）。 */
+.button,
+.nw-back,
+.nw-qa-composer,
+.nw-welcome-choice,
+.nw-article,
+.nw-adjacent > a,
+.nw-prose pre,
+.nw-prose blockquote,
+.nw-prose .callout,
+.nw-prose .attachment,
+.nw-prose .platform-video {
+  clip-path: polygon(var(--lp-corner) 0, 100% 0, 100% calc(100% - var(--lp-corner)), calc(100% - var(--lp-corner)) 100%, 0 100%, 0 var(--lp-corner));
+}
+
+/* 底纹与页头 */
+body {
+  background: var(--background) url(assets/facets-light.webp) 0 0 / 640px;
+}
+:is(.dark, [data-theme="dark"]) body {
+  background-image: url(assets/facets-dark.webp);
+}
+.nw-site-header {
+  background: var(--surface);
+  backdrop-filter: none;
+  border-bottom: 0;
+}
+body[data-page="doc"] .nw-site-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  height: 5px;
+  background: url(assets/trim.webp) 0 0 / 300px 100%;
+  pointer-events: none;
+}
+
+/* 首页和问答页：整页群山 */
+body:is([data-page="home"], [data-page="ask"]) {
+  background: var(--background) url(assets/peaks-light.webp) center bottom / cover no-repeat;
+}
+:is(.dark, [data-theme="dark"]) body:is([data-page="home"], [data-page="ask"]) {
+  background-image: url(assets/peaks-dark.webp);
+}
+body:is([data-page="home"], [data-page="ask"]) .nw-site-header {
+  background: transparent;
+}
+.nw-field {
+  display: none;
+}
+.nw-glass {
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.nw-welcome-outline {
+  display: none;
+}
+.nw-welcome-name {
+  text-shadow: none;
+}
+.nw-welcome-choice {
+  --lp-corner: 16px;
+  padding: 1.5rem;
+  border-top: 0;
+  background: linear-gradient(118deg, var(--surface) 72%, var(--surface-secondary) 72%);
+}
+.nw-welcome-choice:hover {
+  background: linear-gradient(118deg, var(--surface) 58%, var(--surface-tertiary) 58%);
+}
+.nw-welcome-choice:focus-visible {
+  outline-offset: -4px;
+  border-radius: 0;
+}
+.nw-welcome-arrow {
+  border: 0;
+  border-radius: 0;
+  background: var(--default);
+  clip-path: var(--lp-hex);
+}
+.nw-welcome-choice:hover .nw-welcome-arrow {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* 控件：切角，主按钮带一道折痕 */
+.button {
+  --lp-corner: 6px;
+}
+.button:focus-visible {
+  outline-offset: -3px;
+}
+.button--primary {
+  background-image: linear-gradient(112deg, transparent 68%, rgb(0 0 0 / 0.14) 68%);
+}
+/* 描边按钮的边线会被切角切断，改成平涂。 */
+.button--outline,
+.button.nw-ai-entry {
+  border: 0;
+  box-shadow: none;
+  background: var(--surface-secondary);
+}
+.button.nw-qa-launcher {
+  border: 0;
+  background: linear-gradient(112deg, var(--default) 68%, var(--surface-tertiary) 68%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+:is(.button--outline, .button.nw-ai-entry, .button.nw-qa-launcher):is(:hover, [data-hovered="true"]) {
+  background: var(--surface-tertiary);
+}
+.nw-back {
+  --lp-corner: 6px;
+  border: 0;
+  border-radius: 0;
+  background: var(--default);
+}
+.nw-qa-composer {
+  --lp-corner: 14px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+}
+.nw-qa-composer:focus-within {
+  box-shadow: inset 0 0 0 2px var(--focus);
+}
+.nw-qa-composer .button {
+  border-radius: 0;
+  clip-path: var(--lp-hex);
+}
+.nw-qa-trace-node {
+  border-radius: 0;
+  background: var(--default);
+  box-shadow: none;
+  clip-path: var(--lp-hex);
+}
+.nw-qa-trace-item[data-status] .nw-qa-trace-node {
+  box-shadow: none;
+}
+.nw-qa-window {
+  background: var(--surface);
+  backdrop-filter: none;
+}
+
+/* 文档页：正文放在切角的纸面上，文档树和目录直接落在底纹上 */
+.nw-article {
+  --lp-corner: 28px;
+  padding: clamp(1.25rem, 3.2vw, 3rem);
+  background: var(--surface);
+}
+.nw-document {
+  padding-block: 2rem 3rem;
+}
+.nw-sidebar,
+#nw-toc {
+  padding-top: 2.5rem;
+}
+.nw-tree-item.nw-current {
+  background: linear-gradient(112deg, var(--default) 76%, var(--surface-tertiary) 76%);
+  color: var(--foreground);
+}
+.nw-toc-pill {
+  width: 3px;
+  background: var(--accent);
+}
+.nw-toc-mobile {
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-secondary);
+}
+
+/* 标题下一道小山脊，二级标题前一个小三角 */
+.nw-document-title::after {
+  content: "";
+  display: block;
+  width: 5.5rem;
+  height: 0.8rem;
+  margin-top: 0.75rem;
+  background: linear-gradient(104deg, var(--lp-teal) 0 38%, var(--accent) 38% 66%, var(--lp-teal) 66%);
+  clip-path: polygon(0 100%, 20% 28%, 34% 68%, 54% 0, 76% 62%, 86% 38%, 100% 100%);
+}
+.nw-prose h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.62em;
+  height: 0.56em;
+  margin-inline-end: 0.5rem;
+  vertical-align: 0.06em;
+  background: linear-gradient(104deg, var(--accent) 50%, var(--lp-teal) 50%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.nw-prose ul:not(.task-list, [data-type="taskList"]) > li::marker {
+  content: "▲  ";
+  font-size: 0.58em;
+  color: var(--lp-teal);
+}
+
+/* 正文块：平涂加切角，不用细边框（切角会把边框切断） */
+.nw-prose pre,
+.nw-prose blockquote,
+.nw-prose .callout,
+.nw-prose .attachment,
+.nw-prose .platform-video {
+  --lp-corner: 12px;
+  border: 0;
+}
+.nw-prose pre {
+  background: linear-gradient(112deg, var(--surface-secondary) 84%, var(--surface-tertiary) 84%);
+}
+.nw-prose blockquote {
+  padding: 0.85rem 1.25rem;
+  background: var(--surface-secondary);
+}
+.nw-prose .attachment {
+  box-shadow: none;
+  background: var(--surface-secondary);
+}
+.nw-prose .platform-video {
+  background: var(--surface-secondary);
+}
+.nw-prose :is(.table-wrap, .tableWrapper) {
+  border-radius: 0;
+}
+.nw-prose :not(pre) > code,
+.nw-prose mark {
+  border-radius: 0;
+}
+.nw-prose :is(img, video),
+.nw-prose .drawing {
+  border-radius: 0;
+}
+
+/* 相邻文档 */
+.nw-adjacent > a {
+  --lp-corner: 12px;
+  padding: 1.25rem;
+  border-top: 0;
+  background: linear-gradient(112deg, var(--surface-secondary) 72%, var(--surface-tertiary) 72%);
+}
+
+/* 页脚：山脊接一整片深色 */
+.nw-site-footer {
+  --foreground: var(--lp-footer-text);
+  --muted: var(--lp-footer-muted);
+  --separator: rgb(255 255 255 / 0.14);
+  position: relative;
+  margin-top: 10rem;
+  border: 0;
+  background: var(--lp-footer);
+  color: var(--lp-footer-text);
+}
+.nw-site-footer::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% - 1px);
+  height: 10rem;
+  background: url(assets/ridge-light.webp) center bottom / auto 100% repeat-x;
+  pointer-events: none;
+}
+:is(.dark, [data-theme="dark"]) .nw-site-footer::before {
+  background-image: url(assets/ridge-dark.webp);
+}
+
+@media (max-width: 639px) {
+  .nw-welcome-choice {
+    padding: 1rem;
+  }
+  .nw-article {
+    --lp-corner: 18px;
+    margin-inline: -0.25rem;
+  }
+  .nw-site-footer {
+    margin-top: 6rem;
+  }
+  .nw-site-footer::before {
+    height: 6rem;
+  }
+}
+
+@media print {
+  body {
+    background: none;
+  }
+  .nw-article {
+    padding: 0;
+    clip-path: none;
+  }
+}
